@@ -1,0 +1,14 @@
+gvth_1: 40
+gvth_2: 40
+gvth_3: 40
+gvth_4: 40
+max_npix: 400
+max_npix_x: 50
+max_npix_y: 50
+min_npix: 25
+min_npix_x: 5
+min_npix_y: 5
+path: /Users/alex/Documents/OpenPTV/test_cavity/parameters
+size_cross: 3
+sum_grey: 100
+tol_dis: 500

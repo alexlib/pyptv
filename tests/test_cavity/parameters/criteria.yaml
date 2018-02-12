@@ -1,0 +1,16 @@
+X_lay:
+- -40
+- 40
+Zmax_lay:
+- 25
+- 25
+Zmin_lay:
+- -20
+- -20
+cn: 0.02
+cnx: 0.02
+cny: 0.02
+corrmin: 33.0
+csumg: 0.02
+eps0: 0.2
+path: /Users/alex/Documents/OpenPTV/test_cavity/parameters
