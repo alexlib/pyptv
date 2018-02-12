@@ -1,0 +1,5 @@
+[report]
+omit =
+    setup.py
+    pyptv/__main__.py
+    tests/*
