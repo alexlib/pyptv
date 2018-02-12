@@ -16,6 +16,12 @@ requirements:
   build:
     - python
     - setuptools
+    - chaco
+    - enable
+    - pyface
+    - numpy
+    - scipy
+    - scikit-image
   run:
     - python
 
