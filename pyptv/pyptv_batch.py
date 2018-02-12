@@ -143,31 +143,21 @@ def run_batch(new_seq_first, new_seq_last):
     tracker.full_forward()
 #    
 
-def main(sys_argv, repetitions=1):
+def main(exp_path, first, last, repetitions=1):
     """ runs the batch 
     Usage: 
-        main([software_path, exp_dir, first, last], [repetitions])
+        main([exp_dir, first, last], [repetitions])
         
     Parameters:
-        list of 4 parameters in this order:
-        software_path : directory of pyptv_batch.py    
+        list of 3 parameters in this order:
         exp_dir : directory with the experiment data
         first, last : integer, number of a first and last frame
         repetitions : int, default = 1, optional
     """
-    software_path = os.path.split(os.path.abspath(sys_argv[0]))[0]
-    print('software_path=', software_path)
-
-    try:
-        os.chdir(software_path)
-    except:
-        raise ValueError("Error in instalation or software path")
-
-
     start = time.time()
 
     try:
-        exp_path = os.path.abspath(sys_argv[1])
+        exp_path = os.path.abspath(exp_path)
         print('exp_path= %s' % exp_path)
         os.chdir(exp_path)
         print(os.getcwd())
@@ -177,18 +167,18 @@ def main(sys_argv, repetitions=1):
 
     # RON - make a res dir if it not found
 
-    if 'res' not in os.listdir(sys_argv[1]):
+    if 'res' not in os.listdir(exp_path):
         print(" 'res' folder not found. creating one")
-        os.makedirs(os.path.join(sys_argv[1],'res'))
+        os.makedirs(os.path.join(exp_path,'res'))
 
 
     for i in range(repetitions):
         try: # strings       
-            seq_first = eval(sys_argv[2])
-            seq_last = eval(sys_argv[3])
+            seq_first = eval(first)
+            seq_last = eval(last)
         except: # integers
-            seq_first = sys_argv[2]
-            seq_last = sys_argv[3]
+            seq_first = first
+            seq_last = last
 
         try:
             print((seq_first,seq_last))
@@ -217,14 +207,20 @@ if __name__ == '__main__':
         main([batch_command,PyPTV_working_directory, mi, mx])
         """
     # directory from which we run the software
+    print('inside pyptv_batch.py\n')
+    print(sys.argv)
 
     if len(sys.argv) < 4:
         print("Wrong number of inputs, usage: python pyptv_batch.py \
         experiments/exp1 seq_first seq_last")
         raise ValueError('wrong number of inputs')
         
+    exp_path = sys.argv[1]
+    first = sys.argv[2]
+    last = sys.argv[3]
+        
 
-    main(sys.argv)
+    main(exp_path, first, last)
     
     
 
