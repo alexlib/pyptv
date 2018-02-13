@@ -60,3 +60,6 @@ target/
 
 # pyenv python configuration file
 .python-version
+*.bck
+*_targets
+tests/test_cavity/parametersRun1
