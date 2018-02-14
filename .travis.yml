@@ -27,6 +27,7 @@ install:
   - conda install anaconda-client
   - conda install pytest-cov
   - conda install -c anaconda chaco
+  - conda install cython
   - pip install coveralls
   - conda build .
   - conda install --use-local pyptv
