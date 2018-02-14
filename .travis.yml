@@ -2,9 +2,16 @@
 
 language: python
   - "2.7"
+compiler:
+  - clang
+  - gcc
 sudo: required
 before_install:
-  - sudo apt-get update
+  - sudo apt-get -qq update
+  - sudo apt-get install -y cmake
+  - sudo apt-get install -y check
+  - sudo apt-get install -y build-essential
+  - sudo apt-get install -y git
 install:
   - if [[ "$TRAVIS_PYTHON_VERSION" == "2.7" ]]; then
       wget https://repo.continuum.io/miniconda/Miniconda2-latest-Linux-x86_64.sh -O miniconda.sh;
@@ -20,11 +27,24 @@ install:
   - conda install anaconda-client
   - conda install pytest-cov
   - conda install -c anaconda chaco
+  - conda install cython
   - pip install coveralls
   - conda build .
   - conda install --use-local pyptv
   - conda info -a
+before_script:
+  - git clone http://github.com/openptv/openptv
+  - cd $TRAVIS_BUILD_DIR/openptv/liboptv
+  - mkdir _build && cd _build
+  - cmake ../
+  - make
+  - make verify
+  - sudo make install
+  - cd ../../py_bind
+  - python setup.py build_ext -I/usr/local/include -L/usr/local/lib
+  - python setup.py install
 script:
+  - cd $TRAVIS_BUILD_DIR
   - pytest -v --cov=pyptv tests
 after_success:
   - coveralls
