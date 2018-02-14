@@ -33,7 +33,7 @@ install:
   - conda info -a
 script:
   - git clone http://github.com/openptv/openptv
-  - cd $HOME/openptv/liboptv
+  - cd $TRAVIS_BUILD_DIR/openptv/liboptv
   - mkdir _build && cd _build
   - cmake ../
   - make
@@ -41,7 +41,7 @@ script:
   - cd ../../py_bind
   - python setup.py build_ext -i
   - python setup.py install
-  - cd $HOME/pyptv
+  - cd $TRAVIS_BUILD_DIR/pyptv
   - pytest -v --cov=pyptv tests
 after_success:
   - coveralls
