@@ -1,3 +1,5 @@
+#!/bin/sh
+set -ex
 git clone http://github.com/openptv/openptv
 cd $TRAVIS_BUILD_DIR/openptv/liboptv
 mkdir _build && cd _build
