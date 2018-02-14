@@ -39,8 +39,9 @@ script:
   - cmake ../
   - make
   - make verify
+  - sudo make install
   - cd ../../py_bind
-  - python setup.py build_ext -i
+  - python setup.py build_ext -I/usr/local/include -L/usr/local/lib
   - python setup.py install
   - cd $TRAVIS_BUILD_DIR/pyptv
   - pytest -v --cov=pyptv tests
