@@ -29,18 +29,20 @@ install:
   - conda install -c anaconda chaco
   - conda install cython
   - conda install pytest
+  - conda install nose
   - pip install --user coveralls
   - conda build .
   - conda install --use-local pyptv
   - conda info -a
 before_script:
   - hash -r 
-  - export PATH="$/usr/local/lib:$PATH"
-  - export LD_LIBRARY_PATH="$/usr/local/lib:$LD_LIBRARY_PATH"
+  - export PATH=$HOME/lib:$/usr/local/lib:$PATH
+  - export LD_LIBRARY_PATH=$HOME/lib:$/usr/local/lib:$LD_LIBRARY_PATH
   - ./install_openptv.sh
 script:
   - echo $LD_LIBRARY_PATH
   - echo $PATH
+  - python -c "import sys; print sys.path"
   - pytest -v --cov=pyptv tests
 after_success:
   - coveralls

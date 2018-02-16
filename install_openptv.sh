@@ -1,5 +1,5 @@
 #!/bin/sh
-set -ex
+set -ev
 git clone http://github.com/openptv/openptv
 cd openptv/liboptv
 mkdir _build && cd _build
@@ -10,3 +10,5 @@ sudo make install
 cd ../../py_bind
 python setup.py build_ext -I/usr/local/include -L/usr/local/lib
 python setup.py install
+cd test
+nosetests -v
