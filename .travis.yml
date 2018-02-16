@@ -23,6 +23,9 @@ install:
   - conda install anaconda-client
   - conda install -c anaconda chaco
   - conda install cython
+  - conda install scikit-image
+  - conda install kiwisolver
+  - conda install enable
   - conda install pytest
   - conda install nose
   - pip install --user coveralls
