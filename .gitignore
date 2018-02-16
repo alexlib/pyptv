@@ -63,3 +63,4 @@ target/
 *.bck
 *_targets
 tests/test_cavity/parametersRun1
+tests/test_cavity/res
