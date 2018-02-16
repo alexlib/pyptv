@@ -35,6 +35,8 @@ install:
 before_script:
   - ./install_openptv.sh
 script:
+  - export PATH="$/usr/local/lib:$PATH"
+  - export LD_LIBRARY_PATH=$/usr/local/lib:$LD_LIBRARY_PATH"
   - pytest -v --cov=pyptv tests
 after_success:
   - coveralls
