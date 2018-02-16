@@ -37,6 +37,8 @@ before_script:
 script:
   - export PATH="$/usr/local/lib:$PATH"
   - export LD_LIBRARY_PATH="$/usr/local/lib:$LD_LIBRARY_PATH"
+  - echo $LD_LIBRARY_PATH
+  - echo $PATH
   - pytest -v --cov=pyptv tests
 after_success:
   - coveralls

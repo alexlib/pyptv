@@ -6,7 +6,7 @@ mkdir _build && cd _build
 cmake ../
 make
 make verify
-sudo make install
+make install
 cd ../../py_bind
 python setup.py build_ext -I/usr/local/include -L/usr/local/lib
 python setup.py install
