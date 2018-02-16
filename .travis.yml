@@ -39,6 +39,9 @@ before_script:
   - export LD_LIBRARY_PATH=$HOME/lib:$/usr/local/lib:$LD_LIBRARY_PATH
   - ./install_openptv.sh
 script:
+  - export PATH=$PATH:/usr/local/lib
+  - export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/usr/local/lib
+  - export DYLD_LIBRARY_PATH=$DYLD_LIBRARY_PATH:/usr/local/lib
   - echo $LD_LIBRARY_PATH
   - echo $PATH
   - python -c "import sys; print sys.path"
