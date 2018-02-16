@@ -25,7 +25,6 @@ install:
   - conda update -q conda
   - conda install conda-build
   - conda install anaconda-client
-  - conda install pytest-cov
   - conda install -c anaconda chaco
   - conda install cython
   - conda install pytest
@@ -43,6 +42,6 @@ script:
   - echo $LD_LIBRARY_PATH
   - echo $PATH
   - python -c "import sys; print sys.path"
-  - pytest -v --cov=pyptv tests
+  - pytest -v tests
 after_success:
   - coveralls
