@@ -26,7 +26,6 @@ install:
   - conda install scikit-image
   - conda install kiwisolver
   - conda install enable
-  - conda install pytest
   - conda install nose
   - pip install --user coveralls
   - conda build .
@@ -44,6 +43,7 @@ script:
   - echo $LD_LIBRARY_PATH
   - echo $PATH
   - python -c "import sys; print sys.path"
-  - pytest -v tests
+  - cd tests
+  - nosetests -v
 after_success:
   - coveralls
