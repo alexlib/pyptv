@@ -22,7 +22,7 @@ install:
   - conda install conda-build
   - conda install anaconda-client
   - conda build .
-  - conda install --use-local pyptv
+  - conda install --use-local pyptv --file requirements.txt
   - conda info -a
 before_script:
   - hash -r 

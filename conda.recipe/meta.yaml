@@ -18,15 +18,6 @@ requirements:
     - setuptools
   run:
     - python
-    - numpy
-    - scipy
-    - chaco
-    - enable
-    - kiwisolver
-    - pyqt
-    - traitsui
-    - scikit-image
-    - pandas
 
 about:
   home: https://github.com/alexlib/pyptv
