@@ -16,8 +16,10 @@ requirements:
   build:
     - python
     - setuptools
+    - ../requirements.txt    
   run:
     - python
+    - ../requirements.txt
 
 about:
   home: https://github.com/alexlib/pyptv
