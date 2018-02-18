@@ -11,15 +11,22 @@ build:
   # skip: True  # [py>27]
   # "skip: True  # [not win]" to limit to Windows.
   script: python setup.py install --single-version-externally-managed --record=record.txt
-
+    
 requirements:
   build:
     - python
     - setuptools
-    - ../requirements.txt    
   run:
     - python
-    - ../requirements.txt
+    - numpy
+    - scipy
+    - chaco
+    - enable
+    - kiwisolver
+    - pyqt
+    - traitsui
+    - scikit-image
+    - pandas
 
 about:
   home: https://github.com/alexlib/pyptv
