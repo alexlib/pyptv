@@ -411,6 +411,7 @@ class TreeMenuHandler(traitsui.api.Handler):
         # editor.object.__init__()
 
     def copy_set_params(self, editor, object):
+        import general
         experiment = editor.get_parent(object)
         paramset = object
         i = 1
