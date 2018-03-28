@@ -432,6 +432,7 @@ class TreeMenuHandler(traitsui.api.Handler):
 
     @staticmethod
     def rename_set_params(editor, object):
+        import general
         """ rename_set_params renames the node name on the tree and also the folder of parameters
         """
         experiment = editor.get_parent(object)

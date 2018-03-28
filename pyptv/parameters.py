@@ -1,8 +1,5 @@
 from __future__ import print_function
 from __future__ import absolute_import
-# TODO: check if OrientParams should contain Bools or Ints
-# TODO: change set() functions to either have no default values, or have
-# None value signify 'no change to parameter'.
 
 from builtins import range
 import os
@@ -12,11 +9,11 @@ import shutil
 from traits.api \
     import HasTraits, Str, Float, Int, List, Bool
 
-import yaml
+# import yaml
 
 # Temporary path for parameters (active run will be copied here)
 temp_path = 'parameters'
-max_camera = 4
+max_cam = 4
 
 g = lambda f: f.readline().strip()
 
@@ -28,6 +25,7 @@ class Parameters(HasTraits):
     default_path = "parameters"
 
     def __init__(self, path=default_path):
+        HasTraits.__init__(self)
         self.path = path
 
     # returns the name of the specific params file
@@ -92,7 +90,7 @@ def readParamsDir(par_path):
     ptvParams = PtvParams(path=par_path)
     ptvParams.read()
     n_img = ptvParams.n_img
-    n_pts = 4
+    n_pts = Int(4)
 
     ret = {PtvParams: ptvParams,
            CalOriParams: CalOriParams(n_img, path=par_path),
@@ -172,82 +170,83 @@ class PtvParams(Parameters):
 #     mmp_n3 = Float
 #     mmp_d = Float
 
-    def __init__(self, n_img=Int, img_name=List, img_cal=List, hp_flag=Bool, allCam_flag=Bool, tiff_flag=Bool, imx=Int, imy=Int, pix_x=Float, pix_y=Float, chfield=Int, mmp_n1=Float, mmp_n2=Float, mmp_n3=Float, mmp_d=Float, path=Parameters.default_path):
+    def __init__(self, n_img=Int, img_name=List, img_cal=List, hp_flag=Bool,
+                 allCam_flag=Bool, tiff_flag=Bool, imx=Int, imy=Int,
+                 pix_x=Float, pix_y=Float, chfield=Int, mmp_n1=Float,
+                 mmp_n2=Float, mmp_n3=Float, mmp_d=Float,
+                 path=Parameters.default_path):
         Parameters.__init__(self, path)
-        self.set(n_img, img_name, img_cal, hp_flag, allCam_flag, tiff_flag,
-                 imx, imy, pix_x, pix_y, chfield, mmp_n1, mmp_n2, mmp_n3, mmp_d)
-
-    def set(self, n_img=Int, img_name=List, img_cal=List, hp_flag=Bool, allCam_flag=Bool, tiff_flag=Bool, imx=Int, imy=Int, pix_x=Float, pix_y=Float, chfield=Int, mmp_n1=Float, mmp_n2=Float, mmp_n3=Float, mmp_d=Float):
-        (self.n_img, self.img_name, self.img_cal, self.hp_flag, self.allCam_flag, self.tiff_flag, self.imx, self.imy, self.pix_x, self.pix_y, self.chfield, self.mmp_n1, self.mmp_n2, self.mmp_n3, self.mmp_d) = \
-            (n_img, img_name, img_cal, hp_flag, allCam_flag, tiff_flag,
-             imx, imy, pix_x, pix_y, chfield, mmp_n1, mmp_n2, mmp_n3, mmp_d)
+        (self.n_img, self.img_name, self.img_cal, self.hp_flag,
+         self.allCam_flag, self.tiff_flag, self.imx, self.imy, self.pix_x,
+         self.pix_y, self.chfield, self.mmp_n1, self.mmp_n2, self.mmp_n3,
+         self.mmp_d) = (n_img, img_name, img_cal, hp_flag, allCam_flag,
+                        tiff_flag, imx, imy, pix_x, pix_y, chfield, mmp_n1,
+                        mmp_n2, mmp_n3, mmp_d)
 
     def filename(self):
         return "ptv.par"
 
     def read(self):
-        # print "inside PtvParams.read"
+        print("inside PtvParams.read")
+        if not os.path.isfile(self.filepath()):
+            warning("%s does not exist " % self.filepath())
         try:
-            f = open(self.filepath(), 'r')
-            self.n_img = int(g(f))
-            self.img_name = []
-            self.img_cal = []
-#            for i in range(self.n_img):
-            for i in range(max_camera):
-                self.img_name.append(g(f))
-                self.img_cal.append(g(f))
+            with open(self.filepath(), 'r') as f:
+                self.n_img = int(g(f))
 
-            for i in range(max_camera):
-                fname = self.img_name[i]
-                if not os.path.isfile(fname):
-                    warning("%s not found" % fname)
-                fname = self.img_cal[i]
-                if not os.path.isfile(fname):
-                    warning("%s not found" % fname)
+                self.img_name = ['xxx'] * max_cam
+                self.img_cal = ['xxx'] * max_cam
+                # for i in range(self.n_img):
+                for i in range(max_cam):
+                    self.img_name[i] = g(f)
+                    self.img_cal[i] = g(f)
 
-            self.hp_flag = (int(g(f)) != 0)
-            self.allCam_flag = (int(g(f)) != 0)
-            self.tiff_flag = (int(g(f)) != 0)
-            self.imx = int(g(f))
-            self.imy = int(g(f))
-            self.pix_x = float(g(f))
-            self.pix_y = float(g(f))
-            self.chfield = int(g(f))
-            self.mmp_n1 = float(g(f))
-            self.mmp_n2 = float(g(f))
-            self.mmp_n3 = float(g(f))
-            self.mmp_d = float(g(f))
+                for i in range(self.n_img):
+                    if not os.path.isfile(self.img_name[i]):
+                        warning("%s not found" % self.img_name[i])
+                    if not os.path.isfile(self.img_cal[i]):
+                        warning("%s not found" % self.img_cal[i])
 
-            f.close()
-        except:
+                self.hp_flag = (int(g(f)) != 0)
+                self.allCam_flag = (int(g(f)) != 0)
+                self.tiff_flag = (int(g(f)) != 0)
+                self.imx = int(g(f))
+                self.imy = int(g(f))
+                self.pix_x = float(g(f))
+                self.pix_y = float(g(f))
+                self.chfield = int(g(f))
+                self.mmp_n1 = float(g(f))
+                self.mmp_n2 = float(g(f))
+                self.mmp_n3 = float(g(f))
+                self.mmp_d = float(g(f))
+
+        except IOError:
             error(None, "%s not found" % self.filepath())
 
     def write(self):
         # print "inside PtvParams.write"
         try:
-            f = open(self.filepath(), 'w')
-            f.write("%d\n" % self.n_img)
-#            for i in range(self.n_img):
-            for i in range(max_camera):
-                f.write("%s\n" % self.img_name[i])
-                f.write("%s\n" % self.img_cal[i])
+            with open(self.filepath(), 'w') as f:
+                f.write("%d\n" % self.n_img)
+                #for i in range(self.n_img):
+                for i in range(max_cam):
+                    f.write("%s\n" % self.img_name[i])
+                    f.write("%s\n" % self.img_cal[i])
 
-            f.write("%d\n" % self.hp_flag)
-            f.write("%d\n" % self.allCam_flag)
-            f.write("%d\n" % self.tiff_flag)
-            f.write("%d\n" % self.imx)
-            f.write("%d\n" % self.imy)
-            f.write("%g\n" % self.pix_x)
-            f.write("%g\n" % self.pix_y)
-            f.write("%d\n" % self.chfield)
-            f.write("%g\n" % self.mmp_n1)
-            f.write("%g\n" % self.mmp_n2)
-            f.write("%g\n" % self.mmp_n3)
-            f.write("%g\n" % self.mmp_d)
-
-            f.close()
-            return True
-        except:
+                f.write("%d\n" % self.hp_flag)
+                f.write("%d\n" % self.allCam_flag)
+                f.write("%d\n" % self.tiff_flag)
+                f.write("%d\n" % self.imx)
+                f.write("%d\n" % self.imy)
+                f.write("%g\n" % self.pix_x)
+                f.write("%g\n" % self.pix_y)
+                f.write("%d\n" % self.chfield)
+                f.write("%g\n" % self.mmp_n1)
+                f.write("%g\n" % self.mmp_n2)
+                f.write("%g\n" % self.mmp_n3)
+                f.write("%g\n" % self.mmp_d)
+                return True
+        except IOError:
             error(None, "Error writing %s." % self.filepath())
             return False
         
@@ -305,12 +304,12 @@ class CalOriParams(Parameters):
             self.img_cal_name = []
             self.img_ori = []
 #            for i in range(self.n_img):
-            for i in range(max_camera):
+            for i in range(max_cam):
                 self.img_cal_name.append(g(f))
                 self.img_ori.append(g(f))
 
             # test if files are present, protects from segfaults
-            for i in range(max_camera):
+            for i in range(max_cam):
                 fname = self.img_cal_name[i]
                 if not os.path.isfile(fname):
                     warning("%s not found" % fname)
@@ -333,7 +332,7 @@ class CalOriParams(Parameters):
 
             f.write("%s\n" % self.fixp_name)
 #            for i in range(self.n_img):
-            for i in range(max_camera):
+            for i in range(max_cam):
                 f.write("%s\n" % self.img_cal_name[i])
                 f.write("%s\n" % self.img_ori[i])
 
@@ -381,7 +380,7 @@ class SequenceParams(Parameters):
             f = open(self.filepath(), 'r')
             self.base_name = []
 #            for i in range(self.n_img):
-            for i in range(max_camera):
+            for i in range(max_cam):
                 self.base_name.append(g(f))
 
             self.first = int(g(f))
@@ -396,7 +395,7 @@ class SequenceParams(Parameters):
         try:
             f = open(self.filepath(), 'w')
 #            for i in range(self.n_img):
-            for i in range(max_camera):
+            for i in range(max_cam):
                 f.write("%s\n" % self.base_name[i])
 
             f.write("%d\n" % self.first)
@@ -528,26 +527,23 @@ class TargRecParams(Parameters):
 
     def __init__(self, n_img=Int, gvthres=List, disco=Int, nnmin=Int, nnmax=Int, nxmin=Int, nxmax=Int, nymin=Int, nymax=Int, sumg_min=Int, cr_sz=Int, path=Parameters.default_path):
         Parameters.__init__(self, path)
-        self.set(n_img, gvthres, disco, nnmin, nnmax, nxmin,
-                 nxmax, nymin, nymax, sumg_min, cr_sz)
 
-    def set(self, n_img=Int, gvthres=List, disco=Int, nnmin=Int, nnmax=Int, nxmin=Int, nxmax=Int, nymin=Int, nymax=Int, sumg_min=Int, cr_sz=Int):
-        self.n_img = n_img
-        (self.gvthres, self.disco, self.nnmin, self.nnmax, self.nxmin, self.nxmax, self.nymin, self.nymax, self.sumg_min, self.cr_sz) = \
-            (gvthres, disco, nnmin, nnmax, nxmin,
-             nxmax, nymin, nymax, sumg_min, cr_sz)
+        (self.n_img, self.gvthres, self.disco, self.nnmin, self.nnmax,
+         self.nxmin, self.nxmax, self.nymin, self.nymax, self.sumg_min,
+         self.cr_sz) = (n_img, gvthres, disco, nnmin, nnmax, nxmin, nxmax,
+                        nymin, nymax, sumg_min, cr_sz)
 
     def filename(self):
         return "targ_rec.par"
 
     def read(self):
-        # print "inside TargRecParams.read"
+        print("inside TargRecParams.read")
         try:
             f = open(self.filepath(), 'r')
 
             self.gvthres = []
 #            for i in range(self.n_img):
-            for i in range(max_camera):
+            for i in range(max_cam):
                 self.gvthres.append(int(g(f)))
 
             self.disco = int(g(f))
@@ -565,11 +561,11 @@ class TargRecParams(Parameters):
             error(None, "%s not found" % self.filepath())
 
     def write(self):
-        # print "inside TargRecParams.write"
+        print("inside TargRecParams.write")
         try:
             f = open(self.filepath(), 'w')
 #            for i in range(self.n_img):
-            for i in range(max_camera):
+            for i in range(max_cam):
                 f.write("%d\n" % self.gvthres[i])
 
             f.write("%d\n" % self.disco)
@@ -631,7 +627,7 @@ class ManOriParams(Parameters):
 
             self.nr = []
 #            for i in range(self.n_img):
-            for i in range(max_camera):
+            for i in range(max_cam):
                 self.nr.append([])
                 for j in range(self.n_pts):
                     self.nr[i].append(int(g(f)))
@@ -645,7 +641,7 @@ class ManOriParams(Parameters):
         try:
             f = open(self.filepath(), 'w')
 #            for i in range(self.n_img):
-            for i in range(max_camera):
+            for i in range(max_cam):
                 for j in range(self.n_pts):
                     f.write("%d\n" % self.nr[i][j])
 

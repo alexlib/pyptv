@@ -1,5 +1,6 @@
 import time
 
+import os
 import numpy as np
 from optv.calibration import Calibration
 from optv.correspondences import correspondences, MatchedCoords
@@ -11,7 +12,7 @@ from optv.segmentation import target_recognition
 from optv.tracking_framebuf import CORRES_NONE
 from optv.tracker import Tracker, default_naming
 from optv.epipolar import epipolar_curve
-from scipy.misc import imread
+from imageio import imread
 
 
 def simple_highpass(img, cpar):
@@ -163,6 +164,10 @@ def py_sequence_loop(exp):
         corrected = []
         for i_cam in xrange(n_cams):
             imname = spar.get_img_base_name(i_cam) + str(frame)
+            if not os.path.exists(imname):
+                print(os.path.abspath(os.path.curdir))
+                print('{0} does not exist'.format(imname))
+
             img = imread(imname)
             # import pdb; pdb.set_trace()
             print(imname,img.shape)

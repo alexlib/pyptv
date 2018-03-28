@@ -17,6 +17,8 @@ import parameters as par
 import numpy as np
 import general
 
+from ptv import py_start_proc_c
+
 # define handler function for main parameters
 
 
@@ -522,7 +524,7 @@ class Main_Params (HasTraits):
             (targRecParams.gvthres, targRecParams.disco, targRecParams.nnmin, targRecParams.nnmax, targRecParams.nxmin,
              targRecParams.nxmax, targRecParams.nymin, targRecParams.nymax, targRecParams.sumg_min, targRecParams.cr_sz)
 
-        for i in range(n_img):
+        for i in range(len(gvthres)):
             exec('self.Gray_Tresh_%d = gvthres[%d]' %(i+1,i))
 
         self.Min_Npix = nnmin
