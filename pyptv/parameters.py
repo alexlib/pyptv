@@ -4,15 +4,13 @@ from __future__ import absolute_import
 from builtins import range
 import os
 import shutil
-# from traits.api import *
-# import pyface.api as pyfaceapi
 from traits.api \
     import HasTraits, Str, Float, Int, List, Bool
 
 # import yaml
 
 # Temporary path for parameters (active run will be copied here)
-temp_path = 'parameters'
+par_dir_prefix = 'parameters'
 max_cam = 4
 
 g = lambda f: f.readline().strip()
@@ -75,8 +73,6 @@ class Parameters(HasTraits):
 # Print detailed error to the console and show the user a friendly error window
 def error(owner, msg):
     print("Exception caught, message: %s" % (msg))
-    # general.printException()
-    # pyfaceapi.error(owner, msg)
 
 
 def warning(msg):
@@ -92,8 +88,7 @@ def readParamsDir(par_path):
     n_img = ptvParams.n_img
     n_pts = Int(4)
 
-    ret = {PtvParams: ptvParams,
-           CalOriParams: CalOriParams(n_img, path=par_path),
+    ret = {CalOriParams: CalOriParams(n_img, path=par_path),
            SequenceParams: SequenceParams(n_img, path=par_path),
            CriteriaParams: CriteriaParams(path=par_path),
            TargRecParams: TargRecParams(n_img, path=par_path),
@@ -194,10 +189,10 @@ class PtvParams(Parameters):
             with open(self.filepath(), 'r') as f:
                 self.n_img = int(g(f))
 
-                self.img_name = ['xxx'] * max_cam
-                self.img_cal = ['xxx'] * max_cam
-                # for i in range(self.n_img):
-                for i in range(max_cam):
+                self.img_name = [None] * max_cam
+                self.img_cal = [None] * max_cam
+                for i in range(self.n_img):
+                # for i in range(max_cam):
                     self.img_name[i] = g(f)
                     self.img_cal[i] = g(f)
 
@@ -224,12 +219,12 @@ class PtvParams(Parameters):
             error(None, "%s not found" % self.filepath())
 
     def write(self):
-        # print "inside PtvParams.write"
+        print("inside PtvParams.write")
         try:
             with open(self.filepath(), 'w') as f:
                 f.write("%d\n" % self.n_img)
-                #for i in range(self.n_img):
-                for i in range(max_cam):
+                for i in range(self.n_img):
+                # for i in range(max_cam):
                     f.write("%s\n" % self.img_name[i])
                     f.write("%s\n" % self.img_cal[i])
 
@@ -364,12 +359,8 @@ class SequenceParams(Parameters):
 
     def __init__(self, n_img=Int, base_name=List, first=Int, last=Int, path=Parameters.default_path):
         Parameters.__init__(self, path)
-        self.set(n_img, base_name, first, last)
-
-    def set(self, n_img=Int, base_name=List, first=Int, last=Int):
-        self.n_img = n_img
-        (self.base_name, self.first, self.last) = \
-            (base_name, first, last)
+        (self.n_img, self.base_name, self.first, self.last) = \
+            (n_img, base_name, first, last)
 
     def filename(self):
         return "sequence.par"
@@ -377,31 +368,28 @@ class SequenceParams(Parameters):
     def read(self):
         # print "inside SequenceParams.read"
         try:
-            f = open(self.filepath(), 'r')
-            self.base_name = []
-#            for i in range(self.n_img):
-            for i in range(max_cam):
-                self.base_name.append(g(f))
+            with open(self.filepath(), 'r') as f:
+                self.base_name = []
+                for i in range(self.n_img):
+                # for i in range(max_cam):
+                    self.base_name.append(g(f))
 
-            self.first = int(g(f))
-            self.last = int(g(f))
-
-            f.close()
+                self.first = int(g(f))
+                self.last = int(g(f))
         except:
             error(None, "%s not found" % self.filepath())
 
     def write(self):
         # print "inside SequenceParams.write"
         try:
-            f = open(self.filepath(), 'w')
-#            for i in range(self.n_img):
-            for i in range(max_cam):
-                f.write("%s\n" % self.base_name[i])
+            with open(self.filepath(), 'w') as f:
+                for i in range(self.n_img):
+                # for i in range(max_cam):
+                    f.write("%s\n" % self.base_name[i])
 
-            f.write("%d\n" % self.first)
-            f.write("%d\n" % self.last)
+                f.write("%d\n" % self.first)
+                f.write("%d\n" % self.last)
 
-            f.close()
             return True
         except:
             error(None, "Error writing %s." % self.filepath())

@@ -15,13 +15,13 @@ elif (ETSConfig.toolkit == 'qt4'):
 
 import parameters as par
 import numpy as np
-import general
 
-from ptv import py_start_proc_c
+
+DEFAULT_STRING = "---"
+DEFAULT_INT = -999
+DEFAULT_FLOAT = -999.
 
 # define handler function for main parameters
-
-
 class ParamHandler(Handler):
 
     def closed(self, info, is_ok):
@@ -158,14 +158,14 @@ class TrackHandler(Handler):
 
 # This is the view class of the Tracking Parameters window
 class Tracking_Params(HasTraits):
-    dvxmin = Float()
-    dvxmax = Float()
-    dvymin = Float()
-    dvymax = Float()
-    dvzmin = Float()
-    dvzmax = Float()
-    angle = Float()
-    dacc = Float()
+    dvxmin = Float(DEFAULT_FLOAT)
+    dvxmax = Float(DEFAULT_FLOAT)
+    dvymin = Float(DEFAULT_FLOAT)
+    dvymax = Float(DEFAULT_FLOAT)
+    dvzmin = Float(DEFAULT_FLOAT)
+    dvzmax = Float(DEFAULT_FLOAT)
+    angle = Float(DEFAULT_FLOAT)
+    dacc = Float(DEFAULT_FLOAT)
     flagNewParticles = Bool(True)
 
     def __init__(self, par_path):
@@ -226,25 +226,25 @@ class Main_Params (HasTraits):
     # Answer: historical reasons, back compatibility
 
     tiff_flag = Bool()
-    imx = Int()
-    imy = Int()
-    pix_x = Float()
-    pix_y = Float()
-    chfield = Int()
+    imx = Int(DEFAULT_INT)
+    imy = Int(DEFAULT_INT)
+    pix_x = Float(DEFAULT_FLOAT)
+    pix_y = Float(DEFAULT_FLOAT)
+    chfield = Int(DEFAULT_INT)
     img_cal_name = []
 
     # unsed for calibration
     fixp_name = Str()
     img_ori = []
 
-    Name_1_Image = Str("", label='Name of 1. image')
-    Name_2_Image = Str("", label='Name of 2. image')
-    Name_3_Image = Str("", label='Name of 3. image')
-    Name_4_Image = Str("", label='Name of 4. image')
-    Cali_1_Image = Str("", label='Calibration data for 1. image')
-    Cali_2_Image = Str("", label='Calibration data for 2. image')
-    Cali_3_Image = Str("", label='Calibration data for 3. image')
-    Cali_4_Image = Str("", label='Calibration data for 4. image')
+    Name_1_Image = Str(DEFAULT_STRING, label='Name of 1. image')
+    Name_2_Image = Str(DEFAULT_STRING, label='Name of 2. image')
+    Name_3_Image = Str(DEFAULT_STRING, label='Name of 3. image')
+    Name_4_Image = Str(DEFAULT_STRING, label='Name of 4. image')
+    Cali_1_Image = Str(DEFAULT_STRING, label='Calibration data for 1. image')
+    Cali_2_Image = Str(DEFAULT_STRING, label='Calibration data for 2. image')
+    Cali_3_Image = Str(DEFAULT_STRING, label='Calibration data for 3. image')
+    Cali_4_Image = Str(DEFAULT_STRING, label='Calibration data for 4. image')
 
     # TiffHeader=Bool(True,label='Tiff header') -> probably obsolete for the Python imread () function
     # FrameType=Enum('Frame','Field-odd','Field-even') -> obsolete
@@ -258,46 +258,46 @@ class Main_Params (HasTraits):
     # New panel 2: ImageProcessing
     HighPass = Bool(True, label='High pass filter')
     # future option: Slider between 0 and 1 for each one
-    Gray_Tresh_1 = Int('', label='1st image')
-    Gray_Tresh_2 = Int('', label='2nd image')
-    Gray_Tresh_3 = Int('', label='3rd image')
-    Gray_Tresh_4 = Int('', label='4th image')
-    Min_Npix = Int('', label='min npix')
-    Max_Npix = Int('', label='max npix')
-    Min_Npix_x = Int('', label='min npix x')
-    Max_Npix_x = Int('', label='max npix x')
-    Min_Npix_y = Int('', label='min npix y')
-    Max_Npix_y = Int('', label='max npix y')
-    Sum_Grey = Int('', label='Sum of grey value')
-    Tol_Disc = Int('', label='Tolerable discontinuity')
-    Size_Cross = Int(2, label='Size of crosses')
+    Gray_Tresh_1 = Int(DEFAULT_INT, label='1st image')
+    Gray_Tresh_2 = Int(DEFAULT_INT, label='2nd image')
+    Gray_Tresh_3 = Int(DEFAULT_INT, label='3rd image')
+    Gray_Tresh_4 = Int(DEFAULT_INT, label='4th image')
+    Min_Npix = Int(DEFAULT_INT, label='min npix')
+    Max_Npix = Int(DEFAULT_INT, label='max npix')
+    Min_Npix_x = Int(DEFAULT_INT, label='min npix x')
+    Max_Npix_x = Int(DEFAULT_INT, label='max npix x')
+    Min_Npix_y = Int(DEFAULT_INT, label='min npix y')
+    Max_Npix_y = Int(DEFAULT_INT, label='max npix y')
+    Sum_Grey = Int(DEFAULT_INT, label='Sum of grey value')
+    Tol_Disc = Int(DEFAULT_INT, label='Tolerable discontinuity')
+    Size_Cross = Int(DEFAULT_INT, label='Size of crosses')
     Subtr_Mask = Bool(False, label='Subtract mask')
-    Base_Name_Mask = Str('', label='Base name for the mask')
+    Base_Name_Mask = Str(DEFAULT_STRING, label='Base name for the mask')
     Existing_Target = Bool(False, label='Use existing_target files?')
 
     # New panel 3: Sequence
-    Seq_First = Int('', label='First sequence image:')
-    Seq_Last = Int('', label='Last sequence image:')
-    Basename_1_Seq = Str('', label='Basename for 1. sequence')
-    Basename_2_Seq = Str('', label='Basename for 2. sequence')
-    Basename_3_Seq = Str('', label='Basename for 3. sequence')
-    Basename_4_Seq = Str('', label='Basename for 4. sequence')
+    Seq_First = Int(DEFAULT_INT, label='First sequence image:')
+    Seq_Last = Int(DEFAULT_INT, label='Last sequence image:')
+    Basename_1_Seq = Str(DEFAULT_STRING, label='Basename for 1. sequence')
+    Basename_2_Seq = Str(DEFAULT_STRING, label='Basename for 2. sequence')
+    Basename_3_Seq = Str(DEFAULT_STRING, label='Basename for 3. sequence')
+    Basename_4_Seq = Str(DEFAULT_STRING, label='Basename for 4. sequence')
 
     # Panel 4: ObservationVolume
-    Xmin = Int('', label='Xmin')
-    Xmax = Int('', label='Xmax')
-    Zmin1 = Int('', label='Zmin')
-    Zmin2 = Int('', label='Zmin')
-    Zmax1 = Int('', label='Zmax')
-    Zmax2 = Int('', label='Zmax')
+    Xmin = Int(DEFAULT_FLOAT, label='Xmin')
+    Xmax = Int(DEFAULT_FLOAT, label='Xmax')
+    Zmin1 = Int(DEFAULT_FLOAT, label='Zmin')
+    Zmin2 = Int(DEFAULT_FLOAT, label='Zmin')
+    Zmax1 = Int(DEFAULT_FLOAT, label='Zmax')
+    Zmax2 = Int(DEFAULT_FLOAT, label='Zmax')
 
     # Panel 5: ParticleDetection
-    Min_Corr_nx = Float('', label='min corr for ratio nx')
-    Min_Corr_ny = Float('', label='min corr for ratio ny')
-    Min_Corr_npix = Float('', label='min corr for ratio npix')
-    Sum_gv = Float('', label='sum of gv')
-    Min_Weight_corr = Float('', label='min for weighted correlation')
-    Tol_Band = Float('', lable='Tolerance of epipolar band [mm]')
+    Min_Corr_nx = Float(DEFAULT_FLOAT, label='min corr for ratio nx')
+    Min_Corr_ny = Float(DEFAULT_FLOAT, label='min corr for ratio ny')
+    Min_Corr_npix = Float(DEFAULT_FLOAT, label='min corr for ratio npix')
+    Sum_gv = Float(DEFAULT_FLOAT, label='sum of gv')
+    Min_Weight_corr = Float(DEFAULT_FLOAT, label='min for weighted correlation')
+    Tol_Band = Float(DEFAULT_FLOAT, lable='Tolerance of epipolar band [mm]')
 
     # Group 1 is the group of General parameters
     # number of cameras, use only quadruplets or also triplets/pairs?
@@ -305,7 +305,6 @@ class Main_Params (HasTraits):
     Group1 = Group(
         Group(
             Item(name='Num_Cam', width=30),
-
             Item(name='Accept_OnlyAllCameras', enabled_when='all_enable_flag'),
             Item(name='pair_Flag', enabled_when='pair_enable_flag'),
             Item(name='HighPass', enabled_when='hp_enable_flag'),
@@ -585,27 +584,27 @@ class Calib_Params(HasTraits):
 
     # general and unsed variables
     pair_enable_flag = Bool(True)
-    n_img = Int()
+    n_img = Int(DEFAULT_INT)
     img_name = []
     img_cal = []
     hp_flag = Bool()
     allCam_flag = Bool()
-    mmp_n1 = Float()
-    mmp_n2 = Float()
-    mmp_n3 = Float()
-    mmp_d = Float()
+    mmp_n1 = Float(DEFAULT_FLOAT)
+    mmp_n2 = Float(DEFAULT_FLOAT)
+    mmp_n3 = Float(DEFAULT_FLOAT)
+    mmp_d = Float(DEFAULT_FLOAT)
 
     # images data
-    cam_1 = Str("", label='Calibration picture camera 1')
-    cam_2 = Str("", label='Calibration picture camera 2')
-    cam_3 = Str("", label='Calibration picture camera 3')
-    cam_4 = Str("", label='Calibration picture camera 4')
-    ori_cam_1 = Str("", label='Orientation data picture camera 1')
-    ori_cam_2 = Str("", label='Orientation data picture camera 2')
-    ori_cam_3 = Str("", label='Orientation data picture camera 3')
-    ori_cam_4 = Str("", label='Orientation data picture camera 4')
+    cam_1 = Str(DEFAULT_STRING, label='Calibration picture camera 1')
+    cam_2 = Str(DEFAULT_STRING, label='Calibration picture camera 2')
+    cam_3 = Str(DEFAULT_STRING, label='Calibration picture camera 3')
+    cam_4 = Str(DEFAULT_STRING, label='Calibration picture camera 4')
+    ori_cam_1 = Str(DEFAULT_STRING, label='Orientation data picture camera 1')
+    ori_cam_2 = Str(DEFAULT_STRING, label='Orientation data picture camera 2')
+    ori_cam_3 = Str(DEFAULT_STRING, label='Orientation data picture camera 3')
+    ori_cam_4 = Str(DEFAULT_STRING, label='Orientation data picture camera 4')
 
-    fixp_name = Str("", label='File of Coordinates on plate')
+    fixp_name = Str(DEFAULT_STRING, label='File of Coordinates on plate')
     tiff_head = Bool(True, label='TIFF-Header')
     pair_head = Bool(True, label='Include pairs')
     chfield = Enum("Frame", "Field odd", "Field even")
@@ -1026,17 +1025,16 @@ class Experiment (HasTraits):
         self.syncActiveDir()
 
     def syncActiveDir(self):
-        par.copy_params_dir(self.active_params.par_path, par.temp_path)
+        par.copy_params_dir(self.active_params.par_path, par.par_dir_prefix)
 
     def populate_runs(self, exp_path):
         # Read all parameters directories from an experiment directory
         self.paramsets = []
         dir_contents = [f for f in os.listdir(
             exp_path) if os.path.isdir(os.path.join(exp_path, f))]
-        dir_contents = [f for f in dir_contents if f.startswith(
-            general.par_dir_prefix)]
+        dir_contents = [f for f in dir_contents if f.startswith(par.par_dir_prefix)]
 
-        if len(dir_contents) == 1 and dir_contents[0] == general.par_dir_prefix:
+        if len(dir_contents) == 1 and dir_contents[0] == par.par_dir_prefix:
             # single parameters directory, backward compatibility
             exp_name = 'Run1'
             par.copy_params_dir(dir_contents[0], dir_contents[0] + exp_name)
@@ -1044,9 +1042,9 @@ class Experiment (HasTraits):
 
         for dir_item in dir_contents:
             par_path = os.path.join(exp_path, dir_item)
-            if dir_item != general.par_dir_prefix:
+            if dir_item != par.par_dir_prefix:
                 # This should be a params dir, add a tree entry for it.
-                exp_name = dir_item[len(general.par_dir_prefix):]
+                exp_name = dir_item[len(par.par_dir_prefix):]
                 self.addParamset(exp_name, par_path)
 
         if not self.changed_active_params:

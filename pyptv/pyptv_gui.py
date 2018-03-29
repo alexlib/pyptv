@@ -411,7 +411,6 @@ class TreeMenuHandler(traitsui.api.Handler):
         # editor.object.__init__()
 
     def copy_set_params(self, editor, object):
-        import general
         experiment = editor.get_parent(object)
         paramset = object
         i = 1
@@ -420,7 +419,7 @@ class TreeMenuHandler(traitsui.api.Handler):
         flag = False
         while not flag:
             new_name = "%s (%d)" % (paramset.name, i)
-            new_dir_path = "%s%s" % (general.par_dir_prefix, new_name)
+            new_dir_path = "%s%s" % (par.par_dir_prefix, new_name)
             if not os.path.isdir(new_dir_path):
                 flag = True
             else:
@@ -432,7 +431,6 @@ class TreeMenuHandler(traitsui.api.Handler):
 
     @staticmethod
     def rename_set_params(editor, object):
-        import general
         """ rename_set_params renames the node name on the tree and also the folder of parameters
         """
         experiment = editor.get_parent(object)
@@ -441,7 +439,7 @@ class TreeMenuHandler(traitsui.api.Handler):
         # import pdb; pdb.set_trace()
         editor._menu_rename_node()
         new_name = object.name
-        new_dir_path = general.par_dir_prefix + new_name
+        new_dir_path = par.par_dir_prefix + new_name
         os.mkdir(new_dir_path)
         par.copy_params_dir(paramset.par_path, new_dir_path)
         [os.remove(os.path.join(paramset.par_path, f)) for f in os.listdir(paramset.par_path)]
@@ -528,23 +526,24 @@ class TreeMenuHandler(traitsui.api.Handler):
             Result of correspondence action is filled to uadriplets,triplets, pairs,
             and unused arrays
         """
-        print ("correspondence proc started")
-        info.object.sorted_pos, info.object.sorted_corresp, info.object.num_targs = \
-            ptv.py_correspondences_proc_c(info.object)
-        quadruplets = info.object.sorted_pos[0]
-        triplets = info.object.sorted_pos[1]
-        pairs = info.object.sorted_pos[2]
-        unused = []  # temporary solution
+        if info.object.n_cams  > 1: # single camera is not checked
+            print ("correspondence proc started")
+            info.object.sorted_pos, info.object.sorted_corresp, info.object.num_targs = \
+                ptv.py_correspondences_proc_c(info.object)
+            quadruplets = info.object.sorted_pos[0]
+            triplets = info.object.sorted_pos[1]
+            pairs = info.object.sorted_pos[2]
+            unused = []  # temporary solution
 
-        # import pdb; pdb.set_trace()
-        # info.object.clear_plots(remove_background=False)
+            # import pdb; pdb.set_trace()
+            # info.object.clear_plots(remove_background=False)
 
-        x, y = self._clean_correspondences(quadruplets)
-        info.object.drawcross("quad_x", "quad_y", x, y, "red", 3)
-        x, y = self._clean_correspondences(triplets)
-        info.object.drawcross("tripl_x", "tripl_y", x, y, "green", 3)
-        x, y = self._clean_correspondences(pairs)
-        info.object.drawcross("pair_x", "pair_y", x, y, "yellow", 3)
+            x, y = self._clean_correspondences(quadruplets)
+            info.object.drawcross("quad_x", "quad_y", x, y, "red", 3)
+            x, y = self._clean_correspondences(triplets)
+            info.object.drawcross("tripl_x", "tripl_y", x, y, "green", 3)
+            x, y = self._clean_correspondences(pairs)
+            info.object.drawcross("pair_x", "pair_y", x, y, "yellow", 3)
         # info.object.drawcross("unused_x","unused_y",unused[:,0],unused[:,1],"blue",3)
 
     def init_action(self, info):
@@ -599,27 +598,26 @@ class TreeMenuHandler(traitsui.api.Handler):
             1) initialization - binded by ptv.py_sequence_init(..) function
             2) main loop processing - binded by ptv.py_sequence_loop(..) function
         """
-        os.chdir(software_path)  # change to pyptv folder, look for tracking module
 
         extern_sequence = info.object.plugins.sequence_alg
         if extern_sequence != 'default':
             try:
-                seq = __import__(extern_sequence)  # import choosen tracker from software dir
-            except:
-                print("Error loading " + extern_sequence +
+                # change to pyptv folder, look for tracking module
+                sys.path.append(software_path)
+                # import choosen tracker from software dir
+                seq = __import__(extern_sequence)
+            except ImportError:
+                print("Error loading or running " + extern_sequence +
                       ". Falling back to default sequence algorithm")
-                extern_sequence = 'default'
-            os.chdir(exp_path)  # change back to working path
 
-        if extern_sequence == 'default':
-            ptv.py_sequence_loop(info.object)
-
-        else:
             print("Sequence by using " + extern_sequence)
             sequence = seq.Sequence(ptv=ptv, exp1=info.object.exp1,
                                     camera_list=info.object.camera_list)
             sequence.do_sequence()
-            # print "Sequence by using "+extern_sequence+" has failed."
+            # print("Sequence by using "+extern_sequence+" has failed."
+
+        else:
+            ptv.py_sequence_loop(info.object)
 
     def track_no_disp_action(self, info):
         """ track_no_disp_action uses ptv.py_trackcorr_loop(..) binding to call tracking without display
@@ -1137,10 +1135,18 @@ class MainGUI(traits.api.HasTraits):
             self.camera_list[j].update_image(temp_img)
 
 
+
+def printException():
+    import traceback
+    print('=' * 50)
+    print('Exception:', sys.exc_info()[1])
+    print("getcwd()=%s;curdir=%s" % (os.getcwd(), os.curdir))
+    print('Traceback:')
+    traceback.print_tb(sys.exc_info()[2])
+    print('=' * 50)
+
 # -------------------------------------------------------------
 if __name__ == '__main__':
-    from general import printException
-
     # Parse inputs:
     software_path = os.getcwd()
     print('Software path is %s ' % software_path)
@@ -1148,6 +1154,7 @@ if __name__ == '__main__':
     # Path to the experiment
     if len(sys.argv) > 1:
         exp_path = os.path.abspath(sys.argv[1])
+        print("Experimental path is %s " % exp_path)
         if not os.path.isdir(exp_path):
             raise OSError("Wrong experimental directory %s " % exp_path)
 
