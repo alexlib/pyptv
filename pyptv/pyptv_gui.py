@@ -526,10 +526,11 @@ class TreeMenuHandler(traitsui.api.Handler):
             Result of correspondence action is filled to uadriplets,triplets, pairs,
             and unused arrays
         """
-        if info.object.n_cams  > 1: # single camera is not checked
-            print ("correspondence proc started")
-            info.object.sorted_pos, info.object.sorted_corresp, info.object.num_targs = \
-                ptv.py_correspondences_proc_c(info.object)
+        # if info.object.n_cams  > 1: # single camera is not checked
+        print ("correspondence proc started")
+        info.object.sorted_pos, info.object.sorted_corresp, info.object.num_targs = \
+            ptv.py_correspondences_proc_c(info.object)
+        if len(info.object.sorted.pos) > 0:
             quadruplets = info.object.sorted_pos[0]
             triplets = info.object.sorted_pos[1]
             pairs = info.object.sorted_pos[2]
@@ -544,7 +545,7 @@ class TreeMenuHandler(traitsui.api.Handler):
             info.object.drawcross("tripl_x", "tripl_y", x, y, "green", 3)
             x, y = self._clean_correspondences(pairs)
             info.object.drawcross("pair_x", "pair_y", x, y, "yellow", 3)
-        # info.object.drawcross("unused_x","unused_y",unused[:,0],unused[:,1],"blue",3)
+            # info.object.drawcross("unused_x","unused_y",unused[:,0],unused[:,1],"blue",3)
 
     def init_action(self, info):
         """ init_action - clears existing plots from the camera windows,

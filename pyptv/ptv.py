@@ -80,7 +80,6 @@ def py_detection_proc_c(list_of_images, cpar, tpar, cals):
     for i_cam, img in enumerate(list_of_images):
         targs = target_recognition(img, tpar, i_cam, cpar)
         targs.sort_y()
-        print(i_cam,targs)
         detections.append(targs)
         mc = MatchedCoords(targs, cpar, cals[i_cam])
         corrected.append(mc)
