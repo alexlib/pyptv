@@ -508,7 +508,9 @@ class TargRecParams(Parameters):
 #     sumg_min = Int
 #     cr_sz = Int
 
-    def __init__(self, n_img=Int, gvthres=List, disco=Int, nnmin=Int, nnmax=Int, nxmin=Int, nxmax=Int, nymin=Int, nymax=Int, sumg_min=Int, cr_sz=Int, path=Parameters.default_path):
+    def __init__(self, n_img=Int, gvthres=List, disco=Int, nnmin=Int, \
+                 nnmax=Int, nxmin=Int, nxmax=Int, nymin=Int, nymax=Int, \
+                 sumg_min=Int, cr_sz=Int, path=Parameters.default_path):
         Parameters.__init__(self, path)
 
         (self.n_img, self.gvthres, self.disco, self.nnmin, self.nnmax,
@@ -525,8 +527,8 @@ class TargRecParams(Parameters):
             with open(self.filepath(), 'r') as f:
 
                 self.gvthres = [0]*max_cam
-                for i in range(self.n_img):
-                # for i in range(max_cam):
+                # for i in range(self.n_img):
+                for i in range(max_cam):
                     self.gvthres[i] = int(g(f))
 
                 self.disco = int(g(f))

@@ -515,22 +515,24 @@ class Main_Params (HasTraits):
         # load read_targ_rec
         targRecParams = par.TargRecParams(n_img, path=self.par_path)
         targRecParams.read()
-        (gvthres, disco, nnmin, nnmax, nxmin, nxmax, nymin, nymax, sumg_min, cr_sz) = \
-            (targRecParams.gvthres, targRecParams.disco, targRecParams.nnmin, targRecParams.nnmax, targRecParams.nxmin,
-             targRecParams.nxmax, targRecParams.nymin, targRecParams.nymax, targRecParams.sumg_min, targRecParams.cr_sz)
+        # (gvthres, disco, nnmin, nnmax, nxmin, nxmax, nymin, nymax, sumg_min, cr_sz) = \
+        #     (targRecParams.gvthres, targRecParams.disco, targRecParams.nnmin, targRecParams.nnmax, targRecParams.nxmin,
+        #      targRecParams.nxmax, targRecParams.nymin, targRecParams.nymax, targRecParams.sumg_min, targRecParams.cr_sz)
 
-        for i in range(len(gvthres)):
-            exec('self.Gray_Tresh_%d = gvthres[%d]' %(i+1,i))
+        for i in range(len(targRecParams.gvthres)):
+            # exec('self.Gray_Tresh_%d = gvthres[%d]' %(i+1,i))
+            locals()['self.Gray_Thresh_{}'.format(i+1)] = targRecParams.gvthres[i]
 
-        self.Min_Npix = nnmin
-        self.Max_Npix = nnmax
-        self.Min_Npix_x = nxmin
-        self.Max_Npix_x = nxmax
-        self.Min_Npix_y = nymin
-        self.Max_Npix_y = nymax
-        self.Sum_Grey = sumg_min
-        self.Tol_Disc = disco
-        self.Size_Cross = cr_sz
+
+        self.Min_Npix = targRecParams.nnmin
+        self.Max_Npix = targRecParams.nnmax
+        self.Min_Npix_x = targRecParams.nxmin
+        self.Max_Npix_x = targRecParams.nxmax
+        self.Min_Npix_y = targRecParams.nymin
+        self.Max_Npix_y = targRecParams.nymax
+        self.Sum_Grey = targRecParams.sumg_min
+        self.Tol_Disc = targRecParams.disco
+        self.Size_Cross = targRecParams.cr_sz
 
         # load pft_version
         pftVersionParams = par.PftVersionParams(path=self.par_path)
@@ -540,33 +542,29 @@ class Main_Params (HasTraits):
         # load sequence_par
         sequenceParams = par.SequenceParams(n_img, path=self.par_path)
         sequenceParams.read()
-        (base_name, first, last) = \
-            (sequenceParams.base_name, sequenceParams.first, sequenceParams.last)
 
         for i in range(n_img):
-            exec ('self.Basename_%d_Seq = base_name[%d]' % (i + 1, i))
+            locals()['self.Basename_{}_Seq'.format(i + 1)] = \
+                sequenceParams.base_name[i]
 
-        self.Seq_First = first
-        self.Seq_Last = last
+        self.Seq_First = sequenceParams.first
+        self.Seq_Last = sequenceParams.last
 
         # load criteria_par
         criteriaParams = par.CriteriaParams(path=self.par_path)
         criteriaParams.read()
-        (X_lay, Zmin_lay, Zmax_lay, cnx, cny, cn, csumg, corrmin, eps0) = \
-            (criteriaParams.X_lay, criteriaParams.Zmin_lay, criteriaParams.Zmax_lay, criteriaParams.cnx,
-             criteriaParams.cny, criteriaParams.cn, criteriaParams.csumg, criteriaParams.corrmin, criteriaParams.eps0)
-        self.Xmin = X_lay[0]
-        self.Xmax = X_lay[1]
-        self.Zmin1 = Zmin_lay[0]
-        self.Zmin2 = Zmin_lay[1]
-        self.Zmax1 = Zmax_lay[0]
-        self.Zmax2 = Zmax_lay[1]
-        self.Min_Corr_nx = cnx
-        self.Min_Corr_ny = cny
-        self.Min_Corr_npix = cn
-        self.Sum_gv = csumg
-        self.Min_Weight_corr = corrmin
-        self.Tol_Band = eps0
+        self.Xmin = criteriaParams.X_lay[0]
+        self.Xmax = criteriaParams.X_lay[1]
+        self.Zmin1 = criteriaParams.Zmin_lay[0]
+        self.Zmin2 = criteriaParams.Zmin_lay[1]
+        self.Zmax1 = criteriaParams.Zmax_lay[0]
+        self.Zmax2 = criteriaParams.Zmax_lay[1]
+        self.Min_Corr_nx = criteriaParams.cnx
+        self.Min_Corr_ny = criteriaParams.cny
+        self.Min_Corr_npix = criteriaParams.cn
+        self.Sum_gv = criteriaParams.csumg
+        self.Min_Weight_corr = criteriaParams.corrmin
+        self.Tol_Band = criteriaParams.eps0
 
     # create initfunc
     def __init__(self, par_path):

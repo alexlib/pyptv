@@ -557,11 +557,14 @@ class TreeMenuHandler(traitsui.api.Handler):
 
         for i in range(len(mainGui.camera_list)):
             try:
-                exec (
-                        "mainGui.orig_image[%d]=img_as_ubyte(imread(mainGui.exp1.active_params.m_params.Name_%d_Image))" % (
-                    i, i + 1))
+                im = imread(getattr(mainGui.exp1.active_params.m_params,
+                                 'Name_{}_Image'.format(i+1)))
+                if im.ndim > 2:
+                    im = rgb2gray(im)
+
+                mainGui.orig_image[i] = img_as_ubyte(im)
             except IOError:
-                print("Error reading file, setting zero image")
+                print("Error reading image, setting zero image")
                 h_img = mainGui.exp1.active_params.m_params.imx
                 v_img = mainGui.exp1.active_params.m_params.imy
                 temp_img = img_as_ubyte(np.zeros((h_img, v_img)))
