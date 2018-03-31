@@ -6,9 +6,6 @@ The software is distributed under the terms of MIT-like license
 http://opensource.org/licenses/MIT
 """
 
-from traits.etsconfig.api import ETSConfig
-
-ETSConfig.toolkit = 'qt4'
 
 from traits.api \
     import HasTraits, Str, Int, List, Bool, Instance, Button
@@ -24,7 +21,9 @@ from code_editor import codeEditor
 from quiverplot import QuiverPlot
 
 import numpy as np
-from scipy.misc import imread
+from skimage.io import imread
+from skimage import img_as_ubyte
+from skimage.color import rgb2gray
 import os
 import shutil
 
@@ -36,7 +35,7 @@ from optv.orientation import external_calibration, full_calibration
 from optv.calibration import Calibration
 
 import ptv as ptv
-import parameter_gui as exp
+import parameter_gui as pargui
 import parameters as par
 
 
@@ -103,6 +102,7 @@ class PlotWindow(HasTraits):
     )
 
     def __init__(self):
+        super(HasTraits, self).__init__()
         # -------------- Initialization of plot system ----------------
         padd = 25
         self._plot_data = ArrayPlotData()
@@ -402,7 +402,7 @@ class CalibrationGUI(HasTraits):
     # --------------------------------------------------
 
     def _button_edit_cal_parameters_fired(self):
-        cp = exp.Calib_Params(par_path=self.par_path)
+        cp = pargui.Calib_Params(par_path=self.par_path)
         cp.edit_traits(kind='modal')
         # at the end of a modification, copy the parameters
         par.copy_params_dir(self.par_path, self.active_path)
@@ -439,7 +439,8 @@ class CalibrationGUI(HasTraits):
         for i in range(len(self.camera)):
             imname = self.calParams.img_cal_name[i]
         # for imname in self.calParams.img_cal_name:
-            self.cal_images.append(imread(imname))
+            # self.cal_images.append(imread(imname))
+            self.cal_images.append(img_as_ubyte(rgb2gray(imread(imname))))
 
         self.reset_show_images()
 

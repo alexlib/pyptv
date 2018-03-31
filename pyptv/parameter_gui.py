@@ -8,11 +8,6 @@ from traitsui.api \
     
 from traits.etsconfig.api import ETSConfig
 
-if (ETSConfig.toolkit == 'wx'):
-    pass
-elif (ETSConfig.toolkit == 'qt4'):
-    pass
-
 import parameters as par
 import numpy as np
 
@@ -169,6 +164,7 @@ class Tracking_Params(HasTraits):
     flagNewParticles = Bool(True)
 
     def __init__(self, par_path):
+        super(Tracking_Params,self).__init__()
         self.par_path = par_path
         TrackingParams = par.TrackingParams(path=self.par_path)
         TrackingParams.read()
@@ -639,24 +635,24 @@ class Calib_Params(HasTraits):
 
     # calibration data detection
 
-    h_image_size = Int('', label='Image size horizontal')
-    v_image_size = Int('', label='Image size vertical')
-    h_pixel_size = Float('', label='Pixel size horizontal')
-    v_pixel_size = Float('', label='Pixel size vertical')
+    h_image_size = Int(DEFAULT_INT, label='Image size horizontal')
+    v_image_size = Int(DEFAULT_INT, label='Image size vertical')
+    h_pixel_size = Float(DEFAULT_FLOAT, label='Pixel size horizontal')
+    v_pixel_size = Float(DEFAULT_FLOAT, label='Pixel size vertical')
 
-    grey_value_treshold_1 = Int('', label='First Image')
-    grey_value_treshold_2 = Int('', label='Second Image')
-    grey_value_treshold_3 = Int('', label='Third Image')
-    grey_value_treshold_4 = Int('', label='Forth Image')
-    tolerable_discontinuity = Int('', label='Tolerable discontinuity')
-    min_npix = Int('', label='min npix')
-    min_npix_x = Int('', label='min npix in x')
-    min_npix_y = Int('', label='min npix in y')
-    max_npix = Int('', label='max npix')
-    max_npix_x = Int('', label='max npix in x')
-    max_npix_y = Int('', label='max npix in y')
-    sum_of_grey = Int('', label='Sum of greyvalue')
-    size_of_crosses = Int('', label='Size of crosses')
+    grey_value_treshold_1 = Int(DEFAULT_INT, label='First Image')
+    grey_value_treshold_2 = Int(DEFAULT_INT, label='Second Image')
+    grey_value_treshold_3 = Int(DEFAULT_INT, label='Third Image')
+    grey_value_treshold_4 = Int(DEFAULT_INT, label='Forth Image')
+    tolerable_discontinuity = Int(DEFAULT_INT, label='Tolerable discontinuity')
+    min_npix = Int(DEFAULT_INT, label='min npix')
+    min_npix_x = Int(DEFAULT_INT, label='min npix in x')
+    min_npix_y = Int(DEFAULT_INT, label='min npix in y')
+    max_npix = Int(DEFAULT_INT, label='max npix')
+    max_npix_x = Int(DEFAULT_INT, label='max npix in x')
+    max_npix_y = Int(DEFAULT_INT, label='max npix in y')
+    sum_of_grey = Int(DEFAULT_INT, label='Sum of greyvalue')
+    size_of_crosses = Int(DEFAULT_INT, label='Size of crosses')
 
     Group2_1 = Group(Item(name='h_image_size'),
                      Item(name='v_image_size'),
@@ -693,22 +689,22 @@ class Calib_Params(HasTraits):
                    label='Calibration Data Detection')
 
     # manuel pre orientation
-    img_1_p1 = Int('', label='P1')
-    img_1_p2 = Int('', label='P2')
-    img_1_p3 = Int('', label='P3')
-    img_1_p4 = Int('', label='P4')
-    img_2_p1 = Int('', label='P1')
-    img_2_p2 = Int('', label='P2')
-    img_2_p3 = Int('', label='P3')
-    img_2_p4 = Int('', label='P4')
-    img_3_p1 = Int('', label='P1')
-    img_3_p2 = Int('', label='P2')
-    img_3_p3 = Int('', label='P3')
-    img_3_p4 = Int('', label='P4')
-    img_4_p1 = Int('', label='P1')
-    img_4_p2 = Int('', label='P2')
-    img_4_p3 = Int('', label='P3')
-    img_4_p4 = Int('', label='P4')
+    img_1_p1 = Int(DEFAULT_INT, label='P1')
+    img_1_p2 = Int(DEFAULT_INT, label='P2')
+    img_1_p3 = Int(DEFAULT_INT, label='P3')
+    img_1_p4 = Int(DEFAULT_INT, label='P4')
+    img_2_p1 = Int(DEFAULT_INT, label='P1')
+    img_2_p2 = Int(DEFAULT_INT, label='P2')
+    img_2_p3 = Int(DEFAULT_INT, label='P3')
+    img_2_p4 = Int(DEFAULT_INT, label='P4')
+    img_3_p1 = Int(DEFAULT_INT, label='P1')
+    img_3_p2 = Int(DEFAULT_INT, label='P2')
+    img_3_p3 = Int(DEFAULT_INT, label='P3')
+    img_3_p4 = Int(DEFAULT_INT, label='P4')
+    img_4_p1 = Int(DEFAULT_INT, label='P1')
+    img_4_p2 = Int(DEFAULT_INT, label='P2')
+    img_4_p3 = Int(DEFAULT_INT, label='P3')
+    img_4_p4 = Int(DEFAULT_INT, label='P4')
 
     Group3_1 = Group(Item(name='img_1_p1'),
                      Item(name='img_1_p2'),
@@ -743,10 +739,10 @@ class Calib_Params(HasTraits):
 
     # calibration orientation param.
 
-    Examine_Flag = Bool('', label='Calibrate with different Z')
-    Combine_Flag = Bool('', label='Combine preprocessed planes')
+    Examine_Flag = Bool(False, label='Calibrate with different Z')
+    Combine_Flag = Bool(False, label='Combine preprocessed planes')
 
-    point_number_of_orientation = Int('', label='Point number of orientation')
+    point_number_of_orientation = Int(DEFAULT_INT, label='Point number of orientation')
     cc = Bool(False, label='cc')
     xh = Bool(False, label='xh')
     yh = Bool(False, label='yh')
@@ -798,13 +794,13 @@ class Calib_Params(HasTraits):
     # 2 step size through sequence
     # 500 num iterations per click
 
-    dumbbell_eps = Float('', label='dumbbell epsilon')
-    dumbbell_scale = Float('', label='dumbbell scale')
+    dumbbell_eps = Float(DEFAULT_FLOAT, label='dumbbell epsilon')
+    dumbbell_scale = Float(DEFAULT_FLOAT, label='dumbbell scale')
     dumbbell_gradient_descent = Float(
         '', label='dumbbell gradient descent factor')
-    dumbbell_penalty_weight = Float('', label='weight for dumbbell penalty')
-    dumbbell_step = Int('', label='step size through sequence')
-    dumbbell_niter = Int('', label='number of iterations per click')
+    dumbbell_penalty_weight = Float(DEFAULT_FLOAT, label='weight for dumbbell penalty')
+    dumbbell_step = Int(DEFAULT_INT, label='step size through sequence')
+    dumbbell_niter = Int(DEFAULT_INT, label='number of iterations per click')
 
     Group5 = HGroup(VGroup(Item(name='dumbbell_eps'),
                            Item(name='dumbbell_scale'),
@@ -822,10 +818,10 @@ class Calib_Params(HasTraits):
     # 10 - max num points used per frame
     # 5 - max number of frames to track
 
-    shaking_first_frame = Int('', label='shaking first frame')
-    shaking_last_frame = Int('', label='shaking last frame')
-    shaking_max_num_points = Int('', label='shaking max num points')
-    shaking_max_num_frames = Int('', label='shaking max num frames')
+    shaking_first_frame = Int(DEFAULT_INT, label='shaking first frame')
+    shaking_last_frame = Int(DEFAULT_INT, label='shaking last frame')
+    shaking_max_num_points = Int(DEFAULT_INT, label='shaking max num points')
+    shaking_max_num_frames = Int(DEFAULT_INT, label='shaking max num frames')
 
     Group6 = HGroup(VGroup(Item(name='shaking_first_frame',),
                            Item(name='shaking_last_frame'),
@@ -925,7 +921,7 @@ class Calib_Params(HasTraits):
         self.size_of_crosses = size_of_crosses
 
         # read manual orientaion parameters
-        manOriParams = par.ManOriParams(n_img, 4, path=self.par_path)
+        manOriParams = par.ManOriParams(self.n_img, [], path=self.par_path)
         manOriParams.read()
         nr = manOriParams.nr
 
@@ -996,8 +992,8 @@ class Experiment (HasTraits):
     paramsets = List(Paramset)
 
     def __init__(self):
+        super(HasTraits,self).__init__()
         self.changed_active_params = False
-        pass
 
     def getParamsetIdx(self, paramset):
         if type(paramset) == type(1):  # integer value (index of the paramset)

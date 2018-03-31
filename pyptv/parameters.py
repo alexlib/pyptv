@@ -276,13 +276,10 @@ class CalOriParams(Parameters):
                  img_ori=List, tiff_flag=Bool, pair_flag=Bool,
                  chfield=Int, path=Parameters.default_path):
         Parameters.__init__(self, path)
-        self.set(n_img, fixp_name, img_cal_name,
-                 img_ori, tiff_flag, pair_flag, chfield)
 
-    def set(self, n_img=Int, fixp_name=Str, img_cal_name=List, img_ori=List, tiff_flag=Bool, pair_flag=Bool, chfield=Int):
-        self.n_img = n_img
-        (self.fixp_name, self.img_cal_name, self.img_ori, self.tiff_flag, self.pair_flag, self.chfield) = \
-            (fixp_name, img_cal_name, img_ori, tiff_flag, pair_flag, chfield)
+        (self.n_img, self.fixp_name, self.img_cal_name, self.img_ori, self.tiff_flag,
+         self.pair_flag, self.chfield) = \
+            (n_img, fixp_name, img_cal_name, img_ori, tiff_flag, pair_flag, chfield)
 
     def filename(self):
         return "cal_ori.par"
@@ -290,52 +287,50 @@ class CalOriParams(Parameters):
     def read(self):
         # print "inside CalOriParams.read"
         try:
-            f = open(self.filepath(), 'r')
+            with open(self.filepath(), 'r') as f:
 
-            self.fixp_name = g(f)
-            if not os.path.isfile(self.fixp_name):
-                error(None, "%s not found" % self.fixp_name)
+                self.fixp_name = g(f)
+                if not os.path.isfile(self.fixp_name):
+                    error(None, "%s not found" % self.fixp_name)
 
-            self.img_cal_name = []
-            self.img_ori = []
-#            for i in range(self.n_img):
-            for i in range(max_cam):
-                self.img_cal_name.append(g(f))
-                self.img_ori.append(g(f))
+                self.img_cal_name = []
+                self.img_ori = []
+                for i in range(self.n_img):
+                # for i in range(max_cam):
+                    self.img_cal_name.append(g(f))
+                    self.img_ori.append(g(f))
 
-            # test if files are present, protects from segfaults
-            for i in range(max_cam):
-                fname = self.img_cal_name[i]
-                if not os.path.isfile(fname):
-                    warning("%s not found" % fname)
-                fname = self.img_ori[i]
-                if not os.path.isfile(fname):
-                    warning("%s not found" % fname)
+                # test if files are present, protects from segfaults
+                for i in range(self.n_img):
+                    fname = self.img_cal_name[i]
+                    if not os.path.isfile(fname):
+                        warning("%s not found" % fname)
+                    fname = self.img_ori[i]
+                    if not os.path.isfile(fname):
+                        warning("%s not found" % fname)
 
-            self.tiff_flag = (int(g(f)) != 0)  # <-- overwrites the above
-            self.pair_flag = (int(g(f)) != 0)
-            self.chfield = int(g(f))
+                self.tiff_flag = (int(g(f)) != 0)  # <-- overwrites the above
+                self.pair_flag = (int(g(f)) != 0)
+                self.chfield = int(g(f))
 
-            f.close()
         except:
             error(None, "%s not found" % self.filepath())
 
     def write(self):
         # print "inside CalOriParams.write"
         try:
-            f = open(self.filepath(), 'w')
+            with open(self.filepath(), 'w') as f:
 
-            f.write("%s\n" % self.fixp_name)
-#            for i in range(self.n_img):
-            for i in range(max_cam):
-                f.write("%s\n" % self.img_cal_name[i])
-                f.write("%s\n" % self.img_ori[i])
+                f.write("%s\n" % self.fixp_name)
+                for i in range(self.n_img):
+                # for i in range(max_cam):
+                    f.write("%s\n" % self.img_cal_name[i])
+                    f.write("%s\n" % self.img_ori[i])
 
-            f.write("%d\n" % self.tiff_flag)
-            f.write("%d\n" % self.pair_flag)
-            f.write("%d\n" % self.chfield)
+                f.write("%d\n" % self.tiff_flag)
+                f.write("%d\n" % self.pair_flag)
+                f.write("%d\n" % self.chfield)
 
-            f.close()
             return True
         except:
             error(None, "Error writing %s." % self.filepath())
@@ -527,24 +522,23 @@ class TargRecParams(Parameters):
     def read(self):
         print("inside TargRecParams.read")
         try:
-            f = open(self.filepath(), 'r')
+            with open(self.filepath(), 'r') as f:
 
-            self.gvthres = []
-#            for i in range(self.n_img):
-            for i in range(max_cam):
-                self.gvthres.append(int(g(f)))
+                self.gvthres = [0]*max_cam
+                for i in range(self.n_img):
+                # for i in range(max_cam):
+                    self.gvthres[i] = int(g(f))
 
-            self.disco = int(g(f))
-            self.nnmin = int(g(f))
-            self.nnmax = int(g(f))
-            self.nxmin = int(g(f))
-            self.nxmax = int(g(f))
-            self.nymin = int(g(f))
-            self.nymax = int(g(f))
-            self.sumg_min = int(g(f))
-            self.cr_sz = int(g(f))
+                self.disco = int(g(f))
+                self.nnmin = int(g(f))
+                self.nnmax = int(g(f))
+                self.nxmin = int(g(f))
+                self.nxmax = int(g(f))
+                self.nymin = int(g(f))
+                self.nymax = int(g(f))
+                self.sumg_min = int(g(f))
+                self.cr_sz = int(g(f))
 
-            f.close()
         except:
             error(None, "%s not found" % self.filepath())
 
@@ -596,14 +590,12 @@ class ManOriParams(Parameters):
 
 #     nr = List(List(Int))
 
-    def __init__(self, n_img=Int, n_pts=Int, nr=List(List(Int)), path=Parameters.default_path):
+    def __init__(self, n_img=Int, nr = List, path=Parameters.default_path):
         Parameters.__init__(self, path)
-        self.set(n_img, n_pts, nr)
-
-    def set(self, n_img=Int, n_pts=Int, nr=List(List(Int))):
         self.n_img = n_img
-        self.n_pts = n_pts
         self.nr = nr
+        self.path = path
+
 
     def filename(self):
         return "man_ori.par"
@@ -611,29 +603,22 @@ class ManOriParams(Parameters):
     def read(self):
         # print "inside ManOriParams.read"
         try:
-            f = open(self.filepath(), 'r')
-
-            self.nr = []
-#            for i in range(self.n_img):
-            for i in range(max_cam):
-                self.nr.append([])
-                for j in range(self.n_pts):
-                    self.nr[i].append(int(g(f)))
-
-            f.close()
+            with open(self.filepath(), 'r') as f:
+                self.nr = [[]]*self.n_img
+                for i in range(self.n_img):
+                    for j in range(4): # always 4 points
+                        self.nr[i].append(int(g(f)))
         except:
-            error(None, "%s not found" % self.filepath())
+            error(None, "Error reading from %s" % self.filepath())
 
     def write(self):
         # print "inside # Params.write"
         try:
-            f = open(self.filepath(), 'w')
-#            for i in range(self.n_img):
-            for i in range(max_cam):
-                for j in range(self.n_pts):
-                    f.write("%d\n" % self.nr[i][j])
+            with open(self.filepath(), 'w') as f:
+                for i in range(self.n_img):
+                    for j in range(4): # always 4 points
+                        f.write("%d\n" % self.nr[i][j])
 
-            f.close()
             return True
         except:
             error(None, "Error writing %s." % self.filepath())
