@@ -440,7 +440,11 @@ class CalibrationGUI(HasTraits):
             imname = self.calParams.img_cal_name[i]
         # for imname in self.calParams.img_cal_name:
             # self.cal_images.append(imread(imname))
-            self.cal_images.append(img_as_ubyte(rgb2gray(imread(imname))))
+            im = imread(imname)
+            if im.ndims > 2:
+                im = rgb2gray(im)
+                
+            self.cal_images.append(img_as_ubyte(im))
 
         self.reset_show_images()
 
