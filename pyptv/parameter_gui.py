@@ -478,50 +478,46 @@ class Main_Params (HasTraits):
         # load ptv_par
         ptvParams = par.PtvParams(path=self.par_path)
         ptvParams.read()
-        (n_img, img_name, img_cal, hp_flag, allCam_flag, tiff_flag, imx, imy, pix_x, pix_y, chfield, mmp_n1, mmp_n2, mmp_n3, mmp_d) = \
-            (ptvParams.n_img, ptvParams.img_name, ptvParams.img_cal, ptvParams.hp_flag, ptvParams.allCam_flag, ptvParams.tiff_flag,
-             ptvParams.imx, ptvParams.imy, ptvParams.pix_x, ptvParams.pix_y, ptvParams.chfield, ptvParams.mmp_n1, ptvParams.mmp_n2, ptvParams.mmp_n3, ptvParams.mmp_d)
 
-        for i in range(n_img):
-            exec('self.Name_%d_Image = img_name[%d]' % (i+1,i))
-            exec ('self.Cali_%d_Image = img_cal[%d]' % (i + 1, i))
+        for i in range(ptvParams.n_img):
+            exec('self.Name_%d_Image = ptvParams.img_name[%d]' % (i+1,i))
+            exec ('self.Cali_%d_Image = ptvParams.img_cal[%d]' % (i + 1, i))
 
-        self.Refr_Air = mmp_n1
-        self.Refr_Glass = mmp_n2
-        self.Refr_Water = mmp_n3
-        self.Thick_Glass = mmp_d
-        self.Accept_OnlyAllCameras = np.bool(allCam_flag)
-        self.Num_Cam = n_img
-        self.HighPass = np.bool(hp_flag)
+        self.Refr_Air = ptvParams.mmp_n1
+        self.Refr_Glass = ptvParams.mmp_n2
+        self.Refr_Water = ptvParams.mmp_n3
+        self.Thick_Glass = ptvParams.mmp_d
+        self.Accept_OnlyAllCameras = np.bool(ptvParams.allCam_flag)
+        self.Num_Cam = ptvParams.n_img
+        self.HighPass = np.bool(ptvParams.hp_flag)
         # load unused
-        self.tiff_flag = np.bool(tiff_flag)
-        self.imx = imx
-        self.imy = imy
-        self.pix_x = pix_x
-        self.pix_y = pix_y
-        self.chfield = chfield
+        self.tiff_flag = np.bool(ptvParams.tiff_flag)
+        self.imx = ptvParams.imx
+        self.imy = ptvParams.imy
+        self.pix_x = ptvParams.pix_x
+        self.pix_y = ptvParams.pix_y
+        self.chfield = ptvParams.chfield
 
         # read_calibration parameters
-        calOriParams = par.CalOriParams(n_img, path=self.par_path)
+        calOriParams = par.CalOriParams(ptvParams.n_img, path=self.par_path)
         calOriParams.read()
-        (fixp_name, img_cal_name, img_ori, tiff_flag, pair_flag, chfield) = \
-            (calOriParams.fixp_name, calOriParams.img_cal_name, calOriParams.img_ori,
-             calOriParams.tiff_flag, calOriParams.pair_flag, calOriParams.chfield)
-        self.pair_Flag = np.bool(pair_flag)
-        self.img_cal_name = img_cal_name
-        self.img_ori = img_ori
-        self.fixp_name = fixp_name
+
+        self.pair_Flag = np.bool(calOriParams.pair_flag)
+        self.img_cal_name = calOriParams.img_cal_name
+        self.img_ori = calOriParams.img_ori
+        self.fixp_name = calOriParams.fixp_name
 
         # load read_targ_rec
-        targRecParams = par.TargRecParams(n_img, path=self.par_path)
+        targRecParams = par.TargRecParams(ptvParams.n_img, path=self.par_path)
         targRecParams.read()
         # (gvthres, disco, nnmin, nnmax, nxmin, nxmax, nymin, nymax, sumg_min, cr_sz) = \
         #     (targRecParams.gvthres, targRecParams.disco, targRecParams.nnmin, targRecParams.nnmax, targRecParams.nxmin,
         #      targRecParams.nxmax, targRecParams.nymin, targRecParams.nymax, targRecParams.sumg_min, targRecParams.cr_sz)
 
-        for i in range(len(targRecParams.gvthres)):
-            # exec('self.Gray_Tresh_%d = gvthres[%d]' %(i+1,i))
-            locals()['self.Gray_Thresh_{}'.format(i+1)] = targRecParams.gvthres[i]
+        for i in range(ptvParams.n_img):
+            # key = 'Gray_Thresh_{}'.format(i+1)
+            # self[key] = targRecParams.gvthres[i]
+            exec("self.Gray_Tresh_{0} = targRecParams.gvthres[{1}]".format(i+1,i))
 
 
         self.Min_Npix = targRecParams.nnmin
@@ -540,12 +536,12 @@ class Main_Params (HasTraits):
         self.Existing_Target = np.bool(pftVersionParams.Existing_Target)
 
         # load sequence_par
-        sequenceParams = par.SequenceParams(n_img, path=self.par_path)
+        sequenceParams = par.SequenceParams(ptvParams.n_img, path=self.par_path)
         sequenceParams.read()
 
-        for i in range(n_img):
-            locals()['self.Basename_{}_Seq'.format(i + 1)] = \
-                sequenceParams.base_name[i]
+        for i in range(ptvParams.n_img):
+            exec ("self.Basename_{0}_Seq = sequenceParams.base_name[{1}]".format(i + 1,
+                                                                          i))
 
         self.Seq_First = sequenceParams.first
         self.Seq_Last = sequenceParams.last
@@ -579,10 +575,10 @@ class Calib_Params(HasTraits):
     # general and unsed variables
     pair_enable_flag = Bool(True)
     n_img = Int(DEFAULT_INT)
-    img_name = []
-    img_cal = []
-    hp_flag = Bool()
-    allCam_flag = Bool()
+    img_name = List
+    img_cal = List
+    hp_flag = Bool(False,label='highpass')
+    allCam_flag = Bool(False, label='all camera targets')
     mmp_n1 = Float(DEFAULT_FLOAT)
     mmp_n2 = Float(DEFAULT_FLOAT)
     mmp_n3 = Float(DEFAULT_FLOAT)
@@ -795,7 +791,7 @@ class Calib_Params(HasTraits):
     dumbbell_eps = Float(DEFAULT_FLOAT, label='dumbbell epsilon')
     dumbbell_scale = Float(DEFAULT_FLOAT, label='dumbbell scale')
     dumbbell_gradient_descent = Float(
-        '', label='dumbbell gradient descent factor')
+        DEFAULT_FLOAT, label='dumbbell gradient descent factor')
     dumbbell_penalty_weight = Float(DEFAULT_FLOAT, label='weight for dumbbell penalty')
     dumbbell_step = Int(DEFAULT_INT, label='step size through sequence')
     dumbbell_niter = Int(DEFAULT_INT, label='number of iterations per click')
@@ -840,48 +836,45 @@ class Calib_Params(HasTraits):
                              title='Calibration Parameters')
 
     def _reload(self):
-        # print("raloading")
+        # print("reloading")
         # self.__init__(self)
         # load ptv_par
         ptvParams = par.PtvParams(path=self.par_path)
         ptvParams.read()
-        (n_img, img_name, img_cal, hp_flag, allCam_flag, tiff_flag, imx, imy, pix_x, pix_y, chfield, mmp_n1, mmp_n2, mmp_n3, mmp_d) = \
-            (ptvParams.n_img, ptvParams.img_name, ptvParams.img_cal, ptvParams.hp_flag, ptvParams.allCam_flag, ptvParams.tiff_flag,
-             ptvParams.imx, ptvParams.imy, ptvParams.pix_x, ptvParams.pix_y, ptvParams.chfield, ptvParams.mmp_n1, ptvParams.mmp_n2, ptvParams.mmp_n3, ptvParams.mmp_d)
 
         # read picture size parameters
-
-        self.h_image_size = imx
-        self.v_image_size = imy
-        self.h_pixel_size = pix_x
-        self.v_pixel_size = pix_y
-        self.img_cal = img_cal
-        if allCam_flag:
+        self.h_image_size = ptvParams.imx
+        self.v_image_size = ptvParams.imy
+        self.h_pixel_size = ptvParams.pix_x
+        self.v_pixel_size = ptvParams.pix_y
+        self.img_cal = ptvParams.img_cal
+        if ptvParams.allCam_flag:
             self.pair_enable_flag = False
         else:
             self.pair_enable_flag = True
 
         # unesed parameters
 
-        self.n_img = n_img
-        self.img_name = img_name
-        self.hp_flag = np.bool(hp_flag)
-        self.allCam_flag = np.bool(allCam_flag)
-        self.mmp_n1 = mmp_n1
-        self.mmp_n2 = mmp_n2
-        self.mmp_n3 = mmp_n3
-        self.mmp_d = mmp_d
+        self.n_img = ptvParams.n_img
+        self.img_name = ptvParams.img_name
+        self.hp_flag = np.bool(ptvParams.hp_flag)
+        self.allCam_flag = np.bool(ptvParams.allCam_flag)
+        self.mmp_n1 = ptvParams.mmp_n1
+        self.mmp_n2 = ptvParams.mmp_n2
+        self.mmp_n3 = ptvParams.mmp_n3
+        self.mmp_d = ptvParams.mmp_d
 
         # read_calibration parameters
-        calOriParams = par.CalOriParams(n_img, path=self.par_path)
+        calOriParams = par.CalOriParams(self.n_img, path=self.par_path)
         calOriParams.read()
         (fixp_name, img_cal_name, img_ori, tiff_flag, pair_flag, chfield) = \
             (calOriParams.fixp_name, calOriParams.img_cal_name, calOriParams.img_ori,
              calOriParams.tiff_flag, calOriParams.pair_flag, calOriParams.chfield)
 
-        for i in range(n_img):
-            exec('self.cam_%d = img_cal_name[%d]' % (i+1,i))
-            exec ('self.ori_cam_%d = img_ori[%d]' % (i + 1, i))
+        for i in range(self.n_img):
+            exec("self.cam_{0} = calOriParams.img_cal_name[{1}]".format(i+1,i))
+            exec ("self.ori_cam_{0} = calOriParams.img_ori[{1}]".format(i + 1,
+                                                                         i))
 
         self.tiff_head = np.bool(tiff_flag)
         self.pair_head = np.bool(pair_flag)
@@ -905,8 +898,8 @@ class Calib_Params(HasTraits):
              detectPlateParams.size_cross)
 
 
-        for i in range(n_img):
-            exec('self.grey_value_treshold_%d = gv_th%d' % (i+1,i+1))
+        for i in range(self.n_img):
+            exec('self.grey_value_treshold_{0} = gv_th{0}'.format(i+1))
 
         self.tolerable_discontinuity = tolerable_discontinuity
         self.min_npix = min_npix
@@ -924,9 +917,9 @@ class Calib_Params(HasTraits):
         nr = manOriParams.nr
 
 
-        for i in range(n_img):
+        for i in range(self.n_img):
             for j in range(4): # 4 points per image
-                exec('self.img_%d_p%d = nr[%d][%d]' % (i+1,j+1,i,j))
+                exec('self.img_{0}_p{1} = nr[{2}][{3}]'.format(i+1,j+1,i,j))
 
 
         # examine arameters

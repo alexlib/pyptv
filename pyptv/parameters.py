@@ -542,7 +542,7 @@ class TargRecParams(Parameters):
                 self.cr_sz = int(g(f))
 
         except:
-            error(None, "%s not found" % self.filepath())
+            error(None, "Error reading from %s" % self.filepath())
 
     def write(self):
         print("inside TargRecParams.write")
@@ -594,7 +594,7 @@ class ManOriParams(Parameters):
 
     def __init__(self, n_img=Int, nr = List, path=Parameters.default_path):
         Parameters.__init__(self, path)
-        self.n_img = n_img
+        self.n_img = int(n_img)
         self.nr = nr
         self.path = path
 
@@ -659,7 +659,10 @@ class DetectPlateParams(Parameters):
 #     sum_grey = Int
 #     size_cross = Int
 
-    def __init__(self, gvth_1=Int, gvth_2=Int, gvth_3=Int, gvth_4=Int, tol_dis=Int, min_npix=Int, max_npix=Int, min_npix_x=Int, max_npix_x=Int, min_npix_y=Int, max_npix_y=Int, sum_grey=Int, size_cross=Int, path=Parameters.default_path):
+    def __init__(self, gvth_1=Int, gvth_2=Int, gvth_3=Int, gvth_4=Int,
+                 tol_dis=Int, min_npix=Int, max_npix=Int, min_npix_x=Int,
+                 max_npix_x=Int, min_npix_y=Int, max_npix_y=Int, sum_grey=Int,
+                 size_cross=Int, path=Parameters.default_path):
         Parameters.__init__(self, path)
         self.set(gvth_1, gvth_2, gvth_3, gvth_4, tol_dis, min_npix, max_npix,
                  min_npix_x, max_npix_x, min_npix_y, max_npix_y, sum_grey, size_cross)
@@ -693,7 +696,7 @@ class DetectPlateParams(Parameters):
 
             f.close()
         except:
-            error(None, "%s not found" % self.filepath())
+            error(None, "Error reading from %s" % self.filepath())
 
     def write(self):
         # print "inside DetectPlateParams.write"
@@ -769,44 +772,42 @@ class OrientParams(Parameters):
     def read(self):
         # print "inside OrientParams.read"
         try:
-            f = open(self.filepath(), 'r')
+            with open(self.filepath(), 'r') as f:
 
-            self.pnfo = int(g(f))
-            self.cc = int(g(f))
-            self.xh = int(g(f))
-            self.yh = int(g(f))
-            self.k1 = int(g(f))
-            self.k2 = int(g(f))
-            self.k3 = int(g(f))
-            self.p1 = int(g(f))
-            self.p2 = int(g(f))
-            self.scale = int(g(f))
-            self.shear = int(g(f))
-            self.interf = int(g(f))
+                self.pnfo = int(g(f))
+                self.cc = int(g(f))
+                self.xh = int(g(f))
+                self.yh = int(g(f))
+                self.k1 = int(g(f))
+                self.k2 = int(g(f))
+                self.k3 = int(g(f))
+                self.p1 = int(g(f))
+                self.p2 = int(g(f))
+                self.scale = int(g(f))
+                self.shear = int(g(f))
+                self.interf = int(g(f))
 
-            f.close()
         except:
-            error(None, "%s not found" % self.filepath())
+            error(None, "Error reading %s" % self.filepath())
 
     def write(self):
         # print "inside OrientParams.write"
         try:
-            f = open(self.filepath(), 'w')
+            with open(self.filepath(), 'w') as f:
 
-            f.write("%d\n" % int(self.pnfo))
-            f.write("%d\n" % int(self.cc))
-            f.write("%d\n" % int(self.xh))
-            f.write("%d\n" % int(self.yh))
-            f.write("%d\n" % int(self.k1))
-            f.write("%d\n" % int(self.k2))
-            f.write("%d\n" % int(self.k3))
-            f.write("%d\n" % int(self.p1))
-            f.write("%d\n" % int(self.p2))
-            f.write("%d\n" % int(self.scale))
-            f.write("%d\n" % int(self.shear))
-            f.write("%d\n" % int(self.interf))
+                f.write("%d\n" % int(self.pnfo))
+                f.write("%d\n" % int(self.cc))
+                f.write("%d\n" % int(self.xh))
+                f.write("%d\n" % int(self.yh))
+                f.write("%d\n" % int(self.k1))
+                f.write("%d\n" % int(self.k2))
+                f.write("%d\n" % int(self.k3))
+                f.write("%d\n" % int(self.p1))
+                f.write("%d\n" % int(self.p2))
+                f.write("%d\n" % int(self.scale))
+                f.write("%d\n" % int(self.shear))
+                f.write("%d\n" % int(self.interf))
 
-            f.close()
             return True
         except:
             error(None, "Error writing %s." % self.filepath())
