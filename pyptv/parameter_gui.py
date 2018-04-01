@@ -510,13 +510,8 @@ class Main_Params (HasTraits):
         # load read_targ_rec
         targRecParams = par.TargRecParams(ptvParams.n_img, path=self.par_path)
         targRecParams.read()
-        # (gvthres, disco, nnmin, nnmax, nxmin, nxmax, nymin, nymax, sumg_min, cr_sz) = \
-        #     (targRecParams.gvthres, targRecParams.disco, targRecParams.nnmin, targRecParams.nnmax, targRecParams.nxmin,
-        #      targRecParams.nxmax, targRecParams.nymin, targRecParams.nymax, targRecParams.sumg_min, targRecParams.cr_sz)
 
         for i in range(ptvParams.n_img):
-            # key = 'Gray_Thresh_{}'.format(i+1)
-            # self[key] = targRecParams.gvthres[i]
             exec("self.Gray_Tresh_{0} = targRecParams.gvthres[{1}]".format(i+1,i))
 
 
