@@ -25,6 +25,7 @@ class Parameters(HasTraits):
     def __init__(self, path=default_path):
         HasTraits.__init__(self)
         self.path = path
+        self.exp_path = os.path.dirname(self.path)
 
     # returns the name of the specific params file
     def filename(self):
@@ -68,6 +69,10 @@ class Parameters(HasTraits):
 
             setattr(self, k, v)
 
+    def istherefile(self, filename):
+        """ checks if the filename exists in the experimental path """
+        if not os.path.isfile(os.path.join(self.exp_path,filename)):
+            warning("%s not found" % self.img_name[i])
 
 
 # Print detailed error to the console and show the user a friendly error window
@@ -197,10 +202,8 @@ class PtvParams(Parameters):
                     self.img_cal[i] = g(f)
 
                 for i in range(self.n_img):
-                    if not os.path.isfile(self.img_name[i]):
-                        warning("%s not found" % self.img_name[i])
-                    if not os.path.isfile(self.img_cal[i]):
-                        warning("%s not found" % self.img_cal[i])
+                    self.istherefile(self.img_name[i])
+                    self.istherefile(self.img_cal[i])
 
                 self.hp_flag = (int(g(f)) != 0)
                 self.allCam_flag = (int(g(f)) != 0)
@@ -290,8 +293,7 @@ class CalOriParams(Parameters):
             with open(self.filepath(), 'r') as f:
 
                 self.fixp_name = g(f)
-                if not os.path.isfile(self.fixp_name):
-                    error(None, "%s not found" % self.fixp_name)
+                self.istherefile(self.fixp_name)
 
                 self.img_cal_name = []
                 self.img_ori = []
@@ -302,12 +304,8 @@ class CalOriParams(Parameters):
 
                 # test if files are present, protects from segfaults
                 for i in range(self.n_img):
-                    fname = self.img_cal_name[i]
-                    if not os.path.isfile(fname):
-                        warning("%s not found" % fname)
-                    fname = self.img_ori[i]
-                    if not os.path.isfile(fname):
-                        warning("%s not found" % fname)
+                    self.istherefile(self.img_cal_name[i])
+                    self.istherefile(self.img_ori[i])
 
                 self.tiff_flag = (int(g(f)) != 0)  # <-- overwrites the above
                 self.pair_flag = (int(g(f)) != 0)
@@ -372,7 +370,7 @@ class SequenceParams(Parameters):
                 self.first = int(g(f))
                 self.last = int(g(f))
         except:
-            error(None, "%s not found" % self.filepath())
+            error(None, "error reading %s" % self.filepath())
 
     def write(self):
         # print "inside SequenceParams.write"

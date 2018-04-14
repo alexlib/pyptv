@@ -978,7 +978,7 @@ class Experiment (HasTraits):
     paramsets = List(Paramset)
 
     def __init__(self):
-        super(HasTraits,self).__init__()
+        HasTraits.__init__(self)
         self.changed_active_params = False
 
     def getParamsetIdx(self, paramset):
