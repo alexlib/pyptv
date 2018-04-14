@@ -120,6 +120,10 @@ def py_determination_proc_c(n_cams, sorted_pos, sorted_corresp, corrected):
     # Control parameters
     cpar = ControlParams(n_cams)
     cpar.read_control_par('parameters/ptv.par')
+
+    # Volume parameters
+    vpar = VolumeParams()
+    vpar.read_volume_par('parameters/criteria.par')    
         
     cals =[]
     for i_cam in xrange(n_cams):
@@ -133,10 +137,15 @@ def py_determination_proc_c(n_cams, sorted_pos, sorted_corresp, corrected):
     sorted_pos = np.concatenate(sorted_pos, axis=1)
     sorted_corresp = np.concatenate(sorted_corresp, axis=1)
 
+
     flat = np.array([corrected[i].get_by_pnrs(sorted_corresp[i]) \
                      for i in xrange(len(cals))])
     pos, rcm = point_positions(
-        flat.transpose(1,0,2), cpar, cals)
+        flat.transpose(1,0,2), cpar, cals, vpar)
+
+    if len(cals) == 1: # single camera case
+        sorted_corresp = np.tile(sorted_corresp,(4,1))
+        sorted_corresp[1:,:] = -1
 
     # Save rt_is in a temporary file 
     frame = 123456789 # just a temporary workaround. todo: think how to write
@@ -205,7 +214,11 @@ def py_sequence_loop(exp):
         flat = np.array([corrected[i].get_by_pnrs(sorted_corresp[i]) \
                          for i in xrange(len(cals))])
         pos, rcm = point_positions(
-            flat.transpose(1,0,2), cpar, cals)
+            flat.transpose(1,0,2), cpar, cals, vpar)
+
+        if len(cals) == 1: # single camera case
+            sorted_corresp = np.tile(sorted_corresp,(4,1))
+            sorted_corresp[1:,:] = -1
 
         # Save rt_is
         rt_is = open(default_naming['corres']+'.'+str(frame), 'w')

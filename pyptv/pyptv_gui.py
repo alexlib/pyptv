@@ -95,7 +95,8 @@ class Clicker(ImageInspectorTool):
         pass
 
     def __init__(self, *args, **kwargs):
-        super(Clicker, self).__init__(*args, **kwargs)
+        # Clicker.__init__(self,*args, **kwargs)
+        super(Clicker,self).__init__(*args,**kwargs)
 
 
 # --------------------------------------------------------------
@@ -530,11 +531,12 @@ class TreeMenuHandler(traitsui.api.Handler):
         print ("correspondence proc started")
         info.object.sorted_pos, info.object.sorted_corresp, info.object.num_targs = \
             ptv.py_correspondences_proc_c(info.object)
-        if len(info.object.sorted.pos) > 0:
+
+        if len(info.object.camera_list) > 1 and len(info.object.sorted_pos) > 0:
             quadruplets = info.object.sorted_pos[0]
             triplets = info.object.sorted_pos[1]
             pairs = info.object.sorted_pos[2]
-            unused = []  # temporary solution
+            # unused = []  # temporary solution
 
             # import pdb; pdb.set_trace()
             # info.object.clear_plots(remove_background=False)
@@ -550,7 +552,8 @@ class TreeMenuHandler(traitsui.api.Handler):
     def init_action(self, info):
         """ init_action - clears existing plots from the camera windows,
         initializes C image arrays with mainGui.orig_image and
-        calls appropriate start_proc_c by using ptv.py_start_proc_c()
+        calls appropriate start_proc_c
+         by using ptv.py_start_proc_c()
         """
         mainGui = info.object
         mainGui.exp1.syncActiveDir()  # synchronize the active run params dir with the temp params dir
@@ -971,7 +974,7 @@ class MainGUI(traits.api.HasTraits):
     # Constructor and Chaco windows initialization
     # ---------------------------------------------------
     def __init__(self, exp_path):
-        super(MainGUI, self).__init__()
+        super(MainGUI,self).__init__()
         colors = ['yellow', 'green', 'red', 'blue']
         self.exp1 = Experiment()
         self.exp1.populate_runs(exp_path)
@@ -1158,15 +1161,14 @@ if __name__ == '__main__':
     # Path to the experiment
     if len(sys.argv) > 1:
         exp_path = os.path.abspath(sys.argv[1])
-        print("Experimental path is %s " % exp_path)
-        if not os.path.isdir(exp_path):
-            raise OSError("Wrong experimental directory %s " % exp_path)
-
-        os.chdir(exp_path)
     else:
         print(
             'Please provide an experimental directory as an input, fallback to a default\n')
-        exp_path = '../../test_cavity'
+        exp_path = '/Users/alex/Documents/OpenPTV/test_one_cam'
+
+    if not os.path.isdir(exp_path):
+        raise OSError("Wrong experimental directory %s " % exp_path)
+    os.chdir(exp_path)
 
     try:
         main_gui = MainGUI(exp_path)
