@@ -72,7 +72,7 @@ class Parameters(HasTraits):
     def istherefile(self, filename):
         """ checks if the filename exists in the experimental path """
         if not os.path.isfile(os.path.join(self.exp_path,filename)):
-            warning("%s not found" % self.img_name[i])
+            warning("%s not found" % filename)
 
 
 # Print detailed error to the console and show the user a friendly error window
@@ -201,10 +201,6 @@ class PtvParams(Parameters):
                     self.img_name[i] = g(f)
                     self.img_cal[i] = g(f)
 
-                for i in range(self.n_img):
-                    self.istherefile(self.img_name[i])
-                    self.istherefile(self.img_cal[i])
-
                 self.hp_flag = (int(g(f)) != 0)
                 self.allCam_flag = (int(g(f)) != 0)
                 self.tiff_flag = (int(g(f)) != 0)
@@ -220,6 +216,11 @@ class PtvParams(Parameters):
 
         except IOError:
             error(None, "%s not found" % self.filepath())
+
+        # test existence and issue warnings
+        for i in range(self.n_img):
+            self.istherefile(self.img_name[i])
+            self.istherefile(self.img_cal[i])
 
     def write(self):
         print("inside PtvParams.write")
@@ -302,17 +303,17 @@ class CalOriParams(Parameters):
                     self.img_cal_name.append(g(f))
                     self.img_ori.append(g(f))
 
-                # test if files are present, protects from segfaults
-                for i in range(self.n_img):
-                    self.istherefile(self.img_cal_name[i])
-                    self.istherefile(self.img_ori[i])
-
                 self.tiff_flag = (int(g(f)) != 0)  # <-- overwrites the above
                 self.pair_flag = (int(g(f)) != 0)
                 self.chfield = int(g(f))
 
         except:
             error(None, "%s not found" % self.filepath())
+
+        # test if files are present, issue warnings
+        for i in range(self.n_img):
+            self.istherefile(self.img_cal_name[i])
+            self.istherefile(self.img_ori[i])
 
     def write(self):
         # print "inside CalOriParams.write"
