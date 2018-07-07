@@ -16,7 +16,7 @@ decorator=4.2.1=py27_0
 distributed=1.20.2=py27_0
 enable=4.5.1=np110py27_0
 freetype=2.5.5=2
-future: 0.16.0-py27_1
+future=0.16.0=py27_1
 futures=3.2.0=py27h1b80678_0
 heapdict=1.0.0=py27_2
 imageio=2.2.0=py27h37746d9_0
