@@ -50,7 +50,6 @@ psutil=5.4.3=py27h1de35cc_0
 pyface=4.5.2=py27_0
 pygments=2.2.0=py27h1a556bb_0
 pyparsing=2.2.0=py27h5bb6aaf_0
-pyptv=0.1.0=py27hda599a3_0
 pyqt=4.11.4=py27_4
 python=2.7.14=hde5916a_29
 python-dateutil=2.6.1=py27hd56c96b_1
