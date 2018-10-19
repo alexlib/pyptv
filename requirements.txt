@@ -10,6 +10,7 @@ chaco=4.5.0=np110py27_0
 click=6.7=py27h2b86a94_0
 cloudpickle=0.5.2=py27_1
 cycler=0.10.0=py27hfc73c78_0
+cython=0.28.1=py27h1de35cc_0
 dask=0.16.1=py27_0
 dask-core=0.16.1=py27_0
 decorator=4.2.1=py27_0
