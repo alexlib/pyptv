@@ -296,26 +296,6 @@ class CameraWindow(traits.api.HasTraits):
         # self._plot.add_xy_plot((str_x,str_y),type="line",color=color1)
         # self._plot.request_redraw()
 
-    def add_line(self,str_x,str_y,x1,y1,x2,y2,color1):
-        """ drawline draws 1 line on the screen by using lineplot x1,y1->x2,y2
-        parameters:
-            str_x - label of x coordinate
-            str_y - label of y coordinate
-            x1,y1,x2,y2 - start and end coordinates of the line
-            color1 - color of the line
-        example usage:
-            drawline("x_coord","y_coord",100,100,200,200,red)
-            draws a red line 100,100->200,200
-        """
-        # self._plot_data.set_data(str_x,[x1,x2])
-        # self._plot_data.set_data(str_y,[y1,y2])
-
-        self._plot_data.set_data(str_x,[x1,x2])
-        self._plot_data.set_data(str_y,[y1,y2])
-        self._plot.add(Plot((str_x,str_y),type="line",color=color1))
-        # self._plot.add_xy_plot((str_x,str_y),type="line",color=color1)
-        #self._plot.request_redraw()
-
 class TrackThread(Thread):
     """ TrackThread is used by tracking with display function, it 
         runs a separate thread that updates the GUI
@@ -1164,7 +1144,7 @@ if __name__ == '__main__':
     else:
         print(
             'Please provide an experimental directory as an input, fallback to a default\n')
-        exp_path = '/Users/alex/Documents/OpenPTV/test_one_cam'
+        exp_path = '/Users/alex/Downloads/report_issue'
 
     if not os.path.isdir(exp_path):
         raise OSError("Wrong experimental directory %s " % exp_path)

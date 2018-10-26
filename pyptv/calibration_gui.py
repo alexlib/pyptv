@@ -575,7 +575,6 @@ class CalibrationGUI(HasTraits):
 
         # x.append(x1)
         # y.append(y1)
-
         self.drawcross("init_x", "init_y", x, y, color, 3, i_cam=i_cam)
         self.status_text = 'Initial guess finished.'
 
@@ -590,6 +589,9 @@ class CalibrationGUI(HasTraits):
             self.need_reset = 0
 
         self.sorted_targs = []
+        
+        print("_button_sort_grid_fired")
+
 
         for i_cam in range(self.n_cams):
 
