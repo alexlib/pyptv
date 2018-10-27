@@ -41,6 +41,7 @@ mkl=2018.0.1=hfbd8650_4
 msgpack-python=0.5.1=py27h04f5b5a_0
 ncurses=6.0=hd04f020_2
 networkx=2.1=py27_0
+nose=1.3.7=py27_2
 numpy=1.10.2=py27_0
 openssl=1.0.2n=hdbc3d79_0
 pandas=0.22.0=py27h0a44026_0
