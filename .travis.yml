@@ -21,7 +21,7 @@ install:
   - conda update -q conda
   - conda install conda-build
   - conda install anaconda-client
-  - conda install -c anaconda chaco
+  - conda install chaco
   - conda install cython
   - conda install scikit-image
   - conda install kiwisolver
