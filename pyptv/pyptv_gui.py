@@ -512,21 +512,34 @@ class TreeMenuHandler(traitsui.api.Handler):
         info.object.sorted_pos, info.object.sorted_corresp, info.object.num_targs = \
             ptv.py_correspondences_proc_c(info.object)
 
+        # we will always use from pairs or the last iter in sorted_pos
+        # and go upwards. so we'll stop at either triplets or quadruplets
+        names = ['pair','tripl','quad']
+        use_colors = ['yellow','green','red']
+
         if len(info.object.camera_list) > 1 and len(info.object.sorted_pos) > 0:
-            quadruplets = info.object.sorted_pos[0]
-            triplets = info.object.sorted_pos[1]
-            pairs = info.object.sorted_pos[2]
+            # this is valid only if there are 4 cameras
+            # quadruplets = info.object.sorted_pos[0]
+            # triplets = info.object.sorted_pos[1]
+            # pairs = info.object.sorted_pos[2]
             # unused = []  # temporary solution
+
+            # if there are less than 4 cameras, then 
+            # there are no quadruplets
+            # only triplets and pairs if 3
+            # only pairs if 2
+
 
             # import pdb; pdb.set_trace()
             # info.object.clear_plots(remove_background=False)
-
-            x, y = self._clean_correspondences(quadruplets)
-            info.object.drawcross("quad_x", "quad_y", x, y, "red", 3)
-            x, y = self._clean_correspondences(triplets)
-            info.object.drawcross("tripl_x", "tripl_y", x, y, "green", 3)
-            x, y = self._clean_correspondences(pairs)
-            info.object.drawcross("pair_x", "pair_y", x, y, "yellow", 3)
+                for i, subset in enumerate(reversed(info.object.sorted_pos)):
+                    x, y = self._clean_correspondences(subset)
+                    info.object.drawcross(names[i]+'_x', names[i]+"_y", x, y, use_colors[i], 3)
+            
+            # x, y = self._clean_correspondences(triplets)
+            # info.object.drawcross("tripl_x", "tripl_y", x, y, "green", 3)
+            # x, y = self._clean_correspondences(pairs)
+            # info.object.drawcross("pair_x", "pair_y", x, y, "yellow", 3)
             # info.object.drawcross("unused_x","unused_y",unused[:,0],unused[:,1],"blue",3)
 
     def init_action(self, info):
@@ -1028,7 +1041,6 @@ class MainGUI(traits.api.HasTraits):
         """
         for i, cam in enumerate(self.camera_list):
             cam.drawcross(str_x, str_y, x[i], y[i], color1, size1)
-            cam._plot.request_redraw()
 
     def clear_plots(self, remove_background=True):
         # this function deletes all plotes except basic image plot
@@ -1144,7 +1156,7 @@ if __name__ == '__main__':
     else:
         print(
             'Please provide an experimental directory as an input, fallback to a default\n')
-        exp_path = '/Users/alex/Downloads/report_issue'
+        exp_path = '/Users/alex/Documents/OpenPTV/test_cavity' # or test_cavity,
 
     if not os.path.isdir(exp_path):
         raise OSError("Wrong experimental directory %s " % exp_path)

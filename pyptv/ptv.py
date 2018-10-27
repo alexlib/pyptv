@@ -54,7 +54,6 @@ def py_start_proc_c(n_cams):
     for i_cam in xrange(n_cams):
         cal = Calibration()
         tmp = cpar.get_cal_img_base_name(i_cam)
-        print(tmp)
         cal.from_file(tmp+'.ori', tmp+'.addpar')
         cals.append(cal)
         
@@ -141,7 +140,7 @@ def py_determination_proc_c(n_cams, sorted_pos, sorted_corresp, corrected):
     flat = np.array([corrected[i].get_by_pnrs(sorted_corresp[i]) \
                      for i in xrange(len(cals))])
     pos, rcm = point_positions(
-        flat.transpose(1,0,2), cpar, cals, vpar)
+        flat.transpose(1,0,2), cpar, cals)
 
     if len(cals) == 1: # single camera case
         sorted_corresp = np.tile(sorted_corresp,(4,1))
@@ -178,7 +177,6 @@ def py_sequence_loop(exp):
 
             img = imread(imname)
             # import pdb; pdb.set_trace()
-            print(imname,img.shape)
             time.sleep(.1)
             hp = simple_highpass(img, cpar)
             targs = target_recognition(hp, tpar, i_cam, cpar)
@@ -214,7 +212,7 @@ def py_sequence_loop(exp):
         flat = np.array([corrected[i].get_by_pnrs(sorted_corresp[i]) \
                          for i in xrange(len(cals))])
         pos, rcm = point_positions(
-            flat.transpose(1,0,2), cpar, cals, vpar)
+            flat.transpose(1,0,2), cpar, cals)
 
         if len(cals) == 1: # single camera case
             sorted_corresp = np.tile(sorted_corresp,(4,1))
