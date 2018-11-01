@@ -705,7 +705,6 @@ class TreeMenuHandler(traitsui.api.Handler):
                 targets = optv.tracking_framebuf.read_targets(base_names[i_img], i_seq)
 
                 for t in targets:
-
                     if (t.tnr() > -1):
                         # intx_green.append(int(imx/2 + zoomf*(tx - zoomx)))
                         # inty_green.append(int(imy/2 + zoomf*(ty - zoomy)))
@@ -715,7 +714,7 @@ class TreeMenuHandler(traitsui.api.Handler):
                 #                        intx_blue.append(int(imx/2 + zoomf*(tx - zoomx)))
                 #                        inty_blue.append(int(imy/2 + zoomf*(ty - zoomy)))
 
-                x1_a[i_img] = x1_a[i_img] + intx_green  # add current step to result array
+                x1_a[i_img] =  x1_a[i_img] + intx_green  # add current step to result array
                 #                x2_a[i_img]=x2_a[i_img]+intx_blue
                 y1_a[i_img] = y1_a[i_img] + inty_green
         #                y2_a[i_img]=y2_a[i_img]+inty_blue
@@ -749,9 +748,14 @@ class TreeMenuHandler(traitsui.api.Handler):
                                                            dtype=fmt, skiprows=1))
 
         x1_a, x2_a, y1_a, y2_a = [], [], [], []
+        for i in range(info.object.n_cams):  # initialize result arrays
+            x1_a.append([])
+            x2_a.append([])
+            y1_a.append([])
+            y2_a.append([])
 
-        for i_cam in range(info.object.n_cams):  # initialize result arrays
-            for i_seq in range(seq_first, seq_last):
+        for i_seq in range(seq_first, seq_last):
+            for i_cam in range(info.object.n_cams):  # initialize result arrays
                 x1, y1 = [], []
                 frame = _read_frame(i_seq)
                 for row in frame:
@@ -765,13 +769,13 @@ class TreeMenuHandler(traitsui.api.Handler):
                         x1.append(pos[0][0])
                         y1.append(pos[0][1])
 
-                x1_a += x1
-                y1_a += y1
+                x1_a[i_cam] =  x1_a[i_cam] + x1  # add current step to result array
+                #                x2_a[i_img]=x2_a[i_img]+intx_blue
+                y1_a[i_cam] = y1_a[i_cam] + y1
             # for i in range(info.object.n_cams):
-            info.object.camera_list[i_cam].drawcross("trajx1", "trajy1", x1_a, y1_a, "red", 2)
-            # info.object.camera_list[i].drawcross("trajx2","trajy2",x2_a[i],y2_a[i],"red",2)
-            # info.object.camera_list[i].drawquiver(x1_a[i],y1_a[i],x2_a[i],y2_a[i],"green",linewidth=3.0)
-            info.object.camera_list[i_cam]._plot.request_redraw()
+        for i_img in range(info.object.n_cams):
+            info.object.camera_list[i_img].drawcross("trajx1", "trajy1", x1_a[i_img], y1_a[i_img], "red", 2)
+            # info.object.camera_list[i_img]._plot.request_redraw() 
 
         print("Show trajectories finished")
 
