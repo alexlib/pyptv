@@ -142,16 +142,16 @@ def py_determination_proc_c(n_cams, sorted_pos, sorted_corresp, corrected):
     pos, rcm = point_positions(
         flat.transpose(1,0,2), cpar, cals)
 
-    if len(cals) == 1: # single camera case
-        sorted_corresp = np.tile(sorted_corresp,(4,1))
-        sorted_corresp[1:,:] = -1
+    if len(cals) < 4:
+        print_corresp = -1*np.ones((4,sorted_corresp.shape[1]))
+        print_corresp[:len(cals),:] = sorted_corresp
 
     # Save rt_is in a temporary file 
     frame = 123456789 # just a temporary workaround. todo: think how to write
     with open(default_naming['corres']+'.'+str(frame), 'w') as rt_is:
         rt_is.write(str(pos.shape[0]) + '\n')
         for pix, pt in enumerate(pos):
-            pt_args = (pix + 1,) + tuple(pt) + tuple(sorted_corresp[:,pix])
+            pt_args = (pix + 1,) + tuple(pt) + tuple(print_corresp[:,pix])
             rt_is.write("%4d %9.3f %9.3f %9.3f %4d %4d %4d %4d\n" % pt_args)
     # rt_is.close()
  
@@ -214,15 +214,19 @@ def py_sequence_loop(exp):
         pos, rcm = point_positions(
             flat.transpose(1,0,2), cpar, cals)
 
-        if len(cals) == 1: # single camera case
-            sorted_corresp = np.tile(sorted_corresp,(4,1))
-            sorted_corresp[1:,:] = -1
+        # if len(cals) == 1: # single camera case
+        #     sorted_corresp = np.tile(sorted_corresp,(4,1))
+        #     sorted_corresp[1:,:] = -1
+
+        if len(cals) < 4:
+            print_corresp = -1*np.ones((4,sorted_corresp.shape[1]))
+            print_corresp[:len(cals),:] = sorted_corresp
 
         # Save rt_is
         rt_is = open(default_naming['corres']+'.'+str(frame), 'w')
         rt_is.write(str(pos.shape[0]) + '\n')
         for pix, pt in enumerate(pos):
-            pt_args = (pix + 1,) + tuple(pt) + tuple(sorted_corresp[:,pix])
+            pt_args = (pix + 1,) + tuple(pt) + tuple(print_corresp[:,pix])
             rt_is.write("%4d %9.3f %9.3f %9.3f %4d %4d %4d %4d\n" % pt_args)
         rt_is.close()
     # end of a sequence loop    
