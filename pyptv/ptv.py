@@ -145,6 +145,8 @@ def py_determination_proc_c(n_cams, sorted_pos, sorted_corresp, corrected):
     if len(cals) < 4:
         print_corresp = -1*np.ones((4,sorted_corresp.shape[1]))
         print_corresp[:len(cals),:] = sorted_corresp
+    else:
+        print_corresp = sorted_corresp
 
     # Save rt_is in a temporary file 
     frame = 123456789 # just a temporary workaround. todo: think how to write
@@ -221,6 +223,8 @@ def py_sequence_loop(exp):
         if len(cals) < 4:
             print_corresp = -1*np.ones((4,sorted_corresp.shape[1]))
             print_corresp[:len(cals),:] = sorted_corresp
+        else:
+            print_corresp = sorted_corresp
 
         # Save rt_is
         rt_is = open(default_naming['corres']+'.'+str(frame), 'w')
