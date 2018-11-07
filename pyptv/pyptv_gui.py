@@ -11,6 +11,7 @@ from __future__ import division
 import os
 import sys
 import time
+import yaml
 
 import numpy as np
 from traits.etsconfig.api import ETSConfig
@@ -507,6 +508,10 @@ class TreeMenuHandler(traitsui.api.Handler):
             Result of correspondence action is filled to uadriplets,triplets, pairs,
             and unused arrays
         """
+
+
+	ptv.py_multiplanecalibration(info.object)
+
         # if info.object.n_cams  > 1: # single camera is not checked
         print ("correspondence proc started")
         info.object.sorted_pos, info.object.sorted_corresp, info.object.num_targs = \
@@ -573,7 +578,7 @@ class TreeMenuHandler(traitsui.api.Handler):
         # mainGui.set_images(mainGui.orig_image)
 
         info.object.cpar, info.object.spar, info.object.vpar, info.object.track_par, \
-        info.object.tpar, info.object.cals = ptv.py_start_proc_c(info.object.n_cams)
+        info.object.tpar, info.object.cals, info.object.epar = ptv.py_start_proc_c(info.object.n_cams)
         mainGui.pass_init = True
         print ("Read all the parameters and calibrations successfully ")
 

@@ -769,7 +769,7 @@ class OrientParams(Parameters):
         return "orient.par"
 
     def read(self):
-        # print "inside OrientParams.read"
+        #print ("inside OrientParams.read")
         try:
             with open(self.filepath(), 'r') as f:
 
@@ -935,7 +935,7 @@ class ExamineParams(Parameters):
             f.write("%d\n" % 0)
             f.close()
 
-        # print "inside ExamineParams.read"
+        #print ("inside ExamineParams.read")
         try:
             f = open(self.filepath(), 'r')
 
@@ -1125,6 +1125,7 @@ class MultiPlaneParams(Parameters):
         return "multi_planes.par"
 
     def read(self):
+        print("inside MultiPlane.read")
         try:
             with open(self.filepath(), 'r') as f:
                 self.n_planes = int(g(f))
@@ -1137,7 +1138,7 @@ class MultiPlaneParams(Parameters):
             error(None, "%s not found" % self.filepath())
 
     def write(self):
-        # print "inside MultiPlane.write"
+        print("inside MultiPlane.write")
         try:
             with open(self.filepath(), 'w') as f:
 
