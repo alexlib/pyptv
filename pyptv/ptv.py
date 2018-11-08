@@ -373,8 +373,8 @@ def py_multiplanecalibration(exp):
 
 			c=exp.calParams.img_ori[i_cam][-9] # Get camera id
 
-			file_known=exp.MultiParams.plane_name[i]+'_cam'+str(c)+'.tif.fix'
-			file_detected=exp.MultiParams.plane_name[i]+'_cam'+str(c)+'.tif.crd'
+			file_known=exp.MultiParams.plane_name[i]+str(c)+'.tif.fix'
+			file_detected=exp.MultiParams.plane_name[i]+str(c)+'.tif.crd'
 
 			# Load calibration point information from plane i
 			known = np.loadtxt(file_known)

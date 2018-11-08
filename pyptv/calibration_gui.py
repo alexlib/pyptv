@@ -436,7 +436,7 @@ class CalibrationGUI(HasTraits):
         self.calParams.read()
 
 
-        if(self.epar.Combine_Flag):
+        if (self.epar.Combine_Flag):
 			self.MultiParams=par.MultiPlaneParams()
 			self.MultiParams.read()
 			for i in range(self.MultiParams.n_planes):
@@ -755,7 +755,7 @@ class CalibrationGUI(HasTraits):
         addpar = ori.replace('ori', 'addpar')
         print("Saving:", ori, addpar)
         self.cals[i_cam].write(ori, addpar)
-        if self.epar.Examine_Flag:
+        if self.epar.Examine_Flag and not self.epar.Combine_Flag:
 			self.save_point_sets(i_cam)
 
     def save_point_sets(self, i_cam):
