@@ -598,6 +598,7 @@ class CalibrationGUI(HasTraits):
             self.reset_show_images()
             self.need_reset = 0
 
+        self.cal_points = self._read_cal_points()
         self.sorted_targs = []
 
         print("_button_sort_grid_fired")

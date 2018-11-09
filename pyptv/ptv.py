@@ -273,7 +273,7 @@ def py_traject_loop():
 
 # ------- Utilities ----------#
 
-def py_rclick_delete():
+def py_rclick_delete(x,y,n):
     """ a tool to delete clicked points
 
     def py_right_click(int coord_x, int coord_y, n_image):
@@ -306,7 +306,7 @@ def py_rclick_delete():
     """
     pass
 
-def py_get_pix_N():
+def py_get_pix_N(x,y,n):
     """
     def py_get_pix_N(x,y,n_image):
     global pix
