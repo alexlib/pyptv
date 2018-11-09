@@ -274,7 +274,6 @@ class PlotWindow(HasTraits):
 
 
 class CalibrationGUI(HasTraits):
-    camera = List
     status_text = Str("")
     ori_img_name = []
     ori_img = []
@@ -329,8 +328,9 @@ class CalibrationGUI(HasTraits):
         with open(os.path.join(self.par_path, 'ptv.par'), 'r') as f:
             self.n_cams = int(f.readline())
 
+
+        self.camera = [PlotWindow() for i in xrange(self.n_cams)]
         for i in xrange(self.n_cams):
-            self.camera.append(PlotWindow())
             self.camera[i].name = "Camera" + str(i + 1)
             self.camera[i].cameraN = i
             self.camera[i].py_rclick_delete = ptv.py_rclick_delete
@@ -720,7 +720,7 @@ class CalibrationGUI(HasTraits):
 
         for i_cam in range(self.n_cams): # iterate over all cameras
 
-            if (self.epar.Combine_Flag):
+            if self.epar.Combine_Flag:
             
                 self.status_text = "Multiplane calibration."
                 """ Performs multiplane calibration, in which for all cameras the 
@@ -834,11 +834,11 @@ class CalibrationGUI(HasTraits):
 		"""
 
 		ori = self.calParams.img_ori[i_cam]
-		txt_detected=ori.replace('ori', 'crd')
-		txt_matched=ori.replace('ori', 'fix')
+		txt_detected = ori.replace('ori', 'crd')
+		txt_matched = ori.replace('ori', 'fix')
 
-		detected=np.empty((len(self.cal_points), 2))
-		targs=self.sorted_targs[i_cam]
+		detected = np.empty((len(self.cal_points), 2))
+		targs = self.sorted_targs[i_cam]
 		nums = np.arange(len(self.cal_points))
 		for pnr in nums:
 			detected[pnr] = targs[pnr].pos()
