@@ -435,25 +435,16 @@ class CalibrationGUI(HasTraits):
         self.calParams = par.CalOriParams(self.n_cams, self.par_path)
         self.calParams.read()
         
-        if self.epar.Combine_Flag : 
-            print("Combine Flag\n")
+        if self.epar.Combine_Flag is True : 
+            print("Combine Flag")
+            self.MultiParams = par.MultiPlaneParams()
+            self.MultiParams.read()
+            for i in range(self.MultiParams.n_planes):
+                print(self.MultiParams.plane_name[i])
 
+            self.pass_raw_orient = True
+            self.status_text = "Multiplane calibration."
 
-#         if self.epar.Combine_Flag is True:
-#             print("true")
-# 			self.MultiParams=par.MultiPlaneParams()
-# 			self.MultiParams.read()
-# # 			for i in range(self.MultiParams.n_planes):
-# # 				print("%s is read." % self.MultiParams.plane_name[i])
-#             
-#             print("Read multi_planes.par successfully")
-
-
-
-            # self.pass_raw_orient = True
-            # self.pass_init = True
-            # self.status_text = "Multiplane calibration."
-            # ptv.py_multiplanecalibration(self)
         
         # read calibration images
         self.cal_images = []
