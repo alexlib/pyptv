@@ -33,6 +33,8 @@ from optv.orientation import match_detection_to_ref
 from optv.segmentation import target_recognition
 from optv.orientation import external_calibration, full_calibration
 from optv.calibration import Calibration
+from optv.tracking_framebuf import TargetArray
+
 
 import ptv as ptv
 import parameter_gui as pargui
@@ -718,23 +720,19 @@ class CalibrationGUI(HasTraits):
                 flags.append(name)
 
 
-            if (self.epar.Combine_Flag):
-                # self.MultiParams=par.MultiPlaneParams()
-                # self.MultiParams.read()
-                # for i in range(self.MultiParams.n_planes):
-                # 	print("%s is read." % self.MultiParams.plane_name[i])
         
-                self.status_text = "Multiplane calibration."
-                # ptv.py_multiplanecalibration(self)
 
-                # def py_multiplanecalibration(exp):
+        for i_cam in range(self.n_cams): # iterate over all cameras
+
+            if (self.epar.Combine_Flag):
+            
+                self.status_text = "Multiplane calibration."
                 """ Performs multiplane calibration, in which for all cameras the 
                 pre-processed planes in multi_plane.par combined.
                 Overwrites the ori and addpar files of the cameras specified 
                 in cal_ori.par of the multiplane parameter folder
                 """
 
-            for i_cam in range(self.n_cams): # iterate over all cameras
                 all_known = []
                 all_detected = []
                 for i in range(self.MultiParams.n_planes): # combine all single planes
@@ -788,33 +786,11 @@ class CalibrationGUI(HasTraits):
                     targ.set_pnr(tix)
                     targ.set_pos(det[1:])
 
-
+                self.cal_points = np.empty((all_known.shape[0],)).astype(dtype=[('id', 'i4'), ('pos', '3f8')])
                 self.cal_points['pos'] = all_known
+            else:
+                targs = self.sorted_targs[i_cam]
 
-                # backup the ORI/ADDPAR files first
-                self.backup_ori_files()
-
-                op = par.OrientParams()
-                op.read()
-
-                # recognized names for the flags:
-                names = ['cc', 'xh', 'yh', 'k1', 'k2', 'k3', 'p1', 'p2', 'scale', 'shear']
-                op_names = [op.cc, op.xh, op.yh, op.k1, op.k2, op.k3, op.p1, op.p2, op.scale, op.shear]
-
-                flags = []
-                for name, op_name in zip(names, op_names):
-                    if (op_name ==1):
-                        flags.append(name)
-
-            # Run the multiplane calibration
-            # residuals, targ_ix, err_est = full_calibration(exp.cals[0], all_known, targs, exp.cpar, flags)
-
-            #Save the results
-            # exp._write_ori(i_cam)
-            # print('End multiplane')
-
-        for i_cam in range(self.n_cams):
-            targs = self.sorted_targs[i_cam]
             residuals, targ_ix, err_est = full_calibration(self.cals[i_cam], self.cal_points['pos'], \
                                                            targs, self.cpar, flags)
             # save the results
