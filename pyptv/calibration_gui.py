@@ -826,29 +826,36 @@ class CalibrationGUI(HasTraits):
         print("Saving:", ori, addpar)
         self.cals[i_cam].write(ori, addpar)
         if self.epar.Examine_Flag and not self.epar.Combine_Flag:
-			self.save_point_sets(i_cam)
+            self.save_point_sets(i_cam)
 
     def save_point_sets(self, i_cam):
-		"""
-		Saves detected and known calibration points in crd and fix format, respectively.
-		These files are needed for multiplane calibration.
-		"""
+        """
+        Saves detected and known calibration points in crd and fix format, respectively.
+        These files are needed for multiplane calibration.
+        """
 
-		ori = self.calParams.img_ori[i_cam]
-		txt_detected = ori.replace('ori', 'crd')
-		txt_matched = ori.replace('ori', 'fix')
+        ori = self.calParams.img_ori[i_cam]
+        txt_detected = ori.replace('ori', 'crd')
+        txt_matched = ori.replace('ori', 'fix')
 
-		detected = np.empty((len(self.cal_points), 2))
-		targs = self.sorted_targs[i_cam]
-		nums = np.arange(len(self.cal_points))
-		for pnr in nums:
-			detected[pnr] = targs[pnr].pos()
 
-		detected = np.hstack((nums[:,None], detected))
-		known = np.hstack((nums[:,None], self.cal_points['pos']))
+        detected, known = [],[]
+        targs = self.sorted_targs[i_cam]
+        for i,t in enumerate(targs):
+            if t.pnr() != -999:
+                detected.append(t.pos())
+                known.append(self.cal_points['pos'][i]) 
+        nums = np.arange(len(detected))
+        # for pnr in nums:
+        #     print(targs[pnr].pnr())
+        #     print(targs[pnr].pos())
+        #   detected[pnr] = targs[pnr].pos()
 
-		np.savetxt(txt_detected, detected, fmt="%9.5f")
-		np.savetxt(txt_matched, known, fmt="%10.5f")
+        detected = np.hstack((nums[:,None], np.array(detected)))
+        known = np.hstack((nums[:,None], np.array(known)))
+
+        np.savetxt(txt_detected, detected, fmt="%9.5f")
+        np.savetxt(txt_matched, known, fmt="%10.5f")
 
     def _button_orient_part_fired(self):
 
@@ -870,45 +877,6 @@ class CalibrationGUI(HasTraits):
 
         self.status_text = "Orientation with particles finished."
 
-    # def _button_orient_dumbbell_fired(self):
-    #     print "Starting orientation from dumbbell"
-    #     self.backup_ori_files()
-    #     ptv.py_ptv_set_dumbbell(1)
-    #     n_camera = len(self.camera)
-    #     print ("Starting sequence action")
-    #     seq_first = self.exp1.active_params.m_params.Seq_First
-    #     seq_last = self.exp1.active_params.m_params.Seq_Last
-    #     print seq_first, seq_last
-    #     base_name = []
-    #     for i in range(n_camera):
-    #         exec (
-    #                 "base_name.append(self.exp1.active_params.m_params.Basename_%d_Seq)" % (i + 1))
-    #         print base_name[i]
-    #         ptv.py_sequence_init(1)
-    #         stepshake = ptv.py_get_from_sequence_init()
-    #         if not stepshake:
-    #             stepshake = 1
-    #
-    #     temp_img = np.array([], dtype=np.ubyte)
-    #     for i in range(seq_first, seq_last + 1, stepshake):
-    #         seq_ch = "%04d" % i
-    #         print seq_ch
-    #         for j in range(n_camera):
-    #             print ("j %d" % j)
-    #             img_name = base_name[j] + seq_ch
-    #             print ("Setting image: ", img_name)
-    #             try:
-    #                 temp_img = imread(img_name).astype(np.ubyte)
-    #             except:
-    #                 print "Error reading file"
-    #                 ptv.py_set_img(temp_img, j)
-    #
-    #         ptv.py_sequence_loop(1, i)
-    #
-    #     print "Orientation from dumbbell - sequence finished"
-    #     ptv.py_calibration(12)
-    #     ptv.py_ptv_set_dumbbell(1)
-    #     print "Orientation from dumbbell finished"
 
     def _button_restore_orient_fired(self):
         self.restore_ori_files()

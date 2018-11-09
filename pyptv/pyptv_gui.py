@@ -914,22 +914,20 @@ class Plugins(traits.api.HasTraits):
 
     def read(self):
         # reading external tracking
-        try:
-            f = open(os.path.join(os.path.abspath(os.curdir), "external_tracker_list.txt"), 'r')
-            trackers = f.read().split('\n')
-            trackers.insert(0, 'default')
-            self.track_list = trackers
-            f.close()
-        except:
+        if os.path.exists(os.path.join(os.path.abspath(os.curdir), "external_tracker_list.txt")):
+            with open(os.path.join(os.path.abspath(os.curdir), "external_tracker_list.txt"), 'r') as f:
+                trackers = f.read().split('\n')
+                trackers.insert(0, 'default')
+                self.track_list = trackers
+        else:
             self.track_list = ['default']
         # reading external sequence
-        try:
-            f = open(os.path.join(os.path.abspath(os.curdir), "external_sequence_list.txt"), 'r')
-            seq = f.read().split('\n')
-            seq.insert(0, 'default')
-            self.seq_list = seq
-            f.close()
-        except:
+        if os.path.exists(os.path.join(os.path.abspath(os.curdir), "external_sequence_list.txt")):
+            with open(os.path.join(os.path.abspath(os.curdir), "external_sequence_list.txt"), 'r') as f:
+                seq = f.read().split('\n')
+                seq.insert(0, 'default')
+                self.seq_list = seq
+        else:
             self.seq_list = ['default']
 
 
