@@ -421,6 +421,7 @@ class CalibrationGUI(HasTraits):
         if os.path.isfile(os.path.join(self.par_path, 'man_ori.dat')):
             shutil.copyfile(os.path.join(self.par_path, 'man_ori.dat'),
                             os.path.join(self.working_folder, 'man_ori.dat'))
+            print("\n Copied man_ori.dat \n")
 
         # copy parameters from active to default folder parameters/
         par.copy_params_dir(self.active_path, self.par_path)
@@ -528,11 +529,7 @@ class CalibrationGUI(HasTraits):
             self.need_reset = 0
 
         man_ori_path = os.path.join(self.working_folder, 'man_ori.dat')
-        try:
-            f = open(man_ori_path, 'r')
-        except IOError:
-            self.status_text = "Error loading man_ori.dat."
-        else:
+        with open(man_ori_path, 'r') as f:
             for i in range(self.n_cams):
                 self.camera[i]._x = []
                 self.camera[i]._y = []
@@ -540,10 +537,9 @@ class CalibrationGUI(HasTraits):
                     line = f.readline().split()
                     self.camera[i]._x.append(float(line[0]))
                     self.camera[i]._y.append(float(line[1]))
-            self.status_text = "man_ori.dat loaded."
-            f.close()
-            shutil.copyfile(man_ori_path, os.path.join(
-                self.par_path, 'man_ori.dat'))
+            
+        self.status_text = "man_ori.dat loaded."
+        shutil.copyfile(man_ori_path, os.path.join(self.par_path, 'man_ori.dat'))
 
         # TODO: rewrite using Parameters subclass
         man_ori_par_path = os.path.join(self.par_path, 'man_ori.par')

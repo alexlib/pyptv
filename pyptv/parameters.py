@@ -115,7 +115,7 @@ def readParamsDir(par_path):
 
 
 def copy_params_dir(src, dest):
-    files = [f for f in os.listdir(src) if f.endswith(('.par','.yaml'))]
+    files = [f for f in os.listdir(src) if f.endswith(('.dat','.par','.yaml'))]
     if not os.path.exists(dest):
         os.mkdir(dest)
     print("copy from %s to %s" % (src, dest))
