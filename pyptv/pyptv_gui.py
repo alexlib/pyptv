@@ -509,9 +509,6 @@ class TreeMenuHandler(traitsui.api.Handler):
             and unused arrays
         """
 
-
-	ptv.py_multiplanecalibration(info.object)
-
         # if info.object.n_cams  > 1: # single camera is not checked
         print ("correspondence proc started")
         info.object.sorted_pos, info.object.sorted_corresp, info.object.num_targs = \
@@ -591,12 +588,11 @@ class TreeMenuHandler(traitsui.api.Handler):
 
         # reset the main GUI so the user will have to press Start again
         info.object.pass_init = False
-        try:
-            active_path = info.exp1.selected.active_params.par_path
-        except:
-            active_path = info.exp1.selected.m_params.par_path
-        calib_gui = CalibrationGUI(active_path)
+        print('Active parameters set \n')
+        print(info.object.exp1.active_params.par_path)
+        calib_gui = CalibrationGUI(info.object.exp1.active_params.par_path)
         calib_gui.configure_traits()
+        
 
     def sequence_action(self, info):
         """sequence action - implements binding to C sequence function. Original function was split into 2 parts:
@@ -1165,7 +1161,7 @@ if __name__ == '__main__':
     else:
         print(
             'Please provide an experimental directory as an input, fallback to a default\n')
-        exp_path = '/Users/alex/Documents/OpenPTV/test_cavity' # or test_cavity,
+        exp_path = '/Users/alex/Documents/OpenPTV/multiplane_calibration' # or test_cavity,
 
     if not os.path.isdir(exp_path):
         raise OSError("Wrong experimental directory %s " % exp_path)

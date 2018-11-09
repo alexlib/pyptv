@@ -425,7 +425,7 @@ class CalibrationGUI(HasTraits):
 
         # read from parameters
         self.cpar, self.spar, self.vpar, self.track_par, self.tpar, \
-        self.cals, self.epar= ptv.py_start_proc_c(self.n_cams)
+        self.cals, self.epar = ptv.py_start_proc_c(self.n_cams)
 
         self.tpar.read('parameters/detect_plate.par')
 
@@ -434,20 +434,27 @@ class CalibrationGUI(HasTraits):
 
         self.calParams = par.CalOriParams(self.n_cams, self.par_path)
         self.calParams.read()
+        
+        if self.epar.Combine_Flag : 
+            print("Combine Flag\n")
 
 
-        if (self.epar.Combine_Flag):
-			self.MultiParams=par.MultiPlaneParams()
-			self.MultiParams.read()
-			for i in range(self.MultiParams.n_planes):
-				print("%s is read." % self.MultiParams.plane_name[i])
-			
-            self.pass_raw_orient = True
-                # self.pass_init = True
-            self.status_text = "Multiplane calibration."
+#         if self.epar.Combine_Flag is True:
+#             print("true")
+# 			self.MultiParams=par.MultiPlaneParams()
+# 			self.MultiParams.read()
+# # 			for i in range(self.MultiParams.n_planes):
+# # 				print("%s is read." % self.MultiParams.plane_name[i])
+#             
+#             print("Read multi_planes.par successfully")
+
+
+
+            # self.pass_raw_orient = True
+            # self.pass_init = True
+            # self.status_text = "Multiplane calibration."
             # ptv.py_multiplanecalibration(self)
-
-
+        
         # read calibration images
         self.cal_images = []
         for i in range(len(self.camera)):
@@ -720,93 +727,93 @@ class CalibrationGUI(HasTraits):
                 flags.append(name)
 
 
-        if (self.epar.Combine_Flag):
-			# self.MultiParams=par.MultiPlaneParams()
-			# self.MultiParams.read()
-			# for i in range(self.MultiParams.n_planes):
-			# 	print("%s is read." % self.MultiParams.plane_name[i])
-			
-            self.status_text = "Multiplane calibration."
-            # ptv.py_multiplanecalibration(self)
+            if (self.epar.Combine_Flag):
+                # self.MultiParams=par.MultiPlaneParams()
+                # self.MultiParams.read()
+                # for i in range(self.MultiParams.n_planes):
+                # 	print("%s is read." % self.MultiParams.plane_name[i])
+        
+                self.status_text = "Multiplane calibration."
+                # ptv.py_multiplanecalibration(self)
 
-    # def py_multiplanecalibration(exp):
-            """ Performs multiplane calibration, in which for all cameras the 
-            pre-processed planes in multi_plane.par combined.
-            Overwrites the ori and addpar files of the cameras specified 
-            in cal_ori.par of the multiplane parameter folder
-            """
+                # def py_multiplanecalibration(exp):
+                """ Performs multiplane calibration, in which for all cameras the 
+                pre-processed planes in multi_plane.par combined.
+                Overwrites the ori and addpar files of the cameras specified 
+                in cal_ori.par of the multiplane parameter folder
+                """
 
-        for i_cam in range(self.n_cams): # iterate over all cameras
-            all_known = []
-            all_detected = []
-            for i in range(self.MultiParams.n_planes): # combine all single planes
+            for i_cam in range(self.n_cams): # iterate over all cameras
+                all_known = []
+                all_detected = []
+                for i in range(self.MultiParams.n_planes): # combine all single planes
 
-                c = self.calParams.img_ori[i_cam][-9] # Get camera id
+                    c = self.calParams.img_ori[i_cam][-9] # Get camera id
 
-                file_known = self.MultiParams.plane_name[i]+str(c)+'.tif.fix'
-                file_detected = self.MultiParams.plane_name[i]+str(c)+'.tif.crd'
+                    file_known = self.MultiParams.plane_name[i]+str(c)+'.tif.fix'
+                    file_detected = self.MultiParams.plane_name[i]+str(c)+'.tif.crd'
 
-                # Load calibration point information from plane i
-                try:
-                    known = np.loadtxt(file_known)
-                    detected = np.loadtxt(file_detected)
-                except:
-                    raise IOError("reading {} or {} failed".format(file_known,file_detected))
-
-
-                if np.any(detected == -999):
-                    raise ValueError(("Using undetected points in {} will cause " +
-                    "silliness. Quitting.").format(file_detected))
-
-                num_known = len(known)
-                num_detect = len(detected)
-
-                if num_known != num_detect:
-                    raise ValueError("Number of detected points (%d) does not match" +\
-                    " number of known points (%d) for %s, %s" % \
-                    (num_known, num_detect, file_known, file_detected))
-
-                if len(all_known) > 0:
-                    detected[:,0] = all_detected[-1][-1,0] + 1 + np.arange(len(detected))
-
-                # Append to list of total known and detected points
-                all_known.append(known)
-                all_detected.append(detected)
+                    # Load calibration point information from plane i
+                    try:
+                        known = np.loadtxt(file_known)
+                        detected = np.loadtxt(file_detected)
+                    except:
+                        raise IOError("reading {} or {} failed".format(file_known,file_detected))
 
 
-            # Make into the format needed for full_calibration.
-            all_known = np.vstack(all_known)[:,1:]
-            all_detected = np.vstack(all_detected)
+                    if np.any(detected == -999):
+                        raise ValueError(("Using undetected points in {} will cause " +
+                        "silliness. Quitting.").format(file_detected))
 
-            # this is the main difference in the multiplane mode
-            # that we fill the targs and cal_points by the 
-            # combined information
+                    num_known = len(known)
+                    num_detect = len(detected)
 
-            targs = TargetArray(len(all_detected))
-            for tix in xrange(len(all_detected)):
-                targ = targs[tix]
-                det = all_detected[tix]
+                    if num_known != num_detect:
+                        raise ValueError("Number of detected points (%d) does not match" +\
+                        " number of known points (%d) for %s, %s" % \
+                        (num_known, num_detect, file_known, file_detected))
 
-                targ.set_pnr(tix)
-                targ.set_pos(det[1:])
+                    if len(all_known) > 0:
+                        detected[:,0] = all_detected[-1][-1,0] + 1 + np.arange(len(detected))
 
- 
-            self.cal_points['pos'] = all_known
+                    # Append to list of total known and detected points
+                    all_known.append(known)
+                    all_detected.append(detected)
 
-            # backup the ORI/ADDPAR files first
-            self.backup_ori_files()
 
-            op = par.OrientParams()
-            op.read()
+                # Make into the format needed for full_calibration.
+                all_known = np.vstack(all_known)[:,1:]
+                all_detected = np.vstack(all_detected)
 
-            # recognized names for the flags:
-            names = ['cc', 'xh', 'yh', 'k1', 'k2', 'k3', 'p1', 'p2', 'scale', 'shear']
-            op_names = [op.cc, op.xh, op.yh, op.k1, op.k2, op.k3, op.p1, op.p2, op.scale, op.shear]
+                # this is the main difference in the multiplane mode
+                # that we fill the targs and cal_points by the 
+                # combined information
 
-            flags = []
-            for name, op_name in zip(names, op_names):
-                if (op_name ==1):
-                    flags.append(name)
+                targs = TargetArray(len(all_detected))
+                for tix in xrange(len(all_detected)):
+                    targ = targs[tix]
+                    det = all_detected[tix]
+
+                    targ.set_pnr(tix)
+                    targ.set_pos(det[1:])
+
+
+                self.cal_points['pos'] = all_known
+
+                # backup the ORI/ADDPAR files first
+                self.backup_ori_files()
+
+                op = par.OrientParams()
+                op.read()
+
+                # recognized names for the flags:
+                names = ['cc', 'xh', 'yh', 'k1', 'k2', 'k3', 'p1', 'p2', 'scale', 'shear']
+                op_names = [op.cc, op.xh, op.yh, op.k1, op.k2, op.k3, op.p1, op.p2, op.scale, op.shear]
+
+                flags = []
+                for name, op_name in zip(names, op_names):
+                    if (op_name ==1):
+                        flags.append(name)
 
             # Run the multiplane calibration
             # residuals, targ_ix, err_est = full_calibration(exp.cals[0], all_known, targs, exp.cpar, flags)
