@@ -1,7 +1,7 @@
 import random
 
 import numpy as np
-from imageio import imread
+from skimage.io import imread
 
 
 class Sequence():

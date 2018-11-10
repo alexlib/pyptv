@@ -26,7 +26,7 @@ from optv.parameters import ControlParams, VolumeParams, TrackingParams, \
 from optv.segmentation import target_recognition
 # from optv.tracking_framebuf import CORRES_NONE
 from optv.tracker import Tracker, default_naming
-from imageio import imread
+from skimage.io import imread
 
 
 # project specific inputs

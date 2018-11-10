@@ -13,7 +13,7 @@ from optv.segmentation import target_recognition
 from optv.tracking_framebuf import CORRES_NONE
 from optv.tracker import Tracker, default_naming
 from optv.epipolar import epipolar_curve
-from imageio import imread
+from skimage.io import imread
 import parameters as par
 from optv.tracking_framebuf import TargetArray
 
