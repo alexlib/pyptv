@@ -26,6 +26,7 @@ from skimage import img_as_ubyte
 from skimage.color import rgb2gray
 import os
 import shutil
+import re
 
 from optv.imgcoord import image_coordinates
 from optv.transforms import convert_arr_metric_to_pixel
@@ -713,7 +714,7 @@ class CalibrationGUI(HasTraits):
 
         flags = []
         for name, op_name in zip(names, op_names):
-            if op_name is True:
+            if op_name:
                 flags.append(name)
 
 
@@ -732,12 +733,14 @@ class CalibrationGUI(HasTraits):
 
                 all_known = []
                 all_detected = []
+                
                 for i in range(self.MultiParams.n_planes): # combine all single planes
 
-                    c = self.calParams.img_ori[i_cam][-9] # Get camera id
+                    # c = self.calParams.img_ori[i_cam][-9] # Get camera id
+                    c = re.findall('\\d+',self.calParams.img_ori[i_cam])[0] # not all ends with a number
 
-                    file_known = self.MultiParams.plane_name[i]+str(c)+'.tif.fix'
-                    file_detected = self.MultiParams.plane_name[i]+str(c)+'.tif.crd'
+                    file_known = self.MultiParams.plane_name[i]+c+'.tif.fix'
+                    file_detected = self.MultiParams.plane_name[i]+c+'.tif.crd'
 
                     # Load calibration point information from plane i
                     try:
