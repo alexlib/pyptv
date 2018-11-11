@@ -714,7 +714,7 @@ class CalibrationGUI(HasTraits):
 
         flags = []
         for name, op_name in zip(names, op_names):
-            if op_name:
+            if (op_name == 1):
                 flags.append(name)
 
 
