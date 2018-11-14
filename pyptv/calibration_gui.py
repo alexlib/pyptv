@@ -791,8 +791,11 @@ class CalibrationGUI(HasTraits):
             else:
                 targs = self.sorted_targs[i_cam]
 
-            residuals, targ_ix, err_est = full_calibration(self.cals[i_cam], self.cal_points['pos'], \
+            try: 
+                residuals, targ_ix, err_est = full_calibration(self.cals[i_cam], self.cal_points['pos'], \
                                                            targs, self.cpar, flags)
+            except:
+                raise ValueError("full calibration failed\n")
             # save the results
             self._write_ori(i_cam)
 

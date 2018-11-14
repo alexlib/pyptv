@@ -425,7 +425,7 @@ def py_multiplanecalibration(exp):
 
 		flags = []
 		for name, op_name in zip(names, op_names):
-			if (op_name ==1):
+			if (op_name == 1):
 				flags.append(name)
 
 		# Run the multiplane calibration
