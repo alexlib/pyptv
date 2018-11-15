@@ -357,7 +357,7 @@ class TreeMenuHandler(traitsui.api.Handler):
         print('Total paramsets:', len(experiment.paramsets))
         if paramset.m_params is None:
             # TODO: is it possible that control reaches here? If not, probably the if should be removed.
-            paramset.m_params = par.Main_Params()
+            paramset.m_params = par.PtvParams()
         else:
             paramset.m_params._reload()
         paramset.m_params.edit_traits(kind='modal')
@@ -1160,7 +1160,7 @@ if __name__ == '__main__':
     else:
         print(
             'Please provide an experimental directory as an input, fallback to a default\n')
-        exp_path = '/Users/alex/Documents/OpenPTV/test_cavity' # or test_cavity,
+        exp_path = '/Users/alex/Desktop/PyPTV_backtrack' # or test_cavity,
 
     if not os.path.isdir(exp_path):
         raise OSError("Wrong experimental directory %s " % exp_path)

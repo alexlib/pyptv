@@ -9,10 +9,11 @@ from optv.orientation import point_positions
 from optv.parameters import ControlParams, VolumeParams, TrackingParams, \
     SequenceParams, TargetParams
 from optv.segmentation import target_recognition
-from optv.tracking_framebuf import CORRES_NONE
+from optv.tracking_framebuf import CORRES_NONE, read_targets
 from optv.tracker import Tracker, default_naming
 from optv.epipolar import epipolar_curve
-from imageio import imread
+from skimage.io import imread
+import parameters as par
 
 
 def simple_highpass(img, cpar):
@@ -46,6 +47,9 @@ def py_start_proc_c(n_cams):
     tpar = TargetParams(n_cams)
     tpar.read('parameters/targ_rec.par')
 
+
+
+
     # 
 
     # Calibration parameters
@@ -75,9 +79,17 @@ def py_pre_processing_c(list_of_images, cpar):
 def py_detection_proc_c(list_of_images, cpar, tpar, cals):
     """ Detection of targets """
 
+    pftVersionParams = par.PftVersionParams(path='./parameters')
+    pftVersionParams.read()
+    Existing_Target = np.bool(pftVersionParams.Existing_Target)
+
     detections, corrected = [],[]
     for i_cam, img in enumerate(list_of_images):
-        targs = target_recognition(img, tpar, i_cam, cpar)
+        if Existing_Target:
+            targs = read_targets(cpar.get_img_base_name(i_cam),0)
+        else:
+            targs = target_recognition(img, tpar, i_cam, cpar)
+
         targs.sort_y()
         detections.append(targs)
         mc = MatchedCoords(targs, cpar, cals[i_cam])
@@ -165,6 +177,11 @@ def py_sequence_loop(exp):
     """
     n_cams, cpar, spar, vpar, tpar, cals = \
         exp.n_cams, exp.cpar, exp.spar, exp.vpar, exp.tpar, exp.cals
+
+    pftVersionParams = par.PftVersionParams(path='./parameters')
+    pftVersionParams.read()
+    Existing_Target = np.bool(pftVersionParams.Existing_Target)
+
     # sequence loop for all frames
     for frame in xrange(spar.get_first(), spar.get_last()+1):
         print("processing frame %d" % frame)
@@ -172,23 +189,23 @@ def py_sequence_loop(exp):
         detections = []
         corrected = []
         for i_cam in xrange(n_cams):
-            imname = spar.get_img_base_name(i_cam) + str(frame)
-            if not os.path.exists(imname):
-                print(os.path.abspath(os.path.curdir))
-                print('{0} does not exist'.format(imname))
+            if Existing_Target:
+                targs = read_targets(spar.get_img_base_name(i_cam),frame)
+            else:
+                imname = spar.get_img_base_name(i_cam) + str(frame)
+                if not os.path.exists(imname):
+                    print(os.path.abspath(os.path.curdir))
+                    print('{0} does not exist'.format(imname))
 
-            img = imread(imname)
-            # import pdb; pdb.set_trace()
-            time.sleep(.1)
-            hp = simple_highpass(img, cpar)
-            targs = target_recognition(hp, tpar, i_cam, cpar)
-            # print(targs)
+                img = imread(imname)
+                # time.sleep(.1) # I'm not sure we need it here
+                hp = simple_highpass(img, cpar)
+                targs = target_recognition(hp, tpar, i_cam, cpar)
 
             targs.sort_y()
             detections.append(targs)
             mc = MatchedCoords(targs, cpar, cals[i_cam])
             pos, pnr = mc.as_arrays()
-            # print(i_cam)
             corrected.append(mc)
 
 
