@@ -86,7 +86,7 @@ def py_detection_proc_c(list_of_images, cpar, tpar, cals):
     detections, corrected = [],[]
     for i_cam, img in enumerate(list_of_images):
         if Existing_Target:
-            targs = read_targets(cpar.get_img_base_name(i_cam),img)
+            targs = read_targets(cpar.get_img_base_name(i_cam),0)
         else:
             targs = target_recognition(img, tpar, i_cam, cpar)
 
@@ -177,6 +177,11 @@ def py_sequence_loop(exp):
     """
     n_cams, cpar, spar, vpar, tpar, cals = \
         exp.n_cams, exp.cpar, exp.spar, exp.vpar, exp.tpar, exp.cals
+
+    pftVersionParams = par.PftVersionParams(path='./parameters')
+    pftVersionParams.read()
+    Existing_Target = np.bool(pftVersionParams.Existing_Target)
+
     # sequence loop for all frames
     for frame in xrange(spar.get_first(), spar.get_last()+1):
         print("processing frame %d" % frame)
@@ -184,23 +189,23 @@ def py_sequence_loop(exp):
         detections = []
         corrected = []
         for i_cam in xrange(n_cams):
-            imname = spar.get_img_base_name(i_cam) + str(frame)
-            if not os.path.exists(imname):
-                print(os.path.abspath(os.path.curdir))
-                print('{0} does not exist'.format(imname))
+            if Existing_Target:
+                targs = read_targets(spar.get_img_base_name(i_cam),frame)
+            else:
+                imname = spar.get_img_base_name(i_cam) + str(frame)
+                if not os.path.exists(imname):
+                    print(os.path.abspath(os.path.curdir))
+                    print('{0} does not exist'.format(imname))
 
-            img = imread(imname)
-            # import pdb; pdb.set_trace()
-            time.sleep(.1)
-            hp = simple_highpass(img, cpar)
-            targs = target_recognition(hp, tpar, i_cam, cpar)
-            # print(targs)
+                img = imread(imname)
+                # time.sleep(.1) # I'm not sure we need it here
+                hp = simple_highpass(img, cpar)
+                targs = target_recognition(hp, tpar, i_cam, cpar)
 
             targs.sort_y()
             detections.append(targs)
             mc = MatchedCoords(targs, cpar, cals[i_cam])
             pos, pnr = mc.as_arrays()
-            # print(i_cam)
             corrected.append(mc)
 
 
