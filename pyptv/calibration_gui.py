@@ -26,6 +26,7 @@ from skimage import img_as_ubyte
 from skimage.color import rgb2gray
 import os
 import shutil
+import re
 
 from optv.imgcoord import image_coordinates
 from optv.transforms import convert_arr_metric_to_pixel
@@ -33,6 +34,8 @@ from optv.orientation import match_detection_to_ref
 from optv.segmentation import target_recognition
 from optv.orientation import external_calibration, full_calibration
 from optv.calibration import Calibration
+from optv.tracking_framebuf import TargetArray
+
 
 import ptv as ptv
 import parameter_gui as pargui
@@ -272,7 +275,6 @@ class PlotWindow(HasTraits):
 
 
 class CalibrationGUI(HasTraits):
-    camera = List
     status_text = Str("")
     ori_img_name = []
     ori_img = []
@@ -304,8 +306,8 @@ class CalibrationGUI(HasTraits):
     # Constructor
     # ---------------------------------------------------
     def __init__(self, active_path):
-        """ Initialize CalibrationGUI 
-        
+        """ Initialize CalibrationGUI
+
             Inputs:
                 active_path is the path to the folder of prameters
                 active_path is a subfolder of a working folder with a
@@ -327,8 +329,9 @@ class CalibrationGUI(HasTraits):
         with open(os.path.join(self.par_path, 'ptv.par'), 'r') as f:
             self.n_cams = int(f.readline())
 
+
+        self.camera = [PlotWindow() for i in xrange(self.n_cams)]
         for i in xrange(self.n_cams):
-            self.camera.append(PlotWindow())
             self.camera[i].name = "Camera" + str(i + 1)
             self.camera[i].cameraN = i
             self.camera[i].py_rclick_delete = ptv.py_rclick_delete
@@ -407,11 +410,11 @@ class CalibrationGUI(HasTraits):
         # at the end of a modification, copy the parameters
         par.copy_params_dir(self.par_path, self.active_path)
         self.cpar, self.spar, self.vpar, self.track_par, self.tpar, \
-        self.cals = ptv.py_start_proc_c(self.n_cams)
+        self.cals, self.epar = ptv.py_start_proc_c(self.n_cams)
 
     def _button_showimg_fired(self):
 
-        print("Load Image fired \n")
+        print("Loading images/parameters \n")
 
         # Initialize what is needed, copy necessary things
 
@@ -419,22 +422,35 @@ class CalibrationGUI(HasTraits):
         if os.path.isfile(os.path.join(self.par_path, 'man_ori.dat')):
             shutil.copyfile(os.path.join(self.par_path, 'man_ori.dat'),
                             os.path.join(self.working_folder, 'man_ori.dat'))
+            print("\n Copied man_ori.dat \n")
 
         # copy parameters from active to default folder parameters/
         par.copy_params_dir(self.active_path, self.par_path)
 
         # read from parameters
         self.cpar, self.spar, self.vpar, self.track_par, self.tpar, \
-        self.cals = ptv.py_start_proc_c(self.n_cams)
+        self.cals, self.epar = ptv.py_start_proc_c(self.n_cams)
 
         self.tpar.read('parameters/detect_plate.par')
 
         print(self.tpar.get_grey_thresholds())
 
+
         self.calParams = par.CalOriParams(self.n_cams, self.par_path)
         self.calParams.read()
+        
+        if self.epar.Combine_Flag is True : 
+            print("Combine Flag")
+            self.MultiParams = par.MultiPlaneParams()
+            self.MultiParams.read()
+            for i in range(self.MultiParams.n_planes):
+                print(self.MultiParams.plane_name[i])
 
-        # read calibration images        
+            self.pass_raw_orient = True
+            self.status_text = "Multiplane calibration."
+
+        
+        # read calibration images
         self.cal_images = []
         for i in range(len(self.camera)):
             imname = self.calParams.img_cal_name[i]
@@ -514,11 +530,7 @@ class CalibrationGUI(HasTraits):
             self.need_reset = 0
 
         man_ori_path = os.path.join(self.working_folder, 'man_ori.dat')
-        try:
-            f = open(man_ori_path, 'r')
-        except IOError:
-            self.status_text = "Error loading man_ori.dat."
-        else:
+        with open(man_ori_path, 'r') as f:
             for i in range(self.n_cams):
                 self.camera[i]._x = []
                 self.camera[i]._y = []
@@ -526,10 +538,9 @@ class CalibrationGUI(HasTraits):
                     line = f.readline().split()
                     self.camera[i]._x.append(float(line[0]))
                     self.camera[i]._y.append(float(line[1]))
-            self.status_text = "man_ori.dat loaded."
-            f.close()
-            shutil.copyfile(man_ori_path, os.path.join(
-                self.par_path, 'man_ori.dat'))
+            
+        self.status_text = "man_ori.dat loaded."
+        shutil.copyfile(man_ori_path, os.path.join(self.par_path, 'man_ori.dat'))
 
         # TODO: rewrite using Parameters subclass
         man_ori_par_path = os.path.join(self.par_path, 'man_ori.par')
@@ -588,8 +599,9 @@ class CalibrationGUI(HasTraits):
             self.reset_show_images()
             self.need_reset = 0
 
+        self.cal_points = self._read_cal_points()
         self.sorted_targs = []
-        
+
         print("_button_sort_grid_fired")
 
 
@@ -702,15 +714,88 @@ class CalibrationGUI(HasTraits):
 
         flags = []
         for name, op_name in zip(names, op_names):
-            if op_name is True:
+            if (op_name == 1):
                 flags.append(name)
 
-        print(flags)
 
-        for i_cam in range(self.n_cams):
-            targs = self.sorted_targs[i_cam]
-            residuals, targ_ix, err_est = full_calibration(self.cals[i_cam], self.cal_points['pos'], \
+        
+
+        for i_cam in range(self.n_cams): # iterate over all cameras
+
+            if self.epar.Combine_Flag:
+            
+                self.status_text = "Multiplane calibration."
+                """ Performs multiplane calibration, in which for all cameras the 
+                pre-processed planes in multi_plane.par combined.
+                Overwrites the ori and addpar files of the cameras specified 
+                in cal_ori.par of the multiplane parameter folder
+                """
+
+                all_known = []
+                all_detected = []
+                
+                for i in range(self.MultiParams.n_planes): # combine all single planes
+
+                    # c = self.calParams.img_ori[i_cam][-9] # Get camera id
+                    c = re.findall('\\d+',self.calParams.img_ori[i_cam])[0] # not all ends with a number
+
+                    file_known = self.MultiParams.plane_name[i]+c+'.tif.fix'
+                    file_detected = self.MultiParams.plane_name[i]+c+'.tif.crd'
+
+                    # Load calibration point information from plane i
+                    try:
+                        known = np.loadtxt(file_known)
+                        detected = np.loadtxt(file_detected)
+                    except:
+                        raise IOError("reading {} or {} failed".format(file_known,file_detected))
+
+
+                    if np.any(detected == -999):
+                        raise ValueError(("Using undetected points in {} will cause " +
+                        "silliness. Quitting.").format(file_detected))
+
+                    num_known = len(known)
+                    num_detect = len(detected)
+
+                    if num_known != num_detect:
+                        raise ValueError("Number of detected points (%d) does not match" +\
+                        " number of known points (%d) for %s, %s" % \
+                        (num_known, num_detect, file_known, file_detected))
+
+                    if len(all_known) > 0:
+                        detected[:,0] = all_detected[-1][-1,0] + 1 + np.arange(len(detected))
+
+                    # Append to list of total known and detected points
+                    all_known.append(known)
+                    all_detected.append(detected)
+
+
+                # Make into the format needed for full_calibration.
+                all_known = np.vstack(all_known)[:,1:]
+                all_detected = np.vstack(all_detected)
+
+                # this is the main difference in the multiplane mode
+                # that we fill the targs and cal_points by the 
+                # combined information
+
+                targs = TargetArray(len(all_detected))
+                for tix in xrange(len(all_detected)):
+                    targ = targs[tix]
+                    det = all_detected[tix]
+
+                    targ.set_pnr(tix)
+                    targ.set_pos(det[1:])
+
+                self.cal_points = np.empty((all_known.shape[0],)).astype(dtype=[('id', 'i4'), ('pos', '3f8')])
+                self.cal_points['pos'] = all_known
+            else:
+                targs = self.sorted_targs[i_cam]
+
+            try: 
+                residuals, targ_ix, err_est = full_calibration(self.cals[i_cam], self.cal_points['pos'], \
                                                            targs, self.cpar, flags)
+            except:
+                raise ValueError("full calibration failed\n")
             # save the results
             self._write_ori(i_cam)
 
@@ -741,12 +826,45 @@ class CalibrationGUI(HasTraits):
     def _write_ori(self, i_cam):
         """ Writes ORI and ADDPAR files for a single calibration result
         """
+
         ori = self.calParams.img_ori[i_cam]
         addpar = ori.replace('ori', 'addpar')
         print("Saving:", ori, addpar)
         self.cals[i_cam].write(ori, addpar)
+        if self.epar.Examine_Flag and not self.epar.Combine_Flag:
+            self.save_point_sets(i_cam)
+
+    def save_point_sets(self, i_cam):
+        """
+        Saves detected and known calibration points in crd and fix format, respectively.
+        These files are needed for multiplane calibration.
+        """
+
+        ori = self.calParams.img_ori[i_cam]
+        txt_detected = ori.replace('ori', 'crd')
+        txt_matched = ori.replace('ori', 'fix')
+
+
+        detected, known = [],[]
+        targs = self.sorted_targs[i_cam]
+        for i,t in enumerate(targs):
+            if t.pnr() != -999:
+                detected.append(t.pos())
+                known.append(self.cal_points['pos'][i]) 
+        nums = np.arange(len(detected))
+        # for pnr in nums:
+        #     print(targs[pnr].pnr())
+        #     print(targs[pnr].pos())
+        #   detected[pnr] = targs[pnr].pos()
+
+        detected = np.hstack((nums[:,None], np.array(detected)))
+        known = np.hstack((nums[:,None], np.array(known)))
+
+        np.savetxt(txt_detected, detected, fmt="%9.5f")
+        np.savetxt(txt_matched, known, fmt="%10.5f")
 
     def _button_orient_part_fired(self):
+
         self.backup_ori_files()
         ptv.py_calibration(10)
         x1, y1, x2, y2 = [], [], [], []
@@ -765,45 +883,6 @@ class CalibrationGUI(HasTraits):
 
         self.status_text = "Orientation with particles finished."
 
-    # def _button_orient_dumbbell_fired(self):
-    #     print "Starting orientation from dumbbell"
-    #     self.backup_ori_files()
-    #     ptv.py_ptv_set_dumbbell(1)
-    #     n_camera = len(self.camera)
-    #     print ("Starting sequence action")
-    #     seq_first = self.exp1.active_params.m_params.Seq_First
-    #     seq_last = self.exp1.active_params.m_params.Seq_Last
-    #     print seq_first, seq_last
-    #     base_name = []
-    #     for i in range(n_camera):
-    #         exec (
-    #                 "base_name.append(self.exp1.active_params.m_params.Basename_%d_Seq)" % (i + 1))
-    #         print base_name[i]
-    #         ptv.py_sequence_init(1)
-    #         stepshake = ptv.py_get_from_sequence_init()
-    #         if not stepshake:
-    #             stepshake = 1
-    #
-    #     temp_img = np.array([], dtype=np.ubyte)
-    #     for i in range(seq_first, seq_last + 1, stepshake):
-    #         seq_ch = "%04d" % i
-    #         print seq_ch
-    #         for j in range(n_camera):
-    #             print ("j %d" % j)
-    #             img_name = base_name[j] + seq_ch
-    #             print ("Setting image: ", img_name)
-    #             try:
-    #                 temp_img = imread(img_name).astype(np.ubyte)
-    #             except:
-    #                 print "Error reading file"
-    #                 ptv.py_set_img(temp_img, j)
-    #
-    #         ptv.py_sequence_loop(1, i)
-    #
-    #     print "Orientation from dumbbell - sequence finished"
-    #     ptv.py_calibration(12)
-    #     ptv.py_ptv_set_dumbbell(1)
-    #     print "Orientation from dumbbell finished"
 
     def _button_restore_orient_fired(self):
         self.restore_ori_files()

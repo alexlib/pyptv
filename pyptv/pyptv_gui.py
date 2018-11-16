@@ -11,6 +11,7 @@ from __future__ import division
 import os
 import sys
 import time
+import yaml
 
 import numpy as np
 from traits.etsconfig.api import ETSConfig
@@ -507,6 +508,7 @@ class TreeMenuHandler(traitsui.api.Handler):
             Result of correspondence action is filled to uadriplets,triplets, pairs,
             and unused arrays
         """
+
         # if info.object.n_cams  > 1: # single camera is not checked
         print ("correspondence proc started")
         info.object.sorted_pos, info.object.sorted_corresp, info.object.num_targs = \
@@ -573,7 +575,7 @@ class TreeMenuHandler(traitsui.api.Handler):
         # mainGui.set_images(mainGui.orig_image)
 
         info.object.cpar, info.object.spar, info.object.vpar, info.object.track_par, \
-        info.object.tpar, info.object.cals = ptv.py_start_proc_c(info.object.n_cams)
+        info.object.tpar, info.object.cals, info.object.epar = ptv.py_start_proc_c(info.object.n_cams)
         mainGui.pass_init = True
         print ("Read all the parameters and calibrations successfully ")
 
@@ -586,12 +588,11 @@ class TreeMenuHandler(traitsui.api.Handler):
 
         # reset the main GUI so the user will have to press Start again
         info.object.pass_init = False
-        try:
-            active_path = info.exp1.selected.active_params.par_path
-        except:
-            active_path = info.exp1.selected.m_params.par_path
-        calib_gui = CalibrationGUI(active_path)
+        print('Active parameters set \n')
+        print(info.object.exp1.active_params.par_path)
+        calib_gui = CalibrationGUI(info.object.exp1.active_params.par_path)
         calib_gui.configure_traits()
+        
 
     def sequence_action(self, info):
         """sequence action - implements binding to C sequence function. Original function was split into 2 parts:
@@ -913,22 +914,20 @@ class Plugins(traits.api.HasTraits):
 
     def read(self):
         # reading external tracking
-        try:
-            f = open(os.path.join(os.path.abspath(os.curdir), "external_tracker_list.txt"), 'r')
-            trackers = f.read().split('\n')
-            trackers.insert(0, 'default')
-            self.track_list = trackers
-            f.close()
-        except:
+        if os.path.exists(os.path.join(os.path.abspath(os.curdir), "external_tracker_list.txt")):
+            with open(os.path.join(os.path.abspath(os.curdir), "external_tracker_list.txt"), 'r') as f:
+                trackers = f.read().split('\n')
+                trackers.insert(0, 'default')
+                self.track_list = trackers
+        else:
             self.track_list = ['default']
         # reading external sequence
-        try:
-            f = open(os.path.join(os.path.abspath(os.curdir), "external_sequence_list.txt"), 'r')
-            seq = f.read().split('\n')
-            seq.insert(0, 'default')
-            self.seq_list = seq
-            f.close()
-        except:
+        if os.path.exists(os.path.join(os.path.abspath(os.curdir), "external_sequence_list.txt")):
+            with open(os.path.join(os.path.abspath(os.curdir), "external_sequence_list.txt"), 'r') as f:
+                seq = f.read().split('\n')
+                seq.insert(0, 'default')
+                self.seq_list = seq
+        else:
             self.seq_list = ['default']
 
 
@@ -1160,7 +1159,7 @@ if __name__ == '__main__':
     else:
         print(
             'Please provide an experimental directory as an input, fallback to a default\n')
-        exp_path = '/Users/alex/Desktop/PyPTV_backtrack' # or test_cavity,
+            exp_path = '../../test_cavity' 
 
     if not os.path.isdir(exp_path):
         raise OSError("Wrong experimental directory %s " % exp_path)

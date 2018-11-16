@@ -62,9 +62,7 @@ class Parameters(HasTraits):
         for k,v in yaml_args.items():
             if isinstance(v,list) and len(v) > 1: # multi line
                 setattr(self,k,[])
-                tmp = []
-                for i,item in enumerate(v):
-                    tmp.append(item)
+                tmp = [item for item in v]
                 setattr(self, k, tmp)
 
             setattr(self, k, v)
@@ -117,7 +115,7 @@ def readParamsDir(par_path):
 
 
 def copy_params_dir(src, dest):
-    files = [f for f in os.listdir(src) if f.endswith(('.par','.yaml'))]
+    files = [f for f in os.listdir(src) if f.endswith(('.dat','.par','.yaml'))]
     if not os.path.exists(dest):
         os.mkdir(dest)
     print("copy from %s to %s" % (src, dest))
@@ -187,7 +185,6 @@ class PtvParams(Parameters):
         return "ptv.par"
 
     def read(self):
-        print("inside PtvParams.read")
         if not os.path.isfile(self.filepath()):
             warning("%s does not exist " % self.filepath())
         try:
@@ -223,7 +220,6 @@ class PtvParams(Parameters):
             self.istherefile(self.img_cal[i])
 
     def write(self):
-        print("inside PtvParams.write")
         try:
             with open(self.filepath(), 'w') as f:
                 f.write("%d\n" % self.n_img)
@@ -289,7 +285,6 @@ class CalOriParams(Parameters):
         return "cal_ori.par"
 
     def read(self):
-        # print "inside CalOriParams.read"
         try:
             with open(self.filepath(), 'r') as f:
 
@@ -316,7 +311,6 @@ class CalOriParams(Parameters):
             self.istherefile(self.img_ori[i])
 
     def write(self):
-        # print "inside CalOriParams.write"
         try:
             with open(self.filepath(), 'w') as f:
 
@@ -360,7 +354,6 @@ class SequenceParams(Parameters):
         return "sequence.par"
 
     def read(self):
-        # print "inside SequenceParams.read"
         try:
             with open(self.filepath(), 'r') as f:
                 self.base_name = []
@@ -374,7 +367,6 @@ class SequenceParams(Parameters):
             error(None, "error reading %s" % self.filepath())
 
     def write(self):
-        # print "inside SequenceParams.write"
         try:
             with open(self.filepath(), 'w') as f:
                 for i in range(self.n_img):
@@ -429,7 +421,6 @@ class CriteriaParams(Parameters):
         return "criteria.par"
 
     def read(self):
-        # print "inside CriteriaParams.read"
         try:
             f = open(self.filepath(), 'r')
 
@@ -454,7 +445,6 @@ class CriteriaParams(Parameters):
             error(None, "%s not found" % self.filepath())
 
     def write(self):
-        # print "inside CriteriaParams.write"
         try:
             f = open(self.filepath(), 'w')
 
@@ -521,7 +511,6 @@ class TargRecParams(Parameters):
         return "targ_rec.par"
 
     def read(self):
-        print("inside TargRecParams.read")
         try:
             with open(self.filepath(), 'r') as f:
 
@@ -544,7 +533,6 @@ class TargRecParams(Parameters):
             error(None, "Error reading from %s" % self.filepath())
 
     def write(self):
-        print("inside TargRecParams.write")
         try:
             f = open(self.filepath(), 'w')
 #            for i in range(self.n_img):
@@ -602,7 +590,6 @@ class ManOriParams(Parameters):
         return "man_ori.par"
 
     def read(self):
-        # print "inside ManOriParams.read"
         try:
             with open(self.filepath(), 'r') as f:
                 self.nr = [[]]*self.n_img
@@ -613,7 +600,6 @@ class ManOriParams(Parameters):
             error(None, "Error reading from %s" % self.filepath())
 
     def write(self):
-        # print "inside # Params.write"
         try:
             with open(self.filepath(), 'w') as f:
                 for i in range(self.n_img):
@@ -675,7 +661,6 @@ class DetectPlateParams(Parameters):
         return "detect_plate.par"
 
     def read(self):
-        # print "inside DetectPlateParams.read"
         try:
             f = open(self.filepath(), 'r')
 
@@ -698,7 +683,6 @@ class DetectPlateParams(Parameters):
             error(None, "Error reading from %s" % self.filepath())
 
     def write(self):
-        # print "inside DetectPlateParams.write"
         try:
             f = open(self.filepath(), 'w')
 
@@ -769,7 +753,6 @@ class OrientParams(Parameters):
         return "orient.par"
 
     def read(self):
-        # print "inside OrientParams.read"
         try:
             with open(self.filepath(), 'r') as f:
 
@@ -790,7 +773,6 @@ class OrientParams(Parameters):
             error(None, "Error reading %s" % self.filepath())
 
     def write(self):
-        # print "inside OrientParams.write"
         try:
             with open(self.filepath(), 'w') as f:
 
@@ -840,7 +822,6 @@ class TrackingParams(Parameters):
         return "track.par"
 
     def read(self):
-        # print "inside TrackingParams.read"
         try:
             f = open(self.filepath(), 'r')
             self.dvxmin = float(g(f))
@@ -889,7 +870,6 @@ class PftVersionParams(Parameters):
         return "pft_version.par"
 
     def read(self):
-        # print "inside PftVersionParams.read"
         try:
             f = open(self.filepath(), 'r')
 
@@ -900,7 +880,6 @@ class PftVersionParams(Parameters):
             error(None, "%s not found" % self.filepath())
 
     def write(self):
-        # print "inside PftVersionParams.write"
         try:
             f = open(self.filepath(), 'w')
 
@@ -935,7 +914,6 @@ class ExamineParams(Parameters):
             f.write("%d\n" % 0)
             f.close()
 
-        # print "inside ExamineParams.read"
         try:
             f = open(self.filepath(), 'r')
 
@@ -947,7 +925,6 @@ class ExamineParams(Parameters):
             error(None, "%s not found" % self.filepath())
 
     def write(self):
-        # print "inside ExamineParams.write"
         try:
             f = open(self.filepath(), 'w')
 
@@ -993,7 +970,6 @@ class DumbbellParams(Parameters):
         return "dumbbell.par"
 
     def read(self):
-        # print "inside DumbbellParams.read"
         if os.path.exists(self.filepath()) is False:
             f = open(self.filepath(), 'w')
             f.write("%f\n" % 0.0)
@@ -1019,7 +995,6 @@ class DumbbellParams(Parameters):
             error(None, "%s not found" % self.filepath())
 
     def write(self):
-        # print "inside DumbbellParams.write"
         try:
             f = open(self.filepath(), 'w')
 
@@ -1065,7 +1040,6 @@ class ShakingParams(Parameters):
         return "shaking.par"
 
     def read(self):
-        # print "inside ShakingParams.read"
         if os.path.exists(self.filepath()) is False:
             f = open(self.filepath(), 'w')
             f.write("%f\n" % 0)
@@ -1087,7 +1061,6 @@ class ShakingParams(Parameters):
             error(None, "%s not found" % self.filepath())
 
     def write(self):
-        # print "inside ShakingParams.write"
         try:
             f = open(self.filepath(), 'w')
 
@@ -1131,13 +1104,12 @@ class MultiPlaneParams(Parameters):
                 for i in range(self.n_planes):
                     self.plane_name.append(g(f))
                     if not os.path.isfile(self.plane_name[i]):
-                        print("%s is missing." % self.plane_name[i])
+                        print("plane %s is missing." % self.plane_name[i])
 
         except:
             error(None, "%s not found" % self.filepath())
 
     def write(self):
-        # print "inside MultiPlane.write"
         try:
             with open(self.filepath(), 'w') as f:
 

@@ -2,6 +2,7 @@
 __pycache__/
 *.py[cod]
 *$py.class
+*.pyc
 
 # C extensions
 *.so
@@ -66,3 +67,5 @@ tests/test_cavity/parametersRun1
 tests/test_cavity/res
 .idea
 pyptv/parameters
+pyptv/.vscode/c_cpp_properties.json
+pyptv/.vscode/launch.json
