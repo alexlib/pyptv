@@ -2,7 +2,8 @@
 Python GUI for the OpenPTV library `liboptv`
 
 
-[![Build Status](https://travis-ci.org/alexlib/pyptv.svg?branch=master)](https://travis-ci.org/alexlib/pyptv)
+[![Build Status](https://travis-ci.org/alexlib/pyptv.svg?branch=master)](https://travis-ci.org/alexlib/pyptv) [![DOI](https://zenodo.org/badge/121291437.svg)](https://zenodo.org/badge/latestdoi/121291437)
+
 
 
 
