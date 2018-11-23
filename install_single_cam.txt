@@ -1,10 +1,7 @@
+mkdir tmp && cd tmp
 conda activate pyptv
 git clone --recurse-submodules --single-branch -b single_cam https://github.com/alexlib/pyptv.git
-cd pyptv
-cd openptv
-git checkout -b single_cam
-git reset --hard eda5163 
-cd liboptv
+cd pyptv/openptv/liboptv
 mkdir build && cd build
 cmake ../
 make verify
@@ -16,5 +13,5 @@ python setup.py install
 cd test
 nosetests # note 58 tests
 cd ../../../pyptv
-pythonw pyptv_gui.py ~/Google\ Drive/OpenPTV/CIEMito_Nov2018/
+pythonw pyptv_gui.py ~/Dropbox/CIEMito_Nov2018_Alex
 
