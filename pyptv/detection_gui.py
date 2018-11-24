@@ -296,7 +296,7 @@ class DetectionGUI(HasTraits):
     # button_edit_cal_parameters = Button()
     button_showimg = Button(label='Load image')
     hp_flag = Bool(False,label='highpass')
-    # button_detection = Button()
+    button_detection = Button(label='Detect dots')
     # button_manual = Button()
     # button_file_orient = Button()
     # button_init_guess = Button()
@@ -364,6 +364,7 @@ class DetectionGUI(HasTraits):
                 VGroup(
                     Item(name='i_cam'),
                     Item(name='button_showimg'),
+                    Item(name='button_detection'),
                     Item(name='hp_flag'),
                     Item(name='grey_thresh'),
                     Item(name='min_npix'),
