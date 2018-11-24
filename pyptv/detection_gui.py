@@ -8,7 +8,7 @@ http://opensource.org/licenses/MIT
 
 
 from traits.api \
-    import HasTraits, Str, Int, List, Bool, Instance, Button
+    import HasTraits, Str, Int, List, Bool, Instance, Button, Range, Enum 
 from traitsui.api import View, Item, HGroup, VGroup, ListEditor
 from enable.component_editor import ComponentEditor
 from chaco.api import Plot, ArrayPlotData, gray, \
@@ -283,24 +283,35 @@ class DetectionGUI(HasTraits):
     pass_raw_orient = Bool(False)
     pass_init_disabled = Bool(False)
     # -------------------------------------------------------------
-    button_edit_cal_parameters = Button()
-    button_showimg = Button()
-    button_detection = Button()
-    button_manual = Button()
-    button_file_orient = Button()
-    button_init_guess = Button()
-    button_sort_grid = Button()
-    button_sort_grid_init = Button()
-    button_raw_orient = Button()
-    button_fine_orient = Button()
-    button_orient_part = Button()
-    button_orient_shaking = Button()
-    button_orient_dumbbell = Button()
-    button_restore_orient = Button()
-    button_checkpoint = Button()
-    button_ap_figures = Button()
-    button_edit_ori_files = Button()
-    button_test = Button()
+    i_cam = gain = Enum(1, 2, 3, 4)
+    grey_thresh= Range(1,255,5,mode='slider')
+    min_npix = Range(0,100, method='slider',label='min npix')
+    min_npix_x = Range(1,100,1, label='min npix in x')
+    min_npix_y = Range(1,100,1, label='min npix in y')
+    max_npix = Range(1,100,1, label='max npix')
+    max_npix_x = Range(1,100,1, label='max npix in x')
+    max_npix_y = Range(1,100,1, label='max npix in y')
+    sum_of_grey = Range(1,100,1, label='Sum of greyvalue')
+    size_of_crosses = Int(4, label='Size of crosses')
+    # button_edit_cal_parameters = Button()
+    button_showimg = Button(label='Load image')
+    hp_flag = Bool(False,label='highpass')
+    # button_detection = Button()
+    # button_manual = Button()
+    # button_file_orient = Button()
+    # button_init_guess = Button()
+    # button_sort_grid = Button()
+    # button_sort_grid_init = Button()
+    # button_raw_orient = Button()
+    # button_fine_orient = Button()
+    # button_orient_part = Button()
+    # button_orient_shaking = Button()
+    # button_orient_dumbbell = Button()
+    # button_restore_orient = Button()
+    # button_checkpoint = Button()
+    # button_ap_figures = Button()
+    # button_edit_ori_files = Button()
+    # button_test = Button()
 
     # ---------------------------------------------------
     # Constructor
@@ -330,14 +341,20 @@ class DetectionGUI(HasTraits):
             self.n_cams = int(f.readline())
 
         # Detection will work one by one for the beginning
-        self.n_cams = 1
+        # self.n_cams = 1
+
+        self.camera = [PlotWindow()]
+        self.camera_name = 'Camera' + str(self.i_cam + 1)
+        self.camera[0].py_rclick_delete = ptv.py_rclick_delete
+        self.camera[0].py_get_pix_N = ptv.py_get_pix_N
         
-        self.camera = [PlotWindow() for i in xrange(self.n_cams)]
-        for i in xrange(self.n_cams):
-            self.camera[i].name = "Camera" + str(i + 1)
-            self.camera[i].cameraN = i
-            self.camera[i].py_rclick_delete = ptv.py_rclick_delete
-            self.camera[i].py_get_pix_N = ptv.py_get_pix_N
+
+        # self.camera = [PlotWindow() for i in xrange(self.n_cams)]
+        # for i in xrange(self.n_cams):
+        #     self.camera[i].name = "Camera" + str(i + 1)
+        #     self.camera[i].cameraN = i
+        #     self.camera[i].py_rclick_delete = ptv.py_rclick_delete
+        #     self.camera[i].py_get_pix_N = ptv.py_get_pix_N
 
     # Defines GUI view --------------------------
 
@@ -345,46 +362,19 @@ class DetectionGUI(HasTraits):
         HGroup(
             VGroup(
                 VGroup(
-                    Item(name='button_showimg',
-                         label='Load/Show Images', show_label=False),
-                    Item(name='button_detection', label='Detection',
-                         show_label=False, enabled_when='pass_init'),
-                    Item(name='button_manual', label='Manual orient.',
-                         show_label=False, enabled_when='pass_init'),
-                    Item(name='button_file_orient', label='Orient. with file',
-                         show_label=False, enabled_when='pass_init'),
-                    Item(name='button_init_guess', label='Show initial guess',
-                         show_label=False, enabled_when='pass_init'),
-                    Item(name='button_sort_grid', label='Sortgrid',
-                         show_label=False, enabled_when='pass_init'),
-                    # Item(name='button_sort_grid_init', label='Sortgrid = initial guess',
-                    #     show_label=False, enabled_when='pass_init'),
-                    Item(name='button_raw_orient', label='Raw orientation',
-                         show_label=False, enabled_when='pass_sortgrid'),
-                    Item(name='button_fine_orient', label='Fine tuning',
-                         show_label=False, enabled_when='pass_raw_orient'),
-                    Item(name='button_orient_part', label='Orientation with particles',
-                         show_label=False, enabled_when='pass_init'),
-                    Item(name='button_orient_dumbbell', label='Orientation from dumbbell',
-                         show_label=False, enabled_when='pass_init'),
-                    Item(name='button_restore_orient', label='Restore ori files',
-                         show_label=False, enabled_when='pass_init'),
-                    Item(name='button_checkpoint', label='Checkpoints',
-                         show_label=False, enabled_when='pass_init_disabled'),
-                    Item(name='button_ap_figures', label='Ap figures',
-                         show_label=False, enabled_when='pass_init_disabled'),
-                    show_left=False,
-
-                ),
-                VGroup(
-                    Item(name='button_edit_cal_parameters',
-                         label='Edit Detection parameters', show_label=False),
-                    Item(name='button_edit_ori_files',
-                         label='Edit ori files', show_label=False, ),
-                    show_left=False,
-                ),
+                    Item(name='i_cam'),
+                    Item(name='button_showimg'),
+                    Item(name='hp_flag'),
+                    Item(name='grey_thresh'),
+                    Item(name='min_npix'),
+                    Item(name='min_npix_x'),
+                    Item(name='min_npix_y'),
+                    Item(name='max_npix'),
+                    Item(name='max_npix_x'),
+                    Item(name='max_npix_y'),
+                    Item(name='sum_of_grey'),
+                    ),
             ),
-
             Item('camera', style='custom',
                  editor=ListEditor(use_notebook=True,
                                    deletable=False,
@@ -978,5 +968,5 @@ if __name__ == "__main__":
     else:
         active_path = sys.argv[0]
 
-    calib_gui = DetectionGUI(active_path)
-    calib_gui.configure_traits()
+    detection_gui = DetectionGUI(active_path)
+    detection_gui.configure_traits()
