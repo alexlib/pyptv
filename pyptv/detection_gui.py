@@ -282,42 +282,15 @@ class PlotWindow(HasTraits):
 
 class DetectionGUI(HasTraits):
     status_text = Str(" status ")
-    ori_img_name = []
-    ori_img = []
-    pass_init = Bool(False)
-    pass_sortgrid = Bool(False)
-    pass_raw_orient = Bool(False)
-    pass_init_disabled = Bool(False)
     # -------------------------------------------------------------
     i_cam = Enum(1, 2, 3, 4) # up to 4 cameras
-    grey_thresh= Range(1,255,5,mode='slider')
-    min_npix = Range(0,100, method='slider',label='min npix')
-    min_npix_x = Range(1,100,1, label='min npix in x')
-    min_npix_y = Range(1,100,1, label='min npix in y')
-    max_npix = Range(1,100,1, label='max npix')
-    max_npix_x = Range(1,100,1, label='max npix in x')
-    max_npix_y = Range(1,100,1, label='max npix in y')
-    sum_of_grey = Range(1,100,1, label='Sum of greyvalue')
+    # grey_thresh= Range(1,255,5,mode='slider')
+
     size_of_crosses = Int(4, label='Size of crosses')
     # button_edit_cal_parameters = Button()
     button_showimg = Button(label='Load image')
     hp_flag = Bool(False,label='highpass')
     button_detection = Button(label='Detect dots')
-    # button_manual = Button()
-    # button_file_orient = Button()
-    # button_init_guess = Button()
-    # button_sort_grid = Button()
-    # button_sort_grid_init = Button()
-    # button_raw_orient = Button()
-    # button_fine_orient = Button()
-    # button_orient_part = Button()
-    # button_orient_shaking = Button()
-    # button_orient_dumbbell = Button()
-    # button_restore_orient = Button()
-    # button_checkpoint = Button()
-    # button_ap_figures = Button()
-    # button_edit_ori_files = Button()
-    # button_test = Button()
 
     # ---------------------------------------------------
     # Constructor
@@ -342,13 +315,41 @@ class DetectionGUI(HasTraits):
         print('working_folder = %s' % self.working_folder)
         print('par_path = %s' % self.par_path)
 
-        par.copy_params_dir(self.active_path, self.par_path)
+        # par.copy_params_dir(self.active_path, self.par_path)
 
         os.chdir(os.path.abspath(self.working_folder))
         print("Inside a folder: ", os.getcwd())
         # read parameters
         with open(os.path.join(self.par_path, 'ptv.par'), 'r') as f:
             self.n_cams = int(f.readline())
+
+        print("Loading images/parameters \n")
+
+        # copy parameters from active to default folder parameters/
+        # par.copy_params_dir(self.active_path, self.par_path)
+
+        # read from parameters
+        self.cpar, self.spar, self.vpar, self.track_par, self.tpar, \
+        self.cals, self.epar = ptv.py_start_proc_c(self.n_cams)
+
+        self.tpar.read('parameters/detect_plate.par')
+
+        tmp = self.tpar.get_grey_thresholds()
+        pixel_count_bounds = self.tpar.get_pixel_count_bounds()
+        xsize_bounds = self.tpar.get_xsize_bounds()
+        ysize_bounds = self.tpar.get_ysize_bounds()
+        sum_grey = self.tpar.get_min_sum_grey()
+
+
+        self.add_trait("grey_thresh", Range(1,255,tmp[self.i_cam-1],mode='slider'))
+        self.add_trait("min_npix",Range(0,pixel_count_bounds[0]+50, pixel_count_bounds[0], method='slider',label='min npix'))
+        self.add_trait("min_npix_x",Range(1,xsize_bounds[0]+20,xsize_bounds[0], mode='slider',label='min npix in x')) 
+        self.add_trait("min_npix_y", Range(1,ysize_bounds[0]+20,ysize_bounds[0], mode='slider',label='min npix in y'))
+        self.add_trait("max_npix", Range(1,pixel_count_bounds[1]+100,pixel_count_bounds[1], mode='slider',label='max npix'))
+        self.add_trait("max_npix_x", Range(1,xsize_bounds[1]+50,xsize_bounds[1], mode='slider',label='max npix in x'))
+        self.add_trait("max_npix_y", Range(1,ysize_bounds[1]+50,ysize_bounds[1], mode='slider',label='max npix in y'))
+        self.add_trait("sum_of_grey", Range(sum_grey/2,sum_grey*2,sum_grey, mode='slider',label='Sum of greyvalue'))
+
 
         # Detection will work one by one for the beginning
         self.camera = [PlotWindow()]
@@ -411,39 +412,58 @@ class DetectionGUI(HasTraits):
 
 
     def _grey_thresh_changed(self):
-        print('grey thresh is %d' % self.grey_thresh)
+        # 'grey thresh is %d' % self.grey_thresh)
 
         # prepare parameters
-
         tmp = [0,0,0,0]
         tmp[self.i_cam-1] = self.grey_thresh
         self.tpar.set_grey_thresholds(tmp)
         # run detection again
         self._button_detection_fired()
-    
+
+    def _min_npix_changed(self):
+        pixel_counts = self.tpar.get_pixel_count_bounds()
+        self.tpar.set_pixel_count_bounds((self.min_npix,pixel_counts[1]))
+        self._button_detection_fired()
+
+    def _max_npix_changed(self):
+        pixel_counts = self.tpar.get_pixel_count_bounds()
+        self.tpar.set_pixel_count_bounds((pixel_counts[0],self.max_npix))
+        self._button_detection_fired()
+
+    def _min_npix_x_changed(self):
+        pixel_counts = self.tpar.get_xsize_bounds()
+        self.tpar.set_xsize_bounds((self.min_npix_x,pixel_counts[1]))
+        self._button_detection_fired()
+
+    def _max_npix_x_changed(self):
+        pixel_counts = self.tpar.get_xsize_bounds()
+        self.tpar.set_xsize_bounds((pixel_counts[0],self.max_npix_x))
+        self._button_detection_fired()
+
+    def _min_npix_y_changed(self):
+        pixel_counts = self.tpar.get_ysize_bounds()
+        self.tpar.set_ysize_bounds((self.min_npix_y,pixel_counts[1]))
+        self._button_detection_fired()
+
+    def _max_npix_y_changed(self):
+        pixel_counts = self.tpar.get_ysize_bounds()
+        self.tpar.set_ysize_bounds((pixel_counts[0],self.max_npix_y))
+        self._button_detection_fired()
+
+    def _sum_of_grey_changed(self):
+        self.tpar.set_min_sum_grey(self.sum_of_grey)
+        self._button_detection_fired()
+
 
     def _button_showimg_fired(self):
-
-        print("Loading images/parameters \n")
-
-        # copy parameters from active to default folder parameters/
-        par.copy_params_dir(self.active_path, self.par_path)
-
-        # read from parameters
-        self.cpar, self.spar, self.vpar, self.track_par, self.tpar, \
-        self.cals, self.epar = ptv.py_start_proc_c(self.n_cams)
-
-        self.tpar.read('parameters/detect_plate.par')
-
-        self.calParams = par.CalOriParams(self.n_cams, self.par_path)
-        self.calParams.read()
 
         self._read_cal_image()
         self.reset_show_images()
 
     def _read_cal_image(self):
             # read Detection images
-        im = imread(self.calParams.img_cal_name[self.i_cam-1])
+        im = imread(self.cpar.get_cal_img_base_name(self.i_cam-1))
         if im.ndim > 2:
             im = rgb2gray(im)
 
@@ -463,7 +483,7 @@ class DetectionGUI(HasTraits):
         x = [i.pos()[0] for i in targs]
         y = [i.pos()[1] for i in targs]
 
-        print("n particles is %d " % len(x))
+        # print("n particles is %d " % len(x))
 
         self.camera[0].drawcross("x", "y", np.array(x), np.array(y), "blue", 4)
         self.camera[0]._right_click_avail = 1
