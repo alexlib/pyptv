@@ -118,14 +118,19 @@ class PlotWindow(HasTraits):
         self._plot.padding_top = padd
         self._plot.padding_bottom = padd
         self._quiverplots = []
+        self.py_rclick_delete = ptv.py_rclick_delete
+        self.py_get_pix_N = ptv.py_get_pix_N
 
         # -------------------------------------------------------------
 
+
     def left_clicked_event(self):
-        print ("left clicked")
-        if len(self._x) < 4:
-            self._x.append(self._click_tool.x)
-            self._y.append(self._click_tool.y)
+        """
+        Adds x,y position to a list and draws a cross
+
+        """
+        self._x.append(self._click_tool.x)
+        self._y.append(self._click_tool.y)
         print(self._x, self._y)
 
         self.drawcross("coord_x", "coord_y", self._x, self._y, "red", 5)
@@ -174,6 +179,7 @@ class PlotWindow(HasTraits):
         """
         Draws crosses on images
         """
+        # self._plot.plotdata = ArrayPlotData(x=x[0], y=y[0])
         self._plot_data.set_data(str_x, x)
         self._plot_data.set_data(str_y, y)
         self._plot.plot((str_x, str_y), type="scatter",
@@ -283,7 +289,7 @@ class DetectionGUI(HasTraits):
     pass_raw_orient = Bool(False)
     pass_init_disabled = Bool(False)
     # -------------------------------------------------------------
-    i_cam = gain = Enum(1, 2, 3, 4)
+    i_cam = Enum(1, 2, 3, 4) # up to 4 cameras
     grey_thresh= Range(1,255,5,mode='slider')
     min_npix = Range(0,100, method='slider',label='min npix')
     min_npix_x = Range(1,100,1, label='min npix in x')
@@ -332,6 +338,10 @@ class DetectionGUI(HasTraits):
         self.working_folder = os.path.split(self.active_path)[0]
         self.par_path = os.path.join(self.working_folder, 'parameters')
 
+        print('active path = %s' % self.active_path)
+        print('working_folder = %s' % self.working_folder)
+        print('par_path = %s' % self.par_path)
+
         par.copy_params_dir(self.active_path, self.par_path)
 
         os.chdir(os.path.abspath(self.working_folder))
@@ -341,20 +351,9 @@ class DetectionGUI(HasTraits):
             self.n_cams = int(f.readline())
 
         # Detection will work one by one for the beginning
-        # self.n_cams = 1
-
         self.camera = [PlotWindow()]
-        self.camera_name = 'Camera' + str(self.i_cam + 1)
-        self.camera[0].py_rclick_delete = ptv.py_rclick_delete
-        self.camera[0].py_get_pix_N = ptv.py_get_pix_N
+        self.camera_name = 'Camera' + str(self.i_cam)
         
-
-        # self.camera = [PlotWindow() for i in xrange(self.n_cams)]
-        # for i in xrange(self.n_cams):
-        #     self.camera[i].name = "Camera" + str(i + 1)
-        #     self.camera[i].cameraN = i
-        #     self.camera[i].py_rclick_delete = ptv.py_rclick_delete
-        #     self.camera[i].py_get_pix_N = ptv.py_get_pix_N
 
     # Defines GUI view --------------------------
 
@@ -364,8 +363,8 @@ class DetectionGUI(HasTraits):
                 VGroup(
                     Item(name='i_cam'),
                     Item(name='button_showimg'),
-                    Item(name='button_detection'),
                     Item(name='hp_flag'),
+                    Item(name='button_detection'),
                     Item(name='grey_thresh'),
                     Item(name='min_npix'),
                     Item(name='min_npix_x'),
@@ -397,25 +396,35 @@ class DetectionGUI(HasTraits):
 
     # --------------------------------------------------
 
-    def _button_edit_cal_parameters_fired(self):
-        cp = pargui.Calib_Params(par_path=self.par_path)
-        cp.edit_traits(kind='modal')
-        # at the end of a modification, copy the parameters
-        par.copy_params_dir(self.par_path, self.active_path)
-        self.cpar, self.spar, self.vpar, self.track_par, self.tpar, \
-        self.cals, self.epar = ptv.py_start_proc_c(self.n_cams)
+    def _hp_flag_changed(self):
+        tmp = []
+        tmp.append(self.cal_image)
+        if self.hp_flag is True:
+            tmp = ptv.py_pre_processing_c(tmp, self.cpar)
+            self.cal_image = tmp[0]
+            self.status_text = "Highpassed the image"
+        else:
+            self._read_cal_image()
+            self.status_text = "Original image"
+        
+        self.reset_show_images()
+
+
+    def _grey_thresh_changed(self):
+        print('grey thresh is %d' % self.grey_thresh)
+
+        # prepare parameters
+
+        tmp = [0,0,0,0]
+        tmp[self.i_cam-1] = self.grey_thresh
+        self.tpar.set_grey_thresholds(tmp)
+        # run detection again
+        self._button_detection_fired()
+    
 
     def _button_showimg_fired(self):
 
         print("Loading images/parameters \n")
-
-        # Initialize what is needed, copy necessary things
-
-        print("\n Copying man_ori.dat \n")
-        if os.path.isfile(os.path.join(self.par_path, 'man_ori.dat')):
-            shutil.copyfile(os.path.join(self.par_path, 'man_ori.dat'),
-                            os.path.join(self.working_folder, 'man_ori.dat'))
-            print("\n Copied man_ori.dat \n")
 
         # copy parameters from active to default folder parameters/
         par.copy_params_dir(self.active_path, self.par_path)
@@ -426,154 +435,64 @@ class DetectionGUI(HasTraits):
 
         self.tpar.read('parameters/detect_plate.par')
 
-        print(self.tpar.get_grey_thresholds())
-
-
         self.calParams = par.CalOriParams(self.n_cams, self.par_path)
         self.calParams.read()
-        
-        if self.epar.Combine_Flag is True : 
-            print("Combine Flag")
-            self.MultiParams = par.MultiPlaneParams()
-            self.MultiParams.read()
-            for i in range(self.MultiParams.n_planes):
-                print(self.MultiParams.plane_name[i])
 
-            self.pass_raw_orient = True
-            self.status_text = "Multiplane Detection."
-
-        
-        # read Detection images
-        self.cal_images = []
-        for i in range(len(self.camera)):
-            imname = self.calParams.img_cal_name[i]
-        # for imname in self.calParams.img_cal_name:
-            # self.cal_images.append(imread(imname))
-            im = imread(imname)
-            if im.ndim > 2:
-                im = rgb2gray(im)
-
-            self.cal_images.append(img_as_ubyte(im))
-
+        self._read_cal_image()
         self.reset_show_images()
 
-        # Loading manual parameters here
-        man_ori_path = os.path.join(self.par_path, 'man_ori.par')
+    def _read_cal_image(self):
+            # read Detection images
+        im = imread(self.calParams.img_cal_name[self.i_cam-1])
+        if im.ndim > 2:
+            im = rgb2gray(im)
 
-        f = open(man_ori_path, 'r')
-        if f is None:
-            print('\n Error loading man_ori.par')
-        else:
-            for i in range(len(self.camera)):
-                for j in range(4):
-                    self.camera[i].man_ori[j] = int(f.readline().strip())
-        f.close()
-
-        self.pass_init = True
-        self.status_text = "Initialization finished."
+        self.cal_image = img_as_ubyte(im)
 
     def _button_detection_fired(self):
-        if self.need_reset:
-            self.reset_show_images()
-            self.need_reset = False
-        print(" Detection procedure \n")
-        self.status_text = "Detection procedure"
+        # self.reset_show_images()
+        # self.need_reset = False
+        self.status_text = " Detection procedure "
 
-        if self.cpar.get_hp_flag():
-            self.cal_images = ptv.py_pre_processing_c(self.cal_images, self.cpar)
+        # self.detections, corrected = \
+        #     ptv.py_detection_proc_c([self.cal_image], self.cpar, self.tpar, self.cals)
 
-        self.detections, corrected = \
-            ptv.py_detection_proc_c(self.cal_images, self.cpar, self.tpar, self.cals)
+        targs = target_recognition(self.cal_image, self.tpar, self.i_cam-1, self.cpar)
+        targs.sort_y()
 
-        x = [[i.pos()[0] for i in row] for row in self.detections]
-        y = [[i.pos()[1] for i in row] for row in self.detections]
+        x = [i.pos()[0] for i in targs]
+        y = [i.pos()[1] for i in targs]
 
-        self.drawcross("x", "y", x, y, "blue", 4)
+        print("n particles is %d " % len(x))
 
-        for i in range(self.n_cams):
-            self.camera[i]._right_click_avail = 1
+        self.camera[0].drawcross("x", "y", np.array(x), np.array(y), "blue", 4)
+        self.camera[0]._right_click_avail = 1
 
+        # for i in range(self.n_cams):
+        #     self.camera[i]._right_click_avail = 1
 
     def reset_plots(self):
-        for i in range(len(self.camera)):
-            self.camera[i]._plot.delplot(
-                *self.camera[i]._plot.plots.keys()[0:])
-            self.camera[i]._plot.overlays = []
-            for j in range(len(self.camera[i]._quiverplots)):
-                self.camera[i]._plot.remove(self.camera[i]._quiverplots[j])
-            self.camera[i]._quiverplots = []
+        """ Resets all the images and overlays """
+        self.camera[0]._plot.delplot(
+            *self.camera[0]._plot.plots.keys()[0:])
+        self.camera[0]._plot.overlays = []
+        for j in range(len(self.camera[0]._quiverplots)):
+            self.camera[0]._plot.remove(self.camera[0]._quiverplots[j])
+        self.camera[0]._quiverplots = []
 
     def reset_show_images(self):
-        for i,cam in enumerate(self.camera):
-            cam._plot.delplot(*cam._plot.plots.keys()[0:])
-            cam._plot.overlays = []
-            # self.camera[i]._plot_data.set_data('imagedata',self.ori_img[i].astype(np.byte))
-            cam._plot_data.set_data('imagedata', self.cal_images[i].astype(np.byte))
+        self.reset_plots()
+        self.camera[0]._plot_data.set_data('imagedata', self.cal_image)
+        self.camera[0]._img_plot = self.camera[0]._plot.img_plot('imagedata', colormap=gray)[0]
+        self.camera[0]._x = []
+        self.camera[0]._y = []
+        self.camera[0]._img_plot.tools = []
+        self.camera[0].attach_tools()
+        self.camera[0]._plot.request_redraw()
 
-            cam._img_plot = cam._plot.img_plot('imagedata', colormap=gray)[0]
-            cam._x = []
-            cam._y = []
-            cam._img_plot.tools = []
-            cam.attach_tools()
-            cam._plot.request_redraw()
-            for j in range(len(cam._quiverplots)):
-                cam._plot.remove(cam._quiverplots[j])
-            cam._quiverplots = []
-
-    def _button_edit_ori_files_fired(self):
-        editor = codeEditor(path=self.par_path)
-        editor.edit_traits(kind='livemodal')
-
-    def drawcross(self, str_x, str_y, x, y, color1, size1, i_cam=None):
-        """
-
-        :rtype: None
-        """
-        if i_cam is None:
-            for i in range(self.n_cams):
-                self.camera[i].drawcross(str_x, str_y, x[i], y[i], color1, size1)
-        else:
-            self.camera[i_cam].drawcross(str_x, str_y, x, y, color1, size1)
-
-    def backup_ori_files(self):
-        """ backup ORI/ADDPAR files to the backup_cal directory """
-        calOriParams = par.CalOriParams(self.n_cams, path=self.par_path)
-        calOriParams.read()
-        for f in calOriParams.img_ori[:self.n_cams]:
-            shutil.copyfile(f, f + '.bck')
-            g = f.replace('ori', 'addpar')
-            shutil.copyfile(g, g + '.bck')
-
-    def restore_ori_files(self):
-        # backup ORI/ADDPAR files to the backup_cal directory
-        calOriParams = par.CalOriParams(self.n_cams, path=self.par_path)
-        calOriParams.read()
-
-        for f in calOriParams.img_ori[:self.n_cams]:
-            print('restored %s ' % f)
-            shutil.copyfile(f + '.bck', f)
-            g = f.replace('ori', 'addpar')
-            shutil.copyfile(g + '.bck', g)
-
-    def protect_ori_files(self):
-        # backup ORI/ADDPAR files to the backup_cal directory
-        calOriParams = par.CalOriParams(self.n_cams, path=self.par_path)
-        calOriParams.read()
-        for f in calOriParams.img_ori[:self.n_cams]:
-            with open(f, 'r') as d:
-                d.read().split()
-                if not np.all(np.isfinite(np.asarray(d).astype('f'))):  # if there NaN for instance
-                    print("protected ORI file %s " % f)
-                    shutil.copyfile(f + '.bck', f)
 
     def update_plots(self, images, is_float=0):
-        for i in range(len(images)):
-            self.camera[i].update_image(images[i], is_float)
-
-    def _read_cal_points(self):
-        # type: () -> numpy.ndarray
-        return np.atleast_1d(np.loadtxt(self.calParams.fixp_name, dtype=[('id', 'i4'), ('pos', '3f8')], skiprows=0))
-
+        self.camera[0].update_image(self.cal_image, is_float)
 
 if __name__ == "__main__":
     import sys
