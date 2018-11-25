@@ -39,6 +39,7 @@ from optv.tracking_framebuf import TargetArray
 
 import ptv as ptv
 import parameter_gui as pargui
+from detection_gui import DetectionGUI
 import parameters as par
 
 
@@ -285,6 +286,7 @@ class CalibrationGUI(HasTraits):
     # -------------------------------------------------------------
     button_edit_cal_parameters = Button()
     button_showimg = Button()
+    button_detection_settings = Button()
     button_detection = Button()
     button_manual = Button()
     button_file_orient = Button()
@@ -345,6 +347,9 @@ class CalibrationGUI(HasTraits):
                 VGroup(
                     Item(name='button_showimg',
                          label='Load/Show Images', show_label=False),
+                    Item(name='button_detection_settings',
+                        label='Dynamic detection settings',show_label=False,
+                        enabled_when='pass_init'),
                     Item(name='button_detection', label='Detection',
                          show_label=False, enabled_when='pass_init'),
                     Item(name='button_manual', label='Manual orient.',
@@ -478,6 +483,10 @@ class CalibrationGUI(HasTraits):
 
         self.pass_init = True
         self.status_text = "Initialization finished."
+
+    def _button_detection_settings_fired(self):
+        detection_gui = DetectionGUI(self.par_path)
+        detection_gui.configure_traits()
 
     def _button_detection_fired(self):
         if self.need_reset:

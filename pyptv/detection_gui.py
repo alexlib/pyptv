@@ -295,7 +295,7 @@ class DetectionGUI(HasTraits):
     # ---------------------------------------------------
     # Constructor
     # ---------------------------------------------------
-    def __init__(self, active_path):
+    def __init__(self, par_path):
         """ Initialize DetectionGUI
 
             Inputs:
@@ -307,11 +307,12 @@ class DetectionGUI(HasTraits):
         super(DetectionGUI, self).__init__()
         self.need_reset = 0
 
-        self.active_path = active_path
-        self.working_folder = os.path.split(self.active_path)[0]
-        self.par_path = os.path.join(self.working_folder, 'parameters')
+        # self.active_path = active_path
+        self.par_path = par_path
+        self.working_folder = os.path.split(self.par_path)[0]
+        # self.par_path = os.path.join(self.working_folder, 'parameters')
 
-        print('active path = %s' % self.active_path)
+        # print('active path = %s' % self.active_path)
         print('working_folder = %s' % self.working_folder)
         print('par_path = %s' % self.par_path)
 
@@ -518,9 +519,9 @@ if __name__ == "__main__":
     import sys
 
     if len(sys.argv) == 1:
-        active_path = '/Users/alex/Documents/OpenPTV/test_cavity/parametersRun1'
+        par_path = '/Users/alex/Documents/OpenPTV/test_cavity/parameters'
     else:
-        active_path = sys.argv[0]
+        par_path = sys.argv[0]
 
-    detection_gui = DetectionGUI(active_path)
+    detection_gui = DetectionGUI(par_path)
     detection_gui.configure_traits()
