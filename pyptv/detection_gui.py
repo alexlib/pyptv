@@ -283,7 +283,7 @@ class PlotWindow(HasTraits):
 class DetectionGUI(HasTraits):
     status_text = Str(" status ")
     # -------------------------------------------------------------
-    i_cam = Enum(1, 2, 3, 4) # up to 4 cameras
+    
     # grey_thresh= Range(1,255,5,mode='slider')
 
     size_of_crosses = Int(4, label='Size of crosses')
@@ -341,7 +341,7 @@ class DetectionGUI(HasTraits):
         ysize_bounds = self.tpar.get_ysize_bounds()
         sum_grey = self.tpar.get_min_sum_grey()
 
-
+        self.add_trait("i_cam", Enum(range(1,self.n_cams+1))) 
         self.add_trait("grey_thresh", Range(1,255,tmp[self.i_cam-1],mode='slider'))
         self.add_trait("min_npix",Range(0,pixel_count_bounds[0]+50, pixel_count_bounds[0], method='slider',label='min npix'))
         self.add_trait("min_npix_x",Range(1,xsize_bounds[0]+20,xsize_bounds[0], mode='slider',label='min npix in x')) 
