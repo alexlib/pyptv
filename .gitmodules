@@ -1,4 +1,4 @@
 [submodule "openptv"]
 	path = openptv
-	url = http://github.com/openptv/openptv
+	url = http://github.com/alexlib/openptv
 	branch = master
