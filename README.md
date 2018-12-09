@@ -19,9 +19,9 @@ Both PyPTV and the OpenPTV library are in the development phase and continuously
 <http://openptv-python.readthedocs.io>
 
 
-## Installing this package, pyptv, using Anaconda:
+## Installing this package, pyptv, including liboptv and using Anaconda:
 
-        git clone http://github.com/alexlib/pyptv.git pyptv
+        git clone --recursive --single-branch -b test_add_3cam https://github.com/alexlib/pyptv.git
         cd pyptv
         conda create -n pyptv --file requirements.txt
 
