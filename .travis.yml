@@ -18,15 +18,8 @@ install:
   - export PATH="$HOME/miniconda/bin:$PATH"
   - hash -r
   - conda config --set always_yes yes
+  - conda install chaco cython scikit-image kiwisolver enable nose future pip
   - conda update -q conda
-  - conda install chaco
-  - conda install cython
-  - conda install scikit-image
-  - conda install kiwisolver
-  - conda install enable
-  - conda install nose
-  - conda install future
-  - conda install pip
   - pip install --user coveralls
   - conda install conda-build
   - conda build .
