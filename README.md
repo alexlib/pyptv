@@ -21,15 +21,23 @@ Both PyPTV and the OpenPTV library are in the development phase and continuously
 
 ## Installing this package, pyptv, using Anaconda:
 
-        git clone http://github.com/alexlib/pyptv.git pyptv
+        git clone --recursive http://github.com/alexlib/pyptv.git pyptv
         cd pyptv
         conda create -n pyptv --file requirements.txt
 
 ### Activate your package, enter the `liboptv` bindings and add the `optv` to the packages:
 
 		conda activate pyptv
+		cd ~/pyptv/openptv/liboptv
+		mkdir build && cd build
+		cmake ../
+		make
+		make verify
+		sudo make install
 		cd ~/openptv/py_bind
 		python setup.py install
+		cd test
+		nosetests
 	
 * If Cython is missing, add it using:
 
