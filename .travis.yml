@@ -25,6 +25,8 @@ install:
   - conda install kiwisolver
   - conda install enable
   - conda install nose
+  - conda install future
+  - conda install pip
   - pip install --user coveralls
   - conda install conda-build
   - conda build .
