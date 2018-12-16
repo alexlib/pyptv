@@ -1,6 +1,5 @@
 #!/bin/sh
 set -ev
-git clone http://github.com/openptv/openptv
 cd openptv/liboptv
 mkdir _build && cd _build
 cmake ../
