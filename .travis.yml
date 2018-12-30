@@ -8,7 +8,7 @@ compiler:
 sudo: false
 before_install:
   - sudo apt-get -qq update
-  - sudo apt-get install -y cmake check build-essential git libgl1-mesa-glx libgl1-mesa-dev libglu1-mesa-glx libglu1-mesa-dev
+  - sudo apt-get install -y cmake check build-essential git libgl1-mesa-glx libgl1-mesa-dev libglu1-mesa-dev
   - sudo apt-get clean
   - sudo apt-get autoclean
 install:
