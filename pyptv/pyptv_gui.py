@@ -1159,7 +1159,7 @@ if __name__ == '__main__':
     else:
         print(
             'Please provide an experimental directory as an input, fallback to a default\n')
-        exp_path = '../../test_cavity' 
+        exp_path = '../../2D_jet'
 
     if not os.path.isdir(exp_path):
         raise OSError("Wrong experimental directory %s " % exp_path)
