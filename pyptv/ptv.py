@@ -151,7 +151,7 @@ def py_determination_proc_c(n_cams, sorted_pos, sorted_corresp, corrected):
     flat = np.array([corrected[i].get_by_pnrs(sorted_corresp[i]) \
                      for i in xrange(len(cals))])
     pos, rcm = point_positions(
-        flat.transpose(1,0,2), cpar, cals)
+        flat.transpose(1,0,2), cpar, cals, vpar)
 
     if len(cals) < 4:
         print_corresp = -1*np.ones((4,sorted_corresp.shape[1]))
@@ -230,7 +230,7 @@ def py_sequence_loop(exp):
         flat = np.array([corrected[i].get_by_pnrs(sorted_corresp[i]) \
                          for i in xrange(len(cals))])
         pos, rcm = point_positions(
-            flat.transpose(1,0,2), cpar, cals)
+            flat.transpose(1,0,2), cpar, cals, vpar)
 
         # if len(cals) == 1: # single camera case
         #     sorted_corresp = np.tile(sorted_corresp,(4,1))

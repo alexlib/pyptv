@@ -1,3 +1,4 @@
 [submodule "openptv"]
 	path = openptv
-	url = http://github.com/openptv/openptv.git
+	url = https://github.com/alexlib/openptv
+	branch = single_cam
