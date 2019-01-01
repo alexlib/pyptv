@@ -25,7 +25,7 @@ install:
   - conda install conda-build
   - conda build .
   - conda install --use-local pyptv
-  - sed -i 's/cbrt/#cbrt/' /opt/conda/lib/python2.7/site-packages/dask/array/ufunc.py
+  - sed -i 's/cbrt/#cbrt/' /home/travis/miniconda/lib/python2.7/site-packages/dask/array/ufunc.py
   - conda info -a
 before_script:
   - hash -r 
