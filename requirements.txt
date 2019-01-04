@@ -59,7 +59,7 @@ python-dateutil=2.6.1=py27hd56c96b_1
 python.app=2=py27hf2d5e94_7
 pytz=2017.3=py27h803c07a_0
 pywavelets=0.5.2=py27hd99e88a_0
-pyyaml=3.12=py27ha7932d0_1
+pyyaml>=4.2b1
 qt=4.8.7=4
 readline=7.0=hc1231fa_4
 scikit-image=0.13.1=py27h1de35cc_1
