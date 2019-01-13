@@ -1,12 +1,15 @@
 from setuptools import setup
+import versioneer
 
-requirements = ['numpy','scipy','matplotlib','chaco','enable',\
-                'kiwisolver','openptv']
+requirements = [
+    'openptv'
+]
 
 setup(
     name='pyptv',
-    version='0.1.3',
-    description='Python GUI for the OpenPTV library `liboptv`',
+    version=versioneer.get_version(),
+    cmdclass=versioneer.get_cmdclass(),
+    description="Python GUI for the OpenPTV",
     author="Alex Liberzon",
     author_email='alex.liberzon@gmail.com',
     url='https://github.com/alexlib/pyptv',
