@@ -1,8 +1,7 @@
 from setuptools import setup
 
-requirements = [
-    # package requirements go here
-]
+requirements = ['numpy','scipy','matplotlib','chaco','enable',\
+                'kiwisolver','openptv']
 
 setup(
     name='pyptv',
