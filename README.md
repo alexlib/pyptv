@@ -21,35 +21,31 @@ Both PyPTV and the OpenPTV library are in the development phase and continuously
 
 ## Installing this package, pyptv, using Anaconda:
 
-        git clone --recursive http://github.com/alexlib/pyptv.git pyptv
-        cd pyptv
-        conda create -n pyptv --file requirements.txt
+        	git clone --recursive http://github.com/alexlib/pyptv.git pyptv
+        	cd pyptv
+        	conda create -n pyptv python=2.7 numpy=1.10 cython scikit-image chaco enable kiwisolver nose future
 
 ### Activate your package, enter the `liboptv` bindings and add the `optv` to the packages:
 
 		conda activate pyptv
-		cd ~/pyptv/openptv/liboptv
-		mkdir build && cd build
-		cmake ../
-		make
-		make verify
-		sudo make install
-		cd ~/openptv/py_bind
+		cd ~/pyptv/openptv/py_bind
+		python setup.py prepare
+		python setup.py build
 		python setup.py install
 		cd test
 		nosetests
-	
-* If Cython is missing, add it using:
-
-		conda install cython -n pyptv
-		python setup.py install
-
 
 ## Getting started:
 
-If the compilation passed, open the terminal and run:  
+Get a test folder: 
+		
+		cd ~/pyptv
+		git clone https://github.com/openptv/test_cavity
 
-		python pyptv_gui/pyptv_gui.py ../test_cavity
+If the compilation passed, you can run the GUI:  
+		
+		cd ~/pyptv/pyptv
+		python pyptv_gui.py ../test_cavity
 		
 or:  
 
