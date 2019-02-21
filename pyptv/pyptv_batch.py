@@ -129,11 +129,18 @@ def run_batch(new_seq_first, new_seq_last):
         pos, rcm = point_positions(
             flat.transpose(1,0,2), cpar, cals, vpar)
 
+            
+        if len(cals) < 4:
+            print_corresp = -1*np.ones((4,sorted_corresp.shape[1]))
+            print_corresp[:len(cals),:] = sorted_corresp
+        else:
+            print_corresp = sorted_corresp
+
         # Save rt_is
         rt_is = open(default_naming['corres']+'.'+str(frame), 'w')
         rt_is.write(str(pos.shape[0]) + '\n')
         for pix, pt in enumerate(pos):
-            pt_args = (pix + 1,) + tuple(pt) + tuple(sorted_corresp[:,pix])
+            pt_args = (pix + 1,) + tuple(pt) + tuple(print_corresp[:,pix])
             rt_is.write("%4d %9.3f %9.3f %9.3f %4d %4d %4d %4d\n" % pt_args)
         rt_is.close()
     # end of a sequence loop
