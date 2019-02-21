@@ -77,7 +77,7 @@ def run_batch(new_seq_first, new_seq_last):
     # Calibration parameters
 
     cals =[]
-    for i_cam in xrange(n_cams):
+    for i_cam in range(n_cams):
         cal = Calibration()
         tmp = cpar.get_cal_img_base_name(i_cam)
         cal.from_file(tmp+'.ori', tmp+'.addpar')
@@ -85,12 +85,12 @@ def run_batch(new_seq_first, new_seq_last):
 
 
     # sequence loop for all frames
-    for frame in xrange(new_seq_first, new_seq_last+1):
+    for frame in range(new_seq_first, new_seq_last+1):
         print("processing frame %d" % frame)
 
         detections = []
         corrected = []
-        for i_cam in xrange(n_cams):
+        for i_cam in range(n_cams):
             imname = spar.get_img_base_name(i_cam) + str(frame)
             img = imread(imname)
             hp = simple_highpass(img, cpar)
@@ -127,7 +127,7 @@ def run_batch(new_seq_first, new_seq_last):
         flat = np.array([corrected[i].get_by_pnrs(sorted_corresp[i]) \
                          for i in xrange(len(cals))])
         pos, rcm = point_positions(
-            flat.transpose(1,0,2), cpar, cals)
+            flat.transpose(1,0,2), cpar, cals, vpar)
 
         # Save rt_is
         rt_is = open(default_naming['corres']+'.'+str(frame), 'w')
