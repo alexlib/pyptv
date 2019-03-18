@@ -15,6 +15,7 @@ setup(
     entry_points={
         'console_scripts': [
             'pyptv=pyptv.cli:cli'
+			'ptvgui=pyptv.pyptv_gui:main'
         ]
     },
     install_requires=requirements,

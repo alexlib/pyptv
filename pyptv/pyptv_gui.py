@@ -1148,7 +1148,7 @@ def printException():
     print('=' * 50)
 
 # -------------------------------------------------------------
-if __name__ == '__main__':
+def main():
     # Parse inputs:
     software_path = os.getcwd()
     print('Software path is %s ' % software_path)
@@ -1173,3 +1173,6 @@ if __name__ == '__main__':
         printException()
 
     os.chdir(software_path)  # get back to the original workdir
+
+if __name__ == '__main__':
+    main()
