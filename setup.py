@@ -2,6 +2,12 @@ from setuptools import setup
 
 requirements = [
     # package requirements go here
+    'optv',
+    'numpy',
+    'pyyaml',
+    'scikits.image',
+    'chaco',
+    'enable'
 ]
 
 setup(
