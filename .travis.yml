@@ -17,7 +17,7 @@ install:
   - conda update -q conda
   - conda clean --all
   - pip install optv
-  - pip install numpy chaco scikit-image enable nose future
+  - pip install numpy cython swig chaco scikit-image enable nose future
   - pip install --user coveralls
   - conda install conda-build
   - conda build .
