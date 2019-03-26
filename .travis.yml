@@ -16,8 +16,11 @@ install:
   - conda config --set always_yes yes
   - conda update -q conda
   - conda clean --all
+  - conda install numpy=1.16.1
+  - conda install cython
+  - conda install swig
+  - pip install chaco scikit-image enable nose future  
   - pip install optv
-  - pip install numpy cython swig chaco scikit-image enable nose future
   - pip install --user coveralls
   - conda install conda-build
   - conda build .
