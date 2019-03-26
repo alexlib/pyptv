@@ -14,6 +14,8 @@ from optv.tracking_framebuf import CORRES_NONE, read_targets, TargetArray
 from optv.tracker import Tracker, default_naming
 from optv.epipolar import epipolar_curve
 from skimage.io import imread
+from skimage.color import rgb2gray
+from skimage import img_as_ubyte
 import parameters as par
 
 
@@ -197,6 +199,8 @@ def py_sequence_loop(exp):
                     print('{0} does not exist'.format(imname))
 
                 img = imread(imname)
+                if img.ndim > 2:
+                    img = img_as_ubyte(rgb2gray(img))
                 # time.sleep(.1) # I'm not sure we need it here
                 hp = simple_highpass(img, cpar)
                 targs = target_recognition(hp, tpar, i_cam, cpar)
