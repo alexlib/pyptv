@@ -658,7 +658,7 @@ class TreeMenuHandler(traitsui.api.Handler):
         info.object.tracker.full_backward()
 
     @staticmethod
-    def threed_positions(info):
+    def threed_positions(self,info):
         """ Extracts and saves 3D positions from the list of correspondences """
         ptv.py_determination_proc_c(info.object.n_cams, info.object.sorted_pos,
                                     info.object.sorted_corresp, info.object.corrected)
@@ -729,12 +729,12 @@ class TreeMenuHandler(traitsui.api.Handler):
 
         print('Finished detect_part_track')
 
-    @staticmethod
-    def traject_action(info):
+    # @staticmethod
+    def traject_action(self,info):
         """ show trajectories is handled by ptv.py_traject_loop(..) which returns data to be plotted.
         traject_action collects data to be plotted from all the steps and plots it at once.
         """
-        print('Starting show trajectories')
+        print('Starting show trajectories\n')
         info.object.clear_plots(remove_background=False)
         seq_first = info.object.exp1.active_params.m_params.Seq_First
         seq_last = info.object.exp1.active_params.m_params.Seq_Last
