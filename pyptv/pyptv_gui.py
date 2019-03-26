@@ -657,7 +657,6 @@ class TreeMenuHandler(traitsui.api.Handler):
         print ("Starting back tracking")
         info.object.tracker.full_backward()
 
-    @staticmethod
     def threed_positions(self,info):
         """ Extracts and saves 3D positions from the list of correspondences """
         ptv.py_determination_proc_c(info.object.n_cams, info.object.sorted_pos,
