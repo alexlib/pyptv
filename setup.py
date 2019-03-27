@@ -6,6 +6,10 @@ requirements = [
     'numpy',
     'pyyaml',
     'scikit-image',
+    'traits',
+    'traitsui',
+    'pygments',
+    'future',
     'chaco',
     'enable'
 ]
