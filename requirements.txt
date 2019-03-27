@@ -1,6 +1,6 @@
 optv
 numpy==1.16.1
-scikits-image
+scikit-image
 chaco
 enable
 future

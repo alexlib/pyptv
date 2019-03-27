@@ -5,7 +5,7 @@ requirements = [
     'optv',
     'numpy',
     'pyyaml',
-    'scikits.image',
+    'scikit-image',
     'chaco',
     'enable'
 ]

@@ -69,3 +69,4 @@ tests/test_cavity/res
 pyptv/parameters
 pyptv/.vscode/c_cpp_properties.json
 pyptv/.vscode/launch.json
+.vscode/settings.json
