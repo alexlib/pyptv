@@ -19,42 +19,6 @@ Both PyPTV and the OpenPTV library are in the development phase and continuously
 <http://openptv-python.readthedocs.io>
 
 
-## Installing this package, pyptv, using Anaconda:
-
-        	git clone --recursive http://github.com/alexlib/pyptv.git pyptv
-        	cd pyptv
-        	conda create -n pyptv python=2.7 numpy=1.10 cython scikit-image chaco enable kiwisolver nose future
-
-### Activate your package, enter the `liboptv` bindings and add the `optv` to the packages:
-
-		conda activate pyptv
-		cd ~/pyptv/openptv/py_bind
-		python setup.py prepare
-		python setup.py build
-		python setup.py install
-		cd test
-		nosetests
-
-## Getting started:
-
-Get a test folder: 
-		
-		cd ~/pyptv
-		git clone https://github.com/openptv/test_cavity
-
-If the compilation passed, you can run the GUI:  
-		
-		cd ~/pyptv/pyptv
-		python pyptv_gui.py ../test_cavity
-		
-or:  
-
-		pythonw pyptv_gui/pyptv_gui.py ../test_cavity
-		
-It is possible to install wxPython instead of PyQt4, and switch between those:  
-
-		ETS_TOOLKIT=qt4 python pyptv_gui/pyptv_gui.py ../test_cavity
-
 Follow the instructions in our **screencasts and tutorials**:
   
   *  Tutorial 1: <http://youtu.be/S2fY5WFsFwo>  
