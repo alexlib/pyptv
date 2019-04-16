@@ -1158,7 +1158,7 @@ def main():
     else:
         print(
             'Please provide an experimental directory as an input, fallback to a default\n')
-        exp_path = '../../2D_jet'
+        exp_path = '/Users/alex/Documents/OpenPTV/test_cavity'
 
     if not os.path.isdir(exp_path):
         raise OSError("Wrong experimental directory %s " % exp_path)

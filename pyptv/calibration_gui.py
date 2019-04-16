@@ -330,8 +330,8 @@ class CalibrationGUI(HasTraits):
             self.n_cams = int(f.readline())
 
 
-        self.camera = [PlotWindow() for i in xrange(self.n_cams)]
-        for i in xrange(self.n_cams):
+        self.camera = [PlotWindow() for i in range(self.n_cams)]
+        for i in range(self.n_cams):
             self.camera[i].name = "Camera" + str(i + 1)
             self.camera[i].cameraN = i
             self.camera[i].py_rclick_delete = ptv.py_rclick_delete
@@ -431,7 +431,7 @@ class CalibrationGUI(HasTraits):
         self.cpar, self.spar, self.vpar, self.track_par, self.tpar, \
         self.cals, self.epar = ptv.py_start_proc_c(self.n_cams)
 
-        self.tpar.read('parameters/detect_plate.par')
+        self.tpar.read(b'parameters/detect_plate.par')
 
         print(self.tpar.get_grey_thresholds())
 
@@ -447,7 +447,7 @@ class CalibrationGUI(HasTraits):
                 print(self.MultiParams.plane_name[i])
 
             self.pass_raw_orient = True
-            self.status_text = "Multiplane calibration."
+            self.status_text = b"Multiplane calibration."
 
         
         # read calibration images
@@ -568,7 +568,7 @@ class CalibrationGUI(HasTraits):
         for i_cam in range(self.n_cams):
             cal = Calibration()
             tmp = self.cpar.get_cal_img_base_name(i_cam)
-            cal.from_file(tmp + '.ori', tmp + '.addpar')
+            cal.from_file(tmp + b'.ori', tmp + b'.addpar')
             self.cals.append(cal)
 
         for i_cam in range(self.n_cams):
@@ -779,7 +779,7 @@ class CalibrationGUI(HasTraits):
                 # combined information
 
                 targs = TargetArray(len(all_detected))
-                for tix in xrange(len(all_detected)):
+                for tix in range(len(all_detected)):
                     targ = targs[tix]
                     det = all_detected[tix]
 
@@ -830,7 +830,7 @@ class CalibrationGUI(HasTraits):
         ori = self.calParams.img_ori[i_cam]
         addpar = ori.replace('ori', 'addpar')
         print("Saving:", ori, addpar)
-        self.cals[i_cam].write(ori, addpar)
+        self.cals[i_cam].write(ori.encode(), addpar.encode())
         if self.epar.Examine_Flag and not self.epar.Combine_Flag:
             self.save_point_sets(i_cam)
 
@@ -898,7 +898,7 @@ class CalibrationGUI(HasTraits):
 
     def reset_show_images(self):
         for i,cam in enumerate(self.camera):
-            cam._plot.delplot(*cam._plot.plots.keys()[0:])
+            cam._plot.delplot(*list(cam._plot.plots.keys())[0:])
             cam._plot.overlays = []
             # self.camera[i]._plot_data.set_data('imagedata',self.ori_img[i].astype(np.byte))
             cam._plot_data.set_data('imagedata', self.cal_images[i].astype(np.byte))
