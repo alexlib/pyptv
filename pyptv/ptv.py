@@ -191,12 +191,13 @@ def py_sequence_loop(exp):
             if Existing_Target:
                 targs = read_targets(spar.get_img_base_name(i_cam),frame)
             else:
-                imname = spar.get_img_base_name(i_cam) + str(frame)
+                imname = spar.get_img_base_name(i_cam) + str(frame).encode()
+                print(imname)
                 if not os.path.exists(imname):
                     print(os.path.abspath(os.path.curdir))
                     print('{0} does not exist'.format(imname))
 
-                img = imread(imname)
+                img = imread(imname.decode())
                 # time.sleep(.1) # I'm not sure we need it here
                 hp = simple_highpass(img, cpar)
                 targs = target_recognition(hp, tpar, i_cam, cpar)
