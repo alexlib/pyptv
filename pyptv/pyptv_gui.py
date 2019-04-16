@@ -1053,7 +1053,7 @@ class MainGUI(traits.api.HasTraits):
             index = None
 
         for i in range(len(self.camera_list)):
-            plot_list = self.camera_list[i]._plot.plots.keys()
+            plot_list = list(self.camera_list[i]._plot.plots.keys())
             # if not remove_background:
             #   index=None
             try:
