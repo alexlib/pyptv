@@ -6,15 +6,14 @@ matrix:
     - python: 3.5
     - python: 3.6
     - python: 3.7
-      dist: xenial
-      sudo: true
+      sudo: false
 before_install:
   - sudo apt-get -qq update
   - sudo apt-get install -y build-essential 
   - sudo apt-get install -y python python-pip python-setuptools python-dev python-virtualenv swig git
   - sudo apt-get -y install python-qt4-gl libx11-dev g++ libpcre3 libpcre3-dev
   - sudo apt-get -y install libgl1-mesa-glx libglu1-mesa-dev libgl1-mesa-dev mesa-common-dev freeglut3-dev libgtk2.0-dev
-  - pip install numpy==1.16.1 cython nose pyyaml fonttools six pyface pillow scikit-image traits traitsui
+  - pip install numpy cython nose pyyaml fonttools six
   - pip install enable
   - pip install chaco
   - pip install optv==0.2.4
