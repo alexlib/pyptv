@@ -244,7 +244,8 @@ def py_sequence_loop(exp):
             print_corresp = sorted_corresp
 
         # Save rt_is
-        rt_is = open(default_naming['corres']+'.'+str(frame), 'w')
+        print(default_naming['corres'])
+        rt_is = open(default_naming['corres']+b'.'+ str(frame).encode(), 'w')
         rt_is.write(str(pos.shape[0]) + '\n')
         for pix, pt in enumerate(pos):
             pt_args = (pix + 1,) + tuple(pt) + tuple(print_corresp[:,pix])
