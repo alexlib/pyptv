@@ -1,31 +1,20 @@
 # Config file for automatic testing at travis-ci.org
 
 language: python
-  - "2.7"
+  - "3.7"
 sudo: false
 before_install:
-  - sudo apt-get -qq update
-  - sudo apt-get install -y build-essential git libgl1-mesa-glx libgl1-mesa-dev libglu1-mesa-dev
-  - sudo apt-get clean
-  - sudo apt-get autoclean
+  - apt-get -qq update
+  - apt-get install -y build-essential 
+  - apt-get install -y python python-pip python-setuptools python-dev python-virtualenv swig git
+  - apt-get -y install python-qt4-gl libx11-dev g++ libpcre3 libpcre3-dev
+  - apt-get -y install libgl1-mesa-glx libglu1-mesa-dev libgl1-mesa-dev mesa-common-dev freeglut3-dev libgtk2.0-dev
+  - pip install numpy==1.16.1 cython nose pyyaml fonttools
+  - pip install optv==0.2.4
+  - pip install enable
+  - pip install chaco
 install:
-  - wget https://repo.continuum.io/miniconda/Miniconda3-latest-Linux-x86_64.sh -O miniconda.sh;
-  - bash miniconda.sh -b -p $HOME/miniconda
-  - export PATH="$HOME/miniconda/bin:$PATH"
-  - hash -r
-  - conda config --set always_yes yes
-  - conda update -q conda
-  - conda clean --all
-  - conda install numpy=1.16.1
-  - conda install cython
-  - conda install swig
-  - pip install chaco scikit-image enable nose future  
-  - pip install optv
-  - pip install --user coveralls
-  - conda install conda-build
-  - conda build .
-  - conda install --use-local pyptv
-  - conda info -a
+  - cd pyptv/pyptv/ && pip install .
 script:
   - cd tests
   - nosetests -v
