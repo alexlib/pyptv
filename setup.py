@@ -1,18 +1,6 @@
 from setuptools import setup
 
-requirements = [
-    # package requirements go here
-    'optv',
-    'numpy',
-    'pyyaml',
-    'scikit-image',
-    'traits',
-    'traitsui',
-    'pygments',
-    'future',
-    'chaco',
-    'enable'
-]
+requirements = []
 
 setup(
     name='pyptv',
