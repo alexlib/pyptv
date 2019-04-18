@@ -7,7 +7,7 @@ before_install:
   - sudo apt-get -qq update
   - sudo apt-get install -y build-essential 
   - sudo apt-get install -y python-dev swig git
-  - sudo apt-get -y install python-qt4-gl libx11-dev g++ libpcre3 libpcre3-dev
+  - sudo apt-get -y install python-qt4-gl libx11-dev libpcre3 libpcre3-dev
   - sudo apt-get -y install libgl1-mesa-glx libglu1-mesa-dev libgl1-mesa-dev mesa-common-dev freeglut3-dev libgtk2.0-dev
 script:
   - virtualenv --python=python venv
