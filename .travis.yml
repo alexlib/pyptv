@@ -16,8 +16,8 @@ script:
   - pip install -U wheel
   - pip install numpy==1.16.1
   - pip install optv==0.2.4
-  - pip install pytest
+  - pip install nose
   - pip install scikit-image
   - python setup.py install
   - cd tests
-  - python -m pytest --verbose
+  - nosetests --verbose
