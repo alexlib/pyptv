@@ -909,12 +909,11 @@ class Calib_Params(HasTraits):
         # read manual orientaion parameters
         manOriParams = par.ManOriParams(self.n_img, [], path=self.par_path)
         manOriParams.read()
-        nr = manOriParams.nr
 
 
         for i in range(self.n_img):
             for j in range(4): # 4 points per image
-                exec('self.img_{0}_p{1} = nr[{2}][{3}]'.format(i+1,j+1,i,j))
+                exec('self.img_{0}_p{1} = manOriParams.nr[{2}][{3}]'.format(i+1,j+1,i,j))
 
 
         # examine arameters

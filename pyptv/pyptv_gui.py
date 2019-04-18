@@ -43,7 +43,7 @@ import ptv as ptv
 
 # pyPTV specific imports
 import parameters as par
-from parameter_gui import Experiment, Paramset
+from parameter_gui import Experiment, Paramset, Calib_Params
 from calibration_gui import CalibrationGUI
 from directory_editor import DirectoryEditorDialog
 from quiverplot import QuiverPlot
@@ -369,7 +369,7 @@ class TreeMenuHandler(traitsui.api.Handler):
         print(len(experiment.paramsets))
         if paramset.c_params is None:
             # TODO: is it possible that control reaches here? If not, probably the if should be removed.
-            paramset.c_params = par.Calib_Params()
+            paramset.c_params = par.CalOriParams() # this is a very questionable line
         else:
             paramset.c_params._reload()
         paramset.c_params.edit_traits(kind='modal')
@@ -601,7 +601,7 @@ class TreeMenuHandler(traitsui.api.Handler):
         """
 
         extern_sequence = info.object.plugins.sequence_alg
-        if extern_sequence != 'default':
+        if extern_sequence is not 'default':
             try:
                 # change to pyptv folder, look for tracking module
                 sys.path.append(software_path)
@@ -624,7 +624,7 @@ class TreeMenuHandler(traitsui.api.Handler):
         """ track_no_disp_action uses ptv.py_trackcorr_loop(..) binding to call tracking without display
         """
         extern_tracker = info.object.plugins.track_alg
-        if extern_tracker != 'default':
+        if extern_tracker is not 'default':
             try:
                 os.chdir(software_path)  # change to software path, to load tracking module
                 track = __import__(extern_tracker)  # import choosen tracker from software dir
@@ -1053,7 +1053,7 @@ class MainGUI(traits.api.HasTraits):
             index = None
 
         for i in range(len(self.camera_list)):
-            plot_list = self.camera_list[i]._plot.plots.keys()
+            plot_list = list(self.camera_list[i]._plot.plots.keys())
             # if not remove_background:
             #   index=None
             try:
@@ -1158,7 +1158,7 @@ def main():
     else:
         print(
             'Please provide an experimental directory as an input, fallback to a default\n')
-        exp_path = '../../2D_jet'
+        exp_path = '/Users/alex/Documents/OpenPTV/test_cavity'
 
     if not os.path.isdir(exp_path):
         raise OSError("Wrong experimental directory %s " % exp_path)

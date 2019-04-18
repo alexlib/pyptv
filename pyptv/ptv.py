@@ -30,23 +30,23 @@ def py_start_proc_c(n_cams):
 
     # Control parameters
     cpar = ControlParams(n_cams)
-    cpar.read_control_par('parameters/ptv.par')
+    cpar.read_control_par(b'parameters/ptv.par')
 
     # Sequence parameters
     spar = SequenceParams(num_cams=n_cams)
-    spar.read_sequence_par('parameters/sequence.par',n_cams)
+    spar.read_sequence_par(b'parameters/sequence.par',n_cams)
 
     # Volume parameters
     vpar = VolumeParams()
-    vpar.read_volume_par('parameters/criteria.par')
+    vpar.read_volume_par(b'parameters/criteria.par')
 
     # Tracking parameters
     track_par = TrackingParams()
-    track_par.read_track_par('parameters/track.par')
+    track_par.read_track_par(b'parameters/track.par')
 
     # Target parameters
     tpar = TargetParams(n_cams)
-    tpar.read('parameters/targ_rec.par')
+    tpar.read(b'parameters/targ_rec.par')
 
     # Examine parameters, multiplane (single plane vs combined calibration)
     epar= par.ExamineParams()
@@ -54,10 +54,10 @@ def py_start_proc_c(n_cams):
     
     # Calibration parameters
     cals =[]
-    for i_cam in xrange(n_cams):
+    for i_cam in range(n_cams):
         cal = Calibration()
         tmp = cpar.get_cal_img_base_name(i_cam)
-        cal.from_file(tmp+'.ori', tmp+'.addpar')
+        cal.from_file(tmp + b'.ori', tmp + b'.addpar')
         cals.append(cal)
 
     return cpar, spar, vpar, track_par, tpar, cals, epar
@@ -116,7 +116,7 @@ def py_correspondences_proc_c(exp):
         exp.detections, exp.corrected, exp.cals, exp.vpar, exp.cpar)
 
     # Save targets only after they've been modified:
-    for i_cam in xrange(exp.n_cams):
+    for i_cam in range(exp.n_cams):
         exp.detections[i_cam].write(exp.spar.get_img_base_name(i_cam),frame)
 
     print("Frame " + str(frame) + " had " \
@@ -129,17 +129,17 @@ def py_determination_proc_c(n_cams, sorted_pos, sorted_corresp, corrected):
 
     # Control parameters
     cpar = ControlParams(n_cams)
-    cpar.read_control_par('parameters/ptv.par')
+    cpar.read_control_par(b'parameters/ptv.par')
 
     # Volume parameters
     vpar = VolumeParams()
-    vpar.read_volume_par('parameters/criteria.par')
+    vpar.read_volume_par(b'parameters/criteria.par')
 
     cals =[]
-    for i_cam in xrange(n_cams):
+    for i_cam in range(n_cams):
         cal = Calibration()
         tmp = cpar.get_cal_img_base_name(i_cam)
-        cal.from_file(tmp+'.ori', tmp+'.addpar')
+        cal.from_file(tmp + b'.ori', tmp + b'.addpar')
         cals.append(cal)
 
 
@@ -149,7 +149,7 @@ def py_determination_proc_c(n_cams, sorted_pos, sorted_corresp, corrected):
 
 
     flat = np.array([corrected[i].get_by_pnrs(sorted_corresp[i]) \
-                     for i in xrange(len(cals))])
+                     for i in range(len(cals))])
     pos, rcm = point_positions(
         flat.transpose(1,0,2), cpar, cals, vpar)
 
@@ -182,21 +182,22 @@ def py_sequence_loop(exp):
     Existing_Target = np.bool(pftVersionParams.Existing_Target)
 
     # sequence loop for all frames
-    for frame in xrange(spar.get_first(), spar.get_last()+1):
+    for frame in range(spar.get_first(), spar.get_last()+1):
         print("processing frame %d" % frame)
 
         detections = []
         corrected = []
-        for i_cam in xrange(n_cams):
+        for i_cam in range(n_cams):
             if Existing_Target:
                 targs = read_targets(spar.get_img_base_name(i_cam),frame)
             else:
-                imname = spar.get_img_base_name(i_cam) + str(frame)
+                imname = spar.get_img_base_name(i_cam) + str(frame).encode()
+                print(imname)
                 if not os.path.exists(imname):
                     print(os.path.abspath(os.path.curdir))
                     print('{0} does not exist'.format(imname))
 
-                img = imread(imname)
+                img = imread(imname.decode())
                 # time.sleep(.1) # I'm not sure we need it here
                 hp = simple_highpass(img, cpar)
                 targs = target_recognition(hp, tpar, i_cam, cpar)
@@ -216,7 +217,7 @@ def py_sequence_loop(exp):
             detections, corrected, cals, vpar, cpar)
 
         # Save targets only after they've been modified:
-        for i_cam in xrange(n_cams):
+        for i_cam in range(n_cams):
             detections[i_cam].write(spar.get_img_base_name(i_cam),frame)
 
 
@@ -228,7 +229,7 @@ def py_sequence_loop(exp):
         sorted_corresp = np.concatenate(sorted_corresp, axis=1)
 
         flat = np.array([corrected[i].get_by_pnrs(sorted_corresp[i]) \
-                         for i in xrange(len(cals))])
+                         for i in range(len(cals))])
         pos, rcm = point_positions(
             flat.transpose(1,0,2), cpar, cals, vpar)
 
@@ -243,7 +244,8 @@ def py_sequence_loop(exp):
             print_corresp = sorted_corresp
 
         # Save rt_is
-        rt_is = open(default_naming['corres']+'.'+str(frame), 'w')
+        print(default_naming['corres'])
+        rt_is = open(default_naming['corres']+b'.'+ str(frame).encode(), 'w')
         rt_is.write(str(pos.shape[0]) + '\n')
         for pix, pt in enumerate(pos):
             pt_args = (pix + 1,) + tuple(pt) + tuple(print_corresp[:,pix])
@@ -421,7 +423,7 @@ def py_multiplanecalibration(exp):
 		all_detected = np.vstack(all_detected)
 
 		targs = TargetArray(len(all_detected))
-		for tix in xrange(len(all_detected)):
+		for tix in range(len(all_detected)):
 			targ = targs[tix]
 			det = all_detected[tix]
 

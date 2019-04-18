@@ -52,25 +52,25 @@ def run_batch(new_seq_first, new_seq_last):
 
     # Control parameters
     cpar = ControlParams(n_cams)
-    cpar.read_control_par('parameters/ptv.par')
+    cpar.read_control_par(b'parameters/ptv.par')
 
     # Sequence parameters
     spar = SequenceParams(num_cams=n_cams)
-    spar.read_sequence_par('parameters/sequence.par',n_cams)
+    spar.read_sequence_par(b'parameters/sequence.par',n_cams)
     spar.set_first(new_seq_first)
     spar.set_last(new_seq_last)
 
     # Volume parameters
     vpar = VolumeParams()
-    vpar.read_volume_par('parameters/criteria.par')
+    vpar.read_volume_par(b'parameters/criteria.par')
 
     # Tracking parameters
     track_par = TrackingParams()
-    track_par.read_track_par('parameters/track.par')
+    track_par.read_track_par(b'parameters/track.par')
 
     # Target parameters
     tpar = TargetParams()
-    tpar.read('parameters/targ_rec.par')
+    tpar.read(b'parameters/targ_rec.par')
 
     # 
 
@@ -80,7 +80,7 @@ def run_batch(new_seq_first, new_seq_last):
     for i_cam in range(n_cams):
         cal = Calibration()
         tmp = cpar.get_cal_img_base_name(i_cam)
-        cal.from_file(tmp+'.ori', tmp+'.addpar')
+        cal.from_file(tmp+b'.ori', tmp+b'.addpar')
         cals.append(cal)
 
 
@@ -165,7 +165,7 @@ def main(exp_path, first, last, repetitions=1):
 
     try:
         exp_path = os.path.abspath(exp_path)
-        print('exp_path= %s' % exp_path)
+        print('exp_path is %s' % exp_path)
         os.chdir(exp_path)
         print(os.getcwd())
     except:
