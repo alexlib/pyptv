@@ -19,4 +19,5 @@ script:
   - pip install pytest
   - pip install scikit-image
   - python setup.py install
-  - python -m pytest tests/
+  - cd tests
+  - python -m pytest --verbose
