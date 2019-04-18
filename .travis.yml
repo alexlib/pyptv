@@ -17,4 +17,4 @@ before_install:
 install:
   - sudo pip install -e .
 script:
-  - nosetests pyptv/tests/ --verbose
+  - nosetests tests/ --verbose
