@@ -3,4 +3,3 @@ numpy==1.16.1
 scikit-image
 chaco
 enable
-future
