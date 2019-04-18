@@ -1,18 +1,21 @@
 # Config file for automatic testing at travis-ci.org
 language: python
 python:
-  - "2.7"
-  - "3.6"
+  - 2.7
+  - 3.6
 before_install:
   - sudo apt-get -qq update
   - sudo apt-get install -y build-essential 
-  - sudo apt-get install -y python-pip python-setuptools python-dev python-virtualenv swig git
+  - sudo apt-get install -y python-dev swig git
   - sudo apt-get -y install python-qt4-gl libx11-dev g++ libpcre3 libpcre3-dev
   - sudo apt-get -y install libgl1-mesa-glx libglu1-mesa-dev libgl1-mesa-dev mesa-common-dev freeglut3-dev libgtk2.0-dev
-  - sudo pip install --upgrade pip
-  - sudo pip install numpy==1.16.1
-install:
-  - sudo pip install -r requirements.txt --ignore-installed six
-  - sudo pip install -e . --ignore-installed six
 script:
-  - nosetests tests/ --verbose
+  - virtualenv --python=python venv
+  - source venv/bin/activate
+  - python -m pip install -U pip
+  - pip install -U wheel
+  - pip install numpy==1.16.1
+  - pip install optv==0.20.4
+  - pip install pytest
+  - python setup.py install
+  - python -m pytest tests/
