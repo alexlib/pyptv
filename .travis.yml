@@ -15,7 +15,7 @@ before_install:
   - sudo pip install chaco
   - sudo pip install optv==0.2.4
 install:
-  - cd pyptv && sudo pip install .
+  - sudo pip install .
 script:
   - cd tests
   - nosetests -v
