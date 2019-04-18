@@ -12,7 +12,7 @@ before_install:
   - sudo pip install --upgrade pip
   - sudo pip install numpy==1.16.1
 install:
-  - sudo pip install -r requirements.txt
-  - sudo pip install -e .
+  - sudo pip install -r requirements.txt --ignore-installed six
+  - sudo pip install -e . --ignore-installed six
 script:
   - nosetests tests/ --verbose
