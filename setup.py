@@ -13,12 +13,12 @@ setup(
     entry_points={
         'console_scripts': [
            	'pyptv=pyptv.cli:cli',
-		    'ptvgui=pyptv.pyptv_gui:main'
+		'ptvgui=pyptv.pyptv_gui:main'
         ]
     },
     install_requires=requirements,
     keywords='pyptv',
     classifiers=[
-        'Programming Language :: Python :: 2.7'
+        'Programming Language :: Python :: 3'
     ]
 )
