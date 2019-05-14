@@ -160,8 +160,8 @@ def py_determination_proc_c(n_cams, sorted_pos, sorted_corresp, corrected):
         print_corresp = sorted_corresp
 
     # Save rt_is in a temporary file
-    frame = 123456789 # just a temporary workaround. todo: think how to write
-    with open(default_naming['corres']+'.'+str(frame), 'w') as rt_is:
+    fname = b"".join([default_naming['corres'],b'.123456789']) # hard-coded frame number
+    with open(fname, 'w') as rt_is:
         rt_is.write(str(pos.shape[0]) + '\n')
         for pix, pt in enumerate(pos):
             pt_args = (pix + 1,) + tuple(pt) + tuple(print_corresp[:,pix])
