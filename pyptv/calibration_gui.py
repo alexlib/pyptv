@@ -447,7 +447,7 @@ class CalibrationGUI(HasTraits):
                 print(self.MultiParams.plane_name[i])
 
             self.pass_raw_orient = True
-            self.status_text = b"Multiplane calibration."
+            self.status_text = "Multiplane calibration."
 
         
         # read calibration images
