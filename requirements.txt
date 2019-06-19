@@ -1,6 +1,6 @@
-numpy==1.16.1
+numpy
 scikit-image
 chaco
 enable
-optv==0.2.5
+optv
 
