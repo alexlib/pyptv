@@ -252,7 +252,7 @@ class PlotWindow(HasTraits):
                     coord_x1, coord_y1)
 
     def plot_num_overlay(self, x, y, txt):
-        for i in range(0, len(x)):
+        for i in range(len(x)):
             coord_x, coord_y = self._plot.map_screen([(x[i], y[i])])[0]
             ovlay = TextBoxOverlay(component=self._plot,
                                    text=str(txt[i]), alternate_position=(coord_x, coord_y),
@@ -616,7 +616,7 @@ class CalibrationGUI(HasTraits):
             x, y, pnr = [], [], []
             for t in targs:
                 if t.pnr() != -999:
-                    pnr.append(t.pnr())
+                    pnr.append(self.cal_points['id'][t.pnr()])
                     x.append(t.pos()[0])
                     y.append(t.pos()[1])
 
