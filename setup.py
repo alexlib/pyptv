@@ -17,7 +17,7 @@ requirements = [
     'Pillow==6.0.0',
     'pyface==6.1.1',
     'Pygments==2.4.2',
-    'PyQt4==4.11.4',
+    'PyQt5==5.12.2',
     'PyWavelets==1.0.3',
     'pyxdg==0.26',
     'PyYAML==5.1.1',
