@@ -9,7 +9,7 @@ from traitsui.api \
     import Item, Group, View, Handler, ListEditor
 
 import os
-import parameters as par
+from . import parameters as par
 
 
 def get_path(filename):
