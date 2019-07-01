@@ -39,14 +39,14 @@ from pyface.api import GUI
 import optv
 
 # import some helper functions
-import ptv as ptv
+from . import ptv
 
 # pyPTV specific imports
-import parameters as par
-from parameter_gui import Experiment, Paramset, Calib_Params
-from calibration_gui import CalibrationGUI
-from directory_editor import DirectoryEditorDialog
-from quiverplot import QuiverPlot
+from . import parameters as par
+from .parameter_gui import Experiment, Paramset, Calib_Params
+from .calibration_gui import CalibrationGUI
+from .directory_editor import DirectoryEditorDialog
+from .quiverplot import QuiverPlot
 from chaco.api import Plot, ArrayPlotData, gray, ImagePlot, ArrayDataSource, \
     LinearMapper
 
