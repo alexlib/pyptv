@@ -1,6 +1,6 @@
 #!/bin/bash
 
-if [-d "~/ptv-build"]; then
+if [ -d "~/ptv-build" ]; then
     echo This script recreates the ptv-build directory from scratch.
     echo Please erase ~/ptv-build and start again
     exit 1
