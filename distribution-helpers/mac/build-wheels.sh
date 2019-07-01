@@ -12,7 +12,10 @@ mkdir ~/ptv-build/wheels
 cd ~/ptv-build
 python3 -m venv env
 source env/bin/activate
+pip install --upgrade pip
+pip install wheel
 pip install numpy
+pip install cython
 
 # enable
 #yum -y install mesa-libGLU-devel
@@ -27,10 +30,13 @@ cd enable
 # Get the correct kiva/_cython_speedups.cpp
 git checkout 969c973 -- kiva/_cython_speedups.cpp
 
-python setup.py bdist_wheel
+# On Mac OS Mojave, setup.py files for kiva pass the wrong arguments 
+# to the linker. This was fixed by another commit, out of which we take only
+# the relevant files
+git checkout 77b2397 -- kiva/agg/setup.py
+git checkout 77b2397 -- kiva/quartz/setup.py
 
-/opt/python/cp36-cp36m/bin/pip install numpy
-/opt/python/cp36-cp36m/bin/python setup.py bdist_wheel
+python setup.py bdist_wheel
 
 cp dist/* ~/ptv-build/wheels
 
