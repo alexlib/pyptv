@@ -17,6 +17,8 @@ pip install wheel
 pip install numpy
 pip install cython
 
+# Set the path for Swig (don't forget to run get-swig before)
+export PATH=~/swig/swig-3.0.12:$PATH
 # enable
 #yum -y install mesa-libGLU-devel
  

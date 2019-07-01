@@ -17,8 +17,5 @@ cd swig-3.0.12
 ./configure --prefix=/usr
 make
 
-echo Installing SWIG
-make install
-
-echo SWIG is availabe at `which swig`
+echo SWIG is availabךe at `which swig`
 
