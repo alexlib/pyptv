@@ -14,9 +14,9 @@ import time
 import yaml
 
 import numpy as np
-from traits.etsconfig.api import ETSConfig
+# from traits.etsconfig.api import ETSConfig
 
-ETSConfig.toolkit = 'qt4'
+# ETSConfig.toolkit = 'qt4'
 
 import traits.api
 import traitsui.api
