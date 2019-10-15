@@ -14,7 +14,7 @@ from optv.tracking_framebuf import CORRES_NONE, read_targets, TargetArray
 from optv.tracker import Tracker, default_naming
 from optv.epipolar import epipolar_curve
 from skimage.io import imread
-from . import parameters as par
+import parameters as par
 
 
 def simple_highpass(img, cpar):

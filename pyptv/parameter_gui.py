@@ -8,7 +8,7 @@ from traitsui.api \
     
 from traits.etsconfig.api import ETSConfig
 
-from . import parameters as par
+import parameters as par
 import numpy as np
 
 
