@@ -16,9 +16,9 @@ from chaco.api import Plot, ArrayPlotData, gray, \
 # from traitsui.menu import MenuBar, ToolBar, Menu, Action
 from chaco.tools.image_inspector_tool import ImageInspectorTool
 from chaco.tools.simple_zoom import SimpleZoom
-from .text_box_overlay import TextBoxOverlay
-from .code_editor import codeEditor
-from .quiverplot import QuiverPlot
+from text_box_overlay import TextBoxOverlay
+from code_editor import codeEditor
+from quiverplot import QuiverPlot
 
 import numpy as np
 from skimage.io import imread
@@ -37,9 +37,9 @@ from optv.calibration import Calibration
 from optv.tracking_framebuf import TargetArray
 
 
-from . import ptv
-from . import parameter_gui as pargui
-from . import parameters as par
+import ptv
+import parameter_gui as pargui
+import parameters as par
 
 
 # -------------------------------------------
