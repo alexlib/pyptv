@@ -449,5 +449,5 @@ def py_multiplanecalibration(exp):
 		residuals, targ_ix, err_est = full_calibration(exp.cals[0], all_known, targs, exp.cpar, flags)
 
 		#Save the results
-		exp._write_ori(i_cam)
+		exp._write_ori(i_cam,addpar_flag=True) # addpar_flag to save addpar file
 		print('End multiplane')

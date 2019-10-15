@@ -797,7 +797,7 @@ class CalibrationGUI(HasTraits):
             except:
                 raise ValueError("full calibration failed\n")
             # save the results
-            self._write_ori(i_cam)
+            self._write_ori(i_cam,addpar_flag=True)
 
 
             # Plot the output
@@ -823,12 +823,19 @@ class CalibrationGUI(HasTraits):
 
         self.status_text = "Orientation finished."
 
-    def _write_ori(self, i_cam):
+    def _write_ori(self, i_cam, addpar_flag = False):
         """ Writes ORI and ADDPAR files for a single calibration result
+            of i_cam
+            addpar_flag is a boolean that allows to keep previous addpar
+            otherwise external_calibration overwrites zeros
         """
 
         ori = self.calParams.img_ori[i_cam]
-        addpar = ori.replace('ori', 'addpar')
+        if addpar_flag:
+            addpar = ori.replace('ori', 'addpar')
+        else:
+            addpar = 'tmp.addpar'
+
         print("Saving:", ori, addpar)
         self.cals[i_cam].write(ori.encode(), addpar.encode())
         if self.epar.Examine_Flag and not self.epar.Combine_Flag:
