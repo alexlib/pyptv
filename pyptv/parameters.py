@@ -592,10 +592,9 @@ class ManOriParams(Parameters):
     def read(self):
         try:
             with open(self.filepath(), 'r') as f:
-                self.nr = [[]]*self.n_img
                 for i in range(self.n_img):
-                    for j in range(4): # always 4 points
-                        self.nr[i].append(int(g(f)))
+                    for _ in range(4): # always 4 points
+                        self.nr.append(int(g(f)))
         except:
             error(None, "Error reading from %s" % self.filepath())
 

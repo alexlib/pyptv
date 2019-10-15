@@ -913,7 +913,10 @@ class Calib_Params(HasTraits):
 
         for i in range(self.n_img):
             for j in range(4): # 4 points per image
-                exec('self.img_{0}_p{1} = manOriParams.nr[{2}][{3}]'.format(i+1,j+1,i,j))
+                exec(f"self.img_{i+1}_p{j+1} = manOriParams.nr[{i*4+j}]")
+
+
+
 
 
         # examine arameters
