@@ -14,7 +14,7 @@ requirements = [
     'libtiff==0.4.2',
     'networkx==2.3',
     'optv==0.2.6',
-    'Pillow==6.0.0',
+    'Pillow==6.2.0',
     'pyface==6.1.1',
     'Pygments==2.4.2',
     'PyQt5==5.12.2',
