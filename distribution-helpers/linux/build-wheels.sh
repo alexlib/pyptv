@@ -14,13 +14,16 @@ git clone https://github.com/enthought/enable.git --branch 4.8.1
 cd enable
 
 # Get the correct kiva/_cython_speedups.cpp
-#git checkout 969c973 -- kiva/_cython_speedups.cpp
+git checkout 969c973 -- kiva/_cython_speedups.cpp
 
 /opt/python/cp37-cp37m/bin/pip install numpy
 /opt/python/cp37-cp37m/bin/python setup.py bdist_wheel
 
 /opt/python/cp36-cp36m/bin/pip install numpy
 /opt/python/cp36-cp36m/bin/python setup.py bdist_wheel
+
+/opt/python/cp38-cp38/bin/pip install numpy
+/opt/python/cp38-cp38/bin/python setup.py bdist_wheel
 
 cp dist/* /wheels
 
@@ -35,6 +38,7 @@ cd chaco
 
 /opt/python/cp36-cp36m/bin/python setup.py bdist_wheel
 /opt/python/cp37-cp37m/bin/python setup.py bdist_wheel
+/opt/python/cp38-cp38/bin/python setup.py bdist_wheel
 cp dist/* /wheels
 
 # Traits
@@ -43,6 +47,7 @@ git clone https://github.com/enthought/traits.git --branch 5.1.2 --single-branch
 cd traits
 /opt/python/cp36-cp36m/bin/python setup.py bdist_wheel
 /opt/python/cp37-cp37m/bin/python setup.py bdist_wheel
+/opt/python/cp38-cp38/bin/python setup.py bdist_wheel
 cp dist/* /wheels
 
 # Traits UI
@@ -53,5 +58,6 @@ cd traitsui
 # traitsui has just one wheel that is independent of the Python version, but we compile it build - just to make sure
 /opt/python/cp36-cp36m/bin/python setup.py bdist_wheel
 /opt/python/cp37-cp37m/bin/python setup.py bdist_wheel
+/opt/python/cp38-cp38/bin/python setup.py bdist_wheel
 cp dist/* /wheels
 
