@@ -14,9 +14,13 @@ Both PyPTV and the OpenPTV library are in the development phase and continuously
 	openptv@googlegroups.com
 
 
-## Documentation, including installation instructions of liboptv
+## Documentation:
 
 <http://openptv-python.readthedocs.io>
+
+## Installation instructions
+
+https://openptv-python.readthedocs.io/en/latest/installation_instruction.html
 
 
 Follow the instructions in our **screencasts and tutorials**:
