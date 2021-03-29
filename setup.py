@@ -7,7 +7,7 @@ requirements = [
 'optv==0.2.6',
 'PyQt5==5.12.2',
 'scikit-image==0.16.2',
-'Pygments==2.4.2',
+'Pygments==2.7.4',
 ]
 
 setup(
