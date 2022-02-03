@@ -25,6 +25,11 @@ https://openptv-python.readthedocs.io/en/latest/installation_instruction.html
 	python -m pip install --upgrade pip
 	pip install numpy
 	pip install pyptv --index-url https://pypi.fury.io/pyptv --extra-index-url https://pypi.org/simple
+	
+
+You might need to patch the `enable`:  
+
+	cp .\pyptv\pathdata.py C:\users\alex\miniconda3\envs\pyptv3\lib\site-packages\enable\savage\svg\
 
 
 Follow the instructions in our **screencasts and tutorials**:
