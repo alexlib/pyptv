@@ -955,7 +955,7 @@ class MainGUI(traits.api.HasTraits):
                                orientation='horizontal',
                                show_left=False),
             orientation='vertical'),
-        title='pyPTV',
+        title='pyPTV 0.1.5',
         id='main_view',
         resizable=True,
         handler=TreeMenuHandler(),  # <== Handler class is attached

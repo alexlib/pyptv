@@ -10,11 +10,12 @@ requirements = [
 'PyQt5',
 'scikit-image',
 'Pygments',
+'six'
 ]
 
 setup(
     name='pyptv',
-    version='0.1.4',
+    version='0.1.5',
     description='Python GUI for the OpenPTV library `liboptv`',
     author="Alex Liberzon",
     author_email='alex.liberzon@gmail.com',
