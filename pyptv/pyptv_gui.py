@@ -16,7 +16,7 @@ import yaml
 import numpy as np
 from traits.etsconfig.api import ETSConfig
 
-ETSConfig.toolkit = 'qt4'
+ETSConfig.toolkit = 'qt'
 
 import traits.api
 import traitsui.api
@@ -361,12 +361,13 @@ class TreeMenuHandler(traitsui.api.Handler):
             paramset.m_params = par.PtvParams()
         else:
             paramset.m_params._reload()
+        
         paramset.m_params.edit_traits(kind='modal')
 
     def configure_cal_par(self, editor, object):
         experiment = editor.get_parent(object)
         paramset = object
-        print(len(experiment.paramsets))
+        print(f"{len(experiment.paramsets)} parameter sets")
         if paramset.c_params is None:
             # TODO: is it possible that control reaches here? If not, probably the if should be removed.
             paramset.c_params = par.CalOriParams() # this is a very questionable line
@@ -377,7 +378,7 @@ class TreeMenuHandler(traitsui.api.Handler):
     def configure_track_par(self, editor, object):
         experiment = editor.get_parent(object)
         paramset = object
-        print(len(experiment.paramsets))
+        print(f"{len(experiment.paramsets)} parameter sets")
         if paramset.t_params is None:
             # TODO: is it possible that control reaches here? If not, probably the if should be removed.
             paramset.t_params = par.TrackingParams()
@@ -944,7 +945,7 @@ class MainGUI(traits.api.HasTraits):
     # Defines GUI view --------------------------
     view = traitsui.api.View(
         traitsui.api.Group(
-            traitsui.api.Group(traitsui.api.Item(name='exp1', editor=tree_editor_exp, show_label=False, width=-400, resizable=False),
+            traitsui.api.Group(traitsui.api.Item(name='exp1', editor=tree_editor_exp, show_label=False, width=-200, resizable=False),
                                traitsui.api.Item('camera_list', style='custom', editor=
                   traitsui.api.ListEditor(use_notebook=True, deletable=False,
                                           dock_style='tab',
@@ -956,8 +957,6 @@ class MainGUI(traits.api.HasTraits):
             orientation='vertical'),
         title='pyPTV',
         id='main_view',
-        width=1.,
-        height=1.,
         resizable=True,
         handler=TreeMenuHandler(),  # <== Handler class is attached
         menubar=menu_bar)
@@ -1158,7 +1157,7 @@ def main():
     else:
         print(
             'Please provide an experimental directory as an input, fallback to a default\n')
-        exp_path = '/Users/alex/Documents/OpenPTV/test_cavity'
+        exp_path = '/Users/alex/repos/test_ed_cal'
 
     if not os.path.isdir(exp_path):
         raise OSError("Wrong experimental directory %s " % exp_path)

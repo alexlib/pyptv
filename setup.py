@@ -1,13 +1,15 @@
+# use
+# pip install -e . --find-links ../ --extra-index-url https://pypi.org/simple
 from setuptools import setup
 
 requirements = [
-'chaco==4.8.0',
-'enable==4.8.1',
-'numpy==1.17.3',
-'optv==0.2.6',
-'PyQt5==5.12.2',
-'scikit-image==0.16.2',
-'Pygments==2.7.4',
+'chaco',
+'enable',
+'numpy',
+'optv',
+'PyQt5',
+'scikit-image',
+'Pygments',
 ]
 
 setup(

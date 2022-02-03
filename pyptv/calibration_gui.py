@@ -15,7 +15,7 @@ from chaco.api import Plot, ArrayPlotData, gray, \
     ImagePlot, ArrayDataSource, LinearMapper
 # from traitsui.menu import MenuBar, ToolBar, Menu, Action
 from chaco.tools.image_inspector_tool import ImageInspectorTool
-from chaco.tools.simple_zoom import SimpleZoom
+from chaco.tools.better_zoom import BetterZoom
 from pyptv.text_box_overlay import TextBoxOverlay
 from pyptv.code_editor import codeEditor
 from pyptv.quiverplot import QuiverPlot
@@ -159,7 +159,7 @@ class PlotWindow(HasTraits):
         self._click_tool.on_trait_change(
             self.right_clicked_event, 'right_changed')
         self._img_plot.tools.append(self._click_tool)
-        self._zoom_tool = SimpleZoom(
+        self._zoom_tool = BetterZoom(
             component=self._plot, tool_mode="box", always_on=False)
         self._zoom_tool.max_zoom_out_factor = 1.0
         self._img_plot.tools.append(self._zoom_tool)
@@ -396,8 +396,6 @@ class CalibrationGUI(HasTraits):
         ),
         title='Calibration',
         id='view1',
-        width=1.,
-        height=1.,
         resizable=True,
         statusbar='status_text'
     )
