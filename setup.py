@@ -1,5 +1,5 @@
 # use
-# pip install -e . --find-links ../ --extra-index-url https://pypi.org/simple
+# pip install -e . -r requirements.txt --find-links ../ --extra-index-url https://pypi.org/simple
 from setuptools import setup
 
 requirements = [
@@ -15,7 +15,7 @@ requirements = [
 
 setup(
     name='pyptv',
-    version='0.1.5',
+    version='0.1.6',
     description='Python GUI for the OpenPTV library `liboptv`',
     author="Alex Liberzon",
     author_email='alex.liberzon@gmail.com',
