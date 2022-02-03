@@ -444,8 +444,6 @@ class Main_Params (HasTraits):
             Group5,
             Group6),
         resizable=True,
-        width=0.5,
-        height=0.3,
         dock='horizontal',
         buttons=['Undo', 'OK', 'Cancel'],
         handler=ParamHandler(),
