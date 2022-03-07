@@ -172,7 +172,7 @@ class CameraWindow(traits.api.HasTraits):
         example usage:
             update_image(image,is_float=False)
         """
-        print('image shape = ', image.shape, 'is_float =', is_float)
+        # print('image shape = ', image.shape, 'is_float =', is_float)
         if image.ndim > 2:
             image = img_as_ubyte(rgb2gray(image))
             is_float = False
@@ -272,9 +272,16 @@ class CameraWindow(traits.api.HasTraits):
             drawline("x_coord","y_coord",100,100,200,200,red)
             draws a red line 100,100->200,200
         """
+        # imx, imy = self._plot_data.get_data('imagedata').shape
         self._plot_data.set_data(str_x, [x1, x2])
         self._plot_data.set_data(str_y, [y1, y2])
         self._plot.plot((str_x, str_y), type="line", color=color1)
+        # self._plot.index_range.low_setting = 0 
+        # self._plot.index_range.high_setting = imx
+        # self._plot.value_range.low_setting = 0 
+        # self._plot.value_range.high_setting = imy
+
+
         # self._plot.request_redraw()
 
     def add_line(self, str_x, str_y, x1, y1, x2, y2, color1):
@@ -1056,10 +1063,11 @@ class MainGUI(traits.api.HasTraits):
             plot_list = list(self.camera_list[i]._plot.plots.keys())
             # if not remove_background:
             #   index=None
-            try:
+            if index in plot_list:
+            # try:
                 plot_list.remove(index)
-            except:
-                pass
+            #except:
+                #pass
             self.camera_list[i]._plot.delplot(*plot_list[0:])
             self.camera_list[i]._plot.tools = []
             self.camera_list[i]._plot.request_redraw()
@@ -1158,7 +1166,7 @@ def main():
     else:
         print(
             'Please provide an experimental directory as an input, fallback to a default\n')
-        exp_path = '/Users/alex/Documents/OpenPTV/test_cavity'
+        exp_path = r'C:\Users\alex\repos\ed_24_2_2022'
 
     if not os.path.isdir(exp_path):
         raise OSError("Wrong experimental directory %s " % exp_path)
