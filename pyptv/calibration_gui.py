@@ -15,7 +15,8 @@ from chaco.api import Plot, ArrayPlotData, gray, \
     ImagePlot, ArrayDataSource, LinearMapper
 # from traitsui.menu import MenuBar, ToolBar, Menu, Action
 from chaco.tools.image_inspector_tool import ImageInspectorTool
-from chaco.tools.simple_zoom import SimpleZoom
+from chaco.tools.better_zoom import BetterZoom as SimpleZoom
+# from chaco.tools.simple_zoom import SimpleZoom
 from pyptv.text_box_overlay import TextBoxOverlay
 from pyptv.code_editor import codeEditor
 from pyptv.quiverplot import QuiverPlot

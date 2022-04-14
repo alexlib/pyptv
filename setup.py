@@ -1,18 +1,20 @@
 from setuptools import setup
 
 requirements = [
-'chaco==4.8.0',
-'enable==4.8.1',
-'numpy==1.17.3',
-'optv==0.2.6',
-'PyQt5==5.12.2',
-'scikit-image==0.16.2',
-'Pygments==2.7.4',
+'chaco',
+'enable',
+'numpy',
+'optv',
+'PyQt5',
+'scikit-image',
+'Pygments',
+'six',
+'imagecodecs'
 ]
 
 setup(
     name='pyptv',
-    version='0.1.4',
+    version='0.1.7',
     description='Python GUI for the OpenPTV library `liboptv`',
     author="Alex Liberzon",
     author_email='alex.liberzon@gmail.com',
