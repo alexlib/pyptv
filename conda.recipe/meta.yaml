@@ -13,6 +13,9 @@ source:
 #   script: python setup.py install --single-version-externally-managed --record=record.txt
 
 requirements:
+  build: 
+    - {{ compiler('c') }}
+    - swig
   host:
     - python {{ python }}
     - setuptools
