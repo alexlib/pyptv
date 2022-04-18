@@ -13,10 +13,13 @@ source:
 #   script: python setup.py install --single-version-externally-managed --record=record.txt
 
 requirements:
-  build: 
+  host: 
     - {{ compiler('c') }}
     - swig
-  host:
+    - pip
+    - pyyaml
+    - setuptools
+  build:
     - python {{ python }}
     - setuptools
     - numpy
