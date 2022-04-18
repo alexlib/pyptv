@@ -5,20 +5,32 @@ package:
 source:
   path: ..
 
-build:
-  # If the installation is complex, or different between Unix and Windows, use
-  # separate bld.bat and build.sh files instead of this key.  Add the line
-  # skip: True  # [py>27]
-  # "skip: True  # [not win]" to limit to Windows.
-  script: python setup.py install --single-version-externally-managed --record=record.txt
+# build:
+#   # If the installation is complex, or different between Unix and Windows, use
+#   # separate bld.bat and build.sh files instead of this key.  Add the line
+#   # skip: True  # [py>27]
+#   # "skip: True  # [not win]" to limit to Windows.
+#   script: python setup.py install --single-version-externally-managed --record=record.txt
 
 requirements:
-  build:
-    - python
+  host:
+    - python {{ python }}
     - setuptools
+    - numpy
+    - cython
   run:
-    - python
+    - python {{ python }}
+    - numpy
+    - cython
+    - numba
+    - scipy
+    - pyyaml
+    - nose
 
 about:
   home: https://github.com/alexlib/pyptv
   summary: Python GUI for the OpenPTV library `liboptv`
+  license: MIT
+  license_family: MIT
+  license_file: LICENSE
+  doc_url: http://openptv-python.readthedocs.io
