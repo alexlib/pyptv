@@ -5,16 +5,18 @@ package:
 source:
   path: ..
 
-# build:
-#   # If the installation is complex, or different between Unix and Windows, use
-#   # separate bld.bat and build.sh files instead of this key.  Add the line
-#   # skip: True  # [py>27]
-#   # "skip: True  # [not win]" to limit to Windows.
-#   script: python setup.py install --single-version-externally-managed --record=record.txt
+build:
+  # If the installation is complex, or different between Unix and Windows, use
+  # separate bld.bat and build.sh files instead of this key.  Add the line
+  # skip: True  # [py>27]
+  # "skip: True  # [not win]" to limit to Windows.
+  script: '{{ PYTHON }} -m pip install . --no-deps --ignore-installed --no-cache-dir -vvv --index-url https://pypi.fury.io/pyptv --extra-index-url https://pypi.org/simple'
+  # skip: true  # [(win and vc<14) or py<35]
 
 requirements:
   host: 
     - {{ compiler('c') }}
+    - python {{ python }}
     - swig
     - pip
     - pyyaml
@@ -25,7 +27,7 @@ requirements:
     - numpy
     - cython
   run:
-    - python {{ python }}
+    - python
     - numpy
     - cython
     - numba
@@ -38,5 +40,5 @@ about:
   summary: Python GUI for the OpenPTV library `liboptv`
   license: MIT
   license_family: MIT
-  license_file: LICENSE
+  license_file: LICENSE.txt
   doc_url: http://openptv-python.readthedocs.io
