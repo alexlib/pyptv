@@ -6,7 +6,7 @@ import os
 import shutil
 from traits.api import HasTraits, Str, Float, Int, List, Bool
 
-# import yaml
+import yaml
 
 # Temporary path for parameters (active run will be copied here)
 par_dir_prefix = "parameters"
@@ -114,9 +114,9 @@ def readParamsDir(par_path):
 
 
 def copy_params_dir(src, dest):
-    files = [
-        f for f in os.listdir(src) if f.endswith((".dat", ".par", ".yaml"))
-    ]
+    ext_set = (".dat", ".par", ".yaml")
+    files = [f for f in os.listdir(src) if f.endswith(ext_set)]
+
     if not os.path.exists(dest):
         os.mkdir(dest)
     print("copy from %s to %s" % (src, dest))
@@ -127,7 +127,7 @@ def copy_params_dir(src, dest):
         )
 
 
-####### Specific parameter classes #######
+# Specific parameter classes #######
 
 
 class PtvParams(Parameters):
@@ -143,7 +143,8 @@ class PtvParams(Parameters):
     cam2.100        image of fourth camera
     kal5    calibration data of fourth camera
     1       flag for highpass filtering, use (1) or not use (0)
-    0               flag for using particles identified ONLY in all cameras (e.g. only quadruplets for 4 cameras)
+    0               flag for using particles identified ONLY in
+        all cameras (e.g. only quadruplets for 4 cameras)
     1       flag for TIFF header (1) or raw data (0)
     720     image width in pixel
     576     image height in pixel
