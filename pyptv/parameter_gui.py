@@ -12,7 +12,7 @@ from traitsui.api import (
     spring,
 )
 
-from traits.etsconfig.api import ETSConfig
+# from traits.etsconfig.api import ETSConfig
 
 from pyptv import parameters as par
 import numpy as np
@@ -21,6 +21,7 @@ import numpy as np
 DEFAULT_STRING = "---"
 DEFAULT_INT = -999
 DEFAULT_FLOAT = -999.0
+
 
 # define handler function for main parameters
 class ParamHandler(Handler):
@@ -360,16 +361,22 @@ class Main_Params(HasTraits):
     all_enable_flag = Bool(True)
     hp_enable_flag = Bool(True)
 
-    # add here also size of the images, e.g. 1280 x 1024 pix and the size of the pixels.
-    # future option: name of the camera from the list with these parameters saved once somewhere, e.g.
+    # add here also size of the images, e.g. 1280 x 1024 pix and
+    # the size of the pixels.
+    # future option: name of the camera from the list with these
+    # parameters saved once somewhere, e.g.
     # Mikrotron EoSense (1280 x 1024, 12 micron pixels)
 
     # Future - this should be kind of more flexible, e.g.
-    # select only some name structure: CamX.YYYYY is clear that the X should be 1-Num_Cam and YYYY should be
-    # the running counter of the images. or Cam.X_00YYY.TIFF is also kind of clear that we have 5 digits with
-    # same could be for calibration, we have no point to create different names for 4 cameras:
+    # select only some name structure: CamX.YYYYY is clear that the
+    # X should be 1-Num_Cam and YYYY should be
+    # the running counter of the images. or Cam.X_00YYY.TIFF is also kind
+    # of clear that we have 5 digits with
+    # same could be for calibration, we have no point to create different
+    # names for 4 cameras:
     # calX_run3 will be fine as a base name and X is 1 - Num_Cam
-    # not clear yet how to use the variable name later. probably we need to build it as a structure
+    # not clear yet how to use the variable name later. probably we need to
+    # build it as a structure
     # and use it as: for cam in range(Num_Cam):
     # Name_Pre_Image[cam] = ''.join(BaseName,eval(cam),'.',eval(counter))
     #
@@ -399,7 +406,8 @@ class Main_Params(HasTraits):
     Cali_3_Image = Str(DEFAULT_STRING, label="Calibration data for 3. image")
     Cali_4_Image = Str(DEFAULT_STRING, label="Calibration data for 4. image")
 
-    # TiffHeader=Bool(True,label='Tiff header') -> probably obsolete for the Python imread () function
+    # TiffHeader=Bool(True,label='Tiff header') -> probably obsolete for
+    # the Python imread () function
     # FrameType=Enum('Frame','Field-odd','Field-even') -> obsolete
     # future option:  List -> Select Media 1 (for each one):
     # {'Air','Glass','Water','Custom'}, etc.
