@@ -4,8 +4,8 @@ import numpy as np
 from skimage.io import imread
 
 
-class Sequence():
-    """ Sequence class defines external tracking addon for pyptv
+class Sequence:
+    """Sequence class defines external tracking addon for pyptv
     User needs to implement the following functions:
             do_sequence(self)
 
@@ -22,18 +22,19 @@ class Sequence():
         # Do your initialization here
 
     def do_sequence(self):
-        """ this function is callback for "tracking without display"
-        """
+        """this function is callback for "tracking without display" """
         print("inside denis_ext_sequence")
         n_camera = self.exp1.active_params.m_params.Num_Cam
-        print ("Starting sequence action")
+        print("Starting sequence action")
         seq_first = self.exp1.active_params.m_params.Seq_First
         seq_last = self.exp1.active_params.m_params.Seq_Last
         print(seq_first, seq_last)
         base_name = []
         for i in range(n_camera):
             exec(
-                "base_name.append(self.exp1.active_params.m_params.Basename_%d_Seq)" % (i + 1))
+                "base_name.append(self.exp1.active_params.m_params.Basename_%d_Seq)"
+                % (i + 1)
+            )
             print(base_name[i])
 
         self.ptv.py_sequence_init(0)  # init C sequence function
@@ -54,7 +55,7 @@ class Sequence():
                 seq_ch = "%03d" % i
             for j in range(n_camera):
                 img_name = base_name[j] + seq_ch
-                print ("Setting image: ", img_name)
+                print("Setting image: ", img_name)
                 try:
                     temp_img = imread(img_name).astype(np.ubyte)
                 except:
@@ -62,6 +63,12 @@ class Sequence():
 
                 self.ptv.py_set_img(temp_img, j)
             self.ptv.py_sequence_loop(0, i)
-            self.camera_list[0].drawquiver([int(300 * random.random())], [int(300 * random.random())], [
-                                           int(300 * random.random())], [int(300 * random.random())], "green", linewidth=3.0)
+            self.camera_list[0].drawquiver(
+                [int(300 * random.random())],
+                [int(300 * random.random())],
+                [int(300 * random.random())],
+                [int(300 * random.random())],
+                "green",
+                linewidth=3.0,
+            )
             self.camera_list[0]._plot.request_redraw()

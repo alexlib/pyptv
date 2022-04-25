@@ -1,7 +1,7 @@
-
 # Chaco relative imports
 from chaco.api import AbstractDataSource
 from chaco.api import ScatterPlot
+
 # Enthought library imports
 from enable.api import ColorTrait
 from numpy import array, compress, matrix, newaxis, sqrt, transpose, invert, isnan
@@ -11,8 +11,8 @@ from traits.api import Array, Enum, Float, Instance, Int
 class QuiverPlot(ScatterPlot):
 
     # Determines how to interpret the data in the **vectors** data source.
-    #	"vector": each tuple is a (dx, dy)
-    #	"radial": each tuple is an (r, theta)
+    # 	"vector": each tuple is a (dx, dy)
+    # 	"radial": each tuple is an (r, theta)
     data_type = Enum("vector", "radial")  # TODO: implement "radial"
 
     # A datasource that returns an Nx2 array array indicating directions
@@ -22,9 +22,9 @@ class QuiverPlot(ScatterPlot):
     # Usually this will be a MultiArrayDataSource.
     vectors = Instance(AbstractDataSource)
 
-    #------------------------------------------------------------------------
+    # ------------------------------------------------------------------------
     # Visual attributes of the vector
-    #------------------------------------------------------------------------
+    # ------------------------------------------------------------------------
 
     # The color of the lines
     line_color = ColorTrait("black")
@@ -35,9 +35,9 @@ class QuiverPlot(ScatterPlot):
     # The length, in pixels, of the arrowhead
     arrow_size = Int(5)
 
-    #------------------------------------------------------------------------
+    # ------------------------------------------------------------------------
     # Private traits
-    #------------------------------------------------------------------------
+    # ------------------------------------------------------------------------
 
     _cached_vector_data = Array
     _selected_vector_data = Array
@@ -68,9 +68,14 @@ class QuiverPlot(ScatterPlot):
         ep_index_mask = self.index_mapper.range.mask_data(ep_index)
         ep_value_mask = self.value_mapper.range.mask_data(ep_value)
 
-        nan_mask = invert(isnan(index)) & index_mask & \
-            invert(isnan(value)) & value_mask
-        point_mask = nan_mask & index_range_mask & value_range_mask & ep_index_mask & ep_value_mask
+        nan_mask = invert(isnan(index)) & index_mask & invert(isnan(value)) & value_mask
+        point_mask = (
+            nan_mask
+            & index_range_mask
+            & value_range_mask
+            & ep_index_mask
+            & ep_value_mask
+        )
         if not self._cache_valid:
             points = transpose(array((index, value)))
             endpoints = transpose(array((ep_index, ep_value)))
@@ -95,24 +100,26 @@ class QuiverPlot(ScatterPlot):
         if len(starts) > 0:
             gc.begin_path()
             gc.line_set(starts, ends)
-           # gc.line_set(starts, self.end_points)
+            # gc.line_set(starts, self.end_points)
             gc.stroke_path()
 
         if self.arrow_size > 0:
             vec = self._cached_vector_data
             unit_vec = vec / sqrt(vec[:, 0] ** 2 + vec[:, 1] ** 2)[:, newaxis]
-            a = 0.707106781	  # sqrt(2)/2
+            a = 0.707106781  # sqrt(2)/2
 
             # Draw the left arrowhead (for an arrow pointing straight up)
-            arrow_ends = ends - \
-                array(unit_vec * matrix([[a, a], [-a, a]])) * self.arrow_size
+            arrow_ends = (
+                ends - array(unit_vec * matrix([[a, a], [-a, a]])) * self.arrow_size
+            )
             gc.begin_path()
             gc.line_set(ends, arrow_ends)
             gc.stroke_path()
 
             # Draw the left arrowhead (for an arrow pointing straight up)
-            arrow_ends = ends - \
-                array(unit_vec * matrix([[a, -a], [a, a]])) * self.arrow_size
+            arrow_ends = (
+                ends - array(unit_vec * matrix([[a, -a], [a, a]])) * self.arrow_size
+            )
             gc.begin_path()
             gc.line_set(ends, arrow_ends)
             gc.stroke_path()
