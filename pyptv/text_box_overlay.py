@@ -117,7 +117,11 @@ class TextBoxOverlay(AbstractOverlay):
             gc.move_to(x + end_radius, y)
             gc.arc_to(x + width, y, x + width, y + end_radius, end_radius)
             gc.arc_to(
-                x + width, y + height, x + width - end_radius, y + height, end_radius
+                x + width,
+                y + height,
+                x + width - end_radius,
+                y + height,
+                end_radius,
             )
             gc.arc_to(x, y + height, x, y, end_radius)
             gc.arc_to(x, y, x + width + end_radius, y, end_radius)

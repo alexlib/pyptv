@@ -1,7 +1,16 @@
 import os
 
 from traits.api import HasTraits, Str, Float, Int, List, Bool, Enum, Instance
-from traitsui.api import View, Item, HGroup, VGroup, Handler, Group, Tabbed, spring
+from traitsui.api import (
+    View,
+    Item,
+    HGroup,
+    VGroup,
+    Handler,
+    Group,
+    Tabbed,
+    spring,
+)
 
 from traits.etsconfig.api import ETSConfig
 
@@ -96,7 +105,9 @@ class ParamHandler(Handler):
                 path=par_path,
             ).write()
             # write pft_version_par
-            par.PftVersionParams(mainParams.Existing_Target, path=par_path).write()
+            par.PftVersionParams(
+                mainParams.Existing_Target, path=par_path
+            ).write()
             # write sequence_par
             par.SequenceParams(
                 mainParams.Num_Cam,
@@ -222,7 +233,9 @@ class CalHandler(Handler):
 
             par.ManOriParams(calibParams.n_img, nr, path=par_path).write()
             par.ExamineParams(
-                calibParams.Examine_Flag, calibParams.Combine_Flag, path=par_path
+                calibParams.Examine_Flag,
+                calibParams.Combine_Flag,
+                path=par_path,
             ).write()
             par.OrientParams(
                 calibParams.point_number_of_orientation,
@@ -311,16 +324,20 @@ class Tracking_Params(HasTraits):
 
     Tracking_Params_View = View(
         HGroup(
-            Item(name="dvxmin", label="dvxmin:"), Item(name="dvxmax", label="dvxmax:")
+            Item(name="dvxmin", label="dvxmin:"),
+            Item(name="dvxmax", label="dvxmax:"),
         ),
         HGroup(
-            Item(name="dvymin", label="dvymin:"), Item(name="dvymax", label="dvymax:")
+            Item(name="dvymin", label="dvymin:"),
+            Item(name="dvymax", label="dvymax:"),
         ),
         HGroup(
-            Item(name="dvzmin", label="dvzmin:"), Item(name="dvzmax", label="dvzmax:")
+            Item(name="dvzmin", label="dvzmin:"),
+            Item(name="dvzmax", label="dvzmax:"),
         ),
         VGroup(
-            Item(name="angle", label="angle [gon]:"), Item(name="dacc", label="dacc:")
+            Item(name="angle", label="angle [gon]:"),
+            Item(name="dacc", label="dacc:"),
         ),
         Item(name="flagNewParticles", label="Add new particles?"),
         buttons=["Undo", "OK", "Cancel"],
@@ -432,7 +449,9 @@ class Main_Params(HasTraits):
     Min_Corr_ny = Float(DEFAULT_FLOAT, label="min corr for ratio ny")
     Min_Corr_npix = Float(DEFAULT_FLOAT, label="min corr for ratio npix")
     Sum_gv = Float(DEFAULT_FLOAT, label="sum of gv")
-    Min_Weight_corr = Float(DEFAULT_FLOAT, label="min for weighted correlation")
+    Min_Weight_corr = Float(
+        DEFAULT_FLOAT, label="min for weighted correlation"
+    )
     Tol_Band = Float(DEFAULT_FLOAT, lable="Tolerance of epipolar band [mm]")
 
     # Group 1 is the group of General parameters
@@ -523,7 +542,11 @@ class Main_Params(HasTraits):
     )
 
     Group4 = Group(
-        Group(Item(name="Seq_First"), Item(name="Seq_Last"), orientation="horizontal"),
+        Group(
+            Item(name="Seq_First"),
+            Item(name="Seq_Last"),
+            orientation="horizontal",
+        ),
         Group(
             Item(name="Basename_1_Seq"),
             Item(name="Basename_2_Seq"),
@@ -635,7 +658,11 @@ class Main_Params(HasTraits):
         targRecParams.read()
 
         for i in range(ptvParams.n_img):
-            exec("self.Gray_Tresh_{0} = targRecParams.gvthres[{1}]".format(i + 1, i))
+            exec(
+                "self.Gray_Tresh_{0} = targRecParams.gvthres[{1}]".format(
+                    i + 1, i
+                )
+            )
 
         self.Min_Npix = targRecParams.nnmin
         self.Max_Npix = targRecParams.nnmax
@@ -653,12 +680,16 @@ class Main_Params(HasTraits):
         self.Existing_Target = np.bool(pftVersionParams.Existing_Target)
 
         # load sequence_par
-        sequenceParams = par.SequenceParams(ptvParams.n_img, path=self.par_path)
+        sequenceParams = par.SequenceParams(
+            ptvParams.n_img, path=self.par_path
+        )
         sequenceParams.read()
 
         for i in range(ptvParams.n_img):
             exec(
-                "self.Basename_{0}_Seq = sequenceParams.base_name[{1}]".format(i + 1, i)
+                "self.Basename_{0}_Seq = sequenceParams.base_name[{1}]".format(
+                    i + 1, i
+                )
             )
 
         self.Seq_First = sequenceParams.first
@@ -750,7 +781,11 @@ class Calib_Params(HasTraits):
     # names of the test images, calibration files
 
     Group1 = Group(
-        Group1_1, Group1_2, Group1_3, orientation="vertical", label="Images Data"
+        Group1_1,
+        Group1_2,
+        Group1_3,
+        orientation="vertical",
+        label="Images Data",
     )
 
     # calibration data detection
@@ -894,7 +929,9 @@ class Calib_Params(HasTraits):
     Examine_Flag = Bool(False, label="Calibrate with different Z")
     Combine_Flag = Bool(False, label="Combine preprocessed planes")
 
-    point_number_of_orientation = Int(DEFAULT_INT, label="Point number of orientation")
+    point_number_of_orientation = Int(
+        DEFAULT_INT, label="Point number of orientation"
+    )
     cc = Bool(False, label="cc")
     xh = Bool(False, label="xh")
     yh = Bool(False, label="yh")
@@ -968,7 +1005,9 @@ class Calib_Params(HasTraits):
     dumbbell_gradient_descent = Float(
         DEFAULT_FLOAT, label="dumbbell gradient descent factor"
     )
-    dumbbell_penalty_weight = Float(DEFAULT_FLOAT, label="weight for dumbbell penalty")
+    dumbbell_penalty_weight = Float(
+        DEFAULT_FLOAT, label="weight for dumbbell penalty"
+    )
     dumbbell_step = Int(DEFAULT_INT, label="step size through sequence")
     dumbbell_niter = Int(DEFAULT_INT, label="number of iterations per click")
 
@@ -1060,8 +1099,14 @@ class Calib_Params(HasTraits):
         )
 
         for i in range(self.n_img):
-            exec("self.cam_{0} = calOriParams.img_cal_name[{1}]".format(i + 1, i))
-            exec("self.ori_cam_{0} = calOriParams.img_ori[{1}]".format(i + 1, i))
+            exec(
+                "self.cam_{0} = calOriParams.img_cal_name[{1}]".format(
+                    i + 1, i
+                )
+            )
+            exec(
+                "self.ori_cam_{0} = calOriParams.img_ori[{1}]".format(i + 1, i)
+            )
 
         self.tiff_head = np.bool(tiff_flag)
         self.pair_head = np.bool(pair_flag)
@@ -1139,7 +1184,20 @@ class Calib_Params(HasTraits):
         # orientation parameters
         orientParams = par.OrientParams(path=self.par_path)
         orientParams.read()
-        (po_num_of_ori, cc, xh, yh, k1, k2, k3, p1, p2, scale, shear, interf) = (
+        (
+            po_num_of_ori,
+            cc,
+            xh,
+            yh,
+            k1,
+            k2,
+            k3,
+            p1,
+            p2,
+            scale,
+            shear,
+            interf,
+        ) = (
             orientParams.pnfo,
             orientParams.cc,
             orientParams.xh,
@@ -1261,9 +1319,13 @@ class Experiment(HasTraits):
         # Read all parameters directories from an experiment directory
         self.paramsets = []
         dir_contents = [
-            f for f in os.listdir(exp_path) if os.path.isdir(os.path.join(exp_path, f))
+            f
+            for f in os.listdir(exp_path)
+            if os.path.isdir(os.path.join(exp_path, f))
         ]
-        dir_contents = [f for f in dir_contents if f.startswith(par.par_dir_prefix)]
+        dir_contents = [
+            f for f in dir_contents if f.startswith(par.par_dir_prefix)
+        ]
 
         if len(dir_contents) == 1 and dir_contents[0] == par.par_dir_prefix:
             # single parameters directory, backward compatibility

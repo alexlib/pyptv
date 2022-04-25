@@ -131,8 +131,10 @@ def run_batch(new_seq_first, new_seq_last):
         sorted_corresp = np.concatenate(sorted_corresp, axis=1)
 
         flat = np.array(
-            [corrected[i].get_by_pnrs(sorted_corresp[i]) for i in
-                range(len(cals))]
+            [
+                corrected[i].get_by_pnrs(sorted_corresp[i])
+                for i in range(len(cals))
+            ]
         )
         pos, rcm = point_positions(flat.transpose(1, 0, 2), cpar, cals, vpar)
 

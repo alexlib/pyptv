@@ -6,7 +6,11 @@ import numpy as np
 from optv.calibration import Calibration
 from optv.correspondences import correspondences, MatchedCoords
 from optv.image_processing import preprocess_image
-from optv.orientation import point_positions, external_calibration, full_calibration
+from optv.orientation import (
+    point_positions,
+    external_calibration,
+    full_calibration,
+)
 from optv.parameters import (
     ControlParams,
     VolumeParams,
@@ -254,7 +258,10 @@ def py_sequence_loop(exp):
         sorted_corresp = np.concatenate(sorted_corresp, axis=1)
 
         flat = np.array(
-            [corrected[i].get_by_pnrs(sorted_corresp[i]) for i in range(len(cals))]
+            [
+                corrected[i].get_by_pnrs(sorted_corresp[i])
+                for i in range(len(cals))
+            ]
         )
         pos, rcm = point_positions(flat.transpose(1, 0, 2), cpar, cals, vpar)
 
@@ -270,7 +277,9 @@ def py_sequence_loop(exp):
 
         # Save rt_is
         print(default_naming["corres"])
-        rt_is = open(default_naming["corres"] + b"." + str(frame).encode(), "w")
+        rt_is = open(
+            default_naming["corres"] + b"." + str(frame).encode(), "w"
+        )
         rt_is.write(str(pos.shape[0]) + "\n")
         for pix, pt in enumerate(pos):
             pt_args = (pix + 1,) + tuple(pt) + tuple(print_corresp[:, pix])
@@ -447,7 +456,9 @@ def py_multiplanecalibration(exp):
                 )
 
             if len(all_known) > 0:
-                detected[:, 0] = all_detected[-1][-1, 0] + 1 + np.arange(len(detected))
+                detected[:, 0] = (
+                    all_detected[-1][-1, 0] + 1 + np.arange(len(detected))
+                )
 
             # Append to list of total known and detected points
             all_known.append(known)
@@ -472,7 +483,18 @@ def py_multiplanecalibration(exp):
         op.read()
 
         # recognized names for the flags:
-        names = ["cc", "xh", "yh", "k1", "k2", "k3", "p1", "p2", "scale", "shear"]
+        names = [
+            "cc",
+            "xh",
+            "yh",
+            "k1",
+            "k2",
+            "k3",
+            "p1",
+            "p2",
+            "scale",
+            "shear",
+        ]
         op_names = [
             op.cc,
             op.xh,
@@ -497,5 +519,7 @@ def py_multiplanecalibration(exp):
         )
 
         # Save the results
-        exp._write_ori(i_cam, addpar_flag=True)  # addpar_flag to save addpar file
+        exp._write_ori(
+            i_cam, addpar_flag=True
+        )  # addpar_flag to save addpar file
         print("End multiplane")

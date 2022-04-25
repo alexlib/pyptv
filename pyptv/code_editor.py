@@ -23,7 +23,13 @@ from pyptv import parameters as par
 
 def get_path(filename):
     splitted_filename = filename.split("/")
-    return os.getcwd() + os.sep + splitted_filename[0] + os.sep + splitted_filename[1]
+    return (
+        os.getcwd()
+        + os.sep
+        + splitted_filename[0]
+        + os.sep
+        + splitted_filename[1]
+    )
 
 
 def get_code(path):
@@ -95,4 +101,6 @@ class codeEditor(HasTraits):
         calOriParams.read()
 
         for i in range(self.n_img):
-            self.oriEditors.append(oriEditor(get_path(calOriParams.img_ori[i])))
+            self.oriEditors.append(
+                oriEditor(get_path(calOriParams.img_ori[i]))
+            )

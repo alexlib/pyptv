@@ -4,7 +4,16 @@ from chaco.api import ScatterPlot
 
 # Enthought library imports
 from enable.api import ColorTrait
-from numpy import array, compress, matrix, newaxis, sqrt, transpose, invert, isnan
+from numpy import (
+    array,
+    compress,
+    matrix,
+    newaxis,
+    sqrt,
+    transpose,
+    invert,
+    isnan,
+)
 from traits.api import Array, Enum, Float, Instance, Int
 
 
@@ -68,7 +77,12 @@ class QuiverPlot(ScatterPlot):
         ep_index_mask = self.index_mapper.range.mask_data(ep_index)
         ep_value_mask = self.value_mapper.range.mask_data(ep_value)
 
-        nan_mask = invert(isnan(index)) & index_mask & invert(isnan(value)) & value_mask
+        nan_mask = (
+            invert(isnan(index))
+            & index_mask
+            & invert(isnan(value))
+            & value_mask
+        )
         point_mask = (
             nan_mask
             & index_range_mask
@@ -110,7 +124,8 @@ class QuiverPlot(ScatterPlot):
 
             # Draw the left arrowhead (for an arrow pointing straight up)
             arrow_ends = (
-                ends - array(unit_vec * matrix([[a, a], [-a, a]])) * self.arrow_size
+                ends
+                - array(unit_vec * matrix([[a, a], [-a, a]])) * self.arrow_size
             )
             gc.begin_path()
             gc.line_set(ends, arrow_ends)
@@ -118,7 +133,8 @@ class QuiverPlot(ScatterPlot):
 
             # Draw the left arrowhead (for an arrow pointing straight up)
             arrow_ends = (
-                ends - array(unit_vec * matrix([[a, -a], [a, a]])) * self.arrow_size
+                ends
+                - array(unit_vec * matrix([[a, -a], [a, a]])) * self.arrow_size
             )
             gc.begin_path()
             gc.line_set(ends, arrow_ends)

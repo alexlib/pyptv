@@ -114,7 +114,9 @@ def readParamsDir(par_path):
 
 
 def copy_params_dir(src, dest):
-    files = [f for f in os.listdir(src) if f.endswith((".dat", ".par", ".yaml"))]
+    files = [
+        f for f in os.listdir(src) if f.endswith((".dat", ".par", ".yaml"))
+    ]
     if not os.path.exists(dest):
         os.mkdir(dest)
     print("copy from %s to %s" % (src, dest))
@@ -335,7 +337,15 @@ class CalOriParams(Parameters):
             self.tiff_flag,
             self.pair_flag,
             self.chfield,
-        ) = (n_img, fixp_name, img_cal_name, img_ori, tiff_flag, pair_flag, chfield)
+        ) = (
+            n_img,
+            fixp_name,
+            img_cal_name,
+            img_ori,
+            tiff_flag,
+            pair_flag,
+            chfield,
+        )
 
     def filename(self):
         return "cal_ori.par"
@@ -1183,7 +1193,10 @@ class ExamineParams(Parameters):
     #     Combine_Flag = Bool
 
     def __init__(
-        self, Examine_Flag=Bool, Combine_Flag=Bool, path=Parameters.default_path
+        self,
+        Examine_Flag=Bool,
+        Combine_Flag=Bool,
+        path=Parameters.default_path,
     ):
         Parameters.__init__(self, path)
         self.set(Examine_Flag, Combine_Flag)
@@ -1434,7 +1447,11 @@ class MultiPlaneParams(Parameters):
     """
 
     def __init__(
-        self, n_img=Int, n_planes=Int, plane_name=[], path=Parameters.default_path
+        self,
+        n_img=Int,
+        n_planes=Int,
+        plane_name=[],
+        path=Parameters.default_path,
     ):
         Parameters.__init__(self, path)
         self.set(n_img, n_planes, plane_name)
