@@ -1,5 +1,5 @@
-""" PyPTV_BATCH is the script for the 3D-PTV (http://ptv.origo.ethz.ch) written in 
-Python/Enthought Traits GUI/Numpy/Chaco
+""" PyPTV_BATCH is the script for the 3D-PTV (http://ptv.origo.ethz.ch)
+    written in Python with Enthought Traits GUI/Numpy/Chaco
 
 Example:
 >> python pyptv_batch.py experiments/exp1 10001 10022
@@ -77,8 +77,6 @@ def run_batch(new_seq_first, new_seq_last):
     tpar = TargetParams()
     tpar.read(b"parameters/targ_rec.par")
 
-    #
-
     # Calibration parameters
 
     cals = []
@@ -117,7 +115,7 @@ def run_batch(new_seq_first, new_seq_last):
         )
 
         # Save targets only after they've been modified:
-        for i_cam in xrange(n_cams):
+        for i_cam in range(n_cams):
             detections[i_cam].write(spar.get_img_base_name(i_cam), frame)
 
         print(
@@ -133,7 +131,8 @@ def run_batch(new_seq_first, new_seq_last):
         sorted_corresp = np.concatenate(sorted_corresp, axis=1)
 
         flat = np.array(
-            [corrected[i].get_by_pnrs(sorted_corresp[i]) for i in xrange(len(cals))]
+            [corrected[i].get_by_pnrs(sorted_corresp[i]) for i in
+                range(len(cals))]
         )
         pos, rcm = point_positions(flat.transpose(1, 0, 2), cpar, cals, vpar)
 
@@ -177,7 +176,7 @@ def main(exp_path, first, last, repetitions=1):
         print("exp_path is %s" % exp_path)
         os.chdir(exp_path)
         print(os.getcwd())
-    except:
+    except Exception:
         raise ValueError("Wrong experimental directory %s" % exp_path)
 
     # RON - make a res dir if it not found
@@ -190,14 +189,14 @@ def main(exp_path, first, last, repetitions=1):
         try:  # strings
             seq_first = eval(first)
             seq_last = eval(last)
-        except:  # integers
+        except Exception:  # integers
             seq_first = first
             seq_last = last
 
         try:
             print((seq_first, seq_last))
             run_batch(seq_first, seq_last)
-        except:
+        except Exception:
             print("something wrong with the batch or the folder")
 
     end = time.time()
