@@ -39,21 +39,6 @@ import sys
 import time
 
 import numpy as np
-from traits.etsconfig.api import ETSConfig
-
-# ETSConfig.toolkit = "qt"
-
-
-# from chaco.api import create_line_plot
-
-# from chaco.api import Plot, ArrayPlotData, gray
-
-
-# Import from the liboptv bindings
-
-# import some helper functions
-
-# pyPTV specific imports
 
 
 class Clicker(ImageInspectorTool):
@@ -123,9 +108,7 @@ class CameraWindow(traits.api.HasTraits):
 
     name = traits.api.Str
     view = traitsui.api.View(
-        traitsui.api.Item(
-            name="_plot", editor=ComponentEditor(), show_label=False
-        )
+        traitsui.api.Item(name="_plot", editor=ComponentEditor(), show_label=False)
     )
 
     # view = View( Item(name='_plot',show_label=False) )
@@ -157,9 +140,7 @@ class CameraWindow(traits.api.HasTraits):
         self._click_tool.on_trait_change(
             self.left_clicked_event, "left_changed"
         )  # set processing events for Clicker
-        self._click_tool.on_trait_change(
-            self.right_clicked_event, "right_changed"
-        )
+        self._click_tool.on_trait_change(self.right_clicked_event, "right_changed")
         self._img_plot.tools.append(self._click_tool)
         pan = PanTool(self._plot, drag_button="middle")
         zoom_tool = ZoomTool(self._plot, tool_mode="box", always_on=False)
@@ -362,9 +343,7 @@ class TrackThread(Thread):
         for step in range(main_gui.spar.get_first(), main_gui.spar.get_last()):
             self.track_step = step
             tracker.step_forward()
-            print(
-                "Need to learn how to read frame and reproject tracked particles\n"
-            )
+            print("Need to learn how to read frame and reproject tracked particles\n")
             # Call C function to process current step and store results for plotting
             #             self.intx0, self.intx1, self.intx2, self.inty0, self.inty1, \
             #                 self.inty2, self.pnr1, self.pnr2, self.pnr3, self.m_tr = \
@@ -425,9 +404,7 @@ class TreeMenuHandler(traitsui.api.Handler):
         if paramset.c_params is None:
             # TODO: is it possible that control reaches here? If not, probably
             # the if should be removed.
-            paramset.c_params = (
-                par.CalOriParams()
-            )  # this is a very questionable line
+            paramset.c_params = par.CalOriParams()  # this is a very questionable line
         else:
             paramset.c_params._reload()
         paramset.c_params.edit_traits(kind="modal")
@@ -549,10 +526,7 @@ class TreeMenuHandler(traitsui.api.Handler):
         and plotted on the screen
         """
         print("detection proc started")
-        (
-            info.object.detections,
-            info.object.corrected,
-        ) = ptv.py_detection_proc_c(
+        (info.object.detections, info.object.corrected,) = ptv.py_detection_proc_c(
             info.object.orig_image,
             info.object.cpar,
             info.object.tpar,
@@ -594,10 +568,7 @@ class TreeMenuHandler(traitsui.api.Handler):
         names = ["pair", "tripl", "quad"]
         use_colors = ["yellow", "green", "red"]
 
-        if (
-            len(info.object.camera_list) > 1
-            and len(info.object.sorted_pos) > 0
-        ):
+        if len(info.object.camera_list) > 1 and len(info.object.sorted_pos) > 0:
             # this is valid only if there are 4 cameras
             # quadruplets = info.object.sorted_pos[0]
             # triplets = info.object.sorted_pos[1]
@@ -811,9 +782,7 @@ class TreeMenuHandler(traitsui.api.Handler):
         for i_seq in range(seq_first, seq_last + 1):  # loop over sequences
             for i_img in range(info.object.n_cams):
                 intx_green, inty_green = [], []
-                targets = optv.tracking_framebuf.read_targets(
-                    base_names[i_img], i_seq
-                )
+                targets = optv.tracking_framebuf.read_targets(base_names[i_img], i_seq)
 
                 for t in targets:
                     if t.tnr() > -1:
@@ -849,10 +818,10 @@ class TreeMenuHandler(traitsui.api.Handler):
     # @staticmethod
     def traject_action(self, info):
         """
-            show trajectories is handled by ptv.py_traject_loop(..)
-            which returns data to be plotted.
-            traject_action collects data to be plotted from all
-            the steps and plots it at once.
+        show trajectories is handled by ptv.py_traject_loop(..)
+        which returns data to be plotted.
+        traject_action collects data to be plotted from all
+        the steps and plots it at once.
         """
         print("Starting show trajectories\n")
         info.object.clear_plots(remove_background=False)
@@ -866,9 +835,10 @@ class TreeMenuHandler(traitsui.api.Handler):
 
         fmt = np.dtype([("prev", "i4"), ("next", "i4"), ("pos", "3f8")])
 
-        def _read_frame(fix): return np.atleast_1d(
-            np.loadtxt("res/ptv_is.%d" % fix, dtype=fmt, skiprows=1)
-        )
+        def _read_frame(fix):
+            return np.atleast_1d(
+                np.loadtxt("res/ptv_is.%d" % fix, dtype=fmt, skiprows=1)
+            )
 
         x1_a, x2_a, y1_a, y2_a = [], [], [], []
         for i in range(info.object.n_cams):  # initialize result arrays
@@ -896,9 +866,7 @@ class TreeMenuHandler(traitsui.api.Handler):
                         x1.append(pos[0][0])
                         y1.append(pos[0][1])
 
-                x1_a[i_cam] = (
-                    x1_a[i_cam] + x1
-                )  # add current step to result array
+                x1_a[i_cam] = x1_a[i_cam] + x1  # add current step to result array
                 #                x2_a[i_img]=x2_a[i_img]+intx_blue
                 y1_a[i_cam] = y1_a[i_cam] + y1
             # for i in range(info.object.n_cams):
@@ -930,9 +898,7 @@ ConfigTrackParams = Action(
     name="Tracking parameters",
     action="handler.configure_track_par(editor,object)",
 )
-SetAsDefault = Action(
-    name="Set as active", action="handler.set_active(editor,object)"
-)
+SetAsDefault = Action(name="Set as active", action="handler.set_active(editor,object)")
 CopySetParams = Action(
     name="Copy set of parameters",
     action="handler.copy_set_params(editor,object)",
@@ -1024,9 +990,7 @@ menu_bar = MenuBar(
         name="Tracking",
     ),
     Menu(Action(name="Select plugin", action="plugin_action"), name="Plugins"),
-    Menu(
-        Action(name="Run multigrid demo", action="multigrid_demo"), name="Demo"
-    ),
+    Menu(Action(name="Run multigrid demo", action="multigrid_demo"), name="Demo"),
 )
 
 # ----------------------------------------
@@ -1079,12 +1043,8 @@ class Plugins(traits.api.HasTraits):
     sequence_alg = traits.api.Enum(values="seq_list")
     view = traitsui.api.View(
         traitsui.api.Group(
-            traitsui.api.Item(
-                name="track_alg", label="Choose tracking algorithm:"
-            ),
-            traitsui.api.Item(
-                name="sequence_alg", label="Choose sequence algorithm:"
-            ),
+            traitsui.api.Item(name="track_alg", label="Choose tracking algorithm:"),
+            traitsui.api.Item(name="sequence_alg", label="Choose sequence algorithm:"),
         ),
         buttons=["OK"],
         title="External plugins configuration",
@@ -1096,14 +1056,10 @@ class Plugins(traits.api.HasTraits):
     def read(self):
         # reading external tracking
         if os.path.exists(
-            os.path.join(
-                os.path.abspath(os.curdir), "external_tracker_list.txt"
-            )
+            os.path.join(os.path.abspath(os.curdir), "external_tracker_list.txt")
         ):
             with open(
-                os.path.join(
-                    os.path.abspath(os.curdir), "external_tracker_list.txt"
-                ),
+                os.path.join(os.path.abspath(os.curdir), "external_tracker_list.txt"),
                 "r",
             ) as f:
                 trackers = f.read().split("\n")
@@ -1113,14 +1069,10 @@ class Plugins(traits.api.HasTraits):
             self.track_list = ["default"]
         # reading external sequence
         if os.path.exists(
-            os.path.join(
-                os.path.abspath(os.curdir), "external_sequence_list.txt"
-            )
+            os.path.join(os.path.abspath(os.curdir), "external_sequence_list.txt")
         ):
             with open(
-                os.path.join(
-                    os.path.abspath(os.curdir), "external_sequence_list.txt"
-                ),
+                os.path.join(os.path.abspath(os.curdir), "external_sequence_list.txt"),
                 "r",
             ) as f:
                 seq = f.read().split("\n")
@@ -1198,9 +1150,7 @@ class MainGUI(traits.api.HasTraits):
         for i in range(self.n_cams):
             self.camera_list.append(CameraWindow(colors[i]))
             self.camera_list[i].name = "Camera " + str(i + 1)
-            self.camera_list[i].on_trait_change(
-                self.right_click_process, "rclicked"
-            )
+            self.camera_list[i].on_trait_change(self.right_click_process, "rclicked")
             self.orig_image.append(np.array([], dtype=np.ubyte))
 
     def right_click_process(self):
@@ -1306,9 +1256,7 @@ class MainGUI(traits.api.HasTraits):
             self.camera_list[i]._plot.tools = []
             self.camera_list[i]._plot.request_redraw()
             for j in range(len(self.camera_list[i]._quiverplots)):
-                self.camera_list[i]._plot.remove(
-                    self.camera_list[i]._quiverplots[j]
-                )
+                self.camera_list[i]._plot.remove(self.camera_list[i]._quiverplots[j])
             self.camera_list[i]._quiverplots = []
             self.camera_list[i].right_p_x0 = []
             self.camera_list[i].right_p_y0 = []
@@ -1328,7 +1276,7 @@ class MainGUI(traits.api.HasTraits):
                 self.tr_thread.intx2,
                 self.tr_thread.inty0,
                 self.tr_thread.inty1,
-                self.tr_thread.inty2
+                self.tr_thread.inty2,
             )
             for i in range(n_cams):
                 self.camera_list[i].drawcross(
@@ -1355,12 +1303,8 @@ class MainGUI(traits.api.HasTraits):
                     "white",
                     2,
                 )
-                self.camera_list[i].drawquiver(
-                    x0[i], y0[i], x1[i], y1[i], "orange"
-                )
-                self.camera_list[i].drawquiver(
-                    x1[i], y1[i], x2[i], y2[i], "white"
-                )
+                self.camera_list[i].drawquiver(x0[i], y0[i], x1[i], y1[i], "orange")
+                self.camera_list[i].drawquiver(x1[i], y1[i], x2[i], y2[i], "white")
             # for j in range (m_tr):
             # str_plt=str(step)+"_"+str(j)
             ##
@@ -1380,8 +1324,9 @@ class MainGUI(traits.api.HasTraits):
             self.base_name = []
             for i in range(n_cams):
                 exec(
-                    "self.base_name.append(self.exp1.active_params.m_params.Basename_%d_Seq)" %
-                    (i + 1))
+                    "self.base_name.append(self.exp1.active_params.m_params.Basename_%d_Seq)"
+                    % (i + 1)
+                )
                 print(self.base_name[i])
 
         i = seq
