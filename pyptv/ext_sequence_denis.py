@@ -32,9 +32,8 @@ class Sequence:
         base_name = []
         for i in range(n_camera):
             exec(
-                "base_name.append(self.exp1.active_params.m_params.Basename_%d_Seq)"
-                % (i + 1)
-            )
+                "base_name.append(self.exp1.active_params.m_params.Basename_%d_Seq)" %
+                (i + 1))
             print(base_name[i])
 
         self.ptv.py_sequence_init(0)  # init C sequence function
@@ -58,7 +57,7 @@ class Sequence:
                 print("Setting image: ", img_name)
                 try:
                     temp_img = imread(img_name).astype(np.ubyte)
-                except:
+                except BaseException:
                     print("Error reading file")
 
                 self.ptv.py_set_img(temp_img, j)

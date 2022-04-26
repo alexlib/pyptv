@@ -370,7 +370,7 @@ class CalOriParams(Parameters):
                 self.pair_flag = int(g(f)) != 0
                 self.chfield = int(g(f))
 
-        except:
+        except BaseException:
             error(None, "%s not found" % self.filepath())
 
         # test if files are present, issue warnings
@@ -393,7 +393,7 @@ class CalOriParams(Parameters):
                 f.write("%d\n" % self.chfield)
 
             return True
-        except:
+        except BaseException:
             error(None, "Error writing %s." % self.filepath())
             return False
 
@@ -442,7 +442,7 @@ class SequenceParams(Parameters):
 
                 self.first = int(g(f))
                 self.last = int(g(f))
-        except:
+        except BaseException:
             error(None, "error reading %s" % self.filepath())
 
     def write(self):
@@ -456,7 +456,7 @@ class SequenceParams(Parameters):
                 f.write("%d\n" % self.last)
 
             return True
-        except:
+        except BaseException:
             error(None, "Error writing %s." % self.filepath())
             return False
 
@@ -552,7 +552,7 @@ class CriteriaParams(Parameters):
             self.eps0 = float(g(f))
 
             f.close()
-        except:
+        except BaseException:
             error(None, "%s not found" % self.filepath())
 
     def write(self):
@@ -574,7 +574,7 @@ class CriteriaParams(Parameters):
 
             f.close()
             return True
-        except:
+        except BaseException:
             error(None, "Error writing %s." % self.filepath())
             return False
 
@@ -673,7 +673,7 @@ class TargRecParams(Parameters):
                 self.sumg_min = int(g(f))
                 self.cr_sz = int(g(f))
 
-        except:
+        except BaseException:
             error(None, "Error reading from %s" % self.filepath())
 
     def write(self):
@@ -695,7 +695,7 @@ class TargRecParams(Parameters):
 
             f.close()
             return True
-        except:
+        except BaseException:
             error(None, "Error writing %s." % self.filepath())
             return False
 
@@ -738,7 +738,7 @@ class ManOriParams(Parameters):
                 for i in range(self.n_img):
                     for _ in range(4):  # always 4 points
                         self.nr.append(int(g(f)))
-        except:
+        except BaseException:
             error(None, "Error reading from %s" % self.filepath())
 
     def write(self):
@@ -749,7 +749,7 @@ class ManOriParams(Parameters):
                         f.write("%d\n" % self.nr[i][j])
 
             return True
-        except:
+        except BaseException:
             error(None, "Error writing %s." % self.filepath())
             return False
 
@@ -888,7 +888,7 @@ class DetectPlateParams(Parameters):
             self.size_cross = int(g(f))
 
             f.close()
-        except:
+        except BaseException:
             error(None, "Error reading from %s" % self.filepath())
 
     def write(self):
@@ -911,7 +911,7 @@ class DetectPlateParams(Parameters):
 
             f.close()
             return True
-        except:
+        except BaseException:
             error(None, "Error writing %s." % self.filepath())
             return False
 
@@ -1019,7 +1019,7 @@ class OrientParams(Parameters):
                 self.shear = int(g(f))
                 self.interf = int(g(f))
 
-        except:
+        except BaseException:
             error(None, "Error reading %s" % self.filepath())
 
     def write(self):
@@ -1040,7 +1040,7 @@ class OrientParams(Parameters):
                 f.write("%d\n" % int(self.interf))
 
             return True
-        except:
+        except BaseException:
             error(None, "Error writing %s." % self.filepath())
             return False
 
@@ -1132,7 +1132,7 @@ class TrackingParams(Parameters):
             self.dacc = float(g(f))
             self.flagNewParticles = int(g(f)) != 0
             f.close()
-        except:
+        except BaseException:
             error(None, "%s not found" % self.filepath())
 
     def write(self):
@@ -1149,7 +1149,7 @@ class TrackingParams(Parameters):
             f.write("%d\n" % self.flagNewParticles)
             f.close()
             return True
-        except:
+        except BaseException:
             error(None, "Error writing %s." % self.filepath())
             return False
 
@@ -1174,7 +1174,7 @@ class PftVersionParams(Parameters):
             self.Existing_Target = int(g(f))
 
             f.close()
-        except:
+        except BaseException:
             error(None, "%s not found" % self.filepath())
 
     def write(self):
@@ -1185,7 +1185,7 @@ class PftVersionParams(Parameters):
 
             f.close()
             return True
-        except:
+        except BaseException:
             error(None, "Error writing %s." % self.filepath())
             return False
 
@@ -1223,7 +1223,7 @@ class ExamineParams(Parameters):
             self.Combine_Flag = int(g(f)) != 0
 
             f.close()
-        except:
+        except BaseException:
             error(None, "%s not found" % self.filepath())
 
     def write(self):
@@ -1235,7 +1235,7 @@ class ExamineParams(Parameters):
 
             f.close()
             return True
-        except:
+        except BaseException:
             error(None, "Error writing %s." % self.filepath())
             return False
 
@@ -1328,7 +1328,7 @@ class DumbbellParams(Parameters):
             self.dumbbell_niter = int(g(f))
 
             f.close()
-        except:
+        except BaseException:
             error(None, "%s not found" % self.filepath())
 
     def write(self):
@@ -1344,7 +1344,7 @@ class DumbbellParams(Parameters):
 
             f.close()
             return True
-        except:
+        except BaseException:
             error(None, "Error writing %s." % self.filepath())
             return False
 
@@ -1419,7 +1419,7 @@ class ShakingParams(Parameters):
             self.shaking_max_num_frames = int(g(f))
 
             f.close()
-        except:
+        except BaseException:
             error(None, "%s not found" % self.filepath())
 
     def write(self):
@@ -1433,7 +1433,7 @@ class ShakingParams(Parameters):
 
             f.close()
             return True
-        except:
+        except BaseException:
             error(None, "Error writing %s." % self.filepath())
             return False
 
@@ -1474,7 +1474,7 @@ class MultiPlaneParams(Parameters):
                     if not os.path.isfile(self.plane_name[i]):
                         print("plane %s is missing." % self.plane_name[i])
 
-        except:
+        except BaseException:
             error(None, "%s not found" % self.filepath())
 
     def write(self):
@@ -1487,7 +1487,7 @@ class MultiPlaneParams(Parameters):
                     f.write("%s\n" % self.plane_name[i])
 
                 return True
-        except:
+        except BaseException:
             error(None, "Error writing %s." % self.filepath())
             return False
 
@@ -1515,7 +1515,7 @@ class SortGridParams(Parameters):
             with open(self.filepath(), "r") as f:
                 self.radius = int(g(f))
 
-        except:
+        except BaseException:
             error(None, "%s not found" % self.filepath())
 
     def write(self):
@@ -1524,6 +1524,6 @@ class SortGridParams(Parameters):
                 f.write("%d\n" % self.radius)
 
             return True
-        except:
+        except BaseException:
             error(None, "Error writing %s." % self.filepath())
             return False

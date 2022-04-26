@@ -1290,7 +1290,9 @@ class Experiment(HasTraits):
         self.changed_active_params = False
 
     def getParamsetIdx(self, paramset):
-        if type(paramset) == type(1):  # integer value (index of the paramset)
+        if isinstance(
+                paramset,
+                type(1)):  # integer value (index of the paramset)
             return paramset
         else:  # Value is instance of Pramset
             return self.paramsets.index(paramset)

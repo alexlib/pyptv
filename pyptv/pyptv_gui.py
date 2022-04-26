@@ -804,14 +804,13 @@ class TreeMenuHandler(traitsui.api.Handler):
         imx, imy = info.object.cpar.get_image_size()
         # some old stuff that is probably obsolete, left for the future
         # see jw_ptv.c for the origins
-        zoomx = imx / 2
-        zoomy = imx / 2
-        zoomf = 1
+        # zoomx = imx / 2
+        # zoomy = imx / 2
+        # zoomf = 1
 
         for i_seq in range(seq_first, seq_last + 1):  # loop over sequences
             for i_img in range(info.object.n_cams):
-                intx_green, inty_green, intx_blue, inty_blue = [], [], [], []
-                # import pdb; pdb.set_trace()
+                intx_green, inty_green = [], []
                 targets = optv.tracking_framebuf.read_targets(
                     base_names[i_img], i_seq
                 )
@@ -958,7 +957,6 @@ menu_bar = MenuBar(
     ),
     Menu(Action(name="Init / Restart", action="init_action"), name="Start"),
     Menu(
-        # Action(name='Show original image',action='showimg_action',enabled_when='pass_init'),
         Action(
             name="High pass filter",
             action="highpass_action",

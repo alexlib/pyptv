@@ -915,8 +915,7 @@ class CalibrationGUI(HasTraits):
                         raise ValueError(
                             f"Number of detected points {num_known} does not match"
                             " number of known points {num_detect} for \
-                                {file_known}, {file_detected}"
-                        )
+                                {file_known}, {file_detected}")
 
                     if len(all_known) > 0:
                         detected[:, 0] = (
