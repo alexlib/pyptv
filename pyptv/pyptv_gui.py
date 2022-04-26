@@ -70,7 +70,7 @@ class Clicker(ImageInspectorTool):
         position.
         """
         plot = self.component
-        if plot != None:
+        if plot is not None:
             ndx = plot.map_index((event.x, event.y))
             x_index, y_index = ndx
             image_data = plot.value
@@ -83,7 +83,7 @@ class Clicker(ImageInspectorTool):
 
     def normal_right_down(self, event):
         plot = self.component
-        if plot != None:
+        if plot is not None:
             ndx = plot.map_index((event.x, event.y))
 
             x_index, y_index = ndx
@@ -185,7 +185,8 @@ class CameraWindow(traits.api.HasTraits):
         # need to priny gray value
 
     def right_clicked_event(self):
-        # flag that is tracked by main_gui, for right_click_process function of main_gui
+        # flag that is tracked by main_gui, for right_click_process function of
+        # main_gui
         self.rclicked = 1
         # self._click_tool.y,self.name])
         # self.drawcross("coord_x","coord_y",self._click_tool.x,self._click_tool.y,"red",5)
@@ -277,7 +278,8 @@ class CameraWindow(traits.api.HasTraits):
                 ep_value=np.array(y2),
             )
             self._plot.add(quiverplot)
-            # we need this to track how many quiverplots are in the current plot
+            # we need this to track how many quiverplots are in the current
+            # plot
             self._quiverplots.append(quiverplot)
 
     @staticmethod
@@ -379,7 +381,8 @@ class TrackThread(Thread):
 
             # del self.intx0,self.intx1
 
-        # call finishing C function (after all the steps in the loop are processed)
+        # call finishing C function (after all the steps in the loop are
+        # processed)
         tracker.finalize()
 
         for i in range(len(main_gui.camera_list)):  # refresh cameras
@@ -408,7 +411,8 @@ class TreeMenuHandler(traitsui.api.Handler):
         paramset = object
         print("Total paramsets:", len(experiment.paramsets))
         if paramset.m_params is None:
-            # TODO: is it possible that control reaches here? If not, probably the if should be removed.
+            # TODO: is it possible that control reaches here? If not, probably
+            # the if should be removed.
             paramset.m_params = par.PtvParams()
         else:
             paramset.m_params._reload()
@@ -419,7 +423,8 @@ class TreeMenuHandler(traitsui.api.Handler):
         paramset = object
         print(len(experiment.paramsets))
         if paramset.c_params is None:
-            # TODO: is it possible that control reaches here? If not, probably the if should be removed.
+            # TODO: is it possible that control reaches here? If not, probably
+            # the if should be removed.
             paramset.c_params = (
                 par.CalOriParams()
             )  # this is a very questionable line
@@ -432,7 +437,8 @@ class TreeMenuHandler(traitsui.api.Handler):
         paramset = object
         print(len(experiment.paramsets))
         if paramset.t_params is None:
-            # TODO: is it possible that control reaches here? If not, probably the if should be removed.
+            # TODO: is it possible that control reaches here? If not, probably
+            # the if should be removed.
             paramset.t_params = par.TrackingParams()
         paramset.t_params.edit_traits(kind="modal")
 
@@ -536,7 +542,9 @@ class TreeMenuHandler(traitsui.api.Handler):
         print("highpass finished")
 
     def img_coord_action(self, info):
-        """img_coord_action - runs detection function by using ptv.py_detection_proc_c()
+        """
+        img_coord_action - runs detection function by using
+        ptv.py_detection_proc_c()
         binding. results are extracted with help of ptv.py_get_pix(x,y) binding
         and plotted on the screen
         """
@@ -719,7 +727,7 @@ class TreeMenuHandler(traitsui.api.Handler):
                 track = __import__(
                     extern_tracker
                 )  # import choosen tracker from software dir
-            except:
+            except BaseException:
                 print(
                     "Error loading "
                     + extern_tracker
@@ -814,32 +822,38 @@ class TreeMenuHandler(traitsui.api.Handler):
                         # inty_green.append(int(imy/2 + zoomf*(ty - zoomy)))
                         intx_green.append(t.pos()[0])
                         inty_green.append(t.pos()[1])
-                #                    else:
-                #                        intx_blue.append(int(imx/2 + zoomf*(tx - zoomx)))
-                #                        inty_blue.append(int(imy/2 + zoomf*(ty - zoomy)))
+                #   else:
+                #       intx_blue.append(int(imx/2 + zoomf*(tx - zoomx)))
+                #       inty_blue.append(int(imy/2 + zoomf*(ty - zoomy)))
 
                 x1_a[i_img] = (
                     x1_a[i_img] + intx_green
                 )  # add current step to result array
                 #                x2_a[i_img]=x2_a[i_img]+intx_blue
                 y1_a[i_img] = y1_a[i_img] + inty_green
-        #                y2_a[i_img]=y2_a[i_img]+inty_blue
-        #                info.object.camera_list[i_img].drawcross(str(i_seq)+"x_tr_gr",str(i_seq)+"y_tr_gr",intx_green,inty_green,"green",3)
-        #                info.object.camera_list[i_img].drawcross(str(i_seq)+"x_tr_bl",str(i_seq)+"y_tr_bl",intx_blue,inty_blue,"blue",2)
+        #   y2_a[i_img]=y2_a[i_img]+inty_blue
+        #   info.object.camera_list[i_img].drawcross(str(i_seq) + \
+        #       "x_tr_gr",str(i_seq)+"y_tr_gr",intx_green,inty_green,"green",3)
+        #   info.object.camera_list[i_img].drawcross(str(i_seq) + \
+        #       "x_tr_bl",str(i_seq)+"y_tr_bl",intx_blue,inty_blue,"blue",2)
         # plot result arrays
         for i_img in range(info.object.n_cams):
             info.object.camera_list[i_img].drawcross(
                 "x_tr_gr", "y_tr_gr", x1_a[i_img], y1_a[i_img], "green", 3
             )
-            #            info.object.camera_list[i_img].drawcross("x_tr_bl","y_tr_bl",x2_a[i_img],y2_a[i_img],"blue",2)
+            # info.object.camera_list[i_img].drawcross("x_tr_bl",
+            #                   "y_tr_bl",x2_a[i_img],y2_a[i_img],"blue",2)
             info.object.camera_list[i_img]._plot.request_redraw()
 
         print("Finished detect_part_track")
 
     # @staticmethod
     def traject_action(self, info):
-        """show trajectories is handled by ptv.py_traject_loop(..) which returns data to be plotted.
-        traject_action collects data to be plotted from all the steps and plots it at once.
+        """
+            show trajectories is handled by ptv.py_traject_loop(..)
+            which returns data to be plotted.
+            traject_action collects data to be plotted from all
+            the steps and plots it at once.
         """
         print("Starting show trajectories\n")
         info.object.clear_plots(remove_background=False)
@@ -997,7 +1011,8 @@ menu_bar = MenuBar(
             action="track_no_disp_action",
             enabled_when="pass_init",
         ),
-        # not implemented Action(name='Tracking with display',action='track_disp_action',enabled_when='pass_init'),
+        # not implemented Action(name='Tracking with
+        # display',action='track_disp_action',enabled_when='pass_init'),
         Action(
             name="Tracking backwards",
             action="track_back_action",
@@ -1198,7 +1213,8 @@ class MainGUI(traits.api.HasTraits):
         num_points = 2
 
         for i in range(self.n_cams):
-            # get the clicked point (i guess it won't exist in cameras not clicked)
+            # get the clicked point
+            # (i guess it won't exist in cameras not clicked)
             point = np.array(
                 [
                     self.camera_list[i]._click_tool.x,
@@ -1248,12 +1264,6 @@ class MainGUI(traits.api.HasTraits):
                             pts[-1, 1],
                             self.camera_list[i].cam_color,
                         )
-                        # self.camera_list[j]._plot.index_mapper.range.set_bounds(0,h_img)
-                        # self.camera_list[j]._plot.value_mapper.range.set_bounds(0,v_img)
-                        # self.camera_list[j].drawcross("right_p_x1","right_p_y1",pts[:,0],pts[:,1], color_camera[j],3)
-                        # self.camera_list[j]._plot.request_redraw()
-                    # else:
-                    # print ("No nearby points for epipolar lines")
 
     def update_plots(self, images, is_float=False):
         print("inside update plots, images changed\n")
@@ -1314,17 +1324,13 @@ class MainGUI(traits.api.HasTraits):
             print("updating plots..\n")
             step = self.tr_thread.track_step
 
-            x0, x1, x2, y0, y1, y2, pnr1, pnr2, pnr3, m_tr = (
+            x0, x1, x2, y0, y1, y2 = (
                 self.tr_thread.intx0,
                 self.tr_thread.intx1,
                 self.tr_thread.intx2,
                 self.tr_thread.inty0,
                 self.tr_thread.inty1,
-                self.tr_thread.inty2,
-                self.tr_thread.pnr1,
-                self.tr_thread.pnr2,
-                self.tr_thread.pnr3,
-                self.tr_thread.m_tr,
+                self.tr_thread.inty2
             )
             for i in range(n_cams):
                 self.camera_list[i].drawcross(
@@ -1376,9 +1382,8 @@ class MainGUI(traits.api.HasTraits):
             self.base_name = []
             for i in range(n_cams):
                 exec(
-                    "self.base_name.append(self.exp1.active_params.m_params.Basename_%d_Seq)"
-                    % (i + 1)
-                )
+                    "self.base_name.append(self.exp1.active_params.m_params.Basename_%d_Seq)" %
+                    (i + 1))
                 print(self.base_name[i])
 
         i = seq
@@ -1397,7 +1402,7 @@ class MainGUI(traits.api.HasTraits):
         print("Setting image: %s" % str(img_name))
         try:
             temp_img = img_as_ubyte(imread(img_name))
-        except:
+        except BaseException:
             print("Error reading file, setting zero image")
             h_img = self.exp1.active_params.m_params.imx
             v_img = self.exp1.active_params.m_params.imy
@@ -1450,4 +1455,4 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    main(sys.argv)
