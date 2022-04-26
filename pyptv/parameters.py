@@ -12,7 +12,8 @@ import yaml
 par_dir_prefix = "parameters"
 max_cam = 4
 
-g = lambda f: f.readline().strip()
+
+def g(f): return f.readline().strip()
 
 # Base class for all parameters classes
 

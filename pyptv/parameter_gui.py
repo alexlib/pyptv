@@ -1345,7 +1345,7 @@ class Experiment(HasTraits):
             par_path = os.path.join(exp_path, dir_item)
             if dir_item != par.par_dir_prefix:
                 # This should be a params dir, add a tree entry for it.
-                exp_name = dir_item[len(par.par_dir_prefix) :]
+                exp_name = dir_item[len(par.par_dir_prefix):]
                 self.addParamset(exp_name, par_path)
 
         if not self.changed_active_params:

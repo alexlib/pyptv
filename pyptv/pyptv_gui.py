@@ -7,47 +7,6 @@ http://opensource.org/licenses/MIT
 
 """
 from __future__ import division
-
-import os
-import sys
-import time
-import yaml
-
-import numpy as np
-from traits.etsconfig.api import ETSConfig
-
-ETSConfig.toolkit = "qt4"
-
-import traits.api
-import traitsui.api
-
-from enable.component_editor import ComponentEditor
-from chaco.tools.image_inspector_tool import ImageInspectorTool
-
-# from chaco.api import create_line_plot
-
-# from chaco.api import Plot, ArrayPlotData, gray
-from traitsui.menu import MenuBar, Menu, Action
-from chaco.tools.api import ZoomTool, PanTool
-from skimage.io import imread
-from skimage.color import rgb2gray
-from skimage import img_as_ubyte
-from threading import Thread
-from pyface.api import GUI
-
-
-# Import from the liboptv bindings
-import optv
-
-# import some helper functions
-from pyptv import ptv
-
-# pyPTV specific imports
-from pyptv import parameters as par
-from pyptv.parameter_gui import Experiment, Paramset, Calib_Params
-from pyptv.calibration_gui import CalibrationGUI
-from pyptv.directory_editor import DirectoryEditorDialog
-from pyptv.quiverplot import QuiverPlot
 from chaco.api import (
     Plot,
     ArrayPlotData,
@@ -56,6 +15,45 @@ from chaco.api import (
     ArrayDataSource,
     LinearMapper,
 )
+from pyptv.quiverplot import QuiverPlot
+from pyptv.directory_editor import DirectoryEditorDialog
+from pyptv.calibration_gui import CalibrationGUI
+from pyptv.parameter_gui import Experiment, Paramset
+from pyptv import parameters as par
+from pyptv import ptv
+import optv
+from pyface.api import GUI
+from threading import Thread
+from skimage import img_as_ubyte
+from skimage.color import rgb2gray
+from skimage.io import imread
+from chaco.tools.api import ZoomTool, PanTool
+from traitsui.menu import MenuBar, Menu, Action
+from chaco.tools.image_inspector_tool import ImageInspectorTool
+from enable.component_editor import ComponentEditor
+import traitsui.api
+import traits.api
+
+import os
+import sys
+import time
+
+import numpy as np
+from traits.etsconfig.api import ETSConfig
+
+# ETSConfig.toolkit = "qt"
+
+
+# from chaco.api import create_line_plot
+
+# from chaco.api import Plot, ArrayPlotData, gray
+
+
+# Import from the liboptv bindings
+
+# import some helper functions
+
+# pyPTV specific imports
 
 
 class Clicker(ImageInspectorTool):
@@ -187,7 +185,8 @@ class CameraWindow(traits.api.HasTraits):
         # need to priny gray value
 
     def right_clicked_event(self):
-        self.rclicked = 1  # flag that is tracked by main_gui, for right_click_process function of main_gui
+        # flag that is tracked by main_gui, for right_click_process function of main_gui
+        self.rclicked = 1
         # self._click_tool.y,self.name])
         # self.drawcross("coord_x","coord_y",self._click_tool.x,self._click_tool.y,"red",5)
         # print ("right clicked, "+self.name)
@@ -623,7 +622,8 @@ class TreeMenuHandler(traitsui.api.Handler):
          by using ptv.py_start_proc_c()
         """
         mainGui = info.object
-        mainGui.exp1.syncActiveDir()  # synchronize the active run params dir with the temp params dir
+        # synchronize the active run params dir with the temp params dir
+        mainGui.exp1.syncActiveDir()
 
         for i in range(len(mainGui.camera_list)):
             try:
@@ -852,7 +852,8 @@ class TreeMenuHandler(traitsui.api.Handler):
         # we will make a single conda package for the full stack
 
         fmt = np.dtype([("prev", "i4"), ("next", "i4"), ("pos", "3f8")])
-        _read_frame = lambda fix: np.atleast_1d(
+
+        def _read_frame(fix): return np.atleast_1d(
             np.loadtxt("res/ptv_is.%d" % fix, dtype=fmt, skiprows=1)
         )
 
@@ -1118,7 +1119,8 @@ class Plugins(traits.api.HasTraits):
 
 # ----------------------------------------------
 class MainGUI(traits.api.HasTraits):
-    """MainGUI is the main class under which the Model-View-Control (MVC) model is defined"""
+    """MainGUI is the main class under which the Model-View-Control
+    (MVC) model is defined"""
 
     camera_list = traits.api.List
     imgplt_flag = 0
@@ -1234,8 +1236,9 @@ class MainGUI(traits.api.HasTraits):
 
                     if len(pts) > 1:
                         # for p in xrange(pts.shape[0]-1):
-                        #     self.camera_list[j].drawline("right_cl_x", "right_cl_y",pts[p,0],pts[p,1],\
-                        #                                  pts[p+1,0],pts[p+1,1],color_camera[j])
+                        #     self.camera_list[j].drawline("right_cl_x",
+                        # "right_cl_y",pts[p,0],pts[p,1],\
+                        #  pts[p+1,0],pts[p+1,1],color_camera[j])
                         self.camera_list[j].drawline(
                             "right_cl_x" + c,
                             "right_cl_y" + c,
@@ -1354,13 +1357,13 @@ class MainGUI(traits.api.HasTraits):
                 self.camera_list[i].drawquiver(
                     x1[i], y1[i], x2[i], y2[i], "white"
                 )
-            ##                for j in range (m_tr):
-            ##                    str_plt=str(step)+"_"+str(j)
+            # for j in range (m_tr):
+            # str_plt=str(step)+"_"+str(j)
             ##
-            ##                    self.camera_list[i].drawline\
-            ##                    (str_plt+"vec_x0",str_plt+"vec_y0",x0[i][j],y0[i][j],x1[i][j],y1[i][j],"orange")
-            ##                    self.camera_list[i].drawline\
-            ##                    (str_plt+"vec_x1",str_plt+"vec_y1",x1[i][j],y1[i][j],x2[i][j],y2[i][j],"white")
+            # self.camera_list[i].drawline\
+            # (str_plt+"vec_x0",str_plt+"vec_y0",x0[i][j],y0[i][j],x1[i][j],y1[i][j],"orange")
+            # self.camera_list[i].drawline\
+            # (str_plt+"vec_x1",str_plt+"vec_y1",x1[i][j],y1[i][j],x2[i][j],y2[i][j],"white")
             self.load_set_seq_image(step, update_all=False, display_only=True)
             self.camera_list[self.current_camera]._plot.request_redraw()
             time.sleep(0.1)
@@ -1427,7 +1430,8 @@ def main():
         exp_path = os.path.abspath(sys.argv[1])
     else:
         print(
-            "Please provide an experimental directory as an input, fallback to a default\n"
+            "Please provide an experimental directory as an input, \
+            fallback to a default\n"
         )
         exp_path = r"C:\Users\alex\repos\ed_24_2_2022"
 

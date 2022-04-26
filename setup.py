@@ -1,15 +1,15 @@
 from setuptools import setup
 
 requirements = [
-'chaco',
-'enable',
-'numpy',
-'optv',
-'PyQt5',
-'scikit-image',
-'Pygments',
-'six',
-'imagecodecs'
+    'chaco',
+    'enable',
+    'numpy',
+    'optv',
+    'PyQt5',
+    'scikit-image',
+    'Pygments',
+    'six',
+    'imagecodecs'
 ]
 
 setup(
@@ -22,7 +22,7 @@ setup(
     packages=['pyptv'],
     entry_points={
         'console_scripts': [
-    		'pyptv=pyptv.pyptv_gui:main'
+            'pyptv=pyptv.pyptv_gui:main'
         ]
     },
     install_requires=requirements,
