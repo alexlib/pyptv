@@ -1442,7 +1442,7 @@ def main():
     try:
         main_gui = MainGUI(exp_path)
         main_gui.configure_traits()
-    except:
+    except Exception:
         print("something wrong with the software or folder")
         printException()
 
