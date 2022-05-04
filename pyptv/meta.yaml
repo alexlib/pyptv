@@ -1,0 +1,52 @@
+{% set name = "pyptv" %}
+{% set version = "0.1.7" %}
+
+package:
+  name: {{ name|lower }}
+  version: {{ version }}
+
+source:
+  url: https://pypi.io/packages/source/{{ name[0] }}/{{ name }}/pyptv-{{ version }}.tar.gz
+  sha256: dc6d921fae7ed6a175410e1092f78380e8ac64c2cca6c43b1e2b8c13ceb33889
+
+build:
+  entry_points:
+    - pyptv=pyptv.pyptv_gui:main
+  noarch: python
+  script: {{ PYTHON }} -m pip install . -vv
+  number: 0
+
+requirements:
+  host:
+    - pip
+    - python
+  run:
+    - chaco
+    - enable
+    - imagecodecs
+    - numpy
+    - optv
+    - pygments
+    - pyqt
+    - python
+    - scikit-image
+    - six
+
+test:
+  imports:
+    - pyptv
+  commands:
+    - pip check
+    - pyptv --help
+  requires:
+    - pip
+
+about:
+  home: https://github.com/alexlib/pyptv
+  summary: Python GUI for the OpenPTV library `liboptv`
+  license: MIT
+  license_file: LICENSE.txt
+
+extra:
+  recipe-maintainers:
+    - alexlib
