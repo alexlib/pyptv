@@ -32,7 +32,7 @@ jobs:
       - name: Install dependencies
         run: |
           edm shell
-          python -m pip install --upgrade pip
+          edm install enable
           python -m pip install flake8 pytest pyptv \
           --index-url https://pypi.fury.io/pyptv \
           --extra-index-url https://pypi.org/simple
