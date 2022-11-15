@@ -190,7 +190,7 @@ class CalHandler(Handler):
                 calibParams.img_name,
                 calibParams.img_cal,
                 calibParams.hp_flag,
-                calibParams.allCam_flag,
+                calibParams.allcam_flag,
                 calibParams.tiff_head,
                 calibParams.h_image_size,
                 calibParams.v_image_size,
@@ -641,7 +641,7 @@ class Main_Params(HasTraits):
         self.Refr_Glass = ptvParams.mmp_n2
         self.Refr_Water = ptvParams.mmp_n3
         self.Thick_Glass = ptvParams.mmp_d
-        self.Accept_OnlyAllCameras = np.bool(ptvParams.allCam_flag)
+        self.Accept_OnlyAllCameras = np.bool(ptvParams.allcam_flag)
         self.Num_Cam = ptvParams.n_img
         self.HighPass = np.bool(ptvParams.hp_flag)
         # load unused
@@ -735,7 +735,7 @@ class Calib_Params(HasTraits):
     img_name = List
     img_cal = List
     hp_flag = Bool(False, label="highpass")
-    allCam_flag = Bool(False, label="all camera targets")
+    allcam_flag = Bool(False, label="all camera targets")
     mmp_n1 = Float(DEFAULT_FLOAT)
     mmp_n2 = Float(DEFAULT_FLOAT)
     mmp_n3 = Float(DEFAULT_FLOAT)
@@ -1078,7 +1078,7 @@ class Calib_Params(HasTraits):
         self.h_pixel_size = ptvParams.pix_x
         self.v_pixel_size = ptvParams.pix_y
         self.img_cal = ptvParams.img_cal
-        if ptvParams.allCam_flag:
+        if ptvParams.allcam_flag:
             self.pair_enable_flag = False
         else:
             self.pair_enable_flag = True
@@ -1088,7 +1088,7 @@ class Calib_Params(HasTraits):
         self.n_img = ptvParams.n_img
         self.img_name = ptvParams.img_name
         self.hp_flag = np.bool(ptvParams.hp_flag)
-        self.allCam_flag = np.bool(ptvParams.allCam_flag)
+        self.allcam_flag = np.bool(ptvParams.allcam_flag)
         self.mmp_n1 = ptvParams.mmp_n1
         self.mmp_n2 = ptvParams.mmp_n2
         self.mmp_n3 = ptvParams.mmp_n3
