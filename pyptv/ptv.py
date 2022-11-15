@@ -1,6 +1,3 @@
-import time
-import yaml
-
 import os
 import numpy as np
 from optv.calibration import Calibration
@@ -92,7 +89,7 @@ def py_detection_proc_c(list_of_images, cpar, tpar, cals):
 
     pftVersionParams = par.PftVersionParams(path="./parameters")
     pftVersionParams.read()
-    Existing_Target = np.bool(pftVersionParams.Existing_Target)
+    Existing_Target = bool(pftVersionParams.Existing_Target)
 
     detections, corrected = [], []
     for i_cam, img in enumerate(list_of_images):
@@ -125,20 +122,14 @@ def py_correspondences_proc_c(exp):
 
     # Corresp. + positions.
     sorted_pos, sorted_corresp, num_targs = correspondences(
-        exp.detections, exp.corrected, exp.cals, exp.vpar, exp.cpar
-    )
+        exp.detections, exp.corrected, exp.cals, exp.vpar, exp.cpar)
 
     # Save targets only after they've been modified:
     for i_cam in range(exp.n_cams):
         exp.detections[i_cam].write(exp.spar.get_img_base_name(i_cam), frame)
 
-    print(
-        "Frame "
-        + str(frame)
-        + " had "
-        + repr([s.shape[1] for s in sorted_pos])
-        + " correspondences."
-    )
+    print("Frame " + str(frame) + " had " +
+          repr([s.shape[1] for s in sorted_pos]) + " correspondences.")
 
     return sorted_pos, sorted_corresp, num_targs
 
@@ -165,25 +156,24 @@ def py_determination_proc_c(n_cams, sorted_pos, sorted_corresp, corrected):
     sorted_pos = np.concatenate(sorted_pos, axis=1)
     sorted_corresp = np.concatenate(sorted_corresp, axis=1)
 
-    flat = np.array(
-        [corrected[i].get_by_pnrs(sorted_corresp[i]) for i in range(len(cals))]
-    )
+    flat = np.array([
+        corrected[i].get_by_pnrs(sorted_corresp[i]) for i in range(len(cals))
+    ])
     pos, rcm = point_positions(flat.transpose(1, 0, 2), cpar, cals, vpar)
 
     if len(cals) < 4:
         print_corresp = -1 * np.ones((4, sorted_corresp.shape[1]))
-        print_corresp[: len(cals), :] = sorted_corresp
+        print_corresp[:len(cals), :] = sorted_corresp
     else:
         print_corresp = sorted_corresp
 
     # Save rt_is in a temporary file
-    fname = b"".join(
-        [default_naming["corres"], b".123456789"]
-    )  # hard-coded frame number
+    fname = b"".join([default_naming["corres"],
+                      b".123456789"])  # hard-coded frame number
     with open(fname, "w") as rt_is:
         rt_is.write(str(pos.shape[0]) + "\n")
         for pix, pt in enumerate(pos):
-            pt_args = (pix + 1,) + tuple(pt) + tuple(print_corresp[:, pix])
+            pt_args = (pix + 1, ) + tuple(pt) + tuple(print_corresp[:, pix])
             rt_is.write("%4d %9.3f %9.3f %9.3f %4d %4d %4d %4d\n" % pt_args)
     # rt_is.close()
 
@@ -238,31 +228,23 @@ def py_sequence_loop(exp):
 
         # Corresp. + positions.
         sorted_pos, sorted_corresp, num_targs = correspondences(
-            detections, corrected, cals, vpar, cpar
-        )
+            detections, corrected, cals, vpar, cpar)
 
         # Save targets only after they've been modified:
         for i_cam in range(n_cams):
             detections[i_cam].write(spar.get_img_base_name(i_cam), frame)
 
-        print(
-            "Frame "
-            + str(frame)
-            + " had "
-            + repr([s.shape[1] for s in sorted_pos])
-            + " correspondences."
-        )
+        print("Frame " + str(frame) + " had " +
+              repr([s.shape[1] for s in sorted_pos]) + " correspondences.")
 
         # Distinction between quad/trip irrelevant here.
         sorted_pos = np.concatenate(sorted_pos, axis=1)
         sorted_corresp = np.concatenate(sorted_corresp, axis=1)
 
-        flat = np.array(
-            [
-                corrected[i].get_by_pnrs(sorted_corresp[i])
-                for i in range(len(cals))
-            ]
-        )
+        flat = np.array([
+            corrected[i].get_by_pnrs(sorted_corresp[i])
+            for i in range(len(cals))
+        ])
         pos, rcm = point_positions(flat.transpose(1, 0, 2), cpar, cals, vpar)
 
         # if len(cals) == 1: # single camera case
@@ -271,18 +253,17 @@ def py_sequence_loop(exp):
 
         if len(cals) < 4:
             print_corresp = -1 * np.ones((4, sorted_corresp.shape[1]))
-            print_corresp[: len(cals), :] = sorted_corresp
+            print_corresp[:len(cals), :] = sorted_corresp
         else:
             print_corresp = sorted_corresp
 
         # Save rt_is
         print(default_naming["corres"])
-        rt_is = open(
-            default_naming["corres"] + b"." + str(frame).encode(), "w"
-        )
+        rt_is = open(default_naming["corres"] + b"." + str(frame).encode(),
+                     "w")
         rt_is.write(str(pos.shape[0]) + "\n")
         for pix, pt in enumerate(pos):
-            pt_args = (pix + 1,) + tuple(pt) + tuple(print_corresp[:, pix])
+            pt_args = (pix + 1, ) + tuple(pt) + tuple(print_corresp[:, pix])
             rt_is.write("%4d %9.3f %9.3f %9.3f %4d %4d %4d %4d\n" % pt_args)
         rt_is.close()
     # end of a sequence loop
@@ -290,9 +271,8 @@ def py_sequence_loop(exp):
 
 def py_trackcorr_init(exp):
     """Reads all the necessary stuff into Tracker"""
-    tracker = Tracker(
-        exp.cpar, exp.vpar, exp.track_par, exp.spar, exp.cals, default_naming
-    )
+    tracker = Tracker(exp.cpar, exp.vpar, exp.track_par, exp.spar, exp.cals,
+                      default_naming)
     return tracker
 
 
@@ -439,26 +419,21 @@ def py_multiplanecalibration(exp):
 
             if np.any(detected == -999):
                 raise ValueError(
-                    (
-                        "Using undetected points in {} will cause "
-                        + "silliness. Quitting."
-                    ).format(file_detected)
-                )
+                    ("Using undetected points in {} will cause " +
+                     "silliness. Quitting.").format(file_detected))
 
             num_known = len(known)
             num_detect = len(detected)
 
             if num_known != num_detect:
                 raise ValueError(
-                    "Number of detected points (%d) does not match"
-                    + " number of known points (%d) for %s, %s"
-                    % (num_known, num_detect, file_known, file_detected)
-                )
+                    "Number of detected points (%d) does not match" +
+                    " number of known points (%d) for %s, %s" %
+                    (num_known, num_detect, file_known, file_detected))
 
             if len(all_known) > 0:
-                detected[:, 0] = (
-                    all_detected[-1][-1, 0] + 1 + np.arange(len(detected))
-                )
+                detected[:, 0] = (all_detected[-1][-1, 0] + 1 +
+                                  np.arange(len(detected)))
 
             # Append to list of total known and detected points
             all_known.append(known)
@@ -514,12 +489,10 @@ def py_multiplanecalibration(exp):
                 flags.append(name)
 
         # Run the multiplane calibration
-        residuals, targ_ix, err_est = full_calibration(
-            exp.cals[0], all_known, targs, exp.cpar, flags
-        )
+        residuals, targ_ix, err_est = full_calibration(exp.cals[0], all_known,
+                                                       targs, exp.cpar, flags)
 
         # Save the results
-        exp._write_ori(
-            i_cam, addpar_flag=True
-        )  # addpar_flag to save addpar file
+        exp._write_ori(i_cam,
+                       addpar_flag=True)  # addpar_flag to save addpar file
         print("End multiplane")

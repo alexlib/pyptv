@@ -162,7 +162,7 @@ class PtvParams(Parameters):
     #     img_name = List
     #     img_cal = List
     #     hp_flag = Bool
-    #     allCam_flag = Bool
+    #     allcam_flag = Bool
     #     tiff_flag = Bool
     #     imx = Int
     #     imy = Int
@@ -180,7 +180,7 @@ class PtvParams(Parameters):
         img_name=List,
         img_cal=List,
         hp_flag=Bool,
-        allCam_flag=Bool,
+        allcam_flag=Bool,
         tiff_flag=Bool,
         imx=Int,
         imy=Int,
@@ -199,7 +199,7 @@ class PtvParams(Parameters):
             self.img_name,
             self.img_cal,
             self.hp_flag,
-            self.allCam_flag,
+            self.allcam_flag,
             self.tiff_flag,
             self.imx,
             self.imy,
@@ -215,7 +215,7 @@ class PtvParams(Parameters):
             img_name,
             img_cal,
             hp_flag,
-            allCam_flag,
+            allcam_flag,
             tiff_flag,
             imx,
             imy,
@@ -233,9 +233,9 @@ class PtvParams(Parameters):
 
     def read(self):
         if not os.path.isfile(self.filepath()):
-            warning("%s does not exist " % self.filepath())
+            warning(f"{self.filepath()} does not exist ")
         try:
-            with open(self.filepath(), "r") as f:
+            with open(self.filepath(), "r", encoding="utf8") as f:
                 self.n_img = int(g(f))
 
                 self.img_name = [None] * max_cam
@@ -246,7 +246,7 @@ class PtvParams(Parameters):
                     self.img_cal[i] = g(f)
 
                 self.hp_flag = int(g(f)) != 0
-                self.allCam_flag = int(g(f)) != 0
+                self.allcam_flag = int(g(f)) != 0
                 self.tiff_flag = int(g(f)) != 0
                 self.imx = int(g(f))
                 self.imy = int(g(f))
@@ -276,7 +276,7 @@ class PtvParams(Parameters):
                     f.write("%s\n" % self.img_cal[i])
 
                 f.write("%d\n" % self.hp_flag)
-                f.write("%d\n" % self.allCam_flag)
+                f.write("%d\n" % self.allcam_flag)
                 f.write("%d\n" % self.tiff_flag)
                 f.write("%d\n" % self.imx)
                 f.write("%d\n" % self.imy)
