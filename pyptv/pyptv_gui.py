@@ -458,7 +458,7 @@ class TreeMenuHandler(traitsui.api.Handler):
         directory_dialog = DirectoryEditorDialog()
         directory_dialog.edit_traits()
         exp_path = directory_dialog.dir_name
-        print("Changing experimental path to %s" % exp_path)
+        print(f"Changing experimental path to {exp_path}")
         os.chdir(exp_path)
         info.object.exp1.populate_runs(exp_path)
 

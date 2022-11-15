@@ -13,7 +13,10 @@ par_dir_prefix = "parameters"
 max_cam = 4
 
 
-def g(f): return f.readline().strip()
+def g(f):
+    """ Returns a line without white spaces """
+    return f.readline().strip()
+
 
 # Base class for all parameters classes
 
@@ -289,13 +292,12 @@ class PtvParams(Parameters):
                 f.write("%g\n" % self.mmp_d)
                 return True
         except IOError:
-            error(None, "Error writing %s." % self.filepath())
+            error(None, f"Error writing {self.filepath()}.")
             return False
 
 
 class CalOriParams(Parameters):
-    # calibration parameters
-    """
+    """ calibration parameters:
     cal_ori.par:    calibration plate, images, orientation files
     ptv/ssc_cal.c3d control point file (point number, X, Y, Z in [mm], ASCII
     kal1    calibration
