@@ -1,7 +1,7 @@
 """ PyPTV_GUI is the GUI for the OpenPTV (www.openptv.net) written in
 Python with Traits, TraitsUI, Numpy, Scipy and Chaco
 
-Copyright (c) 2008-2017, Tel Aviv University
+Copyright (c) 2008-2023, Turbulence Structure Laboratory, Tel Aviv University
 The software is distributed under the terms of MIT-like license
 http://opensource.org/licenses/MIT
 
