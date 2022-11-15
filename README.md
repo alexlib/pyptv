@@ -1,8 +1,8 @@
 # PyPTV
 Python GUI for the OpenPTV library `liboptv`
 
-
-[![Build Status](https://travis-ci.org/alexlib/pyptv.svg?branch=master)](https://travis-ci.org/alexlib/pyptv) [![DOI](https://zenodo.org/badge/121291437.svg)](https://zenodo.org/badge/latestdoi/121291437)
+[![Python package](https://github.com/alexlib/pyptv/actions/workflows/python-package.yml/badge.svg)](https://github.com/alexlib/pyptv/actions/workflows/python-package.yml)
+[![DOI](https://zenodo.org/badge/121291437.svg)](https://zenodo.org/badge/latestdoi/121291437)
 
 
 
@@ -22,9 +22,12 @@ Both PyPTV and the OpenPTV library are in the development phase and continuously
 
 https://openptv-python.readthedocs.io/en/latest/installation_instruction.html
 
-	python -m pip install --upgrade pip
-	pip install numpy
-	pip install pyptv --index-url https://pypi.fury.io/pyptv --extra-index-url https://pypi.org/simple
+	conda create -n pyptv_py39 python=3.9 -y
+	conda activate pyptv_py39
+	conda install swig pyyaml -y
+	pip install git+https://github.com/enthought/enable
+	pip install optv --index-url https://pypi.fury.io/pyptv
+	pip install pyptv
 
 
 Follow the instructions in our **screencasts and tutorials**:
