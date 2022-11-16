@@ -1,3 +1,4 @@
+import pathlib
 import os
 import numpy as np
 from optv.calibration import Calibration
@@ -206,28 +207,30 @@ def py_sequence_loop(exp):
             if Existing_Target:
                 targs = read_targets(spar.get_img_base_name(i_cam), frame)
             else:
-                imname = spar.get_img_base_name(i_cam) + str(frame).encode()
-                print(imname)
-                if not os.path.exists(imname):
-                    print(os.path.abspath(os.path.curdir))
-                    print("{0} does not exist".format(imname))
+                # imname = spar.get_img_base_name(i_cam) + str(frame).encode()
+                imname = spar.get_img_base_name(i_cam).decode()
+                imname = pathlib.Path(imname.replace('#',f'{frame}'))
+                print(f'Image name {imname}')
 
-                img = imread(imname.decode())
+                if not imname.exists():
+                    print(f"{imname} does not exist")
+
+                img = imread(imname)
                 # time.sleep(.1) # I'm not sure we need it here
-                hp = simple_highpass(img, cpar)
-                targs = target_recognition(hp, tpar, i_cam, cpar)
+                high_pass = simple_highpass(img, cpar)
+                targs = target_recognition(high_pass, tpar, i_cam, cpar)
 
             targs.sort_y()
             detections.append(targs)
-            mc = MatchedCoords(targs, cpar, cals[i_cam])
-            pos, pnr = mc.as_arrays()
-            corrected.append(mc)
+            masked_coords = MatchedCoords(targs, cpar, cals[i_cam])
+            pos, _ = masked_coords.as_arrays()
+            corrected.append(masked_coords)
 
         #        if any([len(det) == 0 for det in detections]):
         #            return False
 
         # Corresp. + positions.
-        sorted_pos, sorted_corresp, num_targs = correspondences(
+        sorted_pos, sorted_corresp, _ = correspondences(
             detections, corrected, cals, vpar, cpar)
 
         # Save targets only after they've been modified:
@@ -245,7 +248,7 @@ def py_sequence_loop(exp):
             corrected[i].get_by_pnrs(sorted_corresp[i])
             for i in range(len(cals))
         ])
-        pos, rcm = point_positions(flat.transpose(1, 0, 2), cpar, cals, vpar)
+        pos, _ = point_positions(flat.transpose(1, 0, 2), cpar, cals, vpar)
 
         # if len(cals) == 1: # single camera case
         #     sorted_corresp = np.tile(sorted_corresp,(4,1))
@@ -259,13 +262,14 @@ def py_sequence_loop(exp):
 
         # Save rt_is
         print(default_naming["corres"])
-        rt_is = open(default_naming["corres"] + b"." + str(frame).encode(),
-                     "w")
-        rt_is.write(str(pos.shape[0]) + "\n")
-        for pix, pt in enumerate(pos):
-            pt_args = (pix + 1, ) + tuple(pt) + tuple(print_corresp[:, pix])
-            rt_is.write("%4d %9.3f %9.3f %9.3f %4d %4d %4d %4d\n" % pt_args)
-        rt_is.close()
+        rt_is_filename = default_naming["corres"].decode()
+        rt_is_filename = rt_is_filename + f'.{frame}'
+        with open(rt_is_filename, "w", encoding="utf8") as rt_is:
+            rt_is.write(str(pos.shape[0]) + "\n")
+            for pix, pt in enumerate(pos):
+                pt_args = (pix + 1, ) + tuple(pt) + tuple(print_corresp[:, pix])
+                rt_is.write("%4d %9.3f %9.3f %9.3f %4d %4d %4d %4d\n" % pt_args)
+        # rt_is.close()
     # end of a sequence loop
 
 

@@ -458,7 +458,7 @@ class TreeMenuHandler(traitsui.api.Handler):
         directory_dialog = DirectoryEditorDialog()
         directory_dialog.edit_traits()
         exp_path = directory_dialog.dir_name
-        print("Changing experimental path to %s" % exp_path)
+        print(f"Changing experimental path to {exp_path}")
         os.chdir(exp_path)
         info.object.exp1.populate_runs(exp_path)
 
@@ -848,6 +848,61 @@ class TreeMenuHandler(traitsui.api.Handler):
         info.object.plugins.read()
         info.object.plugins.configure_traits()
 
+    def ptv_is_to_paraview(self, info):
+        """ Button that runs the ptv_is.# conversion to Paraview """
+
+        print("Saving trajectories for Paraview\n")
+        info.object.clear_plots(remove_background=False)
+        seq_first = info.object.exp1.active_params.m_params.Seq_First
+        seq_last = info.object.exp1.active_params.m_params.Seq_Last
+        info.object.load_set_seq_image(seq_first, display_only=True)
+
+        # borrowed from flowtracks that does much better job on this
+        # I think it's too much to import also postptv here, later
+        # we will make a single conda package for the full stack
+
+        # Example notebook translating OpenPTV files for Paraview using flowtracks
+        import pandas as pd
+        from flowtracks.io import trajectories_ptvis
+
+        dataset = trajectories_ptvis('res/ptv_is.%d',xuap=False)
+
+
+        dataframes = []
+        for traj in dataset:
+            dataframes.append(
+                pd.DataFrame.from_records(
+                    traj,
+                    columns=['x','y','z','Vx','Vy','Vz','frame','Particle']
+                )
+            )
+
+
+        df = pd.concat(dataframes,ignore_index=True)
+
+
+        df['Particle'] = df['Particle'].astype(np.int32)
+
+        # Paraview does not recognize it as a set without _000001.txt, so we the first 10000
+        # ptv_is.10001 is becoming ptv_00001.txt
+
+        df['frame'] = df['frame'].astype(np.int32) - 10000
+
+
+        df.reset_index(inplace=True, drop=True)
+        df.head()
+
+
+        df_grouped = df.reset_index().groupby('frame')
+        for index, group in df_grouped:
+            group.to_csv(
+                f'./res/ptv_{int(index):05d}.txt',
+                mode='w',
+                columns=['particle','x','y','z','dx','dy','dz'], 
+                index=False
+                )
+
+        print("Saving trajectories to Paraview finished\n")
 
 # ----------------------------------------------------------------
 # Actions associated with right mouse button clicks (treeeditor)
@@ -948,6 +1003,11 @@ menu_bar = MenuBar(
         Action(
             name="Show trajectories",
             action="traject_action",
+            enabled_when="pass_init",
+        ),
+        Action(
+            name="Save Paraview files",
+            action="ptv_is_to_paraview",
             enabled_when="pass_init",
         ),
         name="Tracking",
