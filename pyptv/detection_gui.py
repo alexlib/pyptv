@@ -1,4 +1,3 @@
-#!/Users/alex/anaconda3/envs/py27/bin/pythonw
 """
 Copyright (c) 2008-2013, Tel Aviv University
 Copyright (c) 2013 - the OpenPTV team
@@ -6,40 +5,30 @@ The GUI software is distributed under the terms of MIT-like license
 http://opensource.org/licenses/MIT
 """
 
+import os
+import pathlib
+import numpy as np
 
 from traits.api \
-    import HasTraits, Str, Int, List, Bool, Instance, Button, Range, Enum 
+    import HasTraits, Str, Int, Bool, Instance, Button, Range, Enum 
 from traitsui.api import View, Item, HGroup, VGroup, ListEditor
 from enable.component_editor import ComponentEditor
 from chaco.api import Plot, ArrayPlotData, gray, \
     ImagePlot, ArrayDataSource, LinearMapper
 # from traitsui.menu import MenuBar, ToolBar, Menu, Action
 from chaco.tools.image_inspector_tool import ImageInspectorTool
-from chaco.tools.simple_zoom import SimpleZoom
-from text_box_overlay import TextBoxOverlay
-from code_editor import codeEditor
-from quiverplot import QuiverPlot
+from chaco.tools.better_zoom import BetterZoom as SimpleZoom
 
-import numpy as np
 from skimage.io import imread
 from skimage import img_as_ubyte
 from skimage.color import rgb2gray
-import os
-import shutil
-import re
 
-from optv.imgcoord import image_coordinates
-from optv.transforms import convert_arr_metric_to_pixel
-from optv.orientation import match_detection_to_ref
-from optv.segmentation import target_recognition
-from optv.orientation import external_calibration, full_calibration
-from optv.calibration import Calibration
-from optv.tracking_framebuf import TargetArray
+from optv import segmentation
+import ptv
 
+from text_box_overlay import TextBoxOverlay
+from quiverplot import QuiverPlot
 
-import ptv as ptv
-import parameter_gui as pargui
-import parameters as par
 
 
 # -------------------------------------------
@@ -93,6 +82,7 @@ class ClickerTool(ImageInspectorTool):
 # ----------------------------------------------------------
 
 class PlotWindow(HasTraits):
+    """ Plot window traits component """
     _plot_data = Instance(ArrayPlotData)
     _plot = Instance(Plot)
     _click_tool = Instance(ClickerTool)
@@ -281,6 +271,7 @@ class PlotWindow(HasTraits):
 
 
 class DetectionGUI(HasTraits):
+    """ detection GUI """
     status_text = Str(" status ")
     # -------------------------------------------------------------
     
@@ -295,7 +286,7 @@ class DetectionGUI(HasTraits):
     # ---------------------------------------------------
     # Constructor
     # ---------------------------------------------------
-    def __init__(self, par_path):
+    def __init__(self, par_path: pathlib.Path):
         """ Initialize DetectionGUI
 
             Inputs:
@@ -309,22 +300,24 @@ class DetectionGUI(HasTraits):
 
         # self.active_path = active_path
         self.par_path = par_path
-        self.working_folder = os.path.split(self.par_path)[0]
+        self.working_folder = self.par_path.parent
         # self.par_path = os.path.join(self.working_folder, 'parameters')
 
         # print('active path = %s' % self.active_path)
-        print('working_folder = %s' % self.working_folder)
-        print('par_path = %s' % self.par_path)
+        print(f'working_folder = {self.working_folder}')
+        print(f'par_path = {self.par_path}')
+
+
+
 
         # par.copy_params_dir(self.active_path, self.par_path)
-
-        os.chdir(os.path.abspath(self.working_folder))
-        print("Inside a folder: ", os.getcwd())
+        os.chdir(self.working_folder)
+        print(f"Inside a folder: {pathlib.Path()}")
         # read parameters
-        with open(os.path.join(self.par_path, 'ptv.par'), 'r') as f:
+        with open( (self.par_path / 'ptv.par'), 'r', encoding="utf-8") as f:
             self.n_cams = int(f.readline())
 
-        print("Loading images/parameters \n")
+        print(f"Loading images/parameters in {self.n_cams} cams \n")
 
         # copy parameters from active to default folder parameters/
         # par.copy_params_dir(self.active_path, self.par_path)
@@ -333,7 +326,7 @@ class DetectionGUI(HasTraits):
         self.cpar, self.spar, self.vpar, self.track_par, self.tpar, \
         self.cals, self.epar = ptv.py_start_proc_c(self.n_cams)
 
-        self.tpar.read('parameters/detect_plate.par')
+        self.tpar.read(b'parameters/detect_plate.par')
 
         tmp = self.tpar.get_grey_thresholds()
         pixel_count_bounds = self.tpar.get_pixel_count_bounds()
@@ -463,8 +456,12 @@ class DetectionGUI(HasTraits):
         self.reset_show_images()
 
     def _read_cal_image(self):
-            # read Detection images
-        im = imread(self.cpar.get_cal_img_base_name(self.i_cam-1))
+        # read Detection images
+        imname = self.cpar.get_cal_img_base_name(self.i_cam-1)
+        print(f'imname is {imname} and its string is {imname.decode("utf-8")}')
+
+        im = imread(imname.decode('utf-8'))
+        print(f'image size is {im.shape}')
         if im.ndim > 2:
             im = rgb2gray(im)
 
@@ -478,7 +475,7 @@ class DetectionGUI(HasTraits):
         # self.detections, corrected = \
         #     ptv.py_detection_proc_c([self.cal_image], self.cpar, self.tpar, self.cals)
 
-        targs = target_recognition(self.cal_image, self.tpar, self.i_cam-1, self.cpar)
+        targs = segmentation.target_recognition(self.cal_image, self.tpar, self.i_cam-1, self.cpar)
         targs.sort_y()
 
         x = [i.pos()[0] for i in targs]
@@ -494,8 +491,7 @@ class DetectionGUI(HasTraits):
 
     def reset_plots(self):
         """ Resets all the images and overlays """
-        self.camera[0]._plot.delplot(
-            *self.camera[0]._plot.plots.keys()[0:])
+        self.camera[0]._plot.delplot(*self.camera[0]._plot.plots.keys())
         self.camera[0]._plot.overlays = []
         for j in range(len(self.camera[0]._quiverplots)):
             self.camera[0]._plot.remove(self.camera[0]._quiverplots[j])
@@ -517,11 +513,12 @@ class DetectionGUI(HasTraits):
 
 if __name__ == "__main__":
     import sys
+    import pathlib
 
     if len(sys.argv) == 1:
-        par_path = '/Users/alex/Documents/OpenPTV/test_cavity/parameters'
+        par_path = pathlib.Path('../test_cavity/parameters')
     else:
-        par_path = sys.argv[0]
+        par_path = pathlib.Path(sys.argv[0])
 
     detection_gui = DetectionGUI(par_path)
     detection_gui.configure_traits()
