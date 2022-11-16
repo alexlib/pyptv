@@ -171,7 +171,7 @@ def py_determination_proc_c(n_cams, sorted_pos, sorted_corresp, corrected):
     # Save rt_is in a temporary file
     fname = b"".join([default_naming["corres"],
                       b".123456789"])  # hard-coded frame number
-    with open(fname, "w") as rt_is:
+    with open(fname, "w", encoding='utf8') as rt_is:
         rt_is.write(str(pos.shape[0]) + "\n")
         for pix, pt in enumerate(pos):
             pt_args = (pix + 1, ) + tuple(pt) + tuple(print_corresp[:, pix])
@@ -199,7 +199,7 @@ def py_sequence_loop(exp):
 
     # sequence loop for all frames
     for frame in range(spar.get_first(), spar.get_last() + 1):
-        print("processing frame %d" % frame)
+        print(f"processing {frame} frame")
 
         detections = []
         corrected = []
@@ -261,7 +261,6 @@ def py_sequence_loop(exp):
             print_corresp = sorted_corresp
 
         # Save rt_is
-        print(default_naming["corres"])
         rt_is_filename = default_naming["corres"].decode()
         rt_is_filename = rt_is_filename + f'.{frame}'
         with open(rt_is_filename, "w", encoding="utf8") as rt_is:

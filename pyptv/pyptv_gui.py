@@ -873,15 +873,13 @@ class TreeMenuHandler(traitsui.api.Handler):
             dataframes.append(
                 pd.DataFrame.from_records(
                     traj,
-                    columns=['x','y','z','Vx','Vy','Vz','frame','Particle']
+                    columns=['x','y','z','dx','dy','dz','frame','particle']
                 )
             )
 
 
-        df = pd.concat(dataframes,ignore_index=True)
-
-
-        df['Particle'] = df['Particle'].astype(np.int32)
+        df = pd.concat(dataframes, ignore_index=True)
+        df['particle'] = df['particle'].astype(np.int32)
 
         # Paraview does not recognize it as a set without _000001.txt, so we the first 10000
         # ptv_is.10001 is becoming ptv_00001.txt
@@ -890,7 +888,7 @@ class TreeMenuHandler(traitsui.api.Handler):
 
 
         df.reset_index(inplace=True, drop=True)
-        df.head()
+        print(df.head())
 
 
         df_grouped = df.reset_index().groupby('frame')
@@ -1352,32 +1350,50 @@ class MainGUI(traits.api.HasTraits):
             self.tr_thread.can_continue = True
             self.update_thread_plot = False
 
-    def load_set_seq_image(self, seq, update_all=True, display_only=False):
+    def load_set_seq_image(self, seq: int, update_all=True, display_only=False):
+        """ load and set sequence image
+
+        Args:
+            seq (_type_): sequance properties 
+            update_all (bool, optional): _description_. Defaults to True.
+            display_only (bool, optional): _description_. Defaults to False.
+        """
         n_cams = len(self.camera_list)
         if not hasattr(self, "base_name"):
             self.base_name = []
             for i in range(n_cams):
                 exec("self.base_name.append" +
                      f"(self.exp1.active_params.m_params.Basename_{i+1}_Seq)")
-                print(self.base_name[i])
+                print(f' base name in GUI is {self.base_name[i]}')
 
-        i = seq
-        seq_ch = "%04d" % i
+        # i = seq
+        seq_ch = f'{seq:04d}'
 
         if not update_all:
             j = self.current_camera
-            img_name = self.base_name[j] + seq_ch
+            # img_name = self.base_name[j] + seq_ch
+            img_name = self.base_name[j].replace('#',seq_ch)
+            print(f'Image name in load_set_seq is {img_name}')
             self.load_disp_image(img_name, j, display_only)
         else:
             for j in range(n_cams):
-                img_name = self.base_name[j] + seq_ch
+                # img_name = self.base_name[j] + seq_ch
+                img_name = self.base_name[j].replace('#',seq_ch)
+                print(f'Image name in load_set_seq is {img_name}')
                 self.load_disp_image(img_name, j, display_only)
 
-    def load_disp_image(self, img_name, j, display_only=False):
-        print("Setting image: %s" % str(img_name))
+    def load_disp_image(self, img_name: str, j: int, display_only: bool=False):
+        """load and display image
+
+        Args:
+            img_name (_type_): filename of the image
+            j (_type_): integer counter 
+            display_only (bool, optional): display only. Defaults to False.
+        """
+        print(f'Setting image: {img_name}')
         try:
             temp_img = img_as_ubyte(imread(img_name))
-        except BaseException:
+        except IOError:
             print("Error reading file, setting zero image")
             h_img = self.exp1.active_params.m_params.imx
             v_img = self.exp1.active_params.m_params.imy
