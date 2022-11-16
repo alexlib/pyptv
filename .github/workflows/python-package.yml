@@ -30,6 +30,7 @@ jobs:
       - name: Install Python packages
         run: |
           edm install -y enable --version=3.8
+          edm install -y numpy 
           edm shell
           edm run -- python -m pip install flake8 pytest pyptv \
           --index-url https://pypi.fury.io/pyptv \
