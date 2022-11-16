@@ -44,4 +44,4 @@ jobs:
       - name: Test with pytest
         run: |
           git clone https://github.com/openptv/test_cavity
-          edm run -- pytest
+          edm run -- pytest --verbose
