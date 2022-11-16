@@ -29,9 +29,8 @@ jobs:
           edm-version: 3.1.1
       - name: Install Python packages
         run: |
-          edm environments create pyptv --version=3.8
-          edm install -y enable --environment pyptv
-          edm shell --environment pyptv
+          edm install -y enable
+          edm shell
           edm run -- python -m pip install flake8 pytest pyptv \
           --index-url https://pypi.fury.io/pyptv \
           --extra-index-url https://pypi.org/simple
@@ -44,5 +43,4 @@ jobs:
       - name: Test with pytest
         run: |
           git clone https://github.com/openptv/test_cavity
-          edm shell --environment pyptv
           edm run -- pytest
