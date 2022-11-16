@@ -1,6 +1,0 @@
-optv
-numpy==1.16.1
-scikits-image
-chaco
-enable
-future
