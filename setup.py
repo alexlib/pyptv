@@ -1,12 +1,23 @@
 from setuptools import setup
 
 requirements = [
-    # package requirements go here
+    'chaco',
+    'enable',
+    'numpy',
+    'optv',
+    'PyQt5',
+    'scikit-image',
+    'Pygments',
+    'six',
+    'imagecodecs',
+    'flowtracks',
+    'pandas',
+    'tables'
 ]
 
 setup(
     name='pyptv',
-    version='0.1.0',
+    version='0.1.8',
     description='Python GUI for the OpenPTV library `liboptv`',
     author="Alex Liberzon",
     author_email='alex.liberzon@gmail.com',
@@ -14,12 +25,12 @@ setup(
     packages=['pyptv'],
     entry_points={
         'console_scripts': [
-            'pyptv=pyptv.cli:cli'
+            'pyptv=pyptv.pyptv_gui:main'
         ]
     },
     install_requires=requirements,
     keywords='pyptv',
     classifiers=[
-        'Programming Language :: Python :: 2.7'
+        'Programming Language :: Python :: 3'
     ]
 )

@@ -1,8 +1,8 @@
 # PyPTV
 Python GUI for the OpenPTV library `liboptv`
 
-
-[![Build Status](https://travis-ci.org/alexlib/pyptv.svg?branch=master)](https://travis-ci.org/alexlib/pyptv) [![DOI](https://zenodo.org/badge/121291437.svg)](https://zenodo.org/badge/latestdoi/121291437)
+[![Python package](https://github.com/alexlib/pyptv/actions/workflows/python-package.yml/badge.svg)](https://github.com/alexlib/pyptv/actions/workflows/python-package.yml)
+[![DOI](https://zenodo.org/badge/121291437.svg)](https://zenodo.org/badge/latestdoi/121291437)
 
 
 
@@ -14,42 +14,15 @@ Both PyPTV and the OpenPTV library are in the development phase and continuously
 	openptv@googlegroups.com
 
 
-## Documentation, including installation instructions of liboptv
+## Documentation:
 
 <http://openptv-python.readthedocs.io>
 
+## Installation instructions
 
-## Installing this package, pyptv, using Anaconda:
-
-        git clone http://github.com/alexlib/pyptv.git pyptv
-        cd pyptv
-        conda create -n pyptv --file requirements.txt
-
-### Activate your package, enter the `liboptv` bindings and add the `optv` to the packages:
-
-		conda activate pyptv
-		cd ~/openptv/py_bind
-		python setup.py install
-	
-* If Cython is missing, add it using:
-
-		conda install cython -n pyptv
-		python setup.py install
+https://openptv-python.readthedocs.io/en/latest/installation_instruction.html
 
 
-## Getting started:
-
-If the compilation passed, open the terminal and run:  
-
-		python pyptv_gui/pyptv_gui.py ../test_cavity
-		
-or:  
-
-		pythonw pyptv_gui/pyptv_gui.py ../test_cavity
-		
-It is possible to install wxPython instead of PyQt4, and switch between those:  
-
-		ETS_TOOLKIT=qt4 python pyptv_gui/pyptv_gui.py ../test_cavity
 
 Follow the instructions in our **screencasts and tutorials**:
   
