@@ -884,7 +884,7 @@ class TreeMenuHandler(traitsui.api.Handler):
         # Paraview does not recognize it as a set without _000001.txt, so we the first 10000
         # ptv_is.10001 is becoming ptv_00001.txt
 
-        df['frame'] = df['frame'].astype(np.int32) - 10000
+        df['frame'] = df['frame'].astype(np.int32)
 
 
         df.reset_index(inplace=True, drop=True)
