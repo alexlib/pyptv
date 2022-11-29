@@ -961,8 +961,8 @@ class CalibrationGUI(HasTraits):
                     self.cpar,
                     flags,
                 )
-            except BaseException:
-                raise ValueError("full calibration failed\n")
+            except BaseException as exc:
+                raise ValueError("full calibration failed\n") from exc
             # save the results
             self._write_ori(i_cam, addpar_flag=True)
 
