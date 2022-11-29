@@ -604,6 +604,7 @@ class CalibrationGUI(HasTraits):
             self.camera[i]._right_click_avail = 1
 
     def _button_manual_fired(self):
+        print('Start manual orientation, use clicks')
         points_set = True
         for i in range(self.n_cams):
             if len(self.camera[i]._x) < 4:
@@ -613,19 +614,20 @@ class CalibrationGUI(HasTraits):
 
         if points_set:
             man_ori_path = os.path.join(os.getcwd(), "man_ori.dat")
-            f = open(man_ori_path, "w")
-            if f is None:
-                self.status_text = "Error saving man_ori.dat."
-            else:
-                for i in range(self.n_cams):
-                    for j in range(4):
-                        f.write(
-                            "%f %f\n"
-                            % (self.camera[i]._x[j], self.camera[i]._y[j])
-                        )
+            print(f'Manual orientation file is {man_ori_path}')
+            with open(man_ori_path, "w", encoding="utf-8") as f:
+                if f is None:
+                    self.status_text = "Error saving man_ori.dat."
+                else:
+                    for i in range(self.n_cams):
+                        for j in range(4):
+                            f.write(
+                                "%f %f\n"
+                                % (self.camera[i]._x[j], self.camera[i]._y[j])
+                            )
 
-                self.status_text = "man_ori.dat saved."
-                f.close()
+                    self.status_text = "man_ori.dat saved."
+                    # f.close()
         else:
             self.status_text = (
                 "Set 4 points on each calibration image for manual orientation"
@@ -1064,6 +1066,7 @@ class CalibrationGUI(HasTraits):
         self.status_text = "Orientation with particles finished."
 
     def _button_restore_orient_fired(self):
+        print("Restoring ORI files\n")
         self.restore_ori_files()
 
     def reset_plots(self):
@@ -1117,6 +1120,7 @@ class CalibrationGUI(HasTraits):
         calOriParams = par.CalOriParams(self.n_cams, path=self.par_path)
         calOriParams.read()
         for f in calOriParams.img_ori[: self.n_cams]:
+            print(f"Backing up {f}")
             shutil.copyfile(f, f + ".bck")
             g = f.replace("ori", "addpar")
             shutil.copyfile(g, g + ".bck")
@@ -1127,7 +1131,7 @@ class CalibrationGUI(HasTraits):
         calOriParams.read()
 
         for f in calOriParams.img_ori[: self.n_cams]:
-            print("restored %s " % f)
+            print(f"Restoring {f}")
             shutil.copyfile(f + ".bck", f)
             g = f.replace("ori", "addpar")
             shutil.copyfile(g + ".bck", g)

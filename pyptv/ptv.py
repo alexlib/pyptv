@@ -171,12 +171,21 @@ def py_determination_proc_c(n_cams, sorted_pos, sorted_corresp, corrected):
     # Save rt_is in a temporary file
     fname = b"".join([default_naming["corres"],
                       b".123456789"])  # hard-coded frame number
-    with open(fname, "w", encoding='utf8') as rt_is:
-        rt_is.write(str(pos.shape[0]) + "\n")
-        for pix, pt in enumerate(pos):
-            pt_args = (pix + 1, ) + tuple(pt) + tuple(print_corresp[:, pix])
-            rt_is.write("%4d %9.3f %9.3f %9.3f %4d %4d %4d %4d\n" % pt_args)
+    print(f'Prepared {fname} to write positions\n')
+
+    try:
+        with open(fname, "w", encoding='utf-8') as rt_is:
+            print(f'Opened {fname} \n')
+            rt_is.write(str(pos.shape[0]) + "\n")
+            for pix, pt in enumerate(pos):
+                pt_args = (pix + 1, ) + tuple(pt) + tuple(print_corresp[:, pix])
+                rt_is.write("%4d %9.3f %9.3f %9.3f %4d %4d %4d %4d\n" % pt_args)
+    except FileNotFoundError:
+        msg = "Sorry, the file "+ fname + "does not exist."
+        print(msg) # Sorry, the file John.txt does not exist.
+
     # rt_is.close()
+
 
 
 def py_sequence_loop(exp):

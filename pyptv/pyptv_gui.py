@@ -959,7 +959,7 @@ menu_bar = MenuBar(
     Menu(
         Action(
             name="3D positions",
-            action="threed_positions",
+            action="three_d_positions",
             enabled_when="pass_init",
         ),
         name="3D Positions",
@@ -1430,10 +1430,11 @@ def main():
     if len(sys.argv) > 1:
         exp_path = os.path.abspath(sys.argv[1])
     else:
-        print(
-            "Please provide an experimental directory as an input,            "
-            " fallback to a default\n")
         exp_path = software_path.parent / "test_cavity"
+        exp_path = '/home/user/Downloads/Test_7_no_images_alex'
+        print(f"Please provide an experimental directory \
+            as an input, fallback to a default {exp_path} \n")
+        
 
     if not os.path.isdir(exp_path):
         raise OSError(f"Wrong experimental directory {exp_path}")

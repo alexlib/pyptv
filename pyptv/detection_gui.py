@@ -6,6 +6,7 @@ http://opensource.org/licenses/MIT
 """
 
 import os
+import sys
 import pathlib
 import numpy as np
 
@@ -299,6 +300,7 @@ class DetectionGUI(HasTraits):
         self.need_reset = 0
 
         # self.active_path = active_path
+        print(f'par_path is {par_path}')
         self.par_path = par_path
         self.working_folder = self.par_path.parent
         # self.par_path = os.path.join(self.working_folder, 'parameters')
@@ -413,41 +415,41 @@ class DetectionGUI(HasTraits):
         tmp[self.i_cam-1] = self.grey_thresh
         self.tpar.set_grey_thresholds(tmp)
         # run detection again
-        self._button_detection_fired()
+        # self._button_detection_fired()
 
     def _min_npix_changed(self):
         pixel_counts = self.tpar.get_pixel_count_bounds()
         self.tpar.set_pixel_count_bounds((self.min_npix,pixel_counts[1]))
-        self._button_detection_fired()
+        # self._button_detection_fired()
 
     def _max_npix_changed(self):
         pixel_counts = self.tpar.get_pixel_count_bounds()
         self.tpar.set_pixel_count_bounds((pixel_counts[0],self.max_npix))
-        self._button_detection_fired()
+        # self._button_detection_fired()
 
     def _min_npix_x_changed(self):
         pixel_counts = self.tpar.get_xsize_bounds()
         self.tpar.set_xsize_bounds((self.min_npix_x,pixel_counts[1]))
-        self._button_detection_fired()
+        # self._button_detection_fired()
 
     def _max_npix_x_changed(self):
         pixel_counts = self.tpar.get_xsize_bounds()
         self.tpar.set_xsize_bounds((pixel_counts[0],self.max_npix_x))
-        self._button_detection_fired()
+        # self._button_detection_fired()
 
     def _min_npix_y_changed(self):
         pixel_counts = self.tpar.get_ysize_bounds()
         self.tpar.set_ysize_bounds((self.min_npix_y,pixel_counts[1]))
-        self._button_detection_fired()
+        # self._button_detection_fired()
 
     def _max_npix_y_changed(self):
         pixel_counts = self.tpar.get_ysize_bounds()
         self.tpar.set_ysize_bounds((pixel_counts[0],self.max_npix_y))
-        self._button_detection_fired()
+        # self._button_detection_fired()
 
     def _sum_of_grey_changed(self):
         self.tpar.set_min_sum_grey(self.sum_of_grey)
-        self._button_detection_fired()
+        # self._button_detection_fired()
 
 
     def _button_showimg_fired(self):
@@ -512,13 +514,11 @@ class DetectionGUI(HasTraits):
         self.camera[0].update_image(self.cal_image, is_float)
 
 if __name__ == "__main__":
-    import sys
-    import pathlib
 
     if len(sys.argv) == 1:
-        par_path = pathlib.Path('../test_cavity/parameters')
+        par_path = pathlib.Path('/home/user/Downloads/Test_7_no_images') / 'parameters'
     else:
-        par_path = pathlib.Path(sys.argv[0])
+        par_path = pathlib.Path(sys.argv[1]) / 'parameters'
 
     detection_gui = DetectionGUI(par_path)
     detection_gui.configure_traits()
