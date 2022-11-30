@@ -5,6 +5,14 @@ The software is distributed under the terms of MIT-like license
 http://opensource.org/licenses/MIT
 """
 
+import numpy as np
+from skimage.io import imread
+from skimage import img_as_ubyte
+from skimage.color import rgb2gray
+import os
+import shutil
+import re
+
 
 from traits.api import HasTraits, Str, Int, Bool, Instance, Button
 from traitsui.api import View, Item, HGroup, VGroup, ListEditor
@@ -22,18 +30,6 @@ from chaco.api import (
 from chaco.tools.image_inspector_tool import ImageInspectorTool
 from chaco.tools.better_zoom import BetterZoom as SimpleZoom
 
-# from chaco.tools.simple_zoom import SimpleZoom
-from pyptv.text_box_overlay import TextBoxOverlay
-from pyptv.code_editor import codeEditor
-from pyptv.quiverplot import QuiverPlot
-
-import numpy as np
-from skimage.io import imread
-from skimage import img_as_ubyte
-from skimage.color import rgb2gray
-import os
-import shutil
-import re
 
 from optv.imgcoord import image_coordinates
 from optv.transforms import convert_arr_metric_to_pixel
@@ -43,13 +39,26 @@ from optv.calibration import Calibration
 from optv.tracking_framebuf import TargetArray
 
 
+# from chaco.tools.simple_zoom import SimpleZoom
+from pyptv.text_box_overlay import TextBoxOverlay
+from pyptv.code_editor import codeEditor
+from pyptv.quiverplot import QuiverPlot
+
+
 from pyptv import ptv
 from pyptv import parameter_gui as pargui
 from pyptv import parameters as par
 
 
+
+
 # -------------------------------------------
 class ClickerTool(ImageInspectorTool):
+    """ClickerTool class
+
+    Args:
+        ImageInspectorTool (_type_): enables left/right mouse clicks with content
+    """
     left_changed = Int(1)
     right_changed = Int(1)
     x = 0
