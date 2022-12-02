@@ -88,7 +88,7 @@ def py_pre_processing_c(list_of_images, cpar):
 def py_detection_proc_c(list_of_images, cpar, tpar, cals):
     """Detection of targets"""
 
-    pftVersionParams = par.PftVersionParams(path="./parameters")
+    pftVersionParams = par.PftVersionParams(path="parameters")
     pftVersionParams.read()
     Existing_Target = bool(pftVersionParams.Existing_Target)
 

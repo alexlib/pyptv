@@ -73,3 +73,5 @@ pyptv/.vscode/launch.json
 
 # Wheels
 **/wheels/
+.vscode/PythonImportHelper-v2-Completion.json
+pyptv/.ipynb_checkpoints/pyptv-checkpoint.ipynb

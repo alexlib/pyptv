@@ -14,8 +14,8 @@ from traitsui.api import (
 
 # from traits.etsconfig.api import ETSConfig
 
-from pyptv import parameters as par
 import numpy as np
+from pyptv import parameters as par
 
 
 DEFAULT_STRING = "---"
@@ -25,7 +25,12 @@ DEFAULT_FLOAT = -999.0
 
 # define handler function for main parameters
 class ParamHandler(Handler):
-    def closed(self, info, is_ok):
+    """Parameter handler class
+
+    Args:
+        Handler (Handler class): All parameters are subclasses of this one
+    """
+    def closed(self, info, is_ok=True):
         mainParams = info.object
         par_path = mainParams.par_path
         Handler.closed(self, info, is_ok)
