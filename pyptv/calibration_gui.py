@@ -37,7 +37,7 @@ from optv.orientation import external_calibration, full_calibration  # type: ign
 from optv.calibration import Calibration  # type: ignore
 from optv.tracking_framebuf import TargetArray  # type: ignore
 
-from .pbi import full_calibration
+from .pbi import pbi_full_calibration
 
 # from chaco.tools.simple_zoom import SimpleZoom
 from pyptv.text_box_overlay import TextBoxOverlay
@@ -104,14 +104,21 @@ class ClickerTool(ImageInspectorTool):
 
 # ----------------------------------------------------------
 
-class CalImagePlot(ImagePlot):
-    """ extends ImagePlot class with tools list """
-    self = ImagePlot.self
-    self.tools = []
+# class CalImagePlot(ImagePlot):
+#     """ extends ImagePlot class with tools list """
+#     def __init__(self, *args, **kwargs):
+#         ImagePlot.__init__(self, *args, **kwargs)
+#         self.tools = []
     
-class CalPlot(Plot):
-    self = Plot.self
-    self.overlays = []
+# class CalPlot(Plot):
+#     """Calibration Plot class, a subclass of Plot to include overlays property
+
+#     Args:
+#         Plot (_type_): _description_
+#     """
+#     def __init__(self, *args, **kwargs):
+#         Plot.__init__(self, *args, **kwargs)
+#         self.overlays = []
     
 class PlotWindow(HasTraits):
     """PlotWindow class of Traits type
@@ -123,9 +130,9 @@ class PlotWindow(HasTraits):
         _type_: _description_
     """
     _plot_data = Instance(ArrayPlotData)
-    _plot = Instance(CalPlot)
+    _plot = Instance(Plot)
     _click_tool = Instance(ClickerTool)
-    _img_plot = Instance(CalImagePlot)
+    _img_plot = Instance(ImagePlot)
     _right_click_avail = 0
     name = Str
     view = View(Item(name="_plot", editor=ComponentEditor(),
@@ -139,7 +146,7 @@ class PlotWindow(HasTraits):
         self._x = []
         self._y = []
         self.man_ori = [1, 2, 3, 4]
-        self._plot = CalPlot(self._plot_data, default_origin="top left")
+        self._plot = Plot(self._plot_data, default_origin="top left")
         self._plot.padding_left = padd
         self._plot.padding_right = padd
         self._plot.padding_top = padd

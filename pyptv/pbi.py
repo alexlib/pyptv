@@ -51,7 +51,7 @@ def fitness(solution, calib_targs, calib_detect, cpar):
     return np.sum(dists**2)
 
 
-def full_calibration(
+def pbi_full_calibration(
                     cal: Calibration,
                     calib_detect: np.ndarray,
                     calib_targs: np.ndarray,

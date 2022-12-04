@@ -9,7 +9,7 @@ from traits.api import HasTraits, Str, Float, Int, List, Bool
 import yaml
 
 # Temporary path for parameters (active run will be copied here)
-PAR_DIR_PREFIX = "parameters"
+par_dir_prefix = "parameters"
 MAX_CAM = 4
 
 
@@ -48,7 +48,7 @@ class Parameters(HasTraits):
 
     # returns the path to the specific params file
     def filepath(self):
-        return self.path / self.filename()
+        return pathlib.Path(self.path) / self.filename()
 
     # sets all variables of the param file (no actual writing to disk)
     def set(self, *vars):
