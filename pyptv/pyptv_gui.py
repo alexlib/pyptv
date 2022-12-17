@@ -1430,8 +1430,8 @@ def main():
     if len(sys.argv) > 1:
         exp_path = os.path.abspath(sys.argv[1])
     else:
-        exp_path = software_path.parent / "test_cavity"
-        exp_path = '/home/user/Downloads/Test_7_no_images_alex'
+        exp_path = software_path / "tests"/ "test_cavity"
+        # exp_path = '/home/user/Downloads/Test_7_no_images_alex'
         print(f"Please provide an experimental directory \
             as an input, fallback to a default {exp_path} \n")
         
