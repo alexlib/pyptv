@@ -51,7 +51,7 @@ class Parameters(HasTraits):
         return pathlib.Path(self.path) / self.filename()
 
     # sets all variables of the param file (no actual writing to disk)
-    def set(self, *vars):
+    def trait_set(self, *vars):
         raise NotImplementedError()
 
     # reads a param file and stores it in the object
@@ -525,9 +525,9 @@ class CriteriaParams(Parameters):
         path=Parameters.default_path,
     ):
         Parameters.__init__(self, path)
-        self.set(X_lay, Zmin_lay, Zmax_lay, cnx, cny, cn, csumg, corrmin, eps0)
+        self.trait_set(X_lay, Zmin_lay, Zmax_lay, cnx, cny, cn, csumg, corrmin, eps0)
 
-    def set(
+    def trait_set(
         self,
         X_lay=List,
         Zmin_lay=List,
@@ -827,7 +827,7 @@ class DetectPlateParams(Parameters):
         path=Parameters.default_path,
     ):
         Parameters.__init__(self, path)
-        self.set(
+        self.trait_set(
             gvth_1,
             gvth_2,
             gvth_3,
@@ -843,7 +843,7 @@ class DetectPlateParams(Parameters):
             size_cross,
         )
 
-    def set(
+    def trait_set(
         self,
         gvth_1=Int,
         gvth_2=Int,
@@ -916,26 +916,27 @@ class DetectPlateParams(Parameters):
 
     def write(self):
         try:
-            f = open(self.filepath(), "w")
+            with open(self.filepath(), "w", encoding="utf8") as f:
+                print("Opened file \n")
+                f.write("%d\n" % int(self.gvth_1))
+                f.write("%d\n" % int(self.gvth_2))
+                f.write("%d\n" % int(self.gvth_3))
+                f.write("%d\n" % int(self.gvth_4))
+                f.write("%d\n" % int(self.tol_dis))
+                f.write("%d\n" % int(self.min_npix))
+                f.write("%d\n" % int(self.max_npix))
+                f.write("%d\n" % int(self.min_npix_x))
+                f.write("%d\n" % int(self.max_npix_x))
+                f.write("%d\n" % int(self.min_npix_y))
+                f.write("%d\n" % int(self.max_npix_y))
+                f.write("%d\n" % int(self.sum_grey))
+                f.write("%d\n" % int(self.size_cross))
+                
 
-            f.write("%d\n" % int(self.gvth_1))
-            f.write("%d\n" % int(self.gvth_2))
-            f.write("%d\n" % int(self.gvth_3))
-            f.write("%d\n" % int(self.gvth_4))
-            f.write("%d\n" % int(self.tol_dis))
-            f.write("%d\n" % int(self.min_npix))
-            f.write("%d\n" % int(self.max_npix))
-            f.write("%d\n" % int(self.min_npix_x))
-            f.write("%d\n" % int(self.max_npix_x))
-            f.write("%d\n" % int(self.min_npix_y))
-            f.write("%d\n" % int(self.max_npix_y))
-            f.write("%d\n" % int(self.sum_grey))
-            f.write("%d\n" % int(self.size_cross))
-
-            f.close()
+            # f.close()
             return True
-        except BaseException:
-            error(None, "Error writing %s." % self.filepath())
+        except IOError:
+            error(None, f"Error writing {self.filepath()}")
             return False
 
 
@@ -990,9 +991,9 @@ class OrientParams(Parameters):
         path=Parameters.default_path,
     ):
         Parameters.__init__(self, path)
-        self.set(pnfo, cc, xh, yh, k1, k2, k3, p1, p2, scale, shear, interf)
+        self.trait_set(pnfo, cc, xh, yh, k1, k2, k3, p1, p2, scale, shear, interf)
 
-    def set(
+    def trait_set(
         self,
         pnfo=Int,
         cc=Int,
@@ -1093,7 +1094,7 @@ class TrackingParams(Parameters):
         path=Parameters.default_path,
     ):
         Parameters.__init__(self, path)
-        self.set(
+        self.trait_set(
             dvxmin,
             dvxmax,
             dvymin,
@@ -1105,7 +1106,7 @@ class TrackingParams(Parameters):
             flagNewParticles,
         )
 
-    def set(
+    def trait_set(
         self,
         dvxmin=Float,
         dvxmax=Float,
@@ -1182,9 +1183,9 @@ class PftVersionParams(Parameters):
 
     def __init__(self, Existing_Target=Int, path=Parameters.default_path):
         Parameters.__init__(self, path)
-        self.set(Existing_Target)
+        self.trait_set(Existing_Target)
 
-    def set(self, Existing_Target=Int):
+    def trait_set(self, Existing_Target=Int):
         self.Existing_Target = Existing_Target
 
     def filename(self):
@@ -1224,9 +1225,9 @@ class ExamineParams(Parameters):
         path=Parameters.default_path,
     ):
         Parameters.__init__(self, path)
-        self.set(Examine_Flag, Combine_Flag)
+        self.trait_set(Examine_Flag, Combine_Flag)
 
-    def set(self, Examine_Flag=Bool, Combine_Flag=Bool):
+    def trait_set(self, Examine_Flag=Bool, Combine_Flag=Bool):
         (self.Examine_Flag, self.Combine_Flag) = (Examine_Flag, Combine_Flag)
 
     def filename(self):
@@ -1292,7 +1293,7 @@ class DumbbellParams(Parameters):
         path=Parameters.default_path,
     ):
         Parameters.__init__(self, path)
-        self.set(
+        self.trait_set(
             dumbbell_eps,
             dumbbell_scale,
             dumbbell_gradient_descent,
@@ -1301,7 +1302,7 @@ class DumbbellParams(Parameters):
             dumbbell_niter,
         )
 
-    def set(
+    def trait_set(
         self,
         dumbbell_eps=Float,
         dumbbell_scale=Float,
@@ -1395,14 +1396,14 @@ class ShakingParams(Parameters):
         path=Parameters.default_path,
     ):
         Parameters.__init__(self, path)
-        self.set(
+        self.trait_set(
             shaking_first_frame,
             shaking_last_frame,
             shaking_max_num_points,
             shaking_max_num_frames,
         )
 
-    def set(
+    def trait_set(
         self,
         shaking_first_frame=Int,
         shaking_last_frame=Int,
@@ -1479,9 +1480,9 @@ class MultiPlaneParams(Parameters):
         path=Parameters.default_path,
     ):
         Parameters.__init__(self, path)
-        self.set(n_img, n_planes, plane_name)
+        self.trait_set(n_img, n_planes, plane_name)
 
-    def set(self, n_img=Int, n_planes=Int, plane_name=[]):
+    def trait_set(self, n_img=Int, n_planes=Int, plane_name=[]):
         self.n_img = n_img
         (self.n_planes, self.plane_name) = (n_planes, plane_name)
 
@@ -1524,9 +1525,9 @@ class SortGridParams(Parameters):
 
     def __init__(self, n_img=Int, radius=Int, path=Parameters.default_path):
         Parameters.__init__(self, path)
-        self.set(n_img, radius)
+        self.trait_set(n_img, radius)
 
-    def set(self, n_img=Int, radius=Int):
+    def trait_set(self, n_img=Int, radius=Int):
         self.n_img = n_img
         self.radius = radius
 
