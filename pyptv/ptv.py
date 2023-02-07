@@ -24,7 +24,12 @@ from skimage.io import imread
 from pyptv import parameters as par
 
 
+def negative(img):
+    """ Negative 8-bit image """
+    return 255 - img
+
 def simple_highpass(img, cpar):
+    """ Simple highpass is using liboptv preprocess_image """
     return preprocess_image(img, 0, cpar, 25)
 
 

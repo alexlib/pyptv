@@ -435,6 +435,7 @@ class Main_Params(HasTraits):
     Subtr_Mask = Bool(False, label="Subtract mask")
     Base_Name_Mask = Str(DEFAULT_STRING, label="Base name for the mask")
     Existing_Target = Bool(False, label="Use existing_target files?")
+    Inverse = Bool(False, label="Negative images?")
 
     # New panel 3: Sequence
     Seq_First = Int(DEFAULT_INT, label="First sequence image:")
@@ -542,6 +543,7 @@ class Main_Params(HasTraits):
             Item(name="Subtr_Mask"),
             Item(name="Base_Name_Mask"),
             Item(name="Existing_Target"),
+            Item(name="Inverse"),
             orientation="horizontal",
         ),
         orientation="vertical",
