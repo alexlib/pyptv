@@ -282,6 +282,7 @@ class DetectionGUI(HasTraits):
     # button_edit_cal_parameters = Button()
     button_showimg = Button(label='Load image')
     hp_flag = Bool(False,label='highpass')
+    inverse_flag = Bool(False, label='inverse')
     button_detection = Button(label='Detect dots')
 
     # ---------------------------------------------------
@@ -361,6 +362,7 @@ class DetectionGUI(HasTraits):
                     Item(name='i_cam'),
                     Item(name='button_showimg'),
                     Item(name='hp_flag'),
+                    Item(name='inverse_flag'),
                     Item(name='button_detection'),
                     Item(name='grey_thresh'),
                     Item(name='min_npix'),
@@ -393,17 +395,21 @@ class DetectionGUI(HasTraits):
 
     # --------------------------------------------------
 
+    def _inverse_flag_changed(self):
+        self._read_cal_image()
+        self.status_text = "Negative image"
+        self.reset_show_images()
+
     def _hp_flag_changed(self):
-        tmp = []
-        tmp.append(self.cal_image)
-        if self.hp_flag is True:
-            tmp = ptv.py_pre_processing_c(tmp, self.cpar)
-            self.cal_image = tmp[0]
-            self.status_text = "Highpassed the image"
-        else:
-            self._read_cal_image()
-            self.status_text = "Original image"
-        
+        # tmp = []
+        # tmp.append(self.cal_image)
+        # if self.hp_flag is True:
+        #     tmp = ptv.py_pre_processing_c(tmp, self.cpar)
+        #     self.cal_image = tmp[0]
+        #     self.status_text = "Highpassed the image"
+        # else:
+        self._read_cal_image()
+        self.status_text = "Highpassed image"
         self.reset_show_images()
 
 
@@ -466,8 +472,18 @@ class DetectionGUI(HasTraits):
         print(f'image size is {im.shape}')
         if im.ndim > 2:
             im = rgb2gray(im)
+        
+        if self.inverse_flag is True:
+            im = 255 - im
+            
+        if self.hp_flag is True:
+            tmp = [img_as_ubyte(im)]
+            tmp = ptv.py_pre_processing_c(tmp, self.cpar)
+            im = tmp[0]
 
         self.cal_image = img_as_ubyte(im)
+        
+
 
     def _button_detection_fired(self):
         # self.reset_show_images()
@@ -516,7 +532,7 @@ class DetectionGUI(HasTraits):
 if __name__ == "__main__":
 
     if len(sys.argv) == 1:
-        par_path = pathlib.Path('/home/user/Downloads/Test_7_no_images') / 'parameters'
+        par_path = pathlib.Path().absolute() / 'tests' / 'test_cavity' / 'parameters'
     else:
         par_path = pathlib.Path(sys.argv[1]) / 'parameters'
 

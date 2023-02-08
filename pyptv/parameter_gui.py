@@ -360,6 +360,7 @@ class Main_Params(HasTraits):
     pair_enable_flag = Bool(True)
     all_enable_flag = Bool(True)
     hp_enable_flag = Bool(True)
+    inverse_image_flag = Bool(False)
 
     # add here also size of the images, e.g. 1280 x 1024 pix and
     # the size of the pixels.
@@ -471,7 +472,6 @@ class Main_Params(HasTraits):
             Item(name="Num_Cam", width=30),
             Item(name="Accept_OnlyAllCameras", enabled_when="all_enable_flag"),
             Item(name="pair_Flag", enabled_when="pair_enable_flag"),
-            Item(name="HighPass", enabled_when="hp_enable_flag"),
             orientation="horizontal",
         ),
         Group(
@@ -543,6 +543,7 @@ class Main_Params(HasTraits):
             Item(name="Subtr_Mask"),
             Item(name="Base_Name_Mask"),
             Item(name="Existing_Target"),
+            Item(name="HighPass", enabled_when="hp_enable_flag"),
             Item(name="Inverse"),
             orientation="horizontal",
         ),
