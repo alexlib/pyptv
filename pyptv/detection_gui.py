@@ -284,6 +284,7 @@ class DetectionGUI(HasTraits):
     hp_flag = Bool(False,label='highpass')
     inverse_flag = Bool(False, label='inverse')
     button_detection = Button(label='Detect dots')
+    image_name = Str("cal/cam1.tif", label="Image file name")
 
     # ---------------------------------------------------
     # Constructor
@@ -359,7 +360,8 @@ class DetectionGUI(HasTraits):
         HGroup(
             VGroup(
                 VGroup(
-                    Item(name='i_cam'),
+                    # Item(name='i_cam'),
+                    Item(name="image_name", width=150),
                     Item(name='button_showimg'),
                     Item(name='hp_flag'),
                     Item(name='inverse_flag'),
@@ -465,10 +467,12 @@ class DetectionGUI(HasTraits):
 
     def _read_cal_image(self):
         # read Detection images
-        imname = self.cpar.get_cal_img_base_name(self.i_cam-1)
-        print(f'imname is {imname} and its string is {imname.decode("utf-8")}')
+        # imname = self.cpar.get_cal_img_base_name(self.i_cam-1)
+        #         
+        print(f'image name is {self.image_name}')# and \
+            #its string is {self.image_name.decode("utf-8")}')
 
-        im = imread(imname.decode('utf-8'))
+        im = imread(self.image_name)
         print(f'image size is {im.shape}')
         if im.ndim > 2:
             im = rgb2gray(im)
