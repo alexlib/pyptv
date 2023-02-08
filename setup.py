@@ -3,7 +3,7 @@ from setuptools import setup
 requirements = [
     'chaco',
     'enable',
-    'numpy',
+    'numpy<1.24',
     'optv',
     'PyQt5',
     'scikit-image',

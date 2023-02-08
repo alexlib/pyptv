@@ -412,31 +412,31 @@ class DetectionGUI(HasTraits):
     def _grey_thresh_changed(self):
         self.thresholds[0] = self.grey_thresh
         self.tpar.set_grey_thresholds(self.thresholds)
-        print(f"tpar is now {self.tpar.get_grey_thresholds()}")
+        # print(f"tpar is now {self.tpar.get_grey_thresholds()}")
         # run detection again
-        # self._button_detection_fired()
+        self._button_detection_fired()
 
     def _min_npix_changed(self):
         self.pixel_count_bounds[0] = self.min_npix
         self.tpar.set_pixel_count_bounds(self.pixel_count_bounds)
-        print(f"set min {self.tpar.get_pixel_count_bounds()}")
-        # self._button_detection_fired()
+        # print(f"set min {self.tpar.get_pixel_count_bounds()}")
+        self._button_detection_fired()
 
     def _max_npix_changed(self):
         self.pixel_count_bounds[1] = self.max_npix
         self.tpar.set_pixel_count_bounds(self.pixel_count_bounds)
-        print(f"set max {self.tpar.get_pixel_count_bounds()}")
-        # self._button_detection_fired()
+        # print(f"set max {self.tpar.get_pixel_count_bounds()}")
+        self._button_detection_fired()
 
     def _min_npix_x_changed(self):
         self.xsize_bounds[0] = self.min_npix_x
         self.tpar.set_xsize_bounds(self.xsize_bounds)
-        # self._button_detection_fired()
+        self._button_detection_fired()
 
     def _max_npix_x_changed(self):
         self.xsize_bounds[1] = self.max_npix_x
         self.tpar.set_xsize_bounds(self.xsize_bounds)
-        # self._button_detection_fired()
+        self._button_detection_fired()
 
     def _min_npix_y_changed(self):
         self.ysize_bounds[0] = self.min_npix_y
@@ -446,11 +446,11 @@ class DetectionGUI(HasTraits):
     def _max_npix_y_changed(self):
         self.ysize_bounds[1] = self.max_npix_y
         self.tpar.set_ysize_bounds(self.ysize_bounds)
-        # self._button_detection_fired()
+        self._button_detection_fired()
 
     def _sum_of_grey_changed(self):
         self.tpar.set_min_sum_grey(self.sum_of_grey)
-        # self._button_detection_fired()
+        self._button_detection_fired()
 
 
     def _button_showimg_fired(self):
@@ -461,11 +461,11 @@ class DetectionGUI(HasTraits):
         # read Detection images
         # imname = self.cpar.get_cal_img_base_name(self.i_cam-1)
         #         
-        print(f'image name is {self.image_name}')# and \
+        # print(f'image name is {self.image_name}')# and \
             #its string is {self.image_name.decode("utf-8")}')
 
         im = imread(self.image_name)
-        print(f'image size is {im.shape}')
+        # print(f'image size is {im.shape}')
         if im.ndim > 2:
             im = rgb2gray(im)
         
@@ -529,7 +529,8 @@ class DetectionGUI(HasTraits):
 if __name__ == "__main__":
 
     if len(sys.argv) == 1:
-        par_path = pathlib.Path().absolute() / 'tests' / 'test_cavity' / 'parameters'
+        # par_path = pathlib.Path().absolute() / 'tests' / 'test_cavity' / 'parameters'
+        par_path = pathlib.Path('/home/user/Downloads/Test_8_with_50_pic/parameters')
     else:
         par_path = pathlib.Path(sys.argv[1]) / 'parameters'
 
