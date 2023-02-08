@@ -209,7 +209,7 @@ def py_sequence_loop(exp):
 
     pftVersionParams = par.PftVersionParams(path="./parameters")
     pftVersionParams.read()
-    Existing_Target = np.bool(pftVersionParams.Existing_Target)
+    Existing_Target = np.bool8(pftVersionParams.Existing_Target)
 
     # sequence loop for all frames
     for frame in range(spar.get_first(), spar.get_last() + 1):
@@ -231,6 +231,11 @@ def py_sequence_loop(exp):
 
                 img = imread(imname)
                 # time.sleep(.1) # I'm not sure we need it here
+                
+                if exp.exp1.active_params.m_params.Inverse:
+                    print("Invert image")
+                    img = 255 - img
+                
                 high_pass = simple_highpass(img, cpar)
                 targs = target_recognition(high_pass, tpar, i_cam, cpar)
 

@@ -481,7 +481,7 @@ class TreeMenuHandler(traitsui.api.Handler):
         # I want to add here negative image if the parameter is set in the
         # main parameters
         if info.object.exp1.active_params.m_params.Inverse:
-            print("Invert image")
+            # print("Invert image")
             for i, im in enumerate(info.object.orig_image):
                 info.object.orig_image[i] = 255-im
                 
