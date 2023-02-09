@@ -478,6 +478,13 @@ class TreeMenuHandler(traitsui.api.Handler):
         does highpass on working images (object.orig_image) that were set
         with init action
         """
+        # I want to add here negative image if the parameter is set in the
+        # main parameters
+        if info.object.exp1.active_params.m_params.Inverse:
+            # print("Invert image")
+            for i, im in enumerate(info.object.orig_image):
+                info.object.orig_image[i] = 255-im
+                
         print("highpass started")
         info.object.orig_image = ptv.py_pre_processing_c(
             info.object.orig_image, info.object.cpar)
@@ -1431,7 +1438,7 @@ def main():
         exp_path = os.path.abspath(sys.argv[1])
     else:
         exp_path = software_path.parent / "test_cavity"
-        exp_path = '/home/user/Downloads/Test_7_no_images_alex'
+        exp_path = '/home/user/Downloads/Test_8_with_50_pic'
         print(f"Please provide an experimental directory \
             as an input, fallback to a default {exp_path} \n")
         

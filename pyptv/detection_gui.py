@@ -24,7 +24,8 @@ from skimage.io import imread
 from skimage import img_as_ubyte
 from skimage.color import rgb2gray
 
-from optv import segmentation
+# from optv import segmentation
+from optv.segmentation import target_recognition
 import ptv
 
 from text_box_overlay import TextBoxOverlay
@@ -282,7 +283,9 @@ class DetectionGUI(HasTraits):
     # button_edit_cal_parameters = Button()
     button_showimg = Button(label='Load image')
     hp_flag = Bool(False,label='highpass')
+    inverse_flag = Bool(False, label='inverse')
     button_detection = Button(label='Detect dots')
+    image_name = Str("inverse/16-51-14.000-4000.tif", label="Image file name")
 
     # ---------------------------------------------------
     # Constructor
@@ -330,26 +333,26 @@ class DetectionGUI(HasTraits):
 
         self.tpar.read(b'parameters/detect_plate.par')
 
-        tmp = self.tpar.get_grey_thresholds()
-        pixel_count_bounds = self.tpar.get_pixel_count_bounds()
-        xsize_bounds = self.tpar.get_xsize_bounds()
-        ysize_bounds = self.tpar.get_ysize_bounds()
-        sum_grey = self.tpar.get_min_sum_grey()
+        self.thresholds = self.tpar.get_grey_thresholds()
+        self.pixel_count_bounds = list(self.tpar.get_pixel_count_bounds())
+        self.xsize_bounds = list(self.tpar.get_xsize_bounds())
+        self.ysize_bounds = list(self.tpar.get_ysize_bounds())
+        self.sum_grey = self.tpar.get_min_sum_grey()
 
-        self.add_trait("i_cam", Enum(range(1,self.n_cams+1))) 
-        self.add_trait("grey_thresh", Range(1,255,tmp[self.i_cam-1],mode='slider'))
-        self.add_trait("min_npix",Range(0,pixel_count_bounds[0]+50, pixel_count_bounds[0], method='slider',label='min npix'))
-        self.add_trait("min_npix_x",Range(1,xsize_bounds[0]+20,xsize_bounds[0], mode='slider',label='min npix in x')) 
-        self.add_trait("min_npix_y", Range(1,ysize_bounds[0]+20,ysize_bounds[0], mode='slider',label='min npix in y'))
-        self.add_trait("max_npix", Range(1,pixel_count_bounds[1]+100,pixel_count_bounds[1], mode='slider',label='max npix'))
-        self.add_trait("max_npix_x", Range(1,xsize_bounds[1]+50,xsize_bounds[1], mode='slider',label='max npix in x'))
-        self.add_trait("max_npix_y", Range(1,ysize_bounds[1]+50,ysize_bounds[1], mode='slider',label='max npix in y'))
-        self.add_trait("sum_of_grey", Range(sum_grey/2,sum_grey*2,sum_grey, mode='slider',label='Sum of greyvalue'))
+        # self.add_trait("i_cam", Enum(range(1,self.n_cams+1))) 
+        self.add_trait("grey_thresh", Range(1,255,self.thresholds[0],mode='slider'))
+        self.add_trait("min_npix",Range(0,self.pixel_count_bounds[0]+50, self.pixel_count_bounds[0], method='slider',label='min npix'))
+        self.add_trait("min_npix_x",Range(1,self.xsize_bounds[0]+20,self.xsize_bounds[0], mode='slider',label='min npix in x')) 
+        self.add_trait("min_npix_y", Range(1,self.ysize_bounds[0]+20,self.ysize_bounds[0], mode='slider',label='min npix in y'))
+        self.add_trait("max_npix", Range(1,self.pixel_count_bounds[1]+100,self.pixel_count_bounds[1], mode='slider',label='max npix'))
+        self.add_trait("max_npix_x", Range(1,self.xsize_bounds[1]+50,self.xsize_bounds[1], mode='slider',label='max npix in x'))
+        self.add_trait("max_npix_y", Range(1,self.ysize_bounds[1]+50,self.ysize_bounds[1], mode='slider',label='max npix in y'))
+        self.add_trait("sum_of_grey", Range(self.sum_grey/2,self.sum_grey*2,self.sum_grey, mode='slider',label='Sum of greyvalue'))
 
 
         # Detection will work one by one for the beginning
         self.camera = [PlotWindow()]
-        self.camera_name = 'Camera' + str(self.i_cam)
+        # self.camera_name = 'Camera' + str(self.i_cam)
         
 
     # Defines GUI view --------------------------
@@ -358,9 +361,11 @@ class DetectionGUI(HasTraits):
         HGroup(
             VGroup(
                 VGroup(
-                    Item(name='i_cam'),
+                    # Item(name='i_cam'),
+                    Item(name="image_name", width=150),
                     Item(name='button_showimg'),
                     Item(name='hp_flag'),
+                    Item(name='inverse_flag'),
                     Item(name='button_detection'),
                     Item(name='grey_thresh'),
                     Item(name='min_npix'),
@@ -393,81 +398,89 @@ class DetectionGUI(HasTraits):
 
     # --------------------------------------------------
 
+    def _inverse_flag_changed(self):
+        self._read_cal_image()
+        self.status_text = "Negative image"
+        self.reset_show_images()
+
     def _hp_flag_changed(self):
-        tmp = []
-        tmp.append(self.cal_image)
-        if self.hp_flag is True:
-            tmp = ptv.py_pre_processing_c(tmp, self.cpar)
-            self.cal_image = tmp[0]
-            self.status_text = "Highpassed the image"
-        else:
-            self._read_cal_image()
-            self.status_text = "Original image"
-        
+        self._read_cal_image()
+        self.status_text = "Highpassed image"
         self.reset_show_images()
 
 
     def _grey_thresh_changed(self):
-        # 'grey thresh is %d' % self.grey_thresh)
-
-        # prepare parameters
-        tmp = [0,0,0,0]
-        tmp[self.i_cam-1] = self.grey_thresh
-        self.tpar.set_grey_thresholds(tmp)
+        self.thresholds[0] = self.grey_thresh
+        self.tpar.set_grey_thresholds(self.thresholds)
+        # print(f"tpar is now {self.tpar.get_grey_thresholds()}")
         # run detection again
-        # self._button_detection_fired()
+        self._button_detection_fired()
 
     def _min_npix_changed(self):
-        pixel_counts = self.tpar.get_pixel_count_bounds()
-        self.tpar.set_pixel_count_bounds((self.min_npix,pixel_counts[1]))
-        # self._button_detection_fired()
+        self.pixel_count_bounds[0] = self.min_npix
+        self.tpar.set_pixel_count_bounds(self.pixel_count_bounds)
+        # print(f"set min {self.tpar.get_pixel_count_bounds()}")
+        self._button_detection_fired()
 
     def _max_npix_changed(self):
-        pixel_counts = self.tpar.get_pixel_count_bounds()
-        self.tpar.set_pixel_count_bounds((pixel_counts[0],self.max_npix))
-        # self._button_detection_fired()
+        self.pixel_count_bounds[1] = self.max_npix
+        self.tpar.set_pixel_count_bounds(self.pixel_count_bounds)
+        # print(f"set max {self.tpar.get_pixel_count_bounds()}")
+        self._button_detection_fired()
 
     def _min_npix_x_changed(self):
-        pixel_counts = self.tpar.get_xsize_bounds()
-        self.tpar.set_xsize_bounds((self.min_npix_x,pixel_counts[1]))
-        # self._button_detection_fired()
+        self.xsize_bounds[0] = self.min_npix_x
+        self.tpar.set_xsize_bounds(self.xsize_bounds)
+        self._button_detection_fired()
 
     def _max_npix_x_changed(self):
-        pixel_counts = self.tpar.get_xsize_bounds()
-        self.tpar.set_xsize_bounds((pixel_counts[0],self.max_npix_x))
-        # self._button_detection_fired()
+        self.xsize_bounds[1] = self.max_npix_x
+        self.tpar.set_xsize_bounds(self.xsize_bounds)
+        self._button_detection_fired()
 
     def _min_npix_y_changed(self):
-        pixel_counts = self.tpar.get_ysize_bounds()
-        self.tpar.set_ysize_bounds((self.min_npix_y,pixel_counts[1]))
+        self.ysize_bounds[0] = self.min_npix_y
+        self.tpar.set_ysize_bounds(self.ysize_bounds)
         # self._button_detection_fired()
 
     def _max_npix_y_changed(self):
-        pixel_counts = self.tpar.get_ysize_bounds()
-        self.tpar.set_ysize_bounds((pixel_counts[0],self.max_npix_y))
-        # self._button_detection_fired()
+        self.ysize_bounds[1] = self.max_npix_y
+        self.tpar.set_ysize_bounds(self.ysize_bounds)
+        self._button_detection_fired()
 
     def _sum_of_grey_changed(self):
         self.tpar.set_min_sum_grey(self.sum_of_grey)
-        # self._button_detection_fired()
+        self._button_detection_fired()
 
 
     def _button_showimg_fired(self):
-
         self._read_cal_image()
         self.reset_show_images()
 
     def _read_cal_image(self):
         # read Detection images
-        imname = self.cpar.get_cal_img_base_name(self.i_cam-1)
-        print(f'imname is {imname} and its string is {imname.decode("utf-8")}')
+        # imname = self.cpar.get_cal_img_base_name(self.i_cam-1)
+        #         
+        # print(f'image name is {self.image_name}')# and \
+            #its string is {self.image_name.decode("utf-8")}')
 
-        im = imread(imname.decode('utf-8'))
-        print(f'image size is {im.shape}')
+        im = imread(self.image_name)
+        # print(f'image size is {im.shape}')
         if im.ndim > 2:
             im = rgb2gray(im)
+        
+        if self.inverse_flag is True:
+            im = 255 - im
+            
+        if self.hp_flag is True:
+            tmp = [img_as_ubyte(im)]
+            tmp = ptv.py_pre_processing_c(tmp, self.cpar)
+            im = tmp[0]
+        else:
+            im = img_as_ubyte(im)
+            
+        self.cal_image = im.copy()       
 
-        self.cal_image = img_as_ubyte(im)
 
     def _button_detection_fired(self):
         # self.reset_show_images()
@@ -477,7 +490,7 @@ class DetectionGUI(HasTraits):
         # self.detections, corrected = \
         #     ptv.py_detection_proc_c([self.cal_image], self.cpar, self.tpar, self.cals)
 
-        targs = segmentation.target_recognition(self.cal_image, self.tpar, self.i_cam-1, self.cpar)
+        targs = target_recognition(self.cal_image, self.tpar, 0, self.cpar)
         targs.sort_y()
 
         x = [i.pos()[0] for i in targs]
@@ -516,7 +529,8 @@ class DetectionGUI(HasTraits):
 if __name__ == "__main__":
 
     if len(sys.argv) == 1:
-        par_path = pathlib.Path('/home/user/Downloads/Test_7_no_images') / 'parameters'
+        # par_path = pathlib.Path().absolute() / 'tests' / 'test_cavity' / 'parameters'
+        par_path = pathlib.Path('/home/user/Downloads/Test_8_with_50_pic/parameters')
     else:
         par_path = pathlib.Path(sys.argv[1]) / 'parameters'
 

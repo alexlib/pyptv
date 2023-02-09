@@ -3,7 +3,7 @@ from setuptools import setup
 requirements = [
     'chaco',
     'enable',
-    'numpy',
+    'numpy<1.24',
     'optv',
     'PyQt5',
     'scikit-image',
@@ -17,7 +17,7 @@ requirements = [
 
 setup(
     name='pyptv',
-    version='0.1.8',
+    version='0.1.8b',
     description='Python GUI for the OpenPTV library `liboptv`',
     author="Alex Liberzon",
     author_email='alex.liberzon@gmail.com',
