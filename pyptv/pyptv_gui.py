@@ -35,7 +35,7 @@ from pyptv.calibration_gui import CalibrationGUI
 from pyptv.directory_editor import DirectoryEditorDialog
 from pyptv.parameter_gui import Experiment, Paramset
 from pyptv.quiverplot import QuiverPlot
-from build.lib.pyptv.detection_gui import DetectionGUI
+from pyptv.detection_gui import DetectionGUI
 
 
 class Clicker(ImageInspectorTool):

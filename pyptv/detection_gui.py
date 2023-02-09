@@ -304,6 +304,9 @@ class DetectionGUI(HasTraits):
 
         # self.active_path = active_path
         print(f'par_path is {par_path}')
+        if not isinstance(par_path, pathlib.Path):
+            par_path = pathlib.Path(par_path)
+            
         self.par_path = par_path
         self.working_folder = self.par_path.parent
         # self.par_path = os.path.join(self.working_folder, 'parameters')
@@ -498,7 +501,7 @@ class DetectionGUI(HasTraits):
 
         # print("n particles is %d " % len(x))
 
-        self.camera[0].drawcross("x", "y", np.array(x), np.array(y), "blue", 4)
+        self.camera[0].drawcross("x", "y", np.array(x), np.array(y), "yellow", 8)
         self.camera[0]._right_click_avail = 1
 
         # for i in range(self.n_cams):
