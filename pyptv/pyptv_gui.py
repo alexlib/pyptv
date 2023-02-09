@@ -35,6 +35,7 @@ from pyptv.calibration_gui import CalibrationGUI
 from pyptv.directory_editor import DirectoryEditorDialog
 from pyptv.parameter_gui import Experiment, Paramset
 from pyptv.quiverplot import QuiverPlot
+from build.lib.pyptv.detection_gui import DetectionGUI
 
 
 class Clicker(ImageInspectorTool):
@@ -630,6 +631,18 @@ class TreeMenuHandler(traitsui.api.Handler):
         print(info.object.exp1.active_params.par_path)
         calib_gui = CalibrationGUI(info.object.exp1.active_params.par_path)
         calib_gui.configure_traits()
+        
+    def detection_gui_action(self, info):
+        """activating detection GUI
+        """
+        print("\n Starting detection GUI dialog \n")
+
+        # reset the main GUI so the user will have to press Start again
+        info.object.pass_init = False
+        print("Active parameters set \n")
+        print(info.object.exp1.active_params.par_path)
+        detection_gui = DetectionGUI(info.object.exp1.active_params.par_path)
+        detection_gui.configure_traits()        
 
     def sequence_action(self, info):
         """sequence action - implements binding to C sequence function.
@@ -1018,8 +1031,8 @@ menu_bar = MenuBar(
         name="Tracking",
     ),
     Menu(Action(name="Select plugin", action="plugin_action"), name="Plugins"),
-    Menu(Action(name="Run multigrid demo", action="multigrid_demo"),
-         name="Demo"),
+    Menu(Action(name="Detection GUI demo", action="detection_gui_action"),
+         name="Detection demo"),
 )
 
 # ----------------------------------------
@@ -1438,7 +1451,7 @@ def main():
         exp_path = os.path.abspath(sys.argv[1])
     else:
         exp_path = software_path.parent / "test_cavity"
-        exp_path = '/home/user/Downloads/Test_8_with_50_pic'
+        exp_path = '/home/user/Downloads/Test_10'
         print(f"Please provide an experimental directory \
             as an input, fallback to a default {exp_path} \n")
         
