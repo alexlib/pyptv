@@ -26,10 +26,10 @@ from skimage.color import rgb2gray
 
 # from optv import segmentation
 from optv.segmentation import target_recognition
-import ptv
+from pyptv import ptv
 
-from text_box_overlay import TextBoxOverlay
-from quiverplot import QuiverPlot
+from pyptv.text_box_overlay import TextBoxOverlay
+from pytpv.quiverplot import QuiverPlot
 
 
 
