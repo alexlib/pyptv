@@ -35,6 +35,7 @@ from pyptv.calibration_gui import CalibrationGUI
 from pyptv.directory_editor import DirectoryEditorDialog
 from pyptv.parameter_gui import Experiment, Paramset
 from pyptv.quiverplot import QuiverPlot
+from pyptv.detection_gui import DetectionGUI
 
 
 class Clicker(ImageInspectorTool):
@@ -478,6 +479,25 @@ class TreeMenuHandler(traitsui.api.Handler):
         does highpass on working images (object.orig_image) that were set
         with init action
         """
+        # I want to add here negative image if the parameter is set in the
+        # main parameters
+        if info.object.exp1.active_params.m_params.Inverse:
+            # print("Invert image")
+            for i, im in enumerate(info.object.orig_image):
+                info.object.orig_image[i] = 255-im
+                
+        if info.object.exp1.active_params.m_params.Subtr_Mask:
+            print("Subtracting mask")
+            try:
+                for i, im in enumerate(info.object.orig_image):
+                    mask_name = info.object.exp1.active_params.m_params.Base_Name_Mask.replace('#',str(i)) 
+                    mask = imread(mask_name)
+                    im[mask] = 0
+                    info.object.orig_image[i] = im
+            except:
+                print("Failed subtracting mask")
+
+                
         print("highpass started")
         info.object.orig_image = ptv.py_pre_processing_c(
             info.object.orig_image, info.object.cpar)
@@ -623,6 +643,18 @@ class TreeMenuHandler(traitsui.api.Handler):
         print(info.object.exp1.active_params.par_path)
         calib_gui = CalibrationGUI(info.object.exp1.active_params.par_path)
         calib_gui.configure_traits()
+        
+    def detection_gui_action(self, info):
+        """activating detection GUI
+        """
+        print("\n Starting detection GUI dialog \n")
+
+        # reset the main GUI so the user will have to press Start again
+        info.object.pass_init = False
+        print("Active parameters set \n")
+        print(info.object.exp1.active_params.par_path)
+        detection_gui = DetectionGUI(info.object.exp1.active_params.par_path)
+        detection_gui.configure_traits()        
 
     def sequence_action(self, info):
         """sequence action - implements binding to C sequence function.
@@ -1011,8 +1043,8 @@ menu_bar = MenuBar(
         name="Tracking",
     ),
     Menu(Action(name="Select plugin", action="plugin_action"), name="Plugins"),
-    Menu(Action(name="Run multigrid demo", action="multigrid_demo"),
-         name="Demo"),
+    Menu(Action(name="Detection GUI demo", action="detection_gui_action"),
+         name="Detection demo"),
 )
 
 # ----------------------------------------
@@ -1148,7 +1180,7 @@ class MainGUI(traits.api.HasTraits):
             ),
             orientation="vertical",
         ),
-        title="pyPTV",
+        title="pyPTV ver. 0.1.9",
         id="main_view",
         width=1.0,
         height=1.0,
@@ -1430,8 +1462,7 @@ def main():
     if len(sys.argv) > 1:
         exp_path = os.path.abspath(sys.argv[1])
     else:
-        exp_path = software_path / "tests"/ "test_cavity"
-        # exp_path = '/home/user/Downloads/Test_7_no_images_alex'
+        exp_path = software_path.parent / "test_cavity"
         print(f"Please provide an experimental directory \
             as an input, fallback to a default {exp_path} \n")
         

@@ -24,7 +24,12 @@ from skimage.io import imread
 from pyptv import parameters as par
 
 
+def negative(img):
+    """ Negative 8-bit image """
+    return 255 - img
+
 def simple_highpass(img, cpar):
+    """ Simple highpass is using liboptv preprocess_image """
     return preprocess_image(img, 0, cpar, 25)
 
 
@@ -204,7 +209,7 @@ def py_sequence_loop(exp):
 
     pftVersionParams = par.PftVersionParams(path="./parameters")
     pftVersionParams.read()
-    Existing_Target = np.bool(pftVersionParams.Existing_Target)
+    Existing_Target = np.bool8(pftVersionParams.Existing_Target)
 
     # sequence loop for all frames
     for frame in range(spar.get_first(), spar.get_last() + 1):
@@ -226,6 +231,22 @@ def py_sequence_loop(exp):
 
                 img = imread(imname)
                 # time.sleep(.1) # I'm not sure we need it here
+                
+                if exp.exp1.active_params.m_params.Inverse:
+                    print("Invert image")
+                    img = 255 - img
+
+                if exp.exp1.active_params.m_params.Subtr_Mask:
+                    # print("Subtracting mask")
+                    try:
+                        mask_name = exp.exp1.active_params.m_params.Base_Name_Mask.replace('#',str(i_cam+1))
+                        mask = imread(mask_name)
+                        img[mask] = 0
+
+                    except ValueError:
+                        print("failed to read the mask")
+                    
+                
                 high_pass = simple_highpass(img, cpar)
                 targs = target_recognition(high_pass, tpar, i_cam, cpar)
 
