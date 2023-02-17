@@ -1180,7 +1180,7 @@ class MainGUI(traits.api.HasTraits):
             ),
             orientation="vertical",
         ),
-        title="pyPTV v0.18b",
+        title="pyPTV ver. 0.1.9",
         id="main_view",
         width=1.0,
         height=1.0,
