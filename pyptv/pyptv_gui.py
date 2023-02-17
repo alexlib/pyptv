@@ -486,6 +486,18 @@ class TreeMenuHandler(traitsui.api.Handler):
             for i, im in enumerate(info.object.orig_image):
                 info.object.orig_image[i] = 255-im
                 
+        if info.object.exp1.active_params.m_params.Subtr_Mask:
+            print("Subtracting mask")
+            try:
+                for i, im in enumerate(info.object.orig_image):
+                    mask_name = info.object.exp1.active_params.m_params.Base_Name_Mask.replace('#',str(i)) 
+                    mask = imread(mask_name)
+                    im[mask] = 0
+                    info.object.orig_image[i] = im
+            except:
+                print("Failed subtracting mask")
+
+                
         print("highpass started")
         info.object.orig_image = ptv.py_pre_processing_c(
             info.object.orig_image, info.object.cpar)
@@ -1451,7 +1463,7 @@ def main():
         exp_path = os.path.abspath(sys.argv[1])
     else:
         exp_path = software_path.parent / "test_cavity"
-        exp_path = '/home/user/Downloads/Test_10'
+        exp_path = '/home/user/Downloads/openptv_fall2023'
         print(f"Please provide an experimental directory \
             as an input, fallback to a default {exp_path} \n")
         
