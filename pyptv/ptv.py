@@ -235,6 +235,17 @@ def py_sequence_loop(exp):
                 if exp.exp1.active_params.m_params.Inverse:
                     print("Invert image")
                     img = 255 - img
+
+                if exp.exp1.active_params.m_params.Subtr_Mask:
+                    # print("Subtracting mask")
+                    try:
+                        mask_name = exp.exp1.active_params.m_params.Base_Name_Mask.replace('#',str(i_cam+1))
+                        mask = imread(mask_name)
+                        img[mask] = 0
+
+                    except ValueError:
+                        print("failed to read the mask")
+                    
                 
                 high_pass = simple_highpass(img, cpar)
                 targs = target_recognition(high_pass, tpar, i_cam, cpar)

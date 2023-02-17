@@ -29,7 +29,7 @@ from optv.segmentation import target_recognition
 from pyptv import ptv
 
 from pyptv.text_box_overlay import TextBoxOverlay
-from pytpv.quiverplot import QuiverPlot
+from pyptv.quiverplot import QuiverPlot
 
 
 

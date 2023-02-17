@@ -2314,11 +2314,11 @@
         "documentation": {}
     },
     {
-        "label": "codeEditor",
-        "importPath": "pyptv.code_editor",
-        "description": "pyptv.code_editor",
+        "label": "TextBoxOverlay",
+        "importPath": "pyptv.text_box_overlay",
+        "description": "pyptv.text_box_overlay",
         "isExtraImport": true,
-        "detail": "pyptv.code_editor",
+        "detail": "pyptv.text_box_overlay",
         "documentation": {}
     },
     {
@@ -2335,6 +2335,22 @@
         "description": "pyptv.code_editor",
         "isExtraImport": true,
         "detail": "pyptv.code_editor",
+        "documentation": {}
+    },
+    {
+        "label": "codeEditor",
+        "importPath": "pyptv.code_editor",
+        "description": "pyptv.code_editor",
+        "isExtraImport": true,
+        "detail": "pyptv.code_editor",
+        "documentation": {}
+    },
+    {
+        "label": "QuiverPlot",
+        "importPath": "pyptv.quiverplot",
+        "description": "pyptv.quiverplot",
+        "isExtraImport": true,
+        "detail": "pyptv.quiverplot",
         "documentation": {}
     },
     {
@@ -3471,6 +3487,14 @@
     },
     {
         "label": "parameters",
+        "importPath": "pyptv",
+        "description": "pyptv",
+        "isExtraImport": true,
+        "detail": "pyptv",
+        "documentation": {}
+    },
+    {
+        "label": "ptv",
         "importPath": "pyptv",
         "description": "pyptv",
         "isExtraImport": true,
@@ -4621,28 +4645,20 @@
         "documentation": {}
     },
     {
-        "label": "ptv",
+        "label": "json",
         "kind": 6,
         "isExtraImport": true,
-        "importPath": "ptv",
-        "description": "ptv",
-        "detail": "ptv",
+        "importPath": "json",
+        "description": "json",
+        "detail": "json",
         "documentation": {}
     },
     {
-        "label": "TextBoxOverlay",
-        "importPath": "text_box_overlay",
-        "description": "text_box_overlay",
+        "label": "DetectionGUI",
+        "importPath": "pyptv.detection_gui",
+        "description": "pyptv.detection_gui",
         "isExtraImport": true,
-        "detail": "text_box_overlay",
-        "documentation": {}
-    },
-    {
-        "label": "QuiverPlot",
-        "importPath": "quiverplot",
-        "description": "quiverplot",
-        "isExtraImport": true,
-        "detail": "quiverplot",
+        "detail": "pyptv.detection_gui",
         "documentation": {}
     },
     {

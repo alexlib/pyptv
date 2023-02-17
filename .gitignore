@@ -73,3 +73,4 @@ pyptv/.vscode/launch.json
 
 # Wheels
 **/wheels/
+.vscode/*.json

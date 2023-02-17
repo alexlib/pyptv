@@ -1,4 +1,6 @@
 import os
+import json
+import pathlib
 
 from traits.api import HasTraits, Str, Float, Int, List, Bool, Enum, Instance
 from traitsui.api import (
@@ -130,6 +132,14 @@ class ParamHandler(Handler):
                 mainParams.Tol_Band,
                 path=par_path,
             ).write()
+            
+            # write masking parameters
+            masking_dict = {
+                "mask_flag":mainParams.Subtr_Mask,
+                "mask_base_name":mainParams.Base_Name_Mask,
+            }
+            with (pathlib.Path(par_path) / 'masking.json').open('w') as json_file:
+                json.dump(masking_dict, json_file)
 
 
 # define handler function for calibration parameters
@@ -721,6 +731,14 @@ class Main_Params(HasTraits):
         self.Sum_gv = criteriaParams.csumg
         self.Min_Weight_corr = criteriaParams.corrmin
         self.Tol_Band = criteriaParams.eps0
+        
+        # write masking parameters
+        masking_filename = pathlib.Path(self.par_path) / 'masking.json'
+        if masking_filename.exists():
+                masking_dict = json.load(masking_filename.open('r'))
+                # json.dump(masking_dict, json_file)
+                self.Subtr_Mask = masking_dict['mask_flag']
+                self.Base_Name_Mask = masking_dict['mask_base_name']
 
     # create initfunc
     def __init__(self, par_path):
