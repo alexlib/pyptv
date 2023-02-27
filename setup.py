@@ -12,7 +12,8 @@ requirements = [
     'imagecodecs',
     'flowtracks',
     'pandas',
-    'tables'
+    'tables',
+    'pyparsing'
 ]
 
 setup(
