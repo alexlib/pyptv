@@ -13,9 +13,9 @@ from chaco.api import (
     Plot,
     ArrayPlotData,
     gray,
-    ImagePlot,
     ArrayDataSource,
     LinearMapper,
+    ImageData
 )
 
 # from traitsui.menu import MenuBar, ToolBar, Menu, Action
@@ -100,10 +100,10 @@ class ClickerTool(ImageInspectorTool):
 
 
 class PlotWindow(HasTraits):
-    _plot_data = Instance(ArrayPlotData)
+    # _plot_data = Instance(ArrayPlotData)
     _plot = Instance(Plot)
     _click_tool = Instance(ClickerTool)
-    _img_plot = Instance(ImagePlot)
+    #_img_plot = Instance(ImagePlot)
     _right_click_avail = 0
     name = Str
     view = View(
@@ -236,7 +236,7 @@ class PlotWindow(HasTraits):
                 ep_index=np.array(x2) * scale,
                 ep_value=np.array(y2) * scale,
             )
-            self._plot.add(quiverplot)
+            self._plot.overlays.append(quiverplot)
             # we need this to track how many quiverplots are in the current
             # plot
             self._quiverplots.append(quiverplot)
@@ -293,9 +293,12 @@ class PlotWindow(HasTraits):
 
     def update_image(self, image, is_float):
         if is_float:
-            self._plot_data.set_data("imagedata", image.astype(np.float))
+            self._plot_data.set_data("imagedata", image.astype(float))
         else:
-            self._plot_data.set_data("imagedata", image.astype(np.byte))
+            self._plot_data.set_data("imagedata", image.astype(np.uint8))
+            
+        # Alex added to plot the image here from update image
+        self._img_plt = self._plot.img_plot("imagedata", colormap=gray)[0]
 
         self._plot.request_redraw()
 
@@ -554,11 +557,10 @@ class CalibrationGUI(HasTraits):
         self.cal_images = []
         for i in range(len(self.camera)):
             imname = self.calParams.img_cal_name[i]
-            # for imname in self.calParams.img_cal_name:
-            # self.cal_images.append(imread(imname))
             im = imread(imname)
+            # im = ImageData.fromfile(imname).data
             if im.ndim > 2:
-                im = rgb2gray(im)
+                im = rgb2gray(im[:,:,:3])
 
             self.cal_images.append(img_as_ubyte(im))
 
@@ -1085,18 +1087,20 @@ class CalibrationGUI(HasTraits):
             cam._plot.overlays = []
             # self.camera[i]._plot_data.set_data('imagedata',self.ori_img[i].astype(np.byte))
             cam._plot_data.set_data(
-                "imagedata", self.cal_images[i].astype(np.byte)
+                "imagedata", self.cal_images[i].astype(np.uint8)
             )
 
             cam._img_plot = cam._plot.img_plot("imagedata", colormap=gray)[0]
             cam._x = []
             cam._y = []
             cam._img_plot.tools = []
-            cam.attach_tools()
-            cam._plot.request_redraw()
+            
             for j in range(len(cam._quiverplots)):
                 cam._plot.remove(cam._quiverplots[j])
             cam._quiverplots = []
+            
+            cam.attach_tools()
+            cam._plot.request_redraw()
 
     def _button_edit_ori_files_fired(self):
         editor = codeEditor(path=self.par_path)
@@ -1149,9 +1153,9 @@ class CalibrationGUI(HasTraits):
                     print("protected ORI file %s " % f)
                     shutil.copyfile(f + ".bck", f)
 
-    def update_plots(self, images, is_float=0):
-        for i in range(len(images)):
-            self.camera[i].update_image(images[i], is_float)
+    # def update_plots(self, images):
+    #     for i in range(len(images)):
+    #         self.camera[i].update_image(images[i])
 
     def _read_cal_points(self):
         return np.atleast_1d(

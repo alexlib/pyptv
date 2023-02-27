@@ -10,8 +10,7 @@ import sys
 import pathlib
 import numpy as np
 
-from traits.api \
-    import HasTraits, Str, Int, Bool, Instance, Button, Range, Enum 
+from traits.api import HasTraits, Str, Int, Bool, Instance, Button, Range 
 from traitsui.api import View, Item, HGroup, VGroup, ListEditor
 from enable.component_editor import ComponentEditor
 from chaco.api import Plot, ArrayPlotData, gray, \
@@ -39,6 +38,9 @@ class ClickerTool(ImageInspectorTool):
     right_changed = Int(1)
     x = 0
     y = 0
+    
+    def __init__(self, *args, **kwargs):
+        super(ClickerTool, self).__init__(*args, **kwargs)
 
     def normal_left_down(self, event):
         """ Handles the left mouse button being clicked.
@@ -77,8 +79,7 @@ class ClickerTool(ImageInspectorTool):
     def normal_mouse_move(self, event):
         pass
 
-    def __init__(self, *args, **kwargs):
-        super(ClickerTool, self).__init__(*args, **kwargs)
+
 
 
 # ----------------------------------------------------------
@@ -260,7 +261,7 @@ class PlotWindow(HasTraits):
                                    )
             self._plot.overlays.append(ovlay)
 
-    def update_image(self, image, is_float):
+    def update_image(self, image, is_float=False):
         if is_float:
             self._plot_data.set_data('imagedata', image.astype(np.float))
         else:
@@ -526,14 +527,14 @@ class DetectionGUI(HasTraits):
         self.camera[0]._plot.request_redraw()
 
 
-    def update_plots(self, images, is_float=0):
-        self.camera[0].update_image(self.cal_image, is_float)
+    # def update_plots(self, images, is_float=False):
+    #     self.camera[0].update_image(self.cal_image, is_float)
 
 if __name__ == "__main__":
 
     if len(sys.argv) == 1:
-        # par_path = pathlib.Path().absolute() / 'tests' / 'test_cavity' / 'parameters'
-        par_path = pathlib.Path('/home/user/Downloads/Test_8_with_50_pic/parameters')
+        par_path = pathlib.Path().absolute() / 'tests' / 'test_cavity' / 'parameters'
+        # par_path = pathlib.Path('/home/user/Downloads/Test_8_with_50_pic/parameters')
     else:
         par_path = pathlib.Path(sys.argv[1]) / 'parameters'
 
