@@ -375,14 +375,15 @@ class TreeMenuHandler(Handler):
         new_dir_path = None
         flag = False
         while not flag:
-            new_name = "%s (%d)" % (paramset.name, i)
-            new_dir_path = "%s%s" % (par.par_dir_prefix, new_name)
-            if not os.path.isdir(new_dir_path):
+            new_name = f"{paramset.name}{i}"
+            new_dir_path = pathlib.Path( f"{par.par_dir_prefix}{new_name}" )
+            if not new_dir_path.is_dir():
                 flag = True
             else:
                 i = i + 1
 
-        os.mkdir(new_dir_path)
+
+        # new_dir_path.mkdir() # copy should be in the copy_params_dir
         par.copy_params_dir(paramset.par_path, new_dir_path)
         experiment.addParamset(new_name, new_dir_path)
 
@@ -1166,7 +1167,7 @@ class MainGUI(HasTraits):
     # ---------------------------------------------------
     # Constructor and Chaco windows initialization
     # ---------------------------------------------------
-    def __init__(self, exp_path, software_path):
+    def __init__(self, exp_path: pathlib.Path, software_path: pathlib.Path):
         super(MainGUI, self).__init__()
         colors = ["yellow", "green", "red", "blue"]
         self.exp1 = Experiment()
@@ -1426,15 +1427,18 @@ def main():
 
     # Path to the experiment
     if len(sys.argv) > 1:
-        exp_path = os.path.abspath(sys.argv[1])
+        exp_path = pathlib.Path(sys.argv[1])
+        print(f'Experimental path is {exp_path}')
     else:
         exp_path = software_path.parent / "test_cavity"
         print(f"Please provide an experimental directory \
             as an input, fallback to a default {exp_path} \n")
         
 
-    if not os.path.isdir(exp_path):
+    if not exp_path.is_dir():
         raise OSError(f"Wrong experimental directory {exp_path}")
+    
+    # Change directory to the path
     os.chdir(exp_path)
 
     try:

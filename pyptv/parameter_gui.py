@@ -1296,7 +1296,7 @@ class Calib_Params(HasTraits):
 
 class Paramset(HasTraits):
     name = Str
-    par_path = Str
+    par_path = pathlib.Path
     m_params = Instance(Main_Params)
     c_params = Instance(Calib_Params)
     t_params = Instance(Tracking_Params)
@@ -1318,7 +1318,7 @@ class Experiment(HasTraits):
         else:  # Value is instance of Pramset
             return self.paramsets.index(paramset)
 
-    def addParamset(self, name, par_path):
+    def addParamset(self, name, par_path: pathlib.Path):
         self.paramsets.append(
             Paramset(
                 name=name,
@@ -1346,30 +1346,39 @@ class Experiment(HasTraits):
     def syncActiveDir(self):
         par.copy_params_dir(self.active_params.par_path, par.par_dir_prefix)
 
-    def populate_runs(self, exp_path):
+    def populate_runs(self, exp_path: pathlib.Path):
         # Read all parameters directories from an experiment directory
         self.paramsets = []
+        
+        # list all directories
         dir_contents = [
             f
-            for f in os.listdir(exp_path)
-            if os.path.isdir(os.path.join(exp_path, f))
+            for f in exp_path.iterdir()
+            if (exp_path / f).is_dir()
         ]
+        
+        # choose directories that has 'parameters' in their path
         dir_contents = [
-            f for f in dir_contents if f.startswith(par.par_dir_prefix)
+            f for f in dir_contents if str(f.stem).startswith(par.par_dir_prefix)
         ]
+        print(f" parameter sets are in {dir_contents}")
 
-        if len(dir_contents) == 1 and dir_contents[0] == par.par_dir_prefix:
+        # if only 'parameters' folder, create its copy 'parametersRun1'
+        if len(dir_contents) == 1 and str(dir_contents[0].stem) == par.par_dir_prefix:
             # single parameters directory, backward compatibility
             exp_name = "Run1"
-            par.copy_params_dir(dir_contents[0], dir_contents[0] + exp_name)
-            dir_contents.append(dir_contents[0] + exp_name)
+            new_name = str(dir_contents[0]) + exp_name
+            new_path = pathlib.Path(new_name)
+            par.copy_params_dir(dir_contents[0], new_path)
+            dir_contents.append(new_path)
 
+        # take each path in the dir_contents and create a tree entity with the short name
         for dir_item in dir_contents:
-            par_path = os.path.join(exp_path, dir_item)
-            if dir_item != par.par_dir_prefix:
+            # par_path = exp_path / dir_item
+            if str(dir_item.stem) != par.par_dir_prefix:
                 # This should be a params dir, add a tree entry for it.
-                exp_name = dir_item[len(par.par_dir_prefix):]
-                self.addParamset(exp_name, par_path)
+                exp_name = str(dir_item.stem).rsplit('parameters',maxsplit=1)[-1]
+                self.addParamset(exp_name, dir_item)
 
         if not self.changed_active_params:
             if self.nParamsets() > 0:

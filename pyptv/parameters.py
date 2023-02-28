@@ -3,13 +3,14 @@ from __future__ import absolute_import
 
 from builtins import range
 import os
+from pathlib import Path
 import shutil
 from traits.api import HasTraits, Str, Float, Int, List, Bool
 
 import yaml
 
 # Temporary path for parameters (active run will be copied here)
-par_dir_prefix = "parameters"
+par_dir_prefix = str("parameters")
 max_cam = 4
 
 
@@ -23,12 +24,12 @@ def g(f):
 
 class Parameters(HasTraits):
     # default path of the directory of the param files
-    default_path = "parameters"
+    default_path = Path("parameters")
 
     def __init__(self, path=default_path):
         HasTraits.__init__(self)
         self.path = path
-        self.exp_path = os.path.dirname(self.path)
+        self.exp_path = self.path.parent 
 
     # returns the name of the specific params file
     def filename(self):
@@ -36,7 +37,7 @@ class Parameters(HasTraits):
 
     # returns the path to the specific params file
     def filepath(self):
-        return os.path.join(self.path, self.filename())
+        return self.path.joinpath(self.filename())
 
     # sets all variables of the param file (no actual writing to disk)
     def set(self, *vars):
@@ -71,17 +72,17 @@ class Parameters(HasTraits):
 
     def istherefile(self, filename):
         """checks if the filename exists in the experimental path"""
-        if not os.path.isfile(os.path.join(self.exp_path, filename)):
-            warning("%s not found" % filename)
+        if not self.exp_path.joinpath(filename).is_file():
+            warning(f"{filename} not found")
 
 
 # Print detailed error to the console and show the user a friendly error window
 def error(owner, msg):
-    print("Exception caught, message: %s" % (msg))
+    print(f"Exception caught, message: {msg}")
 
 
 def warning(msg):
-    print("Warning message: %s" % (msg))
+    print(f"Warning message: {msg}")
 
 
 # Reads a parameters directory and returns a dictionary with all parameter
@@ -117,12 +118,17 @@ def readParamsDir(par_path):
     return ret
 
 
-def copy_params_dir(src, dest):
+def copy_params_dir(src: Path, dest: Path):
     """ Copying all parameter files from /src folder to /dest 
         including .dat, .par and .yaml files
     """
-    ext_set = (".dat", ".par", ".yaml")
-    files = [f for f in os.listdir(src) if f.endswith(ext_set)]
+    ext_set = ("*.dat", "*.par", "*.yaml")
+    files = []
+    for ext in ext_set:
+        files.extend(src.glob(ext))
+        
+    print(f'files: {files} in {src}')    
+    # files = [f for f in src.iterdir() if str(f.parts[-1]).endswith(ext_set)]    
 
     if not dest.exists():
         # os.mkdir(dest)
