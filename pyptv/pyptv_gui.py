@@ -8,26 +8,27 @@ http://opensource.org/licenses/MIT
 """
 from __future__ import division
 
+
 import os
 import pathlib
 import sys
 import time
+import importlib
 
 import numpy as np
 import optv
-import traits.api
-import traitsui.api
-from chaco.api import (ArrayDataSource, ArrayPlotData, ImagePlot, LinearMapper,
+from traits.api import HasTraits, Int, Bool, Instance, List, Enum, Any
+from traitsui.api import (View, Item, ListEditor, Handler, TreeEditor,
+                          TreeNode, Separator, Group)
+from traitsui.menu import (Action, Menu, MenuBar)
+from chaco.api import (ArrayDataSource, ArrayPlotData, LinearMapper,
                        Plot, gray)
 from chaco.tools.api import PanTool, ZoomTool
 from chaco.tools.image_inspector_tool import ImageInspectorTool
 from enable.component_editor import ComponentEditor
-# from pyface.api import GUI
-# from threading import Thread
 from skimage import img_as_ubyte
 from skimage.color import rgb2gray
 from skimage.io import imread
-from traitsui.menu import Action, Menu, MenuBar
 
 from pyptv import parameters as par
 from pyptv import ptv
@@ -36,6 +37,7 @@ from pyptv.directory_editor import DirectoryEditorDialog
 from pyptv.parameter_gui import Experiment, Paramset
 from pyptv.quiverplot import QuiverPlot
 from pyptv.detection_gui import DetectionGUI
+import optv.orientation
 
 
 class Clicker(ImageInspectorTool):
@@ -44,8 +46,8 @@ class Clicker(ImageInspectorTool):
     and menubar actions
     """
 
-    left_changed = traits.api.Int(1)
-    right_changed = traits.api.Int(1)
+    left_changed = Int(1)
+    right_changed = Int(1)
     x = 0
     y = 0
 
@@ -91,7 +93,7 @@ class Clicker(ImageInspectorTool):
 
 
 # --------------------------------------------------------------
-class CameraWindow(traits.api.HasTraits):
+class CameraWindow(HasTraits):
     """CameraWindow class contains the relevant information and functions for
     a single camera window: image, zoom, pan important members:
     _plot_data  - contains image data to display (used by update_image)
@@ -100,26 +102,25 @@ class CameraWindow(traits.api.HasTraits):
     to handle mouse processing
     """
 
-    _plot_data = traits.api.Instance(ArrayPlotData)
-    _plot = traits.api.Instance(Plot)
-    _click_tool = traits.api.Instance(Clicker)
-    rclicked = traits.api.Int(0)
+
+    _plot = Instance(Plot)
+    _click_tool = Instance(Clicker)
+    rclicked = Int(0)
 
     cam_color = ""
+    name = ""
+    view = View(
+        Item(name="_plot",
+        editor=ComponentEditor(),
+        show_label=False)
+        )
 
-    name = traits.api.Str
-    view = traitsui.api.View(
-        traitsui.api.Item(name="_plot",
-                          editor=ComponentEditor(),
-                          show_label=False))
 
-    # view = View( Item(name='_plot',show_label=False) )
-
-    def __init__(self, color):
+    def __init__(self, color, name):
         """
         Initialization of plot system
         """
-        traits.api.HasTraits.__init__(self)
+        super(HasTraits, self).__init__()
         padd = 25
         self._plot_data = ArrayPlotData()
         self._plot = Plot(self._plot_data, default_origin="top left")
@@ -135,6 +136,7 @@ class CameraWindow(traits.api.HasTraits):
             self._quiverplots,
         ) = ([], [], [], [], [])
         self.cam_color = color
+        self.name = name
 
     def attach_tools(self):
         """attach_tools(self) contains the relevant tools:
@@ -148,8 +150,6 @@ class CameraWindow(traits.api.HasTraits):
         self._img_plot.tools.append(self._click_tool)
         pan = PanTool(self._plot, drag_button="middle")
         zoom_tool = ZoomTool(self._plot, tool_mode="box", always_on=False)
-        #       zoom_tool = BetterZoom(component=self._plot, tool_mode="box",
-        #       always_on=False)
         zoom_tool.max_zoom_out_factor = 1.0  # Disable "bird view" zoom out
         self._img_plot.overlays.append(zoom_tool)
         self._img_plot.tools.append(pan)
@@ -161,21 +161,13 @@ class CameraWindow(traits.api.HasTraits):
         events and displays coordinate and grey value information
         on the screen
         """
-        print("x = %d, y= %d, grey= %d " % (
-            self._click_tool.x,
-            self._click_tool.y,
-            self._click_tool.data_value,
-        ))
+        print(f"{self._click_tool.x}, {self._click_tool.y}, {self._click_tool.data_value}")
         # need to priny gray value
 
     def right_clicked_event(self):
-        # flag that is tracked by main_gui, for right_click_process function of
-        # main_gui
+        """right mouse button click event flag
+        """
         self.rclicked = 1
-        # self._click_tool.y,self.name])
-        # self.drawcross("coord_x","coord_y",self._click_tool.x,self._click_tool.y,"red",5)
-        # print ("right clicked, "+self.name)
-        # need to print cross and manage other camera's crosses
 
     def update_image(self, image, is_float=False):
         """update_image - displays/updates image in the current camera window
@@ -187,21 +179,22 @@ class CameraWindow(traits.api.HasTraits):
             update_image(image,is_float=False)
         """
         # print('image shape = ', image.shape, 'is_float =', is_float)
-        if image.ndim > 2:
-            image = img_as_ubyte(rgb2gray(image))
-            is_float = False
+        # if image.ndim > 2:
+        #     image = img_as_ubyte(rgb2gray(image))
+        #     is_float = False
 
         if is_float:
             self._plot_data.set_data("imagedata", image.astype(np.float))
         else:
-            self._plot_data.set_data("imagedata", image.astype(np.byte))
+            self._plot_data.set_data("imagedata", image.astype(np.uint8))
 
-        if not hasattr(
-                self,
-                "_img_plot"):  # make a new plot if there is nothing to update
-            self._img_plot = traits.api.Instance(ImagePlot)
-            self._img_plot = self._plot.img_plot("imagedata", colormap=gray)[0]
-            self.attach_tools()
+        # if not hasattr(
+        #         self,
+        #         "img_plot"):  # make a new plot if there is nothing to update
+        #     self.img_plot = Instance(ImagePlot)
+        
+        self._img_plot = self._plot.img_plot("imagedata", colormap=gray)[0]
+        self.attach_tools()
 
         # self._plot.request_redraw()
 
@@ -265,7 +258,10 @@ class CameraWindow(traits.api.HasTraits):
                 ep_index=np.array(x2),
                 ep_value=np.array(y2),
             )
-            self._plot.add(quiverplot)
+            # Seems to be incorrect use of .add
+            # self._plot.add(quiverplot)
+            self._plot.overlays.append(quiverplot)
+            
             # we need this to track how many quiverplots are in the current
             # plot
             self._quiverplots.append(quiverplot)
@@ -309,33 +305,10 @@ class CameraWindow(traits.api.HasTraits):
         self._plot_data.set_data(str_x, [x1, x2])
         self._plot_data.set_data(str_y, [y1, y2])
         self._plot.plot((str_x, str_y), type="line", color=color1)
-        # self._plot.index_range.low_setting = 0
-        # self._plot.index_range.high_setting = imx
-        # self._plot.value_range.low_setting = 0
-        # self._plot.value_range.high_setting = imy
-
-        # self._plot.request_redraw()
-
-    def add_line(self, str_x, str_y, x1, y1, x2, y2, color1):
-        """drawline draws 1 line on the screen by using lineplot x1,y1->x2,y2
-        parameters:
-            str_x - label of x coordinate
-            str_y - label of y coordinate
-            x1,y1,x2,y2 - start and end coordinates of the line
-            color1 - color of the line
-        example usage:
-            drawline("x_coord","y_coord",100,100,200,200,red)
-            draws a red line 100,100->200,200
-        """
-        # self._plot_data.set_data(str_x,[x1,x2])
-        # self._plot_data.set_data(str_y,[y1,y2])
-
-        self._plot_data.set_data(str_x, [x1, x2])
-        self._plot_data.set_data(str_y, [y1, y2])
-        self._plot.add(Plot((str_x, str_y), type="line", color=color1))
+        
 
 
-class TreeMenuHandler(traitsui.api.Handler):
+class TreeMenuHandler(Handler):
     """TreeMenuHanlder contains all the callback actions of menu bar,
     processing of tree editor, and reactions of the GUI to the user clicks
     possible function declarations:
@@ -469,10 +442,8 @@ class TreeMenuHandler(traitsui.api.Handler):
     def saveas_action(self, info):
         print("not implemented")
 
-    def showimg_action(self, info):
-        print("not implemented")
-
-        info.object.update_plots(info.object.orig_image)
+    # def showimg_action(self, info):
+    #     info.object.update_plots(info.object.orig_image)
 
     def highpass_action(self, info):
         """highpass_action - calls ptv.py_pre_processing_c() binding which
@@ -494,8 +465,8 @@ class TreeMenuHandler(traitsui.api.Handler):
                     mask = imread(mask_name)
                     im[mask] = 0
                     info.object.orig_image[i] = im
-            except:
-                print("Failed subtracting mask")
+            except ValueError as exc:
+                raise ValueError("Failed subtracting mask") from exc
 
                 
         print("highpass started")
@@ -598,7 +569,7 @@ class TreeMenuHandler(traitsui.api.Handler):
                 im = imread(
                     getattr(
                         mainGui.exp1.active_params.m_params,
-                        "Name_{}_Image".format(i + 1),
+                        f"Name_{i+1}_Image",
                     ))
                 if im.ndim > 2:
                     im = rgb2gray(im)
@@ -611,8 +582,9 @@ class TreeMenuHandler(traitsui.api.Handler):
                 temp_img = img_as_ubyte(np.zeros((h_img, v_img)))
                 print(f"setting images of size {temp_img.shape}")
                 exec(f"mainGui.orig_image[{i}] = temp_img")
-            if hasattr(mainGui.camera_list[i], "_img_plot"):
-                del mainGui.camera_list[i]._img_plot
+                
+            if hasattr(mainGui.camera_list[i], "img_plot"):
+                del mainGui.camera_list[i].img_plot
         mainGui.clear_plots()
         print("\n Init action \n")
         mainGui.update_plots(mainGui.orig_image, is_float=False)
@@ -669,7 +641,8 @@ class TreeMenuHandler(traitsui.api.Handler):
                 # change to pyptv folder, look for tracking module
                 sys.path.append(info.exp1.object.software_path)
                 # import chosen tracker from software dir
-                seq = __import__(extern_sequence)
+
+                seq = importlib.import_module(extern_sequence)
             except ImportError:
                 print("Error loading or running " + extern_sequence +
                       ". Falling back to default sequence algorithm")
@@ -692,10 +665,8 @@ class TreeMenuHandler(traitsui.api.Handler):
         extern_tracker = info.object.plugins.track_alg
         if extern_tracker != "default":
             try:
-                os.chdir(info.exp1.object.software_path
-                         )  # change to software path, to load tracking module
-                track = __import__(
-                    extern_tracker)  # import choosen tracker from software dir
+                os.chdir(info.exp1.object.software_path)
+                track = importlib.import_module(extern_tracker) 
             except BaseException:
                 print("Error loading " + extern_tracker +
                       ". Falling back to default tracker")
@@ -1050,15 +1021,15 @@ menu_bar = MenuBar(
 # ----------------------------------------
 # tree editor for the Experiment() class
 #
-tree_editor_exp = traitsui.api.TreeEditor(
+tree_editor_exp = TreeEditor(
     nodes=[
-        traitsui.api.TreeNode(
+        TreeNode(
             node_for=[Experiment],
             auto_open=True,
             children="",
             label="=Experiment",
         ),
-        traitsui.api.TreeNode(
+        TreeNode(
             node_for=[Experiment],
             auto_open=True,
             children="paramsets",
@@ -1066,7 +1037,7 @@ tree_editor_exp = traitsui.api.TreeEditor(
             add=[Paramset],
             menu=Menu(CopySetParams),
         ),
-        traitsui.api.TreeNode(
+        TreeNode(
             node_for=[Paramset],
             auto_open=True,
             children="",
@@ -1076,11 +1047,11 @@ tree_editor_exp = traitsui.api.TreeEditor(
                 CopySetParams,
                 RenameSetParams,
                 DeleteSetParams,
-                traitsui.api.Separator(),
+                Separator(),
                 ConfigMainParams,
                 ConfigCalibParams,
                 ConfigTrackParams,
-                traitsui.api.Separator(),
+                Separator(),
                 SetAsDefault,
             ),
         ),
@@ -1090,16 +1061,16 @@ tree_editor_exp = traitsui.api.TreeEditor(
 
 
 # -------------------------------------------------------------------------
-class Plugins(traits.api.HasTraits):
-    track_list = traits.api.List
-    seq_list = traits.api.List
-    track_alg = traits.api.Enum(values="track_list")
-    sequence_alg = traits.api.Enum(values="seq_list")
-    view = traitsui.api.View(
-        traitsui.api.Group(
-            traitsui.api.Item(name="track_alg",
+class Plugins(HasTraits):
+    track_list = List
+    seq_list = List
+    track_alg = Enum(values="track_list")
+    sequence_alg = Enum(values="seq_list")
+    view = View(
+        Group(
+            Item(name="track_alg",
                               label="Choose tracking algorithm:"),
-            traitsui.api.Item(name="sequence_alg",
+            Item(name="sequence_alg",
                               label="Choose sequence algorithm:"),
         ),
         buttons=["OK"],
@@ -1141,32 +1112,32 @@ class Plugins(traits.api.HasTraits):
 
 
 # ----------------------------------------------
-class MainGUI(traits.api.HasTraits):
+class MainGUI(HasTraits):
     """MainGUI is the main class under which the Model-View-Control
     (MVC) model is defined"""
 
-    camera_list = traits.api.List
-    imgplt_flag = 0
-    pass_init = traits.api.Bool(False)
-    update_thread_plot = traits.api.Bool(False)
-    # tr_thread = traits.api.Instance(TrackThread)
-    selected = traits.api.Any
+    camera_list = List
+    # imgplt_flag = 0
+    pass_init = Bool(False)
+    update_thread_plot = Bool(False)
+    # tr_thread = Instance(TrackThread)
+    selected = Any
 
     # Defines GUI view --------------------------
-    view = traitsui.api.View(
-        traitsui.api.Group(
-            traitsui.api.Group(
-                traitsui.api.Item(
+    view = View(
+        Group(
+            Group(
+                Item(
                     name="exp1",
                     editor=tree_editor_exp,
                     show_label=False,
                     width=-400,
                     resizable=False,
                 ),
-                traitsui.api.Item(
+                Item(
                     "camera_list",
                     style="custom",
-                    editor=traitsui.api.ListEditor(
+                    editor=ListEditor(
                         use_notebook=True,
                         deletable=False,
                         dock_style="tab",
@@ -1180,7 +1151,7 @@ class MainGUI(traits.api.HasTraits):
             ),
             orientation="vertical",
         ),
-        title="pyPTV ver. 0.1.9",
+        title="pyPTV ver. 0.2.0",
         id="main_view",
         width=1.0,
         height=1.0,
@@ -1202,17 +1173,15 @@ class MainGUI(traits.api.HasTraits):
         self.exp1.populate_runs(exp_path)
         self.plugins = Plugins()
         self.n_cams = self.exp1.active_params.m_params.Num_Cam
-        self.orig_image = []
+        self.orig_image = [[] for _ in range(self.n_cams)]
         self.current_camera = 0
-        self.camera_list = []
+        self.camera_list = [CameraWindow(colors[i], f"Camera {i+1}") for i in range(self.n_cams)]
         self.software_path = software_path
         self.exp_path = exp_path
         for i in range(self.n_cams):
-            self.camera_list.append(CameraWindow(colors[i]))
-            self.camera_list[i].name = "Camera " + str(i + 1)
             self.camera_list[i].on_trait_change(self.right_click_process,
                                                 "rclicked")
-            self.orig_image.append(np.array([], dtype=np.ubyte))
+            
 
     def right_click_process(self):
         """
@@ -1274,20 +1243,17 @@ class MainGUI(traits.api.HasTraits):
                             self.camera_list[i].cam_color,
                         )
 
-    def update_plots(self, images, is_float=False):
+    def update_plots(self, images, is_float=False)-> None:
+        """update_plots
+
+        Args:
+            images (_type_): images to update
+            is_float (bool, optional): _description_. Defaults to False.
+        """
         print("inside update plots, images changed\n")
-        for i in range(len(images)):
+        for i in range(self.n_cams):
             self.camera_list[i].update_image(images[i], is_float)
             self.camera_list[i]._plot.request_redraw()
-
-    # # set_images sets ptv's C module img[] array
-    # def set_images(self,images):
-    #     for i in range(len(images)):
-    #         ptv.py_set_img(images[i],i)
-    #
-    # def get_images(self,plot_index,images):
-    #     for i in plot_index:
-    #         ptv.py_get_img(images[i],i)
 
     def drawcross(self, str_x, str_y, x, y, color1, size1):
         """
@@ -1297,14 +1263,14 @@ class MainGUI(traits.api.HasTraits):
             cam.drawcross(str_x, str_y, x[i], y[i], color1, size1)
 
     def clear_plots(self, remove_background=True):
-        # this function deletes all plotes except basic image plot
+        # this function deletes all plots except basic image plot
 
         if not remove_background:
             index = "plot0"
         else:
             index = None
 
-        for i in range(len(self.camera_list)):
+        for i in range(self.n_cams):
             plot_list = list(self.camera_list[i]._plot.plots.keys())
             # if not remove_background:
             #   index=None
@@ -1430,8 +1396,8 @@ class MainGUI(traits.api.HasTraits):
             h_img = self.exp1.active_params.m_params.imx
             v_img = self.exp1.active_params.m_params.imy
             temp_img = img_as_ubyte(np.zeros((h_img, v_img)))
-        if not display_only:
-            ptv.py_set_img(temp_img, j)
+        # if not display_only:
+        #     ptv.py_set_img(temp_img, j)
         if len(temp_img) > 0:
             self.camera_list[j].update_image(temp_img)
 

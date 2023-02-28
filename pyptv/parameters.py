@@ -118,16 +118,20 @@ def readParamsDir(par_path):
 
 
 def copy_params_dir(src, dest):
+    """ Copying all parameter files from /src folder to /dest 
+        including .dat, .par and .yaml files
+    """
     ext_set = (".dat", ".par", ".yaml")
     files = [f for f in os.listdir(src) if f.endswith(ext_set)]
 
-    if not os.path.exists(dest):
-        os.mkdir(dest)
-    print("copy from %s to %s" % (src, dest))
+    if not dest.exists():
+        # os.mkdir(dest)
+        dest.mkdir(parents=True, exist_ok=True)
+    print(f"copying from {src} to {dest}")
     for f in files:
         shutil.copyfile(
-            os.path.abspath(os.path.join(src, f)),
-            os.path.abspath(os.path.join(dest, f)),
+            src / f,
+            dest / f,
         )
 
 
