@@ -5,6 +5,7 @@ from builtins import range
 import os
 from pathlib import Path
 import shutil
+from tqdm import tqdm
 from traits.api import HasTraits, Str, Float, Int, List, Bool
 
 import yaml
@@ -127,18 +128,25 @@ def copy_params_dir(src: Path, dest: Path):
     for ext in ext_set:
         files.extend(src.glob(ext))
         
-    print(f'files: {files} in {src}')    
+    print(f'List of parameter files in {src} is \n {files} \n')    
+    print(f'Destination folder is {dest.resolve()}')
     # files = [f for f in src.iterdir() if str(f.parts[-1]).endswith(ext_set)]    
 
-    if not dest.exists():
+    if not dest.is_dir():
         # os.mkdir(dest)
+        print(f"Destination folder does not exist, creating it")
         dest.mkdir(parents=True, exist_ok=True)
-    print(f"copying from {src} to {dest}")
-    for f in files:
+
+    print(f"Copying now file by file from {src} to {dest}: \n")
+
+    for f in tqdm(files):
+        # print(f"From {f} to {dest / f.name} ")
         shutil.copyfile(
-            src / f,
-            dest / f,
+            f,
+            dest / f.name,
         )
+
+    print(f"Successfully \n")
 
 
 # Specific parameter classes #######

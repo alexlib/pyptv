@@ -1,6 +1,6 @@
 import os
 import json
-import pathlib
+from pathlib import Path
 
 from traits.api import HasTraits, Str, Float, Int, List, Bool, Enum, Instance
 from traitsui.api import (
@@ -138,7 +138,7 @@ class ParamHandler(Handler):
                 "mask_flag":mainParams.Subtr_Mask,
                 "mask_base_name":mainParams.Base_Name_Mask,
             }
-            with (pathlib.Path(par_path) / 'masking.json').open('w') as json_file:
+            with (Path(par_path) / 'masking.json').open('w') as json_file:
                 json.dump(masking_dict, json_file)
 
 
@@ -733,7 +733,7 @@ class Main_Params(HasTraits):
         self.Tol_Band = criteriaParams.eps0
         
         # write masking parameters
-        masking_filename = pathlib.Path(self.par_path) / 'masking.json'
+        masking_filename = Path(self.par_path) / 'masking.json'
         if masking_filename.exists():
                 masking_dict = json.load(masking_filename.open('r'))
                 # json.dump(masking_dict, json_file)
@@ -1296,7 +1296,7 @@ class Calib_Params(HasTraits):
 
 class Paramset(HasTraits):
     name = Str
-    par_path = pathlib.Path
+    par_path = Path
     m_params = Instance(Main_Params)
     c_params = Instance(Calib_Params)
     t_params = Instance(Tracking_Params)
@@ -1318,7 +1318,7 @@ class Experiment(HasTraits):
         else:  # Value is instance of Pramset
             return self.paramsets.index(paramset)
 
-    def addParamset(self, name, par_path: pathlib.Path):
+    def addParamset(self, name: str, par_path: Path):
         self.paramsets.append(
             Paramset(
                 name=name,
@@ -1344,9 +1344,12 @@ class Experiment(HasTraits):
         self.syncActiveDir()
 
     def syncActiveDir(self):
-        par.copy_params_dir(self.active_params.par_path, par.par_dir_prefix)
+        default_parameters_path = Path(par.par_dir_prefix).resolve()
+        print(f" Syncing parameters between two folders: \n")
+        print(f"{self.active_params.par_path}, {default_parameters_path}")
+        par.copy_params_dir(self.active_params.par_path, default_parameters_path)
 
-    def populate_runs(self, exp_path: pathlib.Path):
+    def populate_runs(self, exp_path: Path):
         # Read all parameters directories from an experiment directory
         self.paramsets = []
         
@@ -1361,14 +1364,16 @@ class Experiment(HasTraits):
         dir_contents = [
             f for f in dir_contents if str(f.stem).startswith(par.par_dir_prefix)
         ]
-        print(f" parameter sets are in {dir_contents}")
+        # print(f" parameter sets are in {dir_contents}")
 
         # if only 'parameters' folder, create its copy 'parametersRun1'
         if len(dir_contents) == 1 and str(dir_contents[0].stem) == par.par_dir_prefix:
             # single parameters directory, backward compatibility
             exp_name = "Run1"
             new_name = str(dir_contents[0]) + exp_name
-            new_path = pathlib.Path(new_name)
+            new_path = Path(new_name).resolve()
+            print(f" Copying to the new folder {new_path} \n")
+            print("------------------------------------------\n")
             par.copy_params_dir(dir_contents[0], new_path)
             dir_contents.append(new_path)
 
@@ -1378,6 +1383,9 @@ class Experiment(HasTraits):
             if str(dir_item.stem) != par.par_dir_prefix:
                 # This should be a params dir, add a tree entry for it.
                 exp_name = str(dir_item.stem).rsplit('parameters',maxsplit=1)[-1]
+
+                print(f"Experiment name is: {exp_name}")
+                print(f" adding Parameter set\n")
                 self.addParamset(exp_name, dir_item)
 
         if not self.changed_active_params:
