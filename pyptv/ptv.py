@@ -1,5 +1,4 @@
-import pathlib
-import os
+from pathlib import Path
 import numpy as np
 from optv.calibration import Calibration
 from optv.correspondences import correspondences, MatchedCoords
@@ -93,7 +92,7 @@ def py_pre_processing_c(list_of_images, cpar):
 def py_detection_proc_c(list_of_images, cpar, tpar, cals):
     """Detection of targets"""
 
-    pftVersionParams = par.PftVersionParams(path="./parameters")
+    pftVersionParams = par.PftVersionParams(path=Path("parameters"))
     pftVersionParams.read()
     Existing_Target = bool(pftVersionParams.Existing_Target)
 
@@ -207,7 +206,7 @@ def py_sequence_loop(exp):
         exp.cals,
     )
 
-    pftVersionParams = par.PftVersionParams(path="./parameters")
+    pftVersionParams = par.PftVersionParams(path=Path("parameters"))
     pftVersionParams.read()
     Existing_Target = np.bool8(pftVersionParams.Existing_Target)
 
@@ -223,7 +222,7 @@ def py_sequence_loop(exp):
             else:
                 # imname = spar.get_img_base_name(i_cam) + str(frame).encode()
                 imname = spar.get_img_base_name(i_cam).decode()
-                imname = pathlib.Path(imname.replace('#',f'{frame}'))
+                imname = Path(imname.replace('#',f'{frame}'))
                 print(f'Image name {imname}')
 
                 if not imname.exists():
