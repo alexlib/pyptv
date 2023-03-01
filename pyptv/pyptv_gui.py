@@ -370,12 +370,17 @@ class TreeMenuHandler(Handler):
     def copy_set_params(self, editor, object):
         experiment = editor.get_parent(object)
         paramset = object
+        print(f" Copying set of parameters \n")
+        print(f"paramset is {paramset.name}")
+        print(f"paramset id is {int(paramset.name.split('Run')[-1])}")
+        # print(f"experiment is {experiment}\n")
+
         i = 1
         new_name = None
         new_dir_path = None
         flag = False
         while not flag:
-            new_name = f"{paramset.name}{i}"
+            new_name = f"{paramset.name}_{i}"
             new_dir_path = Path( f"{par.par_dir_prefix}{new_name}" )
             if not new_dir_path.is_dir():
                 flag = True

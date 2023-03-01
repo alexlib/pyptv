@@ -1,8 +1,6 @@
 from __future__ import print_function
 from __future__ import absolute_import
 
-from builtins import range
-import os
 from pathlib import Path
 import shutil
 from tqdm import tqdm
@@ -12,7 +10,7 @@ import yaml
 
 # Temporary path for parameters (active run will be copied here)
 par_dir_prefix = str("parameters")
-max_cam = 4
+max_cam = int(4)
 
 
 def g(f):
@@ -27,9 +25,9 @@ class Parameters(HasTraits):
     # default path of the directory of the param files
     default_path = Path("parameters")
 
-    def __init__(self, path=default_path):
+    def __init__(self, path: Path=default_path):
         HasTraits.__init__(self)
-        self.path = path
+        self.path = path.resolve()
         self.exp_path = self.path.parent 
 
     # returns the name of the specific params file
@@ -128,12 +126,11 @@ def copy_params_dir(src: Path, dest: Path):
     for ext in ext_set:
         files.extend(src.glob(ext))
         
-    print(f'List of parameter files in {src} is \n {files} \n')    
-    print(f'Destination folder is {dest.resolve()}')
+    # print(f'List of parameter files in {src} is \n {files} \n')    
+    # print(f'Destination folder is {dest.resolve()}')
     # files = [f for f in src.iterdir() if str(f.parts[-1]).endswith(ext_set)]    
 
     if not dest.is_dir():
-        # os.mkdir(dest)
         print(f"Destination folder does not exist, creating it")
         dest.mkdir(parents=True, exist_ok=True)
 
@@ -253,7 +250,7 @@ class PtvParams(Parameters):
         return "ptv.par"
 
     def read(self):
-        if not os.path.isfile(self.filepath()):
+        if not self.filepath().exists():
             warning(f"{self.filepath()} does not exist ")
         try:
             with open(self.filepath(), "r", encoding="utf8") as f:
@@ -1230,7 +1227,7 @@ class ExamineParams(Parameters):
         return "examine.par"
 
     def read(self):
-        if os.path.exists(self.filepath()) is False:
+        if not self.filepath().exists():
             f = open(self.filepath(), "w")
             f.write("%d\n" % 0)
             f.write("%d\n" % 0)
@@ -1327,7 +1324,7 @@ class DumbbellParams(Parameters):
         return "dumbbell.par"
 
     def read(self):
-        if os.path.exists(self.filepath()) is False:
+        if not self.filepath().exists():
             f = open(self.filepath(), "w")
             f.write("%f\n" % 0.0)
             f.write("%f\n" % 0.0)
@@ -1422,7 +1419,7 @@ class ShakingParams(Parameters):
         return "shaking.par"
 
     def read(self):
-        if os.path.exists(self.filepath()) is False:
+        if not self.filepath().exists():
             f = open(self.filepath(), "w")
             f.write("%f\n" % 0)
             f.write("%f\n" % 0)
@@ -1491,8 +1488,8 @@ class MultiPlaneParams(Parameters):
                 self.n_planes = int(g(f))
                 for i in range(self.n_planes):
                     self.plane_name.append(g(f))
-                    if not os.path.isfile(self.plane_name[i]):
-                        print("plane %s is missing." % self.plane_name[i])
+                    if not self.plane_name[i].is_file():
+                        print(f"Plane {self.plane_name[i]} is missing.")
 
         except BaseException:
             error(None, "%s not found" % self.filepath())
