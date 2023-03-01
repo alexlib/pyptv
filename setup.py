@@ -12,7 +12,8 @@ requirements = [
     'flowtracks',
     'pandas',
     'tables',
-    'pyparsing'
+    'pyparsing',
+    'tqdm'
 ]
 
 setup(
