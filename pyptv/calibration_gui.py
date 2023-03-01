@@ -356,15 +356,15 @@ class CalibrationGUI(HasTraits):
         
         self.man_ori_dat_path = self.working_folder / "man_ori.dat"
 
-        print(" Copying parameters: \n")
+        print(" Copying parameters inside Calibration GUI: \n")
         par.copy_params_dir(self.active_path, self.par_path)
 
         
         os.chdir(self.working_folder)
-        print("Inside a folder: ", os.getcwd())
+        print(f"Inside a folder: {Path.cwd()}")
         
         # read parameters
-        with open(os.path.join(self.par_path, "ptv.par"), "r") as f:
+        with open(self.par_path / "ptv.par", "r") as f:
             self.n_cams = int(f.readline())
 
         self.camera = [PlotWindow() for i in range(self.n_cams)]

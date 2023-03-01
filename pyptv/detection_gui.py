@@ -286,7 +286,7 @@ class DetectionGUI(HasTraits):
     hp_flag = Bool(False,label='highpass')
     inverse_flag = Bool(False, label='inverse')
     button_detection = Button(label='Detect dots')
-    image_name = Str("inverse/16-51-14.000-4000.tif", label="Image file name")
+    image_name = Str("cal/cam1.tif", label="Image file name")
 
     # ---------------------------------------------------
     # Constructor

@@ -7,29 +7,25 @@ from traits.api import (
     Code,
     Int,
     List,
-    Str,
     Button,
-    Float,
-    Instance,
-    Directory,
     File,
 )
 
 from traitsui.api import Item, Group, View, Handler, ListEditor
 
-import os
+from pathlib import Path
 from pyptv import parameters as par
 
 
-def get_path(filename):
-    splitted_filename = filename.split("/")
-    return (
-        os.getcwd()
-        + os.sep
-        + splitted_filename[0]
-        + os.sep
-        + splitted_filename[1]
-    )
+# def get_path(filename):
+#     splitted_filename = filename.split("/")
+#     return (
+#         os.getcwd()
+#         + os.sep
+#         + splitted_filename[0]
+#         + os.sep
+#         + splitted_filename[1]
+#     )
 
 
 def get_code(path):

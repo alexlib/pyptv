@@ -10,7 +10,7 @@ from __future__ import division
 
 
 import os
-import pathlib
+from pathlib import Path, PurePath
 import sys
 import time
 import importlib
@@ -370,19 +370,27 @@ class TreeMenuHandler(Handler):
     def copy_set_params(self, editor, object):
         experiment = editor.get_parent(object)
         paramset = object
+        print(f" Copying set of parameters \n")
+        print(f"paramset is {paramset.name}")
+        print(f"paramset id is {int(paramset.name.split('Run')[-1])}")
+        # print(f"experiment is {experiment}\n")
+
         i = 1
         new_name = None
         new_dir_path = None
         flag = False
         while not flag:
-            new_name = "%s (%d)" % (paramset.name, i)
-            new_dir_path = "%s%s" % (par.par_dir_prefix, new_name)
-            if not os.path.isdir(new_dir_path):
+            new_name = f"{paramset.name}_{i}"
+            new_dir_path = Path( f"{par.par_dir_prefix}{new_name}" )
+            if not new_dir_path.is_dir():
                 flag = True
             else:
                 i = i + 1
 
-        os.mkdir(new_dir_path)
+        print(f"New parameter set in: {new_name}, {new_dir_path} \n")
+
+
+        # new_dir_path.mkdir() # copy should be in the copy_params_dir
         par.copy_params_dir(paramset.par_path, new_dir_path)
         experiment.addParamset(new_name, new_dir_path)
 
@@ -1166,7 +1174,7 @@ class MainGUI(HasTraits):
     # ---------------------------------------------------
     # Constructor and Chaco windows initialization
     # ---------------------------------------------------
-    def __init__(self, exp_path, software_path):
+    def __init__(self, exp_path: Path, software_path: Path):
         super(MainGUI, self).__init__()
         colors = ["yellow", "green", "red", "blue"]
         self.exp1 = Experiment()
@@ -1407,7 +1415,7 @@ def printException():
 
     print("=" * 50)
     print("Exception:", sys.exc_info()[1])
-    print("getcwd()=%s; curdir=%s" % (os.getcwd(), os.curdir))
+    print(f"{Path.cwd()}")
     print("Traceback:") 
     traceback.print_tb(sys.exc_info()[2])
     print("=" * 50)
@@ -1421,20 +1429,22 @@ def main():
         OSError: if software or folder path are missing 
     """
     # Parse inputs:
-    software_path = pathlib.Path().absolute()
+    software_path = Path.cwd().resolve()
     print(f"Software path is {software_path}")
 
     # Path to the experiment
     if len(sys.argv) > 1:
-        exp_path = os.path.abspath(sys.argv[1])
+        exp_path = Path(sys.argv[1]).resolve()
+        print(f'Experimental path is {exp_path}')
     else:
         exp_path = software_path.parent / "test_cavity"
-        print(f"Please provide an experimental directory \
-            as an input, fallback to a default {exp_path} \n")
+        print(f"Without input, PyPTV fallbacks to a default {exp_path} \n")
         
 
-    if not os.path.isdir(exp_path):
+    if not exp_path.is_dir() or not exp_path.exists():
         raise OSError(f"Wrong experimental directory {exp_path}")
+    
+    # Change directory to the path
     os.chdir(exp_path)
 
     try:

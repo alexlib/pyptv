@@ -174,16 +174,17 @@ def main(exp_path, first, last, repetitions=1):
     start = time.time()
 
     try:
-        exp_path = os.path.abspath(exp_path)
-        print("exp_path is %s" % exp_path)
+        exp_path = Path(exp_path).resolve()
+
+        print(f"Inside main of pyptv_batch, exp_path is {exp_path} \n")
         os.chdir(exp_path)
-        print(os.getcwd())
+        print(f"double checking that its inside {Path.cwd()} \n")
     except Exception:
-        raise ValueError("Wrong experimental directory %s" % exp_path)
+        raise ValueError(f"Wrong experimental directory {exp_path}")
 
     # RON - make a res dir if it not found
 
-    if "res" not in os.listdir(exp_path):
+    if "res" not in list(exp_path.iter_dir()):
         print(" 'res' folder not found. creating one")
         os.makedirs(os.path.join(exp_path, "res"))
 
