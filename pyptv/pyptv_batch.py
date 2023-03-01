@@ -17,7 +17,7 @@ import os
 import sys
 import time
 
-from ptv import py_start_proc_c, py_trackcorr_init, py_sequence_loop
+from pyptv.ptv import py_start_proc_c, py_trackcorr_init, py_sequence_loop
 
 
 # project specific inputs
