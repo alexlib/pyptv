@@ -231,19 +231,20 @@ def py_sequence_loop(exp):
                 img = imread(imname)
                 # time.sleep(.1) # I'm not sure we need it here
                 
-                if exp.exp1.active_params.m_params.Inverse:
-                    print("Invert image")
-                    img = 255 - img
+                if 'exp1' in exp.__dict__:
+                    if exp.exp1.active_params.m_params.Inverse:
+                        print("Invert image")
+                        img = 255 - img
 
-                if exp.exp1.active_params.m_params.Subtr_Mask:
-                    # print("Subtracting mask")
-                    try:
-                        mask_name = exp.exp1.active_params.m_params.Base_Name_Mask.replace('#',str(i_cam+1))
-                        mask = imread(mask_name)
-                        img[mask] = 0
+                    if exp.exp1.active_params.m_params.Subtr_Mask:
+                        # print("Subtracting mask")
+                        try:
+                            mask_name = exp.exp1.active_params.m_params.Base_Name_Mask.replace('#',str(i_cam+1))
+                            mask = imread(mask_name)
+                            img[mask] = 0
 
-                    except ValueError:
-                        print("failed to read the mask")
+                        except ValueError:
+                            print("failed to read the mask")
                     
                 
                 high_pass = simple_highpass(img, cpar)
