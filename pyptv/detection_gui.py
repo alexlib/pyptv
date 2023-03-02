@@ -168,7 +168,7 @@ class PlotWindow(HasTraits):
             self._plot.value_mapper.on_trait_change(
                 self.handle_mapper, 'updated', remove=False)
 
-    def drawcross(self, str_x, str_y, x, y, color1, mrk_size):
+    def drawcross(self, str_x, str_y, x, y, color1, mrk_size, marker="plus"):
         """
         Draws crosses on images
         """
@@ -176,7 +176,7 @@ class PlotWindow(HasTraits):
         self._plot_data.set_data(str_x, x)
         self._plot_data.set_data(str_y, y)
         self._plot.plot((str_x, str_y), type="scatter",
-                        color=color1, marker="plus", marker_size=mrk_size)
+                        color=color1, marker=marker, marker_size=mrk_size)
         self._plot.request_redraw()
 
     def drawline(self, str_x, str_y, x1, y1, x2, y2, color1):
