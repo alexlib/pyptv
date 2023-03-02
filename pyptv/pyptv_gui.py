@@ -592,7 +592,7 @@ class TreeMenuHandler(Handler):
                 h_img = mainGui.exp1.active_params.m_params.imx
                 v_img = mainGui.exp1.active_params.m_params.imy
                 temp_img = img_as_ubyte(np.zeros((h_img, v_img)))
-                print(f"setting images of size {temp_img.shape}")
+                # print(f"setting images of size {temp_img.shape}")
                 exec(f"mainGui.orig_image[{i}] = temp_img")
 
             if hasattr(mainGui.camera_list[i], "img_plot"):
@@ -1457,13 +1457,13 @@ class MainGUI(HasTraits):
             j = self.current_camera
             # img_name = self.base_name[j] + seq_ch
             img_name = self.base_name[j].replace("#", seq_ch)
-            print(f"Image name in load_set_seq is {img_name}")
+            # print(f"Image name in load_set_seq is {img_name}")
             self.load_disp_image(img_name, j, display_only)
         else:
             for j in range(n_cams):
                 # img_name = self.base_name[j] + seq_ch
                 img_name = self.base_name[j].replace("#", seq_ch)
-                print(f"Image name in load_set_seq is {img_name}")
+                # print(f"Image name in load_set_seq is {img_name}")
                 self.load_disp_image(img_name, j, display_only)
 
     def load_disp_image(self, img_name: str, j: int, display_only: bool = False):
@@ -1474,7 +1474,7 @@ class MainGUI(HasTraits):
             j (_type_): integer counter
             display_only (bool, optional): display only. Defaults to False.
         """
-        print(f"Setting image: {img_name}")
+        # print(f"Setting image: {img_name}")
         try:
             temp_img = img_as_ubyte(imread(img_name))
         except IOError:
