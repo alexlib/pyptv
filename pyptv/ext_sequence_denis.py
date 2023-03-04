@@ -54,7 +54,7 @@ class Sequence:
                 seq_ch = "%03d" % i
             for j in range(n_camera):
                 img_name = base_name[j] + seq_ch
-                print("Setting image: ", img_name)
+                # print("Setting image: ", img_name)
                 try:
                     temp_img = imread(img_name).astype(np.ubyte)
                 except BaseException:

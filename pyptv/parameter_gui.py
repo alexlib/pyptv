@@ -1,4 +1,6 @@
 import os
+import json
+from pathlib import Path
 
 from traits.api import HasTraits, Str, Float, Int, List, Bool, Enum, Instance
 from traitsui.api import (
@@ -130,6 +132,14 @@ class ParamHandler(Handler):
                 mainParams.Tol_Band,
                 path=par_path,
             ).write()
+            
+            # write masking parameters
+            masking_dict = {
+                "mask_flag":mainParams.Subtr_Mask,
+                "mask_base_name":mainParams.Base_Name_Mask,
+            }
+            with (Path(par_path) / 'masking.json').open('w') as json_file:
+                json.dump(masking_dict, json_file)
 
 
 # define handler function for calibration parameters
@@ -321,7 +331,7 @@ class Tracking_Params(HasTraits):
         self.dvzmax = TrackingParams.dvzmax
         self.angle = TrackingParams.angle
         self.dacc = TrackingParams.dacc
-        self.flagNewParticles = np.bool(TrackingParams.flagNewParticles)
+        self.flagNewParticles = np.bool8(TrackingParams.flagNewParticles)
 
     Tracking_Params_View = View(
         HGroup(
@@ -360,6 +370,7 @@ class Main_Params(HasTraits):
     pair_enable_flag = Bool(True)
     all_enable_flag = Bool(True)
     hp_enable_flag = Bool(True)
+    inverse_image_flag = Bool(False)
 
     # add here also size of the images, e.g. 1280 x 1024 pix and
     # the size of the pixels.
@@ -435,6 +446,7 @@ class Main_Params(HasTraits):
     Subtr_Mask = Bool(False, label="Subtract mask")
     Base_Name_Mask = Str(DEFAULT_STRING, label="Base name for the mask")
     Existing_Target = Bool(False, label="Use existing_target files?")
+    Inverse = Bool(False, label="Negative images?")
 
     # New panel 3: Sequence
     Seq_First = Int(DEFAULT_INT, label="First sequence image:")
@@ -470,7 +482,6 @@ class Main_Params(HasTraits):
             Item(name="Num_Cam", width=30),
             Item(name="Accept_OnlyAllCameras", enabled_when="all_enable_flag"),
             Item(name="pair_Flag", enabled_when="pair_enable_flag"),
-            Item(name="HighPass", enabled_when="hp_enable_flag"),
             orientation="horizontal",
         ),
         Group(
@@ -542,6 +553,8 @@ class Main_Params(HasTraits):
             Item(name="Subtr_Mask"),
             Item(name="Base_Name_Mask"),
             Item(name="Existing_Target"),
+            Item(name="HighPass", enabled_when="hp_enable_flag"),
+            Item(name="Inverse"),
             orientation="horizontal",
         ),
         orientation="vertical",
@@ -641,11 +654,11 @@ class Main_Params(HasTraits):
         self.Refr_Glass = ptvParams.mmp_n2
         self.Refr_Water = ptvParams.mmp_n3
         self.Thick_Glass = ptvParams.mmp_d
-        self.Accept_OnlyAllCameras = np.bool(ptvParams.allcam_flag)
+        self.Accept_OnlyAllCameras = np.bool8(ptvParams.allcam_flag)
         self.Num_Cam = ptvParams.n_img
-        self.HighPass = np.bool(ptvParams.hp_flag)
+        self.HighPass = np.bool8(ptvParams.hp_flag)
         # load unused
-        self.tiff_flag = np.bool(ptvParams.tiff_flag)
+        self.tiff_flag = np.bool8(ptvParams.tiff_flag)
         self.imx = ptvParams.imx
         self.imy = ptvParams.imy
         self.pix_x = ptvParams.pix_x
@@ -656,7 +669,7 @@ class Main_Params(HasTraits):
         calOriParams = par.CalOriParams(ptvParams.n_img, path=self.par_path)
         calOriParams.read()
 
-        self.pair_Flag = np.bool(calOriParams.pair_flag)
+        self.pair_Flag = np.bool8(calOriParams.pair_flag)
         self.img_cal_name = calOriParams.img_cal_name
         self.img_ori = calOriParams.img_ori
         self.fixp_name = calOriParams.fixp_name
@@ -685,7 +698,7 @@ class Main_Params(HasTraits):
         # load pft_version
         pftVersionParams = par.PftVersionParams(path=self.par_path)
         pftVersionParams.read()
-        self.Existing_Target = np.bool(pftVersionParams.Existing_Target)
+        self.Existing_Target = np.bool8(pftVersionParams.Existing_Target)
 
         # load sequence_par
         sequenceParams = par.SequenceParams(
@@ -718,6 +731,14 @@ class Main_Params(HasTraits):
         self.Sum_gv = criteriaParams.csumg
         self.Min_Weight_corr = criteriaParams.corrmin
         self.Tol_Band = criteriaParams.eps0
+        
+        # write masking parameters
+        masking_filename = Path(self.par_path) / 'masking.json'
+        if masking_filename.exists():
+                masking_dict = json.load(masking_filename.open('r'))
+                # json.dump(masking_dict, json_file)
+                self.Subtr_Mask = masking_dict['mask_flag']
+                self.Base_Name_Mask = masking_dict['mask_base_name']
 
     # create initfunc
     def __init__(self, par_path):
@@ -1087,8 +1108,8 @@ class Calib_Params(HasTraits):
 
         self.n_img = ptvParams.n_img
         self.img_name = ptvParams.img_name
-        self.hp_flag = np.bool(ptvParams.hp_flag)
-        self.allcam_flag = np.bool(ptvParams.allcam_flag)
+        self.hp_flag = np.bool8(ptvParams.hp_flag)
+        self.allcam_flag = np.bool8(ptvParams.allcam_flag)
         self.mmp_n1 = ptvParams.mmp_n1
         self.mmp_n2 = ptvParams.mmp_n2
         self.mmp_n3 = ptvParams.mmp_n3
@@ -1116,8 +1137,8 @@ class Calib_Params(HasTraits):
                 "self.ori_cam_{0} = calOriParams.img_ori[{1}]".format(i + 1, i)
             )
 
-        self.tiff_head = np.bool(tiff_flag)
-        self.pair_head = np.bool(pair_flag)
+        self.tiff_head = np.bool8(tiff_flag)
+        self.pair_head = np.bool8(pair_flag)
         self.fixp_name = fixp_name
         if chfield == 0:
             self.chfield = "Frame"
@@ -1221,17 +1242,17 @@ class Calib_Params(HasTraits):
         )
 
         self.point_number_of_orientation = po_num_of_ori
-        self.cc = np.bool(cc)
-        self.xh = np.bool(xh)
-        self.yh = np.bool(yh)
-        self.k1 = np.bool(k1)
-        self.k2 = np.bool(k2)
-        self.k3 = np.bool(k3)
-        self.p1 = np.bool(p1)
-        self.p2 = np.bool(p2)
-        self.scale = np.bool(scale)
-        self.shear = np.bool(shear)
-        self.interf = np.bool(interf)
+        self.cc = np.bool8(cc)
+        self.xh = np.bool8(xh)
+        self.yh = np.bool8(yh)
+        self.k1 = np.bool8(k1)
+        self.k2 = np.bool8(k2)
+        self.k3 = np.bool8(k3)
+        self.p1 = np.bool8(p1)
+        self.p2 = np.bool8(p2)
+        self.scale = np.bool8(scale)
+        self.shear = np.bool8(shear)
+        self.interf = np.bool8(interf)
 
         dumbbellParams = par.DumbbellParams(path=self.par_path)
         dumbbellParams.read()
@@ -1275,7 +1296,7 @@ class Calib_Params(HasTraits):
 
 class Paramset(HasTraits):
     name = Str
-    par_path = Str
+    par_path = Path
     m_params = Instance(Main_Params)
     c_params = Instance(Calib_Params)
     t_params = Instance(Tracking_Params)
@@ -1297,7 +1318,7 @@ class Experiment(HasTraits):
         else:  # Value is instance of Pramset
             return self.paramsets.index(paramset)
 
-    def addParamset(self, name, par_path):
+    def addParamset(self, name: str, par_path: Path):
         self.paramsets.append(
             Paramset(
                 name=name,
@@ -1323,32 +1344,49 @@ class Experiment(HasTraits):
         self.syncActiveDir()
 
     def syncActiveDir(self):
-        par.copy_params_dir(self.active_params.par_path, par.par_dir_prefix)
+        default_parameters_path = Path(par.par_dir_prefix).resolve()
+        print(f" Syncing parameters between two folders: \n")
+        print(f"{self.active_params.par_path}, {default_parameters_path}")
+        par.copy_params_dir(self.active_params.par_path, default_parameters_path)
 
-    def populate_runs(self, exp_path):
+    def populate_runs(self, exp_path: Path):
         # Read all parameters directories from an experiment directory
         self.paramsets = []
+        
+        # list all directories
         dir_contents = [
             f
-            for f in os.listdir(exp_path)
-            if os.path.isdir(os.path.join(exp_path, f))
+            for f in exp_path.iterdir()
+            if (exp_path / f).is_dir()
         ]
+        
+        # choose directories that has 'parameters' in their path
         dir_contents = [
-            f for f in dir_contents if f.startswith(par.par_dir_prefix)
+            f for f in dir_contents if str(f.stem).startswith(par.par_dir_prefix)
         ]
+        # print(f" parameter sets are in {dir_contents}")
 
-        if len(dir_contents) == 1 and dir_contents[0] == par.par_dir_prefix:
+        # if only 'parameters' folder, create its copy 'parametersRun1'
+        if len(dir_contents) == 1 and str(dir_contents[0].stem) == par.par_dir_prefix:
             # single parameters directory, backward compatibility
             exp_name = "Run1"
-            par.copy_params_dir(dir_contents[0], dir_contents[0] + exp_name)
-            dir_contents.append(dir_contents[0] + exp_name)
+            new_name = str(dir_contents[0]) + exp_name
+            new_path = Path(new_name).resolve()
+            print(f" Copying to the new folder {new_path} \n")
+            print("------------------------------------------\n")
+            par.copy_params_dir(dir_contents[0], new_path)
+            dir_contents.append(new_path)
 
+        # take each path in the dir_contents and create a tree entity with the short name
         for dir_item in dir_contents:
-            par_path = os.path.join(exp_path, dir_item)
-            if dir_item != par.par_dir_prefix:
+            # par_path = exp_path / dir_item
+            if str(dir_item.stem) != par.par_dir_prefix:
                 # This should be a params dir, add a tree entry for it.
-                exp_name = dir_item[len(par.par_dir_prefix):]
-                self.addParamset(exp_name, par_path)
+                exp_name = str(dir_item.stem).rsplit('parameters',maxsplit=1)[-1]
+
+                print(f"Experiment name is: {exp_name}")
+                print(f" adding Parameter set\n")
+                self.addParamset(exp_name, dir_item)
 
         if not self.changed_active_params:
             if self.nParamsets() > 0:
