@@ -267,7 +267,7 @@ def py_sequence_loop(exp):
         # this is a workaround of the proper way to construct _targets name
         for i_cam in range(n_cams):
             detections[i_cam].write(
-                spar.get_img_base_name(i_cam).decode().replace('#','').encode(),
+                spar.get_img_base_name(i_cam),
                 frame
                 )
 
