@@ -1383,7 +1383,7 @@ class MainGUI(HasTraits):
                     "self.base_name.append"
                     + f"(self.exp1.active_params.m_params.Basename_{i+1}_Seq)"
                 )
-                print(f" base name in GUI is {self.base_name[i]}")
+                # print(f" base name in GUI is {self.base_name[i]}")
 
         # i = seq
         seq_ch = f"{seq:04d}"
