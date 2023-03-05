@@ -741,10 +741,10 @@ class TreeMenuHandler(Handler):
         seq_first = prm.Seq_First  # get sequence parameters
         seq_last = prm.Seq_Last
         base_names = [
-            prm.Basename_1_Seq,
-            prm.Basename_2_Seq,
-            prm.Basename_3_Seq,
-            prm.Basename_4_Seq,
+            prm.Basename_1_Seq.replace('.#','.'),
+            prm.Basename_2_Seq.replace('.#','.'),
+            prm.Basename_3_Seq.replace('.#','.'),
+            prm.Basename_4_Seq.replace('.#','.'),
         ]
 
         # load first seq image and set appropriate C array
