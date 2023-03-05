@@ -758,45 +758,34 @@ class TreeMenuHandler(Handler):
             y1_a.append([])
             y2_a.append([])
 
-        imx, imy = info.object.cpar.get_image_size()
-        # some old stuff that is probably obsolete, left for the future
-        # see jw_ptv.c for the origins
-        # zoomx = imx / 2
-        # zoomy = imx / 2
-        # zoomf = 1
+    # imx, imy = info.object.cpar.get_image_size()
 
         for i_seq in range(seq_first, seq_last + 1):  # loop over sequences
             for i_img in range(info.object.n_cams):
                 intx_green, inty_green = [], []
+                intx_blue, inty_blue = [], []
                 targets = optv.tracking_framebuf.read_targets(base_names[i_img], i_seq)
 
                 for t in targets:
                     if t.tnr() > -1:
-                        # intx_green.append(int(imx/2 + zoomf*(tx - zoomx)))
-                        # inty_green.append(int(imy/2 + zoomf*(ty - zoomy)))
                         intx_green.append(t.pos()[0])
                         inty_green.append(t.pos()[1])
-                #   else:
-                #       intx_blue.append(int(imx/2 + zoomf*(tx - zoomx)))
-                #       inty_blue.append(int(imy/2 + zoomf*(ty - zoomy)))
+                    else:
+                        intx_blue.append(t.pos()[0])
+                        inty_blue.append(t.pos()[1])
 
-                x1_a[i_img] = (
-                    x1_a[i_img] + intx_green
-                )  # add current step to result array
-                #                x2_a[i_img]=x2_a[i_img]+intx_blue
+                x1_a[i_img] = x1_a[i_img] + intx_green # add current step to result array
+                x2_a[i_img] = x2_a[i_img] + intx_blue
                 y1_a[i_img] = y1_a[i_img] + inty_green
-        #   y2_a[i_img]=y2_a[i_img]+inty_blue
-        #   info.object.camera_list[i_img].drawcross(str(i_seq) + \
-        #       "x_tr_gr",str(i_seq)+"y_tr_gr",intx_green,inty_green,"green",3)
-        #   info.object.camera_list[i_img].drawcross(str(i_seq) + \
-        #       "x_tr_bl",str(i_seq)+"y_tr_bl",intx_blue,inty_blue,"blue",2)
+                y2_a[i_img] = y2_a[i_img] + inty_blue
+
         # plot result arrays
         for i_img in range(info.object.n_cams):
             info.object.camera_list[i_img].drawcross(
-                "x_tr_gr", "y_tr_gr", x1_a[i_img], y1_a[i_img], "green", 3
-            )
-            # info.object.camera_list[i_img].drawcross("x_tr_bl",
-            #                   "y_tr_bl",x2_a[i_img],y2_a[i_img],"blue",2)
+                "x_tr_gr", "y_tr_gr", x1_a[i_img], y1_a[i_img], "green", 3)
+            info.object.camera_list[i_img].drawcross(
+                "x_tr_bl","y_tr_bl", x2_a[i_img], y2_a[i_img], "blue",  2)
+            
             info.object.camera_list[i_img]._plot.request_redraw()
 
         print("Finished detect_part_track")
