@@ -33,7 +33,7 @@ from chaco.api import ArrayDataSource, ArrayPlotData, LinearMapper, Plot, gray
 from chaco.tools.api import PanTool, ZoomTool
 from chaco.tools.image_inspector_tool import ImageInspectorTool
 from enable.component_editor import ComponentEditor
-from skimage import img_as_ubyte
+from skimage.util import img_as_ubyte
 from skimage.color import rgb2gray
 from skimage.io import imread
 
