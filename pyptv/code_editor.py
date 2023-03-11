@@ -17,15 +17,15 @@ from pathlib import Path
 from pyptv import parameters as par
 
 
-# def get_path(filename):
-#     splitted_filename = filename.split("/")
-#     return (
-#         os.getcwd()
-#         + os.sep
-#         + splitted_filename[0]
-#         + os.sep
-#         + splitted_filename[1]
-#     )
+def get_path(filename):
+    splitted_filename = filename.split("/")
+    return (
+        os.getcwd()
+        + os.sep
+        + splitted_filename[0]
+        + os.sep
+        + splitted_filename[1]
+    )
 
 
 def get_code(path):
@@ -87,6 +87,7 @@ class codeEditor(HasTraits):
     )
 
     def __init__(self, path):
+        """ Initialize by reading parameters and filling the editor windows """
         # load ptv_par
         ptvParams = par.PtvParams(path=path)
         ptvParams.read()
@@ -98,5 +99,5 @@ class codeEditor(HasTraits):
 
         for i in range(self.n_img):
             self.oriEditors.append(
-                oriEditor(get_path(calOriParams.img_ori[i]))
+                oriEditor(calOriParams.img_ori[i])
             )
