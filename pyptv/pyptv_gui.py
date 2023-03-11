@@ -747,7 +747,7 @@ class TreeMenuHandler(Handler):
             prm.Basename_4_Seq,
         ]
 
-        # load first seq image and set appropriate C array
+        # load first image from sequence
         info.object.load_set_seq_image(seq_first)
 
         print("Starting detect_part_track")
