@@ -212,7 +212,7 @@ def py_sequence_loop(exp):
 
     # sequence loop for all frames
     for frame in range(spar.get_first(), spar.get_last() + 1):
-        print(f"processing {frame} frame")
+        # print(f"processing {frame} frame")
 
         detections = []
         corrected = []

@@ -18,7 +18,7 @@ requirements = [
 
 setup(
     name='pyptv',
-    version='0.2.1',
+    version='0.2.1b',
     description='Python GUI for the OpenPTV library `liboptv`',
     author="Alex Liberzon",
     author_email='alex.liberzon@gmail.com',
