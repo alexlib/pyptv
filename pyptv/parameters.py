@@ -1488,8 +1488,8 @@ class MultiPlaneParams(Parameters):
                 self.n_planes = int(g(f))
                 for i in range(self.n_planes):
                     self.plane_name.append(g(f))
-                    if not self.plane_name[i].is_file():
-                        print(f"Plane {self.plane_name[i]} is missing.")
+                    # if not self.plane_name[i].is_file():
+                    #     print(f"Plane {self.plane_name[i]} is missing.")
 
         except BaseException:
             error(None, "%s not found" % self.filepath())
