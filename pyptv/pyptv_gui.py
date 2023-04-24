@@ -9,8 +9,9 @@ OpenPTV library is distributed under the terms of LGPL license
 see http://www.openptv.net for more details.
 
 """
-from __future__ import division
 
+from traits.etsconfig.api import ETSConfig
+ETSConfig.toolkit = 'qt4'
 
 import os
 from pathlib import Path, PurePath
@@ -31,8 +32,12 @@ from traitsui.api import (
     Separator,
     Group,
 )
+
+
+
+
 from traitsui.menu import Action, Menu, MenuBar
-from chaco.api import ArrayDataSource, ArrayPlotData, LinearMapper, Plot, ImagePlot, gray
+from chaco.api import ArrayDataSource, ArrayPlotData, LinearMapper, Plot, gray
 from chaco.tools.api import PanTool, ZoomTool
 from chaco.tools.image_inspector_tool import ImageInspectorTool
 from enable.component_editor import ComponentEditor
