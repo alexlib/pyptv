@@ -968,6 +968,54 @@
         "documentation": {}
     },
     {
+        "label": "Callable",
+        "importPath": "traits.api",
+        "description": "traits.api",
+        "isExtraImport": true,
+        "detail": "traits.api",
+        "documentation": {}
+    },
+    {
+        "label": "Enum",
+        "importPath": "traits.api",
+        "description": "traits.api",
+        "isExtraImport": true,
+        "detail": "traits.api",
+        "documentation": {}
+    },
+    {
+        "label": "HasTraits",
+        "importPath": "traits.api",
+        "description": "traits.api",
+        "isExtraImport": true,
+        "detail": "traits.api",
+        "documentation": {}
+    },
+    {
+        "label": "Instance",
+        "importPath": "traits.api",
+        "description": "traits.api",
+        "isExtraImport": true,
+        "detail": "traits.api",
+        "documentation": {}
+    },
+    {
+        "label": "observe",
+        "importPath": "traits.api",
+        "description": "traits.api",
+        "isExtraImport": true,
+        "detail": "traits.api",
+        "documentation": {}
+    },
+    {
+        "label": "Str",
+        "importPath": "traits.api",
+        "description": "traits.api",
+        "isExtraImport": true,
+        "detail": "traits.api",
+        "documentation": {}
+    },
+    {
         "label": "Any",
         "importPath": "traits.api",
         "description": "traits.api",
@@ -1472,6 +1520,54 @@
         "documentation": {}
     },
     {
+        "label": "Callable",
+        "importPath": "traits.api",
+        "description": "traits.api",
+        "isExtraImport": true,
+        "detail": "traits.api",
+        "documentation": {}
+    },
+    {
+        "label": "Enum",
+        "importPath": "traits.api",
+        "description": "traits.api",
+        "isExtraImport": true,
+        "detail": "traits.api",
+        "documentation": {}
+    },
+    {
+        "label": "HasTraits",
+        "importPath": "traits.api",
+        "description": "traits.api",
+        "isExtraImport": true,
+        "detail": "traits.api",
+        "documentation": {}
+    },
+    {
+        "label": "Instance",
+        "importPath": "traits.api",
+        "description": "traits.api",
+        "isExtraImport": true,
+        "detail": "traits.api",
+        "documentation": {}
+    },
+    {
+        "label": "observe",
+        "importPath": "traits.api",
+        "description": "traits.api",
+        "isExtraImport": true,
+        "detail": "traits.api",
+        "documentation": {}
+    },
+    {
+        "label": "Str",
+        "importPath": "traits.api",
+        "description": "traits.api",
+        "isExtraImport": true,
+        "detail": "traits.api",
+        "documentation": {}
+    },
+    {
         "label": "Any",
         "importPath": "traits.api",
         "description": "traits.api",
@@ -2304,6 +2400,22 @@
         "documentation": {}
     },
     {
+        "label": "View",
+        "importPath": "traitsui.api",
+        "description": "traitsui.api",
+        "isExtraImport": true,
+        "detail": "traitsui.api",
+        "documentation": {}
+    },
+    {
+        "label": "Item",
+        "importPath": "traitsui.api",
+        "description": "traitsui.api",
+        "isExtraImport": true,
+        "detail": "traitsui.api",
+        "documentation": {}
+    },
+    {
         "label": "HGroup",
         "importPath": "traitsui.api",
         "description": "traitsui.api",
@@ -2680,6 +2792,22 @@
         "documentation": {}
     },
     {
+        "label": "View",
+        "importPath": "traitsui.api",
+        "description": "traitsui.api",
+        "isExtraImport": true,
+        "detail": "traitsui.api",
+        "documentation": {}
+    },
+    {
+        "label": "Item",
+        "importPath": "traitsui.api",
+        "description": "traitsui.api",
+        "isExtraImport": true,
+        "detail": "traitsui.api",
+        "documentation": {}
+    },
+    {
         "label": "ComponentEditor",
         "importPath": "enable.component_editor",
         "description": "enable.component_editor",
@@ -3240,6 +3368,46 @@
         "documentation": {}
     },
     {
+        "label": "ScatterInspectorOverlay",
+        "importPath": "chaco.api",
+        "description": "chaco.api",
+        "isExtraImport": true,
+        "detail": "chaco.api",
+        "documentation": {}
+    },
+    {
+        "label": "TextBoxOverlay",
+        "importPath": "chaco.api",
+        "description": "chaco.api",
+        "isExtraImport": true,
+        "detail": "chaco.api",
+        "documentation": {}
+    },
+    {
+        "label": "DataFramePlotData",
+        "importPath": "chaco.api",
+        "description": "chaco.api",
+        "isExtraImport": true,
+        "detail": "chaco.api",
+        "documentation": {}
+    },
+    {
+        "label": "Plot",
+        "importPath": "chaco.api",
+        "description": "chaco.api",
+        "isExtraImport": true,
+        "detail": "chaco.api",
+        "documentation": {}
+    },
+    {
+        "label": "ArrayPlotData",
+        "importPath": "chaco.api",
+        "description": "chaco.api",
+        "isExtraImport": true,
+        "detail": "chaco.api",
+        "documentation": {}
+    },
+    {
         "label": "gray",
         "importPath": "chaco.api",
         "description": "chaco.api",
@@ -3465,6 +3633,46 @@
     },
     {
         "label": "ScatterPlot",
+        "importPath": "chaco.api",
+        "description": "chaco.api",
+        "isExtraImport": true,
+        "detail": "chaco.api",
+        "documentation": {}
+    },
+    {
+        "label": "Plot",
+        "importPath": "chaco.api",
+        "description": "chaco.api",
+        "isExtraImport": true,
+        "detail": "chaco.api",
+        "documentation": {}
+    },
+    {
+        "label": "ArrayPlotData",
+        "importPath": "chaco.api",
+        "description": "chaco.api",
+        "isExtraImport": true,
+        "detail": "chaco.api",
+        "documentation": {}
+    },
+    {
+        "label": "ScatterInspectorOverlay",
+        "importPath": "chaco.api",
+        "description": "chaco.api",
+        "isExtraImport": true,
+        "detail": "chaco.api",
+        "documentation": {}
+    },
+    {
+        "label": "TextBoxOverlay",
+        "importPath": "chaco.api",
+        "description": "chaco.api",
+        "isExtraImport": true,
+        "detail": "chaco.api",
+        "documentation": {}
+    },
+    {
+        "label": "DataFramePlotData",
         "importPath": "chaco.api",
         "description": "chaco.api",
         "isExtraImport": true,
@@ -4310,30 +4518,6 @@
         "description": "skimage.io",
         "isExtraImport": true,
         "detail": "skimage.io",
-        "documentation": {}
-    },
-    {
-        "label": "img_as_ubyte",
-        "importPath": "skimage",
-        "description": "skimage",
-        "isExtraImport": true,
-        "detail": "skimage",
-        "documentation": {}
-    },
-    {
-        "label": "img_as_ubyte",
-        "importPath": "skimage",
-        "description": "skimage",
-        "isExtraImport": true,
-        "detail": "skimage",
-        "documentation": {}
-    },
-    {
-        "label": "img_as_ubyte",
-        "importPath": "skimage",
-        "description": "skimage",
-        "isExtraImport": true,
-        "detail": "skimage",
         "documentation": {}
     },
     {
@@ -5425,6 +5609,14 @@
         "documentation": {}
     },
     {
+        "label": "ComponentEditor",
+        "importPath": "enable.api",
+        "description": "enable.api",
+        "isExtraImport": true,
+        "detail": "enable.api",
+        "documentation": {}
+    },
+    {
         "label": "ColorTrait",
         "importPath": "enable.api",
         "description": "enable.api",
@@ -5513,6 +5705,14 @@
         "documentation": {}
     },
     {
+        "label": "ComponentEditor",
+        "importPath": "enable.api",
+        "description": "enable.api",
+        "isExtraImport": true,
+        "detail": "enable.api",
+        "documentation": {}
+    },
+    {
         "label": "ColorTrait",
         "importPath": "enable.api",
         "description": "enable.api",
@@ -5657,15 +5857,7 @@
         "documentation": {}
     },
     {
-        "label": "PanTool",
-        "importPath": "chaco.tools.api",
-        "description": "chaco.tools.api",
-        "isExtraImport": true,
-        "detail": "chaco.tools.api",
-        "documentation": {}
-    },
-    {
-        "label": "ZoomTool",
+        "label": "ScatterInspector",
         "importPath": "chaco.tools.api",
         "description": "chaco.tools.api",
         "isExtraImport": true,
@@ -5714,6 +5906,30 @@
     },
     {
         "label": "ZoomTool",
+        "importPath": "chaco.tools.api",
+        "description": "chaco.tools.api",
+        "isExtraImport": true,
+        "detail": "chaco.tools.api",
+        "documentation": {}
+    },
+    {
+        "label": "PanTool",
+        "importPath": "chaco.tools.api",
+        "description": "chaco.tools.api",
+        "isExtraImport": true,
+        "detail": "chaco.tools.api",
+        "documentation": {}
+    },
+    {
+        "label": "ZoomTool",
+        "importPath": "chaco.tools.api",
+        "description": "chaco.tools.api",
+        "isExtraImport": true,
+        "detail": "chaco.tools.api",
+        "documentation": {}
+    },
+    {
+        "label": "ScatterInspector",
         "importPath": "chaco.tools.api",
         "description": "chaco.tools.api",
         "isExtraImport": true,
@@ -5803,14 +6019,6 @@
         "documentation": {}
     },
     {
-        "label": "division",
-        "importPath": "__future__",
-        "description": "__future__",
-        "isExtraImport": true,
-        "detail": "__future__",
-        "documentation": {}
-    },
-    {
         "label": "print_function",
         "importPath": "__future__",
         "description": "__future__",
@@ -5820,14 +6028,6 @@
     },
     {
         "label": "absolute_import",
-        "importPath": "__future__",
-        "description": "__future__",
-        "isExtraImport": true,
-        "detail": "__future__",
-        "documentation": {}
-    },
-    {
-        "label": "division",
         "importPath": "__future__",
         "description": "__future__",
         "isExtraImport": true,
@@ -6503,6 +6703,46 @@
         "documentation": {}
     },
     {
+        "label": "ETSConfig",
+        "importPath": "traits.etsconfig.api",
+        "description": "traits.etsconfig.api",
+        "isExtraImport": true,
+        "detail": "traits.etsconfig.api",
+        "documentation": {}
+    },
+    {
+        "label": "ETSConfig",
+        "importPath": "traits.etsconfig.api",
+        "description": "traits.etsconfig.api",
+        "isExtraImport": true,
+        "detail": "traits.etsconfig.api",
+        "documentation": {}
+    },
+    {
+        "label": "img_as_ubyte",
+        "importPath": "skimage.util",
+        "description": "skimage.util",
+        "isExtraImport": true,
+        "detail": "skimage.util",
+        "documentation": {}
+    },
+    {
+        "label": "img_as_ubyte",
+        "importPath": "skimage.util",
+        "description": "skimage.util",
+        "isExtraImport": true,
+        "detail": "skimage.util",
+        "documentation": {}
+    },
+    {
+        "label": "img_as_ubyte",
+        "importPath": "skimage.util",
+        "description": "skimage.util",
+        "isExtraImport": true,
+        "detail": "skimage.util",
+        "documentation": {}
+    },
+    {
         "label": "random",
         "importPath": "numpy.random",
         "description": "numpy.random",
@@ -6516,6 +6756,15 @@
         "description": "numpy.random",
         "isExtraImport": true,
         "detail": "numpy.random",
+        "documentation": {}
+    },
+    {
+        "label": "pandas",
+        "kind": 6,
+        "isExtraImport": true,
+        "importPath": "pandas",
+        "description": "pandas",
+        "detail": "pandas",
         "documentation": {}
     },
     {
@@ -7454,6 +7703,15 @@
         "documentation": {}
     },
     {
+        "label": "get_path",
+        "kind": 2,
+        "importPath": "build.lib.pyptv.code_editor",
+        "description": "build.lib.pyptv.code_editor",
+        "peekOfCode": "def get_path(filename):\n    splitted_filename = filename.split(\"/\")\n    return (\n        os.getcwd()\n        + os.sep\n        + splitted_filename[0]\n        + os.sep\n        + splitted_filename[1]\n    )\ndef get_code(path):",
+        "detail": "build.lib.pyptv.code_editor",
+        "documentation": {}
+    },
+    {
         "label": "get_code",
         "kind": 2,
         "importPath": "build.lib.pyptv.code_editor",
@@ -8106,7 +8364,7 @@
         "kind": 6,
         "importPath": "build.lib.pyptv.pyptv_gui",
         "description": "build.lib.pyptv.pyptv_gui",
-        "peekOfCode": "class Clicker(ImageInspectorTool):\n    \"\"\"\n    Clicker class handles right mouse click actions from the tree\n    and menubar actions\n    \"\"\"\n    left_changed = Int(1)\n    right_changed = Int(1)\n    x = 0\n    y = 0\n    def normal_left_down(self, event):",
+        "peekOfCode": "class Clicker(ImageInspectorTool):\n    \"\"\"\n    Clicker class handles right mouse click actions from the tree\n    and menubar actions\n    \"\"\"\n    left_changed = Int(0)\n    right_changed = Int(0)\n    x,y = 0,0\n    def __init__(self, *args, **kwargs):\n        # Clicker.__init__(self,*args, **kwargs)",
         "detail": "build.lib.pyptv.pyptv_gui",
         "documentation": {}
     },
@@ -8161,6 +8419,15 @@
         "importPath": "build.lib.pyptv.pyptv_gui",
         "description": "build.lib.pyptv.pyptv_gui",
         "peekOfCode": "def main():\n    \"\"\"main ()\n    Raises:\n        OSError: if software or folder path are missing\n    \"\"\"\n    # Parse inputs:\n    software_path = Path.cwd().resolve()\n    print(f\"Software path is {software_path}\")\n    # Path to the experiment\n    if len(sys.argv) > 1:",
+        "detail": "build.lib.pyptv.pyptv_gui",
+        "documentation": {}
+    },
+    {
+        "label": "ETSConfig.toolkit",
+        "kind": 5,
+        "importPath": "build.lib.pyptv.pyptv_gui",
+        "description": "build.lib.pyptv.pyptv_gui",
+        "peekOfCode": "ETSConfig.toolkit = 'qt4'\nimport os\nfrom pathlib import Path, PurePath\nimport sys\nimport time\nimport importlib\nimport numpy as np\nimport optv\nfrom traits.api import HasTraits, Int, Bool, Instance, List, Enum, Any\nfrom traitsui.api import (",
         "detail": "build.lib.pyptv.pyptv_gui",
         "documentation": {}
     },
@@ -8273,6 +8540,60 @@
         "documentation": {}
     },
     {
+        "label": "DataframeScatterInspector",
+        "kind": 6,
+        "importPath": "build.lib.pyptv.scatter_inspector2",
+        "description": "build.lib.pyptv.scatter_inspector2",
+        "peekOfCode": "class DataframeScatterInspector(ScatterInspector):\n    #: Data structure to gather all data to display neatly\n    data = Instance(pd.DataFrame)\nclass DataframeScatterOverlay(TextBoxOverlay):\n    \"\"\"Overlay for displaying hovered data point information.\"\"\"\n    #: The inspector tool which has hover information\n    inspector = Instance(ScatterInspector)\n    #: Function which takes and index and returns an info string.\n    message_for_data = Callable\n    @observe(\"inspector:inspector_event\")",
+        "detail": "build.lib.pyptv.scatter_inspector2",
+        "documentation": {}
+    },
+    {
+        "label": "DataframeScatterOverlay",
+        "kind": 6,
+        "importPath": "build.lib.pyptv.scatter_inspector2",
+        "description": "build.lib.pyptv.scatter_inspector2",
+        "peekOfCode": "class DataframeScatterOverlay(TextBoxOverlay):\n    \"\"\"Overlay for displaying hovered data point information.\"\"\"\n    #: The inspector tool which has hover information\n    inspector = Instance(ScatterInspector)\n    #: Function which takes and index and returns an info string.\n    message_for_data = Callable\n    @observe(\"inspector:inspector_event\")\n    def scatter_point_found(self, event):\n        inspector_event = event.new\n        data_idx = inspector_event.event_index",
+        "detail": "build.lib.pyptv.scatter_inspector2",
+        "documentation": {}
+    },
+    {
+        "label": "Demo",
+        "kind": 6,
+        "importPath": "build.lib.pyptv.scatter_inspector2",
+        "description": "build.lib.pyptv.scatter_inspector2",
+        "peekOfCode": "class Demo(HasTraits):\n    plot = Instance(Plot)\n    traits_view = View(\n        Item(\"plot\", editor=ComponentEditor(size=size), show_label=False),\n        resizable=True,\n        title=title,\n    )\n    def _plot_default(self):\n        return _create_plot_component()\ndemo = Demo()",
+        "detail": "build.lib.pyptv.scatter_inspector2",
+        "documentation": {}
+    },
+    {
+        "label": "size",
+        "kind": 5,
+        "importPath": "build.lib.pyptv.scatter_inspector2",
+        "description": "build.lib.pyptv.scatter_inspector2",
+        "peekOfCode": "size = (900, 500)\ntitle = \"Tooltip demo\"\nclass Demo(HasTraits):\n    plot = Instance(Plot)\n    traits_view = View(\n        Item(\"plot\", editor=ComponentEditor(size=size), show_label=False),\n        resizable=True,\n        title=title,\n    )\n    def _plot_default(self):",
+        "detail": "build.lib.pyptv.scatter_inspector2",
+        "documentation": {}
+    },
+    {
+        "label": "title",
+        "kind": 5,
+        "importPath": "build.lib.pyptv.scatter_inspector2",
+        "description": "build.lib.pyptv.scatter_inspector2",
+        "peekOfCode": "title = \"Tooltip demo\"\nclass Demo(HasTraits):\n    plot = Instance(Plot)\n    traits_view = View(\n        Item(\"plot\", editor=ComponentEditor(size=size), show_label=False),\n        resizable=True,\n        title=title,\n    )\n    def _plot_default(self):\n        return _create_plot_component()",
+        "detail": "build.lib.pyptv.scatter_inspector2",
+        "documentation": {}
+    },
+    {
+        "label": "demo",
+        "kind": 5,
+        "importPath": "build.lib.pyptv.scatter_inspector2",
+        "description": "build.lib.pyptv.scatter_inspector2",
+        "peekOfCode": "demo = Demo()\nif __name__ == \"__main__\":\n    demo.configure_traits()",
+        "detail": "build.lib.pyptv.scatter_inspector2",
+        "documentation": {}
+    },
+    {
         "label": "TextBoxOverlay",
         "kind": 6,
         "importPath": "build.lib.pyptv.text_box_overlay",
@@ -8332,6 +8653,15 @@
         "importPath": "pyptv.code_editor",
         "description": "pyptv.code_editor",
         "peekOfCode": "class codeEditor(HasTraits):\n    # number of images\n    n_img = Int()\n    oriEditors = List\n    # view\n    traits_view = View(\n        Item(\n            \"oriEditors\",\n            style=\"custom\",\n            editor=ListEditor(",
+        "detail": "pyptv.code_editor",
+        "documentation": {}
+    },
+    {
+        "label": "get_path",
+        "kind": 2,
+        "importPath": "pyptv.code_editor",
+        "description": "pyptv.code_editor",
+        "peekOfCode": "def get_path(filename):\n    splitted_filename = filename.split(\"/\")\n    return (\n        os.getcwd()\n        + os.sep\n        + splitted_filename[0]\n        + os.sep\n        + splitted_filename[1]\n    )\ndef get_code(path):",
         "detail": "pyptv.code_editor",
         "documentation": {}
     },
@@ -8988,7 +9318,7 @@
         "kind": 6,
         "importPath": "pyptv.pyptv_gui",
         "description": "pyptv.pyptv_gui",
-        "peekOfCode": "class Clicker(ImageInspectorTool):\n    \"\"\"\n    Clicker class handles right mouse click actions from the tree\n    and menubar actions\n    \"\"\"\n    left_changed = Int(1)\n    right_changed = Int(1)\n    x = 0\n    y = 0\n    def normal_left_down(self, event):",
+        "peekOfCode": "class Clicker(ImageInspectorTool):\n    \"\"\"\n    Clicker class handles right mouse click actions from the tree\n    and menubar actions\n    \"\"\"\n    left_changed = Int(0)\n    right_changed = Int(0)\n    x,y = 0,0\n    def __init__(self, *args, **kwargs):\n        # Clicker.__init__(self,*args, **kwargs)",
         "detail": "pyptv.pyptv_gui",
         "documentation": {}
     },
@@ -9043,6 +9373,15 @@
         "importPath": "pyptv.pyptv_gui",
         "description": "pyptv.pyptv_gui",
         "peekOfCode": "def main():\n    \"\"\"main ()\n    Raises:\n        OSError: if software or folder path are missing\n    \"\"\"\n    # Parse inputs:\n    software_path = Path.cwd().resolve()\n    print(f\"Software path is {software_path}\")\n    # Path to the experiment\n    if len(sys.argv) > 1:",
+        "detail": "pyptv.pyptv_gui",
+        "documentation": {}
+    },
+    {
+        "label": "ETSConfig.toolkit",
+        "kind": 5,
+        "importPath": "pyptv.pyptv_gui",
+        "description": "pyptv.pyptv_gui",
+        "peekOfCode": "ETSConfig.toolkit = 'qt4'\nimport os\nfrom pathlib import Path, PurePath\nimport sys\nimport time\nimport importlib\nimport numpy as np\nimport optv\nfrom traits.api import HasTraits, Int, Bool, Instance, List, Enum, Any\nfrom traitsui.api import (",
         "detail": "pyptv.pyptv_gui",
         "documentation": {}
     },
@@ -9152,6 +9491,60 @@
         "description": "pyptv.quiverplot",
         "peekOfCode": "class QuiverPlot(ScatterPlot):\n    # Determines how to interpret the data in the **vectors** data source.\n    # \t\"vector\": each tuple is a (dx, dy)\n    # \t\"radial\": each tuple is an (r, theta)\n    data_type = Enum(\"vector\", \"radial\")  # TODO: implement \"radial\"\n    # A datasource that returns an Nx2 array array indicating directions\n    # of the vectors.  The interpretation of this array is dependent on\n    # the setting of the **data_type** attribute.\n    #\n    # Usually this will be a MultiArrayDataSource.",
         "detail": "pyptv.quiverplot",
+        "documentation": {}
+    },
+    {
+        "label": "DataframeScatterInspector",
+        "kind": 6,
+        "importPath": "pyptv.scatter_inspector2",
+        "description": "pyptv.scatter_inspector2",
+        "peekOfCode": "class DataframeScatterInspector(ScatterInspector):\n    #: Data structure to gather all data to display neatly\n    data = Instance(pd.DataFrame)\nclass DataframeScatterOverlay(TextBoxOverlay):\n    \"\"\"Overlay for displaying hovered data point information.\"\"\"\n    #: The inspector tool which has hover information\n    inspector = Instance(ScatterInspector)\n    #: Function which takes and index and returns an info string.\n    message_for_data = Callable\n    @observe(\"inspector:inspector_event\")",
+        "detail": "pyptv.scatter_inspector2",
+        "documentation": {}
+    },
+    {
+        "label": "DataframeScatterOverlay",
+        "kind": 6,
+        "importPath": "pyptv.scatter_inspector2",
+        "description": "pyptv.scatter_inspector2",
+        "peekOfCode": "class DataframeScatterOverlay(TextBoxOverlay):\n    \"\"\"Overlay for displaying hovered data point information.\"\"\"\n    #: The inspector tool which has hover information\n    inspector = Instance(ScatterInspector)\n    #: Function which takes and index and returns an info string.\n    message_for_data = Callable\n    @observe(\"inspector:inspector_event\")\n    def scatter_point_found(self, event):\n        inspector_event = event.new\n        data_idx = inspector_event.event_index",
+        "detail": "pyptv.scatter_inspector2",
+        "documentation": {}
+    },
+    {
+        "label": "Demo",
+        "kind": 6,
+        "importPath": "pyptv.scatter_inspector2",
+        "description": "pyptv.scatter_inspector2",
+        "peekOfCode": "class Demo(HasTraits):\n    plot = Instance(Plot)\n    traits_view = View(\n        Item(\"plot\", editor=ComponentEditor(size=size), show_label=False),\n        resizable=True,\n        title=title,\n    )\n    def _plot_default(self):\n        return _create_plot_component()\ndemo = Demo()",
+        "detail": "pyptv.scatter_inspector2",
+        "documentation": {}
+    },
+    {
+        "label": "size",
+        "kind": 5,
+        "importPath": "pyptv.scatter_inspector2",
+        "description": "pyptv.scatter_inspector2",
+        "peekOfCode": "size = (900, 500)\ntitle = \"Tooltip demo\"\nclass Demo(HasTraits):\n    plot = Instance(Plot)\n    traits_view = View(\n        Item(\"plot\", editor=ComponentEditor(size=size), show_label=False),\n        resizable=True,\n        title=title,\n    )\n    def _plot_default(self):",
+        "detail": "pyptv.scatter_inspector2",
+        "documentation": {}
+    },
+    {
+        "label": "title",
+        "kind": 5,
+        "importPath": "pyptv.scatter_inspector2",
+        "description": "pyptv.scatter_inspector2",
+        "peekOfCode": "title = \"Tooltip demo\"\nclass Demo(HasTraits):\n    plot = Instance(Plot)\n    traits_view = View(\n        Item(\"plot\", editor=ComponentEditor(size=size), show_label=False),\n        resizable=True,\n        title=title,\n    )\n    def _plot_default(self):\n        return _create_plot_component()",
+        "detail": "pyptv.scatter_inspector2",
+        "documentation": {}
+    },
+    {
+        "label": "demo",
+        "kind": 5,
+        "importPath": "pyptv.scatter_inspector2",
+        "description": "pyptv.scatter_inspector2",
+        "peekOfCode": "demo = Demo()\nif __name__ == \"__main__\":\n    demo.configure_traits()",
+        "detail": "pyptv.scatter_inspector2",
         "documentation": {}
     },
     {

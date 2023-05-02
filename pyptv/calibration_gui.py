@@ -11,12 +11,13 @@ import re
 from  pathlib import Path
 import numpy as np
 from skimage.io import imread
-from skimage import img_as_ubyte
+from skimage.util import img_as_ubyte
 from skimage.color import rgb2gray
 
 from traits.api import HasTraits, Str, Int, Bool, Instance, Button
 from traitsui.api import View, Item, HGroup, VGroup, ListEditor
 from enable.component_editor import ComponentEditor
+    
 from chaco.api import (
     Plot,
     ArrayPlotData,
@@ -122,6 +123,7 @@ class PlotWindow(HasTraits):
         # -------------------------------------------------------------
 
     def left_clicked_event(self):
+        """ left click event """
         print("left clicked")
         if len(self._x) < 4:
             self._x.append(self._click_tool.x)
@@ -129,10 +131,13 @@ class PlotWindow(HasTraits):
         print(self._x, self._y)
 
         self.drawcross("coord_x", "coord_y", self._x, self._y, "red", 5)
-        self._plot.overlays.clear()
+        
+        if self._plot.overlays is not None:
+            self._plot.overlays.clear() # type: ignore
         self.plot_num_overlay(self._x, self._y, self.man_ori)
 
     def right_clicked_event(self):
+        """ right click event """
         print("right clicked")
         if len(self._x) > 0:
             self._x.pop()
@@ -140,7 +145,8 @@ class PlotWindow(HasTraits):
             print(self._x, self._y)
 
             self.drawcross("coord_x", "coord_y", self._x, self._y, "red", 5)
-            self._plot.overlays.clear()
+            if self._plot.overlays is not None:
+                self._plot.overlays.clear() # type: ignore
             self.plot_num_overlay(self._x, self._y, self.man_ori)
         else:
             if self._right_click_avail:
@@ -154,6 +160,7 @@ class PlotWindow(HasTraits):
                 self.drawcross("x", "y", x[0], y[0], "blue", 4)
 
     def attach_tools(self):
+        """ Attaches the necessary tools to the plot """
         self._click_tool = ClickerTool(self._img_plot)
         self._click_tool.on_trait_change(
             self.left_clicked_event, "left_changed"
@@ -621,8 +628,8 @@ class CalibrationGUI(HasTraits):
                 print(f"Camera {i} has 4 points: {self.camera[i]._x}")
 
         if points_set:
-            print(f'Manual orientation file is {man_ori_path}')
-            with open(self.man_ori_path, "w", encoding="utf-8") as f:
+            print(f'Manual orientation file is {self.man_ori_dat_path}')
+            with open(self.man_ori_dat_path, "w", encoding="utf-8") as f:
                 if f is None:
                     self.status_text = "Error saving man_ori.dat."
                 else:
