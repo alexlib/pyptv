@@ -1244,11 +1244,13 @@ class MainGUI(HasTraits):
                 dtype="float64",
             )
             
-            # find closest point
+            # find closest point in the sorted_pos            
             for pos_type in self.sorted_pos: # quadruplet, triplet, pair
                 distances = np.linalg.norm(pos_type[i] - point, axis=1)
-                if np.min(distances) < 5 :
+                # next test prevents failure with empty quadruplets or triplets
+                if len(distances) > 0 and np.min(distances) < 5 :
                     point = pos_type[i][np.argmin(distances)]
+                    
                     
             
             if not np.allclose(point, [0.0, 0.0]):
@@ -1490,7 +1492,9 @@ def main():
         print(f"Experimental path is {exp_path}")
     else:
         exp_path = software_path.parent / "test_cavity"
+        exp_path = Path('/home/user/Downloads/one-dot-example/working_folder')
         print(f"Without input, PyPTV fallbacks to a default {exp_path} \n")
+        
 
     if not exp_path.is_dir() or not exp_path.exists():
         raise OSError(f"Wrong experimental directory {exp_path}")
