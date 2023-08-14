@@ -899,11 +899,22 @@ class CalibrationGUI(HasTraits):
                     # not all ends with a number
                     c = re.findall("\\d+", self.calParams.img_ori[i_cam])[0]
 
+                    # This name convention does not allow us to have 
+                    # Cam01-plane1.tif 
+                    # so we try to make it more flexible for the user:
+
+                    # file_known = (
+                    #     self.MultiParams.plane_name[i] + c + ".tif.fix"
+                    # )
+                    # file_detected = (
+                    #     self.MultiParams.plane_name[i] + c + ".tif.crd"
+                    # )
+
                     file_known = (
-                        self.MultiParams.plane_name[i] + c + ".tif.fix"
+                        self.MultiParams.plane_name[i].replace('#',c) + ".tif.fix"
                     )
                     file_detected = (
-                        self.MultiParams.plane_name[i] + c + ".tif.crd"
+                        self.MultiParams.plane_name[i].replace('#',c) + ".tif.crd"
                     )
 
                     # Load calibration point information from plane i
@@ -1184,7 +1195,7 @@ if __name__ == "__main__":
     import sys
 
     if len(sys.argv) == 1:
-        active_path = Path("../test_cavity/parametersRun1")
+        active_path = Path("/Volumes/ExtremePro/Yorku/multiplane_example_2/parametersPlane1")
     else:
         active_path = Path(sys.argv[0])
 
