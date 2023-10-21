@@ -14,7 +14,8 @@ from traits.etsconfig.api import ETSConfig
 ETSConfig.toolkit = 'qt4'
 
 import os
-from pathlib import Path, PurePath
+from pathlib import Path
+from skimage.color import rgb2gray
 import sys
 import time
 import importlib
@@ -32,6 +33,7 @@ from traitsui.api import (
     Separator,
     Group,
 )
+from pyptv.text_box_overlay import TextBoxOverlay
 
 
 
@@ -42,7 +44,6 @@ from chaco.tools.api import PanTool, ZoomTool
 from chaco.tools.image_inspector_tool import ImageInspectorTool
 from enable.component_editor import ComponentEditor
 from skimage.util import img_as_ubyte
-from skimage.color import rgb2gray
 from skimage.io import imread
 
 from pyptv import parameters as par
@@ -291,6 +292,20 @@ class CameraWindow(HasTraits):
             # we need this to track how many quiverplots are in the current
             # plot
             self._quiverplots.append(quiverplot)
+            
+    def plot_num_overlay(self, x: int, y: int, txt: str):
+        """ Plot a number on the screen at the specified coordinates"""
+        for i in range(0, len(x)):
+            coord_x, coord_y = self._plot.map_screen([(x[i], y[i])])[0]
+            ovlay = TextBoxOverlay(component=self._plot,
+                                   text=str(txt[i]), alternate_position=(coord_x, coord_y),
+                                   real_position=(x[i], y[i]),
+                                   text_color="white",
+                                   border_color="red"
+                                   )
+
+            self._plot.overlays.append(ovlay)
+            
 
     @staticmethod
     def remove_short_lines(x1, y1, x2, y2):
@@ -392,19 +407,21 @@ class TreeMenuHandler(Handler):
         # editor.object.__init__()
 
     def copy_set_params(self, editor, object):
+        """ copy_set_params copies the set of parameters and creates a new set"""
         experiment = editor.get_parent(object)
         paramset = object
-        print(f" Copying set of parameters \n")
+        print(" Copying set of parameters \n")
         print(f"paramset is {paramset.name}")
-        print(f"paramset id is {int(paramset.name.split('Run')[-1])}")
+        print(f" copied to {paramset.name + '_copy'}")
+        # print(f"paramset id is {int(paramset.name.split('Run')[-1])}")
         # print(f"experiment is {experiment}\n")
 
         i = 1
         new_name = None
-        new_dir_path = None
+        new_dir_path = Path()
         flag = False
         while not flag:
-            new_name = f"{paramset.name}_{i}"
+            new_name = paramset.name + '_copy'
             new_dir_path = Path(f"{par.par_dir_prefix}{new_name}")
             if not new_dir_path.is_dir():
                 flag = True
@@ -417,14 +434,14 @@ class TreeMenuHandler(Handler):
         par.copy_params_dir(paramset.par_path, new_dir_path)
         experiment.addParamset(new_name, new_dir_path)
 
-    def rename_set_params(editor, object):
+    def rename_set_params(self, editor, object):
         """rename_set_params renames the node name on the tree and also
         the folder of parameters"""
         experiment = editor.get_parent(object)
         paramset = object
         # rename
         # import pdb; pdb.set_trace()
-        editor._menu_rename_node()
+        editor._menu_rename_node(object)
         new_name = object.name
         new_dir_path = par.par_dir_prefix + new_name
         os.mkdir(new_dir_path)
@@ -437,7 +454,7 @@ class TreeMenuHandler(Handler):
         experiment.removeParamset(paramset)
         experiment.addParamset(new_name, new_dir_path)
 
-    def delete_set_params(editor, object):
+    def delete_set_params(self, editor, object):
         """delete_set_params deletes the node and the folder of parameters"""
         # experiment = editor.get_parent(object)
         paramset = object
@@ -490,11 +507,10 @@ class TreeMenuHandler(Handler):
             print("Subtracting mask")
             try:
                 for i, im in enumerate(info.object.orig_image):
-                    mask_name = (
-                        info.object.exp1.active_params.m_params.Base_Name_Mask.replace(
-                            "#", str(i)
-                        )
-                    )
+                    mask_name = info.object.exp1.active_params.m_params.Base_Name_Mask % str(i)
+                    # info.object.exp1.active_params.m_params.Base_Name_Mask.replace(
+                        #     "#", str(i)                        
+                    # )
                     mask = imread(mask_name)
                     im[mask] = 0
                     info.object.orig_image[i] = im
@@ -835,22 +851,12 @@ class TreeMenuHandler(Handler):
         heads_x, heads_y = [], []
         tails_x, tails_y = [], []
         ends_x, ends_y = [], []
+        tnr = []
         for i_cam in range(info.object.n_cams):
             head_x, head_y = [], []
             tail_x, tail_y = [], []
             end_x, end_y = [], []
             for traj in dataset:
-                # projected = optv.imgcoord.image_coordinates(
-                #     np.atleast_2d(traj.pos()[0]*1000),
-                #     info.object.cals[i_cam],
-                #     info.object.cpar.get_multimedia_params(),
-                # )
-                # pos = optv.transforms.convert_arr_metric_to_pixel(
-                #     projected, info.object.cpar)
-
-                # head_x.append(pos[0][0])
-                # head_y.append(pos[0][1])
-
                 projected = optv.imgcoord.image_coordinates(
                     np.atleast_2d(traj.pos() * 1000),
                     info.object.cals[i_cam],
@@ -862,6 +868,7 @@ class TreeMenuHandler(Handler):
 
                 head_x.append(pos[0, 0])  # first row
                 head_y.append(pos[0, 1])
+                # tnr.append(str(traj._id))
                 tail_x.extend(list(pos[1:-1, 0]))  # all other rows,
                 tail_y.extend(list(pos[1:-1, 1]))
                 end_x.append(pos[-1, 0])
@@ -884,7 +891,18 @@ class TreeMenuHandler(Handler):
             info.object.camera_list[i_cam].drawcross(
                 "ends_x", "ends_y", ends_x[i_cam], ends_y[i_cam], "orange", 3
             )
-
+            
+            # there is an attempt to add numbers to the trajectories
+            # but it does not clean out after that, so I neeed to fix it later
+            # meanwhile commenting out
+            
+            # if info.object.camera_list[i_cam]._plot.overlays is not None:
+            #     info.object.camera_list[i_cam]._plot.overlays.clear() # type: ignore
+                
+            # info.object.camera_list[i_cam].plot_num_overlay(
+            #         heads_x[i_cam], heads_y[i_cam], tnr
+            #         )
+            # info.object.camera_list[i_cam]._plot.request_redraw()
 
     def plugin_action(self, info):
         """Configure plugins by using GUI"""
@@ -908,8 +926,12 @@ class TreeMenuHandler(Handler):
         import pandas as pd
         from flowtracks.io import trajectories_ptvis
 
-        dataset = trajectories_ptvis("res/ptv_is.%d", xuap=False)
+        # dataset = trajectories_ptvis("res/ptv_is.%d", xuap=False)
 
+        dataset = trajectories_ptvis(
+            "res/ptv_is.%d", first=seq_first, last=seq_last, xuap=False, traj_min_len=3
+        )
+        
         dataframes = []
         for traj in dataset:
             dataframes.append(
@@ -1427,18 +1449,20 @@ class MainGUI(HasTraits):
                 # print(f" base name in GUI is {self.base_name[i]}")
 
         # i = seq
-        seq_ch = f"{seq:04d}"
+        # seq_ch = f"{seq:04d}"
 
         if not update_all:
             j = self.current_camera
             # img_name = self.base_name[j] + seq_ch
-            img_name = self.base_name[j].replace("#", seq_ch)
+            # img_name = self.base_name[j].replace("#", seq_ch)
+            img_name = self.base_name[j] % seq
             # print(f"Image name in load_set_seq is {img_name}")
             self.load_disp_image(img_name, j, display_only)
         else:
             for j in range(n_cams):
                 # img_name = self.base_name[j] + seq_ch
-                img_name = self.base_name[j].replace("#", seq_ch)
+                # img_name = self.base_name[j].replace("#", seq_ch)
+                img_name = self.base_name[j] % seq
                 # print(f"Image name in load_set_seq is {img_name}")
                 self.load_disp_image(img_name, j, display_only)
 
@@ -1492,7 +1516,7 @@ def main():
         print(f"Experimental path is {exp_path}")
     else:
         exp_path = software_path.parent / "test_cavity"
-        exp_path = Path('/home/user/Downloads/one-dot-example/working_folder')
+        exp_path = Path('/home/user/Downloads/8000_20/')
         print(f"Without input, PyPTV fallbacks to a default {exp_path} \n")
         
 

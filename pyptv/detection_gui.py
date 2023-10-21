@@ -250,7 +250,8 @@ class PlotWindow(HasTraits):
                 self._plot.overlays[i].alternate_position = (
                     coord_x1, coord_y1)
 
-    def plot_num_overlay(self, x, y, txt):
+    def plot_num_overlay(self, x: int, y: int, txt: str):
+        """ Plot a number on the screen at the specified coordinates"""
         for i in range(0, len(x)):
             coord_x, coord_y = self._plot.map_screen([(x[i], y[i])])[0]
             ovlay = TextBoxOverlay(component=self._plot,

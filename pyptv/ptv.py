@@ -20,6 +20,7 @@ from optv.tracking_framebuf import CORRES_NONE, read_targets, TargetArray
 from optv.tracker import Tracker, default_naming
 from optv.epipolar import epipolar_curve
 from skimage.io import imread
+from skimage.util import img_as_ubyte
 from pyptv import parameters as par
 
 
@@ -222,13 +223,14 @@ def py_sequence_loop(exp):
             else:
                 # imname = spar.get_img_base_name(i_cam) + str(frame).encode()
                 imname = spar.get_img_base_name(i_cam).decode()
-                imname = Path(imname.replace('#',f'{frame}'))
+                imname = Path(imname % frame)
+                # imname = Path(imname.replace('#',f'{frame}'))
                 # print(f'Image name {imname}')
 
                 if not imname.exists():
                     print(f"{imname} does not exist")
 
-                img = imread(imname)
+                img = img_as_ubyte(imread(imname))
                 # time.sleep(.1) # I'm not sure we need it here
                 
                 if 'exp1' in exp.__dict__:
