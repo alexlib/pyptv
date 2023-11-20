@@ -9,19 +9,17 @@ OpenPTV library is distributed under the terms of LGPL license
 see http://www.openptv.net for more details.
 
 """
-
-from traits.etsconfig.api import ETSConfig
-ETSConfig.toolkit = 'qt4'
-
-import os
 from pathlib import Path
+import os
 from skimage.color import rgb2gray
 import sys
 import time
 import importlib
-
 import numpy as np
 import optv
+from traits.etsconfig.api import ETSConfig
+ETSConfig.toolkit = 'qt4'
+
 from traits.api import HasTraits, Int, Bool, Instance, List, Enum, Any
 from traitsui.api import (
     View,
@@ -33,11 +31,8 @@ from traitsui.api import (
     Separator,
     Group,
 )
+
 from pyptv.text_box_overlay import TextBoxOverlay
-
-
-
-
 from traitsui.menu import Action, Menu, MenuBar
 from chaco.api import ArrayDataSource, ArrayPlotData, LinearMapper, Plot, gray
 from chaco.tools.api import PanTool, ZoomTool
@@ -45,15 +40,15 @@ from chaco.tools.image_inspector_tool import ImageInspectorTool
 from enable.component_editor import ComponentEditor
 from skimage.util import img_as_ubyte
 from skimage.io import imread
-
+from pyptv.calibration_gui import CalibrationGUI
 from pyptv import parameters as par
 from pyptv import ptv
-from pyptv.calibration_gui import CalibrationGUI
 from pyptv.directory_editor import DirectoryEditorDialog
 from pyptv.parameter_gui import Experiment, Paramset
 from pyptv.quiverplot import QuiverPlot
 from pyptv.detection_gui import DetectionGUI
 import optv.orientation
+
 
 
 class Clicker(ImageInspectorTool):
@@ -63,7 +58,7 @@ class Clicker(ImageInspectorTool):
     """
     left_changed = Int(0)
     right_changed = Int(0)
-    x,y = 0,0
+    x, y = 0, 0
 
     def __init__(self, *args, **kwargs):
         # Clicker.__init__(self,*args, **kwargs)
@@ -81,7 +76,6 @@ class Clicker(ImageInspectorTool):
             self.last_mouse_position = (event.x, event.y)
             self.left_changed = 1 - self.left_changed
             # print(f"left: x={self.x}, y={self.y}, I={self.data_value}, {self.left_changed}")
-            
 
     def normal_right_down(self, event):
         plot = self.component
@@ -91,12 +85,9 @@ class Clicker(ImageInspectorTool):
             self.data_value = plot.value.data[self.y, self.x]
             # print(f"right: x={self.x}, y={self.y}, I={self.data_value}")
             self.right_changed = 1 - self.right_changed
-            
-        
 
     # def normal_mouse_move(self, event):
     #     pass
-
 
 
 # --------------------------------------------------------------
@@ -123,7 +114,7 @@ class CameraWindow(HasTraits):
         """
         super(HasTraits, self).__init__()
         padd = 25
-        self._plot_data = ArrayPlotData() # we need set_data
+        self._plot_data = ArrayPlotData()  # we need set_data
         self._plot = Plot(self._plot_data, default_origin="top left")
         self._plot.padding_left = padd
         self._plot.padding_right = padd
@@ -138,26 +129,26 @@ class CameraWindow(HasTraits):
         ) = ([], [], [], [], [])
         self.cam_color = color
         self.name = name
-        
 
     def attach_tools(self):
         """attach_tools(self) contains the relevant tools:
         clicker, pan, zoom"""
-      
+
         print(f" Attaching clicker to camera {self.name}")
         self._click_tool = Clicker(component=self._img_plot)
-        self._click_tool.on_trait_change(self.left_clicked_event, "left_changed")
-        self._click_tool.on_trait_change(self.right_clicked_event, "right_changed")
+        self._click_tool.on_trait_change(
+            self.left_clicked_event, "left_changed")
+        self._click_tool.on_trait_change(
+            self.right_clicked_event, "right_changed")
         # self._img_plot.tools.clear()
         self._img_plot.tools.append(self._click_tool)
-        
+
         pan = PanTool(self._plot, drag_button="middle")
         zoom_tool = ZoomTool(self._plot, tool_mode="box", always_on=False)
         zoom_tool.max_zoom_out_factor = 1.0  # Disable "bird view" zoom out
         self._img_plot.overlays.append(zoom_tool)
         self._img_plot.tools.append(pan)
         # print(self._img_plot.tools)
-        
 
     def left_clicked_event(
         self,
@@ -170,7 +161,7 @@ class CameraWindow(HasTraits):
         print(
             f"x={self._click_tool.x} pix,y={self._click_tool.y} pix,I={self._click_tool.data_value}"
         )
-        
+
     def right_clicked_event(self):
         """right mouse button click event flag"""
         # # self._click_tool.right_changed = 1
@@ -179,7 +170,6 @@ class CameraWindow(HasTraits):
         # )
         self.rclicked = 1
 
-        
     def create_image(self, image, is_float=False):
         """create_image - displays/updates image in the current camera window
         parameters:
@@ -292,7 +282,7 @@ class CameraWindow(HasTraits):
             # we need this to track how many quiverplots are in the current
             # plot
             self._quiverplots.append(quiverplot)
-            
+
     def plot_num_overlay(self, x: int, y: int, txt: str):
         """ Plot a number on the screen at the specified coordinates"""
         for i in range(0, len(x)):
@@ -305,7 +295,6 @@ class CameraWindow(HasTraits):
                                    )
 
             self._plot.overlays.append(ovlay)
-            
 
     @staticmethod
     def remove_short_lines(x1, y1, x2, y2):
@@ -507,9 +496,10 @@ class TreeMenuHandler(Handler):
             print("Subtracting mask")
             try:
                 for i, im in enumerate(info.object.orig_image):
-                    mask_name = info.object.exp1.active_params.m_params.Base_Name_Mask % str(i)
+                    mask_name = info.object.exp1.active_params.m_params.Base_Name_Mask % str(
+                        i)
                     # info.object.exp1.active_params.m_params.Base_Name_Mask.replace(
-                        #     "#", str(i)                        
+                    #     "#", str(i)
                     # )
                     mask = imread(mask_name)
                     im[mask] = 0
@@ -800,12 +790,12 @@ class TreeMenuHandler(Handler):
 
     # imx, imy = info.object.cpar.get_image_size()
 
-        
         for i_img in range(info.object.n_cams):
             for i_seq in range(seq_first, seq_last + 1):  # loop over sequences
                 intx_green, inty_green = [], []
                 intx_blue, inty_blue = [], []
-                targets = optv.tracking_framebuf.read_targets(base_names[i_img], i_seq)
+                targets = optv.tracking_framebuf.read_targets(
+                    base_names[i_img], i_seq)
 
                 for t in targets:
                     if t.tnr() > -1:
@@ -815,7 +805,8 @@ class TreeMenuHandler(Handler):
                         intx_blue.append(t.pos()[0])
                         inty_blue.append(t.pos()[1])
 
-                x1_a[i_img] = x1_a[i_img] + intx_green # add current step to result array
+                # add current step to result array
+                x1_a[i_img] = x1_a[i_img] + intx_green
                 x2_a[i_img] = x2_a[i_img] + intx_blue
                 y1_a[i_img] = y1_a[i_img] + inty_green
                 y2_a[i_img] = y2_a[i_img] + inty_blue
@@ -825,8 +816,8 @@ class TreeMenuHandler(Handler):
             info.object.camera_list[i_img].drawcross(
                 "x_tr_gr", "y_tr_gr", x1_a[i_img], y1_a[i_img], "green", 3)
             info.object.camera_list[i_img].drawcross(
-                "x_tr_bl","y_tr_bl", x2_a[i_img], y2_a[i_img], "blue",  2)
-            
+                "x_tr_bl", "y_tr_bl", x2_a[i_img], y2_a[i_img], "blue",  2)
+
             info.object.camera_list[i_img]._plot.request_redraw()
 
         print("Finished detect_part_track")
@@ -891,14 +882,14 @@ class TreeMenuHandler(Handler):
             info.object.camera_list[i_cam].drawcross(
                 "ends_x", "ends_y", ends_x[i_cam], ends_y[i_cam], "orange", 3
             )
-            
+
             # there is an attempt to add numbers to the trajectories
             # but it does not clean out after that, so I neeed to fix it later
             # meanwhile commenting out
-            
+
             # if info.object.camera_list[i_cam]._plot.overlays is not None:
             #     info.object.camera_list[i_cam]._plot.overlays.clear() # type: ignore
-                
+
             # info.object.camera_list[i_cam].plot_num_overlay(
             #         heads_x[i_cam], heads_y[i_cam], tnr
             #         )
@@ -931,12 +922,13 @@ class TreeMenuHandler(Handler):
         dataset = trajectories_ptvis(
             "res/ptv_is.%d", first=seq_first, last=seq_last, xuap=False, traj_min_len=3
         )
-        
+
         dataframes = []
         for traj in dataset:
             dataframes.append(
                 pd.DataFrame.from_records(
-                    traj, columns=["x", "y", "z", "dx", "dy", "dz", "frame", "particle"]
+                    traj, columns=["x", "y", "z", "dx",
+                                   "dy", "dz", "frame", "particle"]
                 )
             )
 
@@ -977,7 +969,8 @@ ConfigTrackParams = Action(
     name="Tracking parameters",
     action="handler.configure_track_par(editor,object)",
 )
-SetAsDefault = Action(name="Set as active", action="handler.set_active(editor,object)")
+SetAsDefault = Action(name="Set as active",
+                      action="handler.set_active(editor,object)")
 CopySetParams = Action(
     name="Copy set of parameters",
     action="handler.copy_set_params(editor,object)",
@@ -1143,10 +1136,12 @@ class Plugins(HasTraits):
     def read(self):
         # reading external tracking
         if os.path.exists(
-            os.path.join(os.path.abspath(os.curdir), "external_tracker_list.txt")
+            os.path.join(os.path.abspath(os.curdir),
+                         "external_tracker_list.txt")
         ):
             with open(
-                os.path.join(os.path.abspath(os.curdir), "external_tracker_list.txt"),
+                os.path.join(os.path.abspath(os.curdir),
+                             "external_tracker_list.txt"),
                 "r",
             ) as f:
                 trackers = f.read().split("\n")
@@ -1156,10 +1151,12 @@ class Plugins(HasTraits):
             self.track_list = ["default"]
         # reading external sequence
         if os.path.exists(
-            os.path.join(os.path.abspath(os.curdir), "external_sequence_list.txt")
+            os.path.join(os.path.abspath(os.curdir),
+                         "external_sequence_list.txt")
         ):
             with open(
-                os.path.join(os.path.abspath(os.curdir), "external_sequence_list.txt"),
+                os.path.join(os.path.abspath(os.curdir),
+                             "external_sequence_list.txt"),
                 "r",
             ) as f:
                 seq = f.read().split("\n")
@@ -1239,22 +1236,22 @@ class MainGUI(HasTraits):
         self.software_path = software_path
         self.exp_path = exp_path
         for i in range(self.n_cams):
-            self.camera_list[i].on_trait_change(self.right_click_process, "rclicked")
+            self.camera_list[i].on_trait_change(
+                self.right_click_process, "rclicked")
 
     def right_click_process(self):
         """
         Shows a line in camera color code corresponding to a point on another
         camera's view plane.
-        """        
+        """
         num_points = 2
-        
+
         try:
             _ = self.sorted_pos
             plot_epipolar = True
         except:
             plot_epipolar = False
-            
-        
+
         if plot_epipolar:
 
             i = self.current_camera
@@ -1265,16 +1262,14 @@ class MainGUI(HasTraits):
                 ],
                 dtype="float64",
             )
-            
-            # find closest point in the sorted_pos            
-            for pos_type in self.sorted_pos: # quadruplet, triplet, pair
+
+            # find closest point in the sorted_pos
+            for pos_type in self.sorted_pos:  # quadruplet, triplet, pair
                 distances = np.linalg.norm(pos_type[i] - point, axis=1)
                 # next test prevents failure with empty quadruplets or triplets
-                if len(distances) > 0 and np.min(distances) < 5 :
+                if len(distances) > 0 and np.min(distances) < 5:
                     point = pos_type[i][np.argmin(distances)]
-                    
-                    
-            
+
             if not np.allclose(point, [0.0, 0.0]):
                 # mark the point with a circle
                 c = str(np.random.rand())[2:]
@@ -1311,10 +1306,8 @@ class MainGUI(HasTraits):
                             pts[-1, 1],
                             self.camera_list[i].cam_color,
                         )
-                
+
                 self.camera_list[i].rclicked = 0
-                        
-        
 
     def create_plots(self, images, is_float=False) -> None:
         """update_plots
@@ -1327,7 +1320,7 @@ class MainGUI(HasTraits):
         for i in range(self.n_cams):
             self.camera_list[i].create_image(images[i], is_float)
             self.camera_list[i]._plot.request_redraw()
-            
+
     def update_plots(self, images, is_float=False) -> None:
         """update_plots
 
@@ -1345,7 +1338,8 @@ class MainGUI(HasTraits):
         Draws crosses
         """
         for i, cam in enumerate(self.camera_list):
-            cam.drawcross(str_x, str_y, x[i], y[i], color1, size1, marker=marker)
+            cam.drawcross(str_x, str_y, x[i], y[i],
+                          color1, size1, marker=marker)
 
     def clear_plots(self, remove_background=True):
         # this function deletes all plots except basic image plot
@@ -1368,7 +1362,8 @@ class MainGUI(HasTraits):
             self.camera_list[i]._plot.tools = []
             self.camera_list[i]._plot.request_redraw()
             for j in range(len(self.camera_list[i]._quiverplots)):
-                self.camera_list[i]._plot.remove(self.camera_list[i]._quiverplots[j])
+                self.camera_list[i]._plot.remove(
+                    self.camera_list[i]._quiverplots[j])
             self.camera_list[i]._quiverplots = []
             self.camera_list[i].right_p_x0 = []
             self.camera_list[i].right_p_y0 = []
@@ -1415,8 +1410,10 @@ class MainGUI(HasTraits):
                     "white",
                     2,
                 )
-                self.camera_list[i].drawquiver(x0[i], y0[i], x1[i], y1[i], "orange")
-                self.camera_list[i].drawquiver(x1[i], y1[i], x2[i], y2[i], "white")
+                self.camera_list[i].drawquiver(
+                    x0[i], y0[i], x1[i], y1[i], "orange")
+                self.camera_list[i].drawquiver(
+                    x1[i], y1[i], x2[i], y2[i], "white")
             # for j in range (m_tr):
             # str_plt=str(step)+"_"+str(j)
             ##
@@ -1516,9 +1513,8 @@ def main():
         print(f"Experimental path is {exp_path}")
     else:
         exp_path = software_path.parent / "test_cavity"
-        exp_path = Path('/home/user/Downloads/8000_20/')
+        exp_path = Path('/home/user/Downloads/1024_15/')
         print(f"Without input, PyPTV fallbacks to a default {exp_path} \n")
-        
 
     if not exp_path.is_dir() or not exp_path.exists():
         raise OSError(f"Wrong experimental directory {exp_path}")

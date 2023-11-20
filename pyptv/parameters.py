@@ -4,7 +4,7 @@ from __future__ import absolute_import
 from pathlib import Path
 import shutil
 from tqdm import tqdm
-from traits.api import HasTraits, Str, Float, Int, List, Bool
+from traits.api import HasTraits, Unicode, Float, Int, List, Bool
 
 import yaml
 
@@ -22,20 +22,24 @@ def g(f):
 
 
 class Parameters(HasTraits):
+    """ Base class for all parameters classes """
     # default path of the directory of the param files
     default_path = Path("parameters")
 
     def __init__(self, path: Path=default_path):
-        HasTraits.__init__(self)
+        """ Initialises the path and exp_path variables """
+        super().__init__()
         self.path = path.resolve()
         self.exp_path = self.path.parent 
 
     # returns the name of the specific params file
     def filename(self):
+        """ Returns the name of the specific params file """
         raise NotImplementedError()
 
     # returns the path to the specific params file
     def filepath(self):
+        """ Returns the path to the specific params file """
         return self.path.joinpath(self.filename())
 
     # sets all variables of the param file (no actual writing to disk)
@@ -328,7 +332,7 @@ class CalOriParams(Parameters):
     0   flag for frame (0), odd (1) or even fields (2)
     """
 
-    #     fixp_name = Str
+    #     fixp_name = Unicode
     #     img_cal_name = List
     #     img_ori = List
     #     tiff_flag = Bool
@@ -338,7 +342,7 @@ class CalOriParams(Parameters):
     def __init__(
         self,
         n_img=Int,
-        fixp_name=Str,
+        fixp_name=Unicode,
         img_cal_name=List,
         img_ori=List,
         tiff_flag=Bool,
@@ -550,17 +554,17 @@ class CriteriaParams(Parameters):
 
     def read(self):
         try:
-            f = open(self.filepath(), "r")
+            f = open(self.filepath(), "r", encoding='utf-8')
 
             self.X_lay = []
             self.Zmin_lay = []
             self.Zmax_lay = []
-            self.X_lay.append(int(g(f)))
-            self.Zmin_lay.append(int(g(f)))
-            self.Zmax_lay.append(int(g(f)))
-            self.X_lay.append(int(g(f)))
-            self.Zmin_lay.append(int(g(f)))
-            self.Zmax_lay.append(int(g(f)))
+            self.X_lay.append(float(g(f)))
+            self.Zmin_lay.append(float(g(f)))
+            self.Zmax_lay.append(float(g(f)))
+            self.X_lay.append(float(g(f)))
+            self.Zmin_lay.append(float(g(f)))
+            self.Zmax_lay.append(float(g(f)))
             self.cnx = float(g(f))
             self.cny = float(g(f))
             self.cn = float(g(f))

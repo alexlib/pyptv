@@ -457,12 +457,12 @@ class Main_Params(HasTraits):
     Basename_4_Seq = Str(DEFAULT_STRING, label="Basename for 4. sequence")
 
     # Panel 4: ObservationVolume
-    Xmin = Int(DEFAULT_FLOAT, label="Xmin")
-    Xmax = Int(DEFAULT_FLOAT, label="Xmax")
-    Zmin1 = Int(DEFAULT_FLOAT, label="Zmin")
-    Zmin2 = Int(DEFAULT_FLOAT, label="Zmin")
-    Zmax1 = Int(DEFAULT_FLOAT, label="Zmax")
-    Zmax2 = Int(DEFAULT_FLOAT, label="Zmax")
+    Xmin = Float(DEFAULT_FLOAT, label="Xmin")
+    Xmax = Float(DEFAULT_FLOAT, label="Xmax")
+    Zmin1 = Float(DEFAULT_FLOAT, label="Zmin")
+    Zmin2 = Float(DEFAULT_FLOAT, label="Zmin")
+    Zmax1 = Float(DEFAULT_FLOAT, label="Zmax")
+    Zmax2 = Float(DEFAULT_FLOAT, label="Zmax")
 
     # Panel 5: ParticleDetection
     Min_Corr_nx = Float(DEFAULT_FLOAT, label="min corr for ratio nx")
