@@ -1,24 +1,20 @@
 from pathlib import Path
 import numpy as np
-from optv.calibration import Calibration
-from optv.correspondences import correspondences, MatchedCoords
-from optv.image_processing import preprocess_image
-from optv.orientation import (
+from openptv_python.calibration import Calibration
+from openptv_python.correspondences import correspondences
+from openptv_python.orientation import (
     point_positions,
-    external_calibration,
     full_calibration,
 )
-from optv.parameters import (
-    ControlParams,
-    VolumeParams,
-    TrackingParams,
-    SequenceParams,
-    TargetParams,
+from openptv_python.parameters import (
+    ControlPar,
+    VolumePar,
+    TrackPar,
+    SequencePar,
+    TargetPar,
 )
-from optv.segmentation import target_recognition
-from optv.tracking_framebuf import CORRES_NONE, read_targets, TargetArray
-from optv.tracker import Tracker, default_naming
-from optv.epipolar import epipolar_curve
+from openptv_python.segmentation import target_recognition
+from openptv_python.tracking_frame_buf import read_targets
 from skimage.io import imread
 from skimage.util import img_as_ubyte
 from pyptv import parameters as par
@@ -42,35 +38,35 @@ def py_start_proc_c(n_cams):
     """Read parameters"""
 
     # Control parameters
-    cpar = ControlParams(n_cams)
-    cpar.read_control_par(b"parameters/ptv.par")
+    cpar = ControlPar(n_cams)
+    cpar.from_file("parameters/ptv.par")
 
     # Sequence parameters
-    spar = SequenceParams(num_cams=n_cams)
-    spar.read_sequence_par(b"parameters/sequence.par", n_cams)
+    spar = SequencePar(num_cams=n_cams)
+    spar.from_file("parameters/sequence.par")
 
     # Volume parameters
-    vpar = VolumeParams()
-    vpar.read_volume_par(b"parameters/criteria.par")
+    vpar = VolumePar()
+    vpar.from_file("parameters/criteria.par")
 
     # Tracking parameters
-    track_par = TrackingParams()
-    track_par.read_track_par(b"parameters/track.par")
+    track_par = TrackPar()
+    track_par.from_file("parameters/track.par")
 
     # Target parameters
-    tpar = TargetParams(n_cams)
-    tpar.read(b"parameters/targ_rec.par")
+    tpar = TargetPar()
+    tpar.from_file("parameters/targ_rec.par")
 
     # Examine parameters, multiplane (single plane vs combined calibration)
-    epar = par.ExamineParams()
+    epar = par.ExaminePar()
     epar.read()
 
     # Calibration parameters
     cals = []
     for i_cam in range(n_cams):
         cal = Calibration()
-        tmp = cpar.get_cal_img_base_name(i_cam)
-        cal.from_file(tmp + b".ori", tmp + b".addpar")
+        tmp = cpar.cal_img_base_name[i_cam]
+        cal.from_file(tmp + ".ori", tmp + ".addpar")
         cals.append(cal)
 
     return cpar, spar, vpar, track_par, tpar, cals, epar
@@ -82,7 +78,7 @@ def py_pre_processing_c(list_of_images, cpar):
 
     Inputs:
         list of images
-        cpar ControlParams()
+        cpar ControlPar()
     """
     newlist = []
     for img in list_of_images:
@@ -93,9 +89,9 @@ def py_pre_processing_c(list_of_images, cpar):
 def py_detection_proc_c(list_of_images, cpar, tpar, cals):
     """Detection of targets"""
 
-    pftVersionParams = par.PftVersionParams(path=Path("parameters"))
-    pftVersionParams.read()
-    Existing_Target = bool(pftVersionParams.Existing_Target)
+    pftVersionPar = par.PftVersionPar(path=Path("parameters"))
+    pftVersionPar.read()
+    Existing_Target = bool(pftVersionPar.Existing_Target)
 
     detections, corrected = [], []
     for i_cam, img in enumerate(list_of_images):
@@ -144,11 +140,11 @@ def py_determination_proc_c(n_cams, sorted_pos, sorted_corresp, corrected):
     """Returns 3d positions"""
 
     # Control parameters
-    cpar = ControlParams(n_cams)
+    cpar = ControlPar(n_cams)
     cpar.read_control_par(b"parameters/ptv.par")
 
     # Volume parameters
-    vpar = VolumeParams()
+    vpar = VolumePar()
     vpar.read_volume_par(b"parameters/criteria.par")
 
     cals = []
@@ -207,9 +203,9 @@ def py_sequence_loop(exp):
         exp.cals,
     )
 
-    pftVersionParams = par.PftVersionParams(path=Path("parameters"))
-    pftVersionParams.read()
-    Existing_Target = np.bool8(pftVersionParams.Existing_Target)
+    pftVersionPar = par.PftVersionPar(path=Path("parameters"))
+    pftVersionPar.read()
+    Existing_Target = np.bool8(pftVersionPar.Existing_Target)
 
     # sequence loop for all frames
     for frame in range(spar.get_first(), spar.get_last() + 1):
@@ -234,14 +230,14 @@ def py_sequence_loop(exp):
                 # time.sleep(.1) # I'm not sure we need it here
                 
                 if 'exp1' in exp.__dict__:
-                    if exp.exp1.active_params.m_params.Inverse:
+                    if exp.exp1.active_Par.m_Par.Inverse:
                         print("Invert image")
                         img = 255 - img
 
-                    if exp.exp1.active_params.m_params.Subtr_Mask:
+                    if exp.exp1.active_Par.m_Par.Subtr_Mask:
                         # print("Subtracting mask")
                         try:
-                            mask_name = exp.exp1.active_params.m_params.Base_Name_Mask.replace('#',str(i_cam+1))
+                            mask_name = exp.exp1.active_Par.m_Par.Base_Name_Mask.replace('#',str(i_cam+1))
                             mask = imread(mask_name)
                             img[mask] = 0
 
@@ -445,12 +441,12 @@ def py_multiplanecalibration(exp):
     for i_cam in range(exp.n_cams):  # iterate over all cameras
         all_known = []
         all_detected = []
-        for i in range(exp.MultiParams.n_planes):  # combine all single planes
+        for i in range(exp.MultiPar.n_planes):  # combine all single planes
 
-            c = exp.calParams.img_ori[i_cam][-9]  # Get camera id
+            c = exp.calPar.img_ori[i_cam][-9]  # Get camera id
 
-            file_known = exp.MultiParams.plane_name[i] + str(c) + ".tif.fix"
-            file_detected = exp.MultiParams.plane_name[i] + str(c) + ".tif.crd"
+            file_known = exp.MultiPar.plane_name[i] + str(c) + ".tif.fix"
+            file_detected = exp.MultiPar.plane_name[i] + str(c) + ".tif.crd"
 
             # Load calibration point information from plane i
             known = np.loadtxt(file_known)
@@ -493,7 +489,7 @@ def py_multiplanecalibration(exp):
         # backup the ORI/ADDPAR files first
         exp.backup_ori_files()
 
-        op = par.OrientParams()
+        op = par.OrientPar()
         op.read()
 
         # recognized names for the flags:

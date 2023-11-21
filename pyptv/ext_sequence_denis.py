@@ -24,15 +24,15 @@ class Sequence:
     def do_sequence(self):
         """this function is callback for "tracking without display" """
         print("inside denis_ext_sequence")
-        n_camera = self.exp1.active_params.m_params.Num_Cam
+        n_camera = self.exp1.active_Par.m_Par.Num_Cam
         print("Starting sequence action")
-        seq_first = self.exp1.active_params.m_params.Seq_First
-        seq_last = self.exp1.active_params.m_params.Seq_Last
+        seq_first = self.exp1.active_Par.m_Par.Seq_First
+        seq_last = self.exp1.active_Par.m_Par.Seq_Last
         print(seq_first, seq_last)
         base_name = []
         for i in range(n_camera):
             exec(
-                "base_name.append(self.exp1.active_params.m_params.Basename_%d_Seq)" %
+                "base_name.append(self.exp1.active_Par.m_Par.Basename_%d_Seq)" %
                 (i + 1))
             print(base_name[i])
 

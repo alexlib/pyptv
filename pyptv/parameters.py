@@ -32,14 +32,14 @@ class Parameters(HasTraits):
         self.path = path.resolve()
         self.exp_path = self.path.parent 
 
-    # returns the name of the specific params file
+    # returns the name of the specific Par file
     def filename(self):
-        """ Returns the name of the specific params file """
+        """ Returns the name of the specific Par file """
         raise NotImplementedError()
 
-    # returns the path to the specific params file
+    # returns the path to the specific Par file
     def filepath(self):
-        """ Returns the path to the specific params file """
+        """ Returns the path to the specific Par file """
         return self.path.joinpath(self.filename())
 
     # sets all variables of the param file (no actual writing to disk)
@@ -90,30 +90,30 @@ def warning(msg):
 
 # Reads a parameters directory and returns a dictionary with all parameter
 # objects
-def readParamsDir(par_path):
+def readParDir(par_path):
     # get n_img from ptv.par
-    ptvParams = PtvParams(path=par_path)
-    ptvParams.read()
-    n_img = ptvParams.n_img
+    ptvPar = PtvPar(path=par_path)
+    ptvPar.read()
+    n_img = ptvPar.n_img
     n_pts = Int(4)
 
     ret = {
-        CalOriParams: CalOriParams(n_img, path=par_path),
-        SequenceParams: SequenceParams(n_img, path=par_path),
-        CriteriaParams: CriteriaParams(path=par_path),
-        TargRecParams: TargRecParams(n_img, path=par_path),
-        ManOriParams: ManOriParams(n_img, n_pts, path=par_path),
-        DetectPlateParams: DetectPlateParams(path=par_path),
-        OrientParams: OrientParams(path=par_path),
-        TrackingParams: TrackingParams(path=par_path),
-        PftVersionParams: PftVersionParams(path=par_path),
-        ExamineParams: ExamineParams(path=par_path),
-        DumbbellParams: DumbbellParams(path=par_path),
-        ShakingParams: ShakingParams(path=par_path),
+        CalOriPar: CalOriPar(n_img, path=par_path),
+        SequencePar: SequencePar(n_img, path=par_path),
+        CriteriaPar: CriteriaPar(path=par_path),
+        TargRecPar: TargRecPar(n_img, path=par_path),
+        ManOriPar: ManOriPar(n_img, n_pts, path=par_path),
+        DetectPlatePar: DetectPlatePar(path=par_path),
+        OrientPar: OrientPar(path=par_path),
+        TrackPar: TrackPar(path=par_path),
+        PftVersionPar: PftVersionPar(path=par_path),
+        ExaminePar: ExaminePar(path=par_path),
+        DumbbellPar: DumbbellPar(path=par_path),
+        ShakingPar: ShakingPar(path=par_path),
     }
 
     for parType in list(ret.keys()):
-        if parType == PtvParams:
+        if parType == PtvPar:
             continue
         parObj = ret[parType]
         parObj.read()
@@ -121,7 +121,7 @@ def readParamsDir(par_path):
     return ret
 
 
-def copy_params_dir(src: Path, dest: Path):
+def copy_Par_dir(src: Path, dest: Path):
     """ Copying all parameter files from /src folder to /dest 
         including .dat, .par and .yaml files
     """
@@ -135,7 +135,7 @@ def copy_params_dir(src: Path, dest: Path):
     # files = [f for f in src.iterdir() if str(f.parts[-1]).endswith(ext_set)]    
 
     if not dest.is_dir():
-        print(f"Destination folder does not exist, creating it")
+        print("Destination folder does not exist, creating it")
         dest.mkdir(parents=True, exist_ok=True)
 
     print(f"Copying now file by file from {src} to {dest}: \n")
@@ -147,13 +147,13 @@ def copy_params_dir(src: Path, dest: Path):
             dest / f.name,
         )
 
-    print(f"Successfully \n")
+    print("Successfully \n")
 
 
 # Specific parameter classes #######
 
 
-class PtvParams(Parameters):
+class PtvPar(Parameters):
     """ptv.par
     ptv.par:        main parameter file
     4       number of cameras
@@ -315,7 +315,7 @@ class PtvParams(Parameters):
             return False
 
 
-class CalOriParams(Parameters):
+class CalOriPar(Parameters):
     """ calibration parameters:
     cal_ori.par:    calibration plate, images, orientation files
     ptv/ssc_cal.c3d control point file (point number, X, Y, Z in [mm], ASCII
@@ -419,7 +419,7 @@ class CalOriParams(Parameters):
             return False
 
 
-class SequenceParams(Parameters):
+class SequencePar(Parameters):
     """
     sequence.par: sequence parameters
     cam0. basename for 1.sequence
@@ -482,7 +482,7 @@ class SequenceParams(Parameters):
             return False
 
 
-class CriteriaParams(Parameters):
+class CriteriaPar(Parameters):
     """
     criteria.par:   object volume and correspondence parameters
     0.0     illuminated layer data, xmin [mm]
@@ -600,7 +600,7 @@ class CriteriaParams(Parameters):
             return False
 
 
-class TargRecParams(Parameters):
+class TargRecPar(Parameters):
     """
     targ_rec.par:   parameters for particle detection
     12      grey value threshold 1. image
@@ -721,7 +721,7 @@ class TargRecParams(Parameters):
             return False
 
 
-class ManOriParams(Parameters):
+class ManOriPar(Parameters):
     """
     man_ori.par:    point number for manual pre-orientation
     28      image 1 p1 on target plate (reference body)
@@ -775,7 +775,7 @@ class ManOriParams(Parameters):
             return False
 
 
-class DetectPlateParams(Parameters):
+class DetectPlatePar(Parameters):
     """
     detect_plate.par: parameters for control point detection
     30 grey value threshold 1. calibration image
@@ -937,7 +937,7 @@ class DetectPlateParams(Parameters):
             return False
 
 
-class OrientParams(Parameters):
+class OrientPar(Parameters):
     """
     orient.par: flags for camera parameter usage 1=use, 0=unused
     2 point number for orientation, in this case
@@ -1066,7 +1066,7 @@ class OrientParams(Parameters):
             return False
 
 
-class TrackingParams(Parameters):
+class TrackPar(Parameters):
     #     dvxmin = Float
     #     dvxmax = Float
     #     dvymin = Float
@@ -1175,7 +1175,7 @@ class TrackingParams(Parameters):
             return False
 
 
-class PftVersionParams(Parameters):
+class PftVersionPar(Parameters):
     #     Existing_Target = Int
 
     def __init__(self, Existing_Target=Int, path=Parameters.default_path):
@@ -1211,7 +1211,7 @@ class PftVersionParams(Parameters):
             return False
 
 
-class ExamineParams(Parameters):
+class ExaminePar(Parameters):
     #     Examine_Flag = Bool
     #     Combine_Flag = Bool
 
@@ -1261,7 +1261,7 @@ class ExamineParams(Parameters):
             return False
 
 
-class DumbbellParams(Parameters):
+class DumbbellPar(Parameters):
     """
     dumbbell parameters
     5  eps (mm)
@@ -1370,7 +1370,7 @@ class DumbbellParams(Parameters):
             return False
 
 
-class ShakingParams(Parameters):
+class ShakingPar(Parameters):
     """
     shaking parameters
     10000 - first frame
@@ -1459,7 +1459,7 @@ class ShakingParams(Parameters):
             return False
 
 
-class MultiPlaneParams(Parameters):
+class MultiPlanePar(Parameters):
     # m parameters
     """
     3 :    number of planes
@@ -1513,7 +1513,7 @@ class MultiPlaneParams(Parameters):
             return False
 
 
-class SortGridParams(Parameters):
+class SortGridPar(Parameters):
     # m parameters
     """
     20 :    pixels, radius of search for a target point

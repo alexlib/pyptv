@@ -1,4 +1,3 @@
-import os
 import json
 from pathlib import Path
 
@@ -28,115 +27,115 @@ DEFAULT_FLOAT = -999.0
 # define handler function for main parameters
 class ParamHandler(Handler):
     def closed(self, info, is_ok):
-        mainParams = info.object
-        par_path = mainParams.par_path
+        mainPar = info.object
+        par_path = mainPar.par_path
         Handler.closed(self, info, is_ok)
         if is_ok:
             img_name = [
-                mainParams.Name_1_Image,
-                mainParams.Name_2_Image,
-                mainParams.Name_3_Image,
-                mainParams.Name_4_Image,
+                mainPar.Name_1_Image,
+                mainPar.Name_2_Image,
+                mainPar.Name_3_Image,
+                mainPar.Name_4_Image,
             ]
             img_cal_name = [
-                mainParams.Cali_1_Image,
-                mainParams.Cali_2_Image,
-                mainParams.Cali_3_Image,
-                mainParams.Cali_4_Image,
+                mainPar.Cali_1_Image,
+                mainPar.Cali_2_Image,
+                mainPar.Cali_3_Image,
+                mainPar.Cali_4_Image,
             ]
 
             gvthres = [
-                mainParams.Gray_Tresh_1,
-                mainParams.Gray_Tresh_2,
-                mainParams.Gray_Tresh_3,
-                mainParams.Gray_Tresh_4,
+                mainPar.Gray_Tresh_1,
+                mainPar.Gray_Tresh_2,
+                mainPar.Gray_Tresh_3,
+                mainPar.Gray_Tresh_4,
             ]
             base_name = [
-                mainParams.Basename_1_Seq,
-                mainParams.Basename_2_Seq,
-                mainParams.Basename_3_Seq,
-                mainParams.Basename_4_Seq,
+                mainPar.Basename_1_Seq,
+                mainPar.Basename_2_Seq,
+                mainPar.Basename_3_Seq,
+                mainPar.Basename_4_Seq,
             ]
-            X_lay = [mainParams.Xmin, mainParams.Xmax]
-            Zmin_lay = [mainParams.Zmin1, mainParams.Zmin2]
-            Zmax_lay = [mainParams.Zmax1, mainParams.Zmax2]
+            X_lay = [mainPar.Xmin, mainPar.Xmax]
+            Zmin_lay = [mainPar.Zmin1, mainPar.Zmin2]
+            Zmax_lay = [mainPar.Zmax1, mainPar.Zmax2]
 
             # write ptv_par
-            par.PtvParams(
-                mainParams.Num_Cam,
+            par.PtvPar(
+                mainPar.Num_Cam,
                 img_name,
                 img_cal_name,
-                mainParams.HighPass,
-                mainParams.Accept_OnlyAllCameras,
-                mainParams.tiff_flag,
-                mainParams.imx,
-                mainParams.imy,
-                mainParams.pix_x,
-                mainParams.pix_y,
-                mainParams.chfield,
-                mainParams.Refr_Air,
-                mainParams.Refr_Glass,
-                mainParams.Refr_Water,
-                mainParams.Thick_Glass,
+                mainPar.HighPass,
+                mainPar.Accept_OnlyAllCameras,
+                mainPar.tiff_flag,
+                mainPar.imx,
+                mainPar.imy,
+                mainPar.pix_x,
+                mainPar.pix_y,
+                mainPar.chfield,
+                mainPar.Refr_Air,
+                mainPar.Refr_Glass,
+                mainPar.Refr_Water,
+                mainPar.Thick_Glass,
                 path=par_path,
             ).write()
             # write calibration parameters
-            par.CalOriParams(
-                mainParams.Num_Cam,
-                mainParams.fixp_name,
-                mainParams.img_cal_name,
-                mainParams.img_ori,
-                mainParams.tiff_flag,
-                mainParams.pair_Flag,
-                mainParams.chfield,
+            par.CalOriPar(
+                mainPar.Num_Cam,
+                mainPar.fixp_name,
+                mainPar.img_cal_name,
+                mainPar.img_ori,
+                mainPar.tiff_flag,
+                mainPar.pair_Flag,
+                mainPar.chfield,
                 path=par_path,
             ).write()
 
             # write targ_rec_par
-            par.TargRecParams(
-                mainParams.Num_Cam,
+            par.TargRecPar(
+                mainPar.Num_Cam,
                 gvthres,
-                mainParams.Tol_Disc,
-                mainParams.Min_Npix,
-                mainParams.Max_Npix,
-                mainParams.Min_Npix_x,
-                mainParams.Max_Npix_x,
-                mainParams.Min_Npix_y,
-                mainParams.Max_Npix_y,
-                mainParams.Sum_Grey,
-                mainParams.Size_Cross,
+                mainPar.Tol_Disc,
+                mainPar.Min_Npix,
+                mainPar.Max_Npix,
+                mainPar.Min_Npix_x,
+                mainPar.Max_Npix_x,
+                mainPar.Min_Npix_y,
+                mainPar.Max_Npix_y,
+                mainPar.Sum_Grey,
+                mainPar.Size_Cross,
                 path=par_path,
             ).write()
             # write pft_version_par
-            par.PftVersionParams(
-                mainParams.Existing_Target, path=par_path
+            par.PftVersionPar(
+                mainPar.Existing_Target, path=par_path
             ).write()
             # write sequence_par
-            par.SequenceParams(
-                mainParams.Num_Cam,
+            par.SequencePar(
+                mainPar.Num_Cam,
                 base_name,
-                mainParams.Seq_First,
-                mainParams.Seq_Last,
+                mainPar.Seq_First,
+                mainPar.Seq_Last,
                 path=par_path,
             ).write()
             # write criteria_par
-            par.CriteriaParams(
+            par.CriteriaPar(
                 X_lay,
                 Zmin_lay,
                 Zmax_lay,
-                mainParams.Min_Corr_nx,
-                mainParams.Min_Corr_ny,
-                mainParams.Min_Corr_npix,
-                mainParams.Sum_gv,
-                mainParams.Min_Weight_corr,
-                mainParams.Tol_Band,
+                mainPar.Min_Corr_nx,
+                mainPar.Min_Corr_ny,
+                mainPar.Min_Corr_npix,
+                mainPar.Sum_gv,
+                mainPar.Min_Weight_corr,
+                mainPar.Tol_Band,
                 path=par_path,
             ).write()
             
             # write masking parameters
             masking_dict = {
-                "mask_flag":mainParams.Subtr_Mask,
-                "mask_base_name":mainParams.Base_Name_Mask,
+                "mask_flag":mainPar.Subtr_Mask,
+                "mask_base_name":mainPar.Base_Name_Mask,
             }
             with (Path(par_path) / 'masking.json').open('w') as json_file:
                 json.dump(masking_dict, json_file)
@@ -145,159 +144,159 @@ class ParamHandler(Handler):
 # define handler function for calibration parameters
 class CalHandler(Handler):
     def closed(self, info, is_ok):
-        calibParams = info.object
-        par_path = calibParams.par_path
+        calibPar = info.object
+        par_path = calibPar.par_path
         print("inside CalHandler ", par_path)
         Handler.closed(self, info, is_ok)
         if is_ok:
             img_cal_name = [
-                calibParams.cam_1,
-                calibParams.cam_2,
-                calibParams.cam_3,
-                calibParams.cam_4,
+                calibPar.cam_1,
+                calibPar.cam_2,
+                calibPar.cam_3,
+                calibPar.cam_4,
             ]
             img_ori = [
-                calibParams.ori_cam_1,
-                calibParams.ori_cam_2,
-                calibParams.ori_cam_3,
-                calibParams.ori_cam_4,
+                calibPar.ori_cam_1,
+                calibPar.ori_cam_2,
+                calibPar.ori_cam_3,
+                calibPar.ori_cam_4,
             ]
             nr1 = [
-                calibParams.img_1_p1,
-                calibParams.img_1_p2,
-                calibParams.img_1_p3,
-                calibParams.img_1_p4,
+                calibPar.img_1_p1,
+                calibPar.img_1_p2,
+                calibPar.img_1_p3,
+                calibPar.img_1_p4,
             ]
             nr2 = [
-                calibParams.img_2_p1,
-                calibParams.img_2_p2,
-                calibParams.img_2_p3,
-                calibParams.img_2_p4,
+                calibPar.img_2_p1,
+                calibPar.img_2_p2,
+                calibPar.img_2_p3,
+                calibPar.img_2_p4,
             ]
             nr3 = [
-                calibParams.img_3_p1,
-                calibParams.img_3_p2,
-                calibParams.img_3_p3,
-                calibParams.img_3_p4,
+                calibPar.img_3_p1,
+                calibPar.img_3_p2,
+                calibPar.img_3_p3,
+                calibPar.img_3_p4,
             ]
             nr4 = [
-                calibParams.img_4_p1,
-                calibParams.img_4_p2,
-                calibParams.img_4_p3,
-                calibParams.img_4_p4,
+                calibPar.img_4_p1,
+                calibPar.img_4_p2,
+                calibPar.img_4_p3,
+                calibPar.img_4_p4,
             ]
 
             nr = [nr1, nr2, nr3, nr4]
 
-            if calibParams.chfield == "Frame":
+            if calibPar.chfield == "Frame":
                 chfield = 0
-            elif calibParams.chfield == "Field odd":
+            elif calibPar.chfield == "Field odd":
                 chfield = 1
             else:
                 chfield = 2
-            par.PtvParams(
-                calibParams.n_img,
-                calibParams.img_name,
-                calibParams.img_cal,
-                calibParams.hp_flag,
-                calibParams.allcam_flag,
-                calibParams.tiff_head,
-                calibParams.h_image_size,
-                calibParams.v_image_size,
-                calibParams.h_pixel_size,
-                calibParams.v_pixel_size,
+            par.PtvPar(
+                calibPar.n_img,
+                calibPar.img_name,
+                calibPar.img_cal,
+                calibPar.hp_flag,
+                calibPar.allcam_flag,
+                calibPar.tiff_head,
+                calibPar.h_image_size,
+                calibPar.v_image_size,
+                calibPar.h_pixel_size,
+                calibPar.v_pixel_size,
                 chfield,
-                calibParams.mmp_n1,
-                calibParams.mmp_n2,
-                calibParams.mmp_n3,
-                calibParams.mmp_d,
+                calibPar.mmp_n1,
+                calibPar.mmp_n2,
+                calibPar.mmp_n3,
+                calibPar.mmp_d,
                 path=par_path,
             ).write()
 
-            par.CalOriParams(
-                calibParams.n_img,
-                calibParams.fixp_name,
+            par.CalOriPar(
+                calibPar.n_img,
+                calibPar.fixp_name,
                 img_cal_name,
                 img_ori,
-                calibParams.tiff_head,
-                calibParams.pair_head,
+                calibPar.tiff_head,
+                calibPar.pair_head,
                 chfield,
                 path=par_path,
             ).write()
 
-            par.DetectPlateParams(
-                calibParams.grey_value_treshold_1,
-                calibParams.grey_value_treshold_2,
-                calibParams.grey_value_treshold_3,
-                calibParams.grey_value_treshold_4,
-                calibParams.tolerable_discontinuity,
-                calibParams.min_npix,
-                calibParams.max_npix,
-                calibParams.min_npix_x,
-                calibParams.max_npix_x,
-                calibParams.min_npix_y,
-                calibParams.max_npix_y,
-                calibParams.sum_of_grey,
-                calibParams.size_of_crosses,
+            par.DetectPlatePar(
+                calibPar.grey_value_treshold_1,
+                calibPar.grey_value_treshold_2,
+                calibPar.grey_value_treshold_3,
+                calibPar.grey_value_treshold_4,
+                calibPar.tolerable_discontinuity,
+                calibPar.min_npix,
+                calibPar.max_npix,
+                calibPar.min_npix_x,
+                calibPar.max_npix_x,
+                calibPar.min_npix_y,
+                calibPar.max_npix_y,
+                calibPar.sum_of_grey,
+                calibPar.size_of_crosses,
                 path=par_path,
             ).write()
 
-            par.ManOriParams(calibParams.n_img, nr, path=par_path).write()
-            par.ExamineParams(
-                calibParams.Examine_Flag,
-                calibParams.Combine_Flag,
+            par.ManOriPar(calibPar.n_img, nr, path=par_path).write()
+            par.ExaminePar(
+                calibPar.Examine_Flag,
+                calibPar.Combine_Flag,
                 path=par_path,
             ).write()
-            par.OrientParams(
-                calibParams.point_number_of_orientation,
-                calibParams.cc,
-                calibParams.xh,
-                calibParams.yh,
-                calibParams.k1,
-                calibParams.k2,
-                calibParams.k3,
-                calibParams.p1,
-                calibParams.p2,
-                calibParams.scale,
-                calibParams.shear,
-                calibParams.interf,
+            par.OrientPar(
+                calibPar.point_number_of_orientation,
+                calibPar.cc,
+                calibPar.xh,
+                calibPar.yh,
+                calibPar.k1,
+                calibPar.k2,
+                calibPar.k3,
+                calibPar.p1,
+                calibPar.p2,
+                calibPar.scale,
+                calibPar.shear,
+                calibPar.interf,
                 path=par_path,
             ).write()
-            par.ShakingParams(
-                calibParams.shaking_first_frame,
-                calibParams.shaking_last_frame,
-                calibParams.shaking_max_num_points,
-                calibParams.shaking_max_num_frames,
+            par.ShakingPar(
+                calibPar.shaking_first_frame,
+                calibPar.shaking_last_frame,
+                calibPar.shaking_max_num_points,
+                calibPar.shaking_max_num_frames,
                 path=par_path,
             ).write()
 
-            par.DumbbellParams(
-                calibParams.dumbbell_eps,
-                calibParams.dumbbell_scale,
-                calibParams.dumbbell_gradient_descent,
-                calibParams.dumbbell_penalty_weight,
-                calibParams.dumbbell_step,
-                calibParams.dumbbell_niter,
+            par.DumbbellPar(
+                calibPar.dumbbell_eps,
+                calibPar.dumbbell_scale,
+                calibPar.dumbbell_gradient_descent,
+                calibPar.dumbbell_penalty_weight,
+                calibPar.dumbbell_step,
+                calibPar.dumbbell_niter,
                 path=par_path,
             ).write()
 
 
 class TrackHandler(Handler):
     def closed(self, info, is_ok):
-        trackParams = info.object
-        par_path = trackParams.par_path
+        trackPar = info.object
+        par_path = trackPar.par_path
         Handler.closed(self, info, is_ok)
         if is_ok:
-            par.TrackingParams(
-                trackParams.dvxmin,
-                trackParams.dvxmax,
-                trackParams.dvymin,
-                trackParams.dvymax,
-                trackParams.dvzmin,
-                trackParams.dvzmax,
-                trackParams.angle,
-                trackParams.dacc,
-                trackParams.flagNewParticles,
+            par.TrackPar(
+                trackPar.dvxmin,
+                trackPar.dvxmax,
+                trackPar.dvymin,
+                trackPar.dvymax,
+                trackPar.dvzmin,
+                trackPar.dvzmax,
+                trackPar.angle,
+                trackPar.dacc,
+                trackPar.flagNewParticles,
                 path=par_path,
             ).write()
 
@@ -307,7 +306,7 @@ class TrackHandler(Handler):
 
 
 # This is the view class of the Tracking Parameters window
-class Tracking_Params(HasTraits):
+class Tracking_Par(HasTraits):
     dvxmin = Float(DEFAULT_FLOAT)
     dvxmax = Float(DEFAULT_FLOAT)
     dvymin = Float(DEFAULT_FLOAT)
@@ -319,21 +318,21 @@ class Tracking_Params(HasTraits):
     flagNewParticles = Bool(True)
 
     def __init__(self, par_path):
-        super(Tracking_Params, self).__init__()
+        super(Tracking_Par, self).__init__()
         self.par_path = par_path
-        TrackingParams = par.TrackingParams(path=self.par_path)
-        TrackingParams.read()
-        self.dvxmin = TrackingParams.dvxmin
-        self.dvxmax = TrackingParams.dvxmax
-        self.dvymin = TrackingParams.dvymin
-        self.dvymax = TrackingParams.dvymax
-        self.dvzmin = TrackingParams.dvzmin
-        self.dvzmax = TrackingParams.dvzmax
-        self.angle = TrackingParams.angle
-        self.dacc = TrackingParams.dacc
-        self.flagNewParticles = np.bool8(TrackingParams.flagNewParticles)
+        TrackPar = par.TrackPar(path=self.par_path)
+        TrackPar.read()
+        self.dvxmin = TrackPar.dvxmin
+        self.dvxmax = TrackPar.dvxmax
+        self.dvymin = TrackPar.dvymin
+        self.dvymax = TrackPar.dvymax
+        self.dvzmin = TrackPar.dvzmin
+        self.dvzmax = TrackPar.dvzmax
+        self.angle = TrackPar.angle
+        self.dacc = TrackPar.dacc
+        self.flagNewParticles = np.bool8(TrackPar.flagNewParticles)
 
-    Tracking_Params_View = View(
+    Tracking_Par_View = View(
         HGroup(
             Item(name="dvxmin", label="dvxmin:"),
             Item(name="dvxmax", label="dvxmax:"),
@@ -357,7 +356,7 @@ class Tracking_Params(HasTraits):
     )
 
 
-class Main_Params(HasTraits):
+class Main_Par(HasTraits):
     # loading parameters files:
     # read main parameters
 
@@ -607,7 +606,7 @@ class Main_Params(HasTraits):
         show_border=True,
     )
 
-    Main_Params_View = View(
+    Main_Par_View = View(
         Tabbed(Group1, Group2, Group3, Group4, Group5, Group6),
         resizable=True,
         width=0.5,
@@ -643,94 +642,94 @@ class Main_Params(HasTraits):
     # 'reload'
     def _reload(self):
         # load ptv_par
-        ptvParams = par.PtvParams(path=self.par_path)
-        ptvParams.read()
+        ptvPar = par.PtvPar(path=self.par_path)
+        ptvPar.read()
 
-        for i in range(ptvParams.n_img):
-            exec("self.Name_%d_Image = ptvParams.img_name[%d]" % (i + 1, i))
-            exec("self.Cali_%d_Image = ptvParams.img_cal[%d]" % (i + 1, i))
+        for i in range(ptvPar.n_img):
+            exec("self.Name_%d_Image = ptvPar.img_name[%d]" % (i + 1, i))
+            exec("self.Cali_%d_Image = ptvPar.img_cal[%d]" % (i + 1, i))
 
-        self.Refr_Air = ptvParams.mmp_n1
-        self.Refr_Glass = ptvParams.mmp_n2
-        self.Refr_Water = ptvParams.mmp_n3
-        self.Thick_Glass = ptvParams.mmp_d
-        self.Accept_OnlyAllCameras = np.bool8(ptvParams.allcam_flag)
-        self.Num_Cam = ptvParams.n_img
-        self.HighPass = np.bool8(ptvParams.hp_flag)
+        self.Refr_Air = ptvPar.mmp_n1
+        self.Refr_Glass = ptvPar.mmp_n2
+        self.Refr_Water = ptvPar.mmp_n3
+        self.Thick_Glass = ptvPar.mmp_d
+        self.Accept_OnlyAllCameras = np.bool8(ptvPar.allcam_flag)
+        self.Num_Cam = ptvPar.n_img
+        self.HighPass = np.bool8(ptvPar.hp_flag)
         # load unused
-        self.tiff_flag = np.bool8(ptvParams.tiff_flag)
-        self.imx = ptvParams.imx
-        self.imy = ptvParams.imy
-        self.pix_x = ptvParams.pix_x
-        self.pix_y = ptvParams.pix_y
-        self.chfield = ptvParams.chfield
+        self.tiff_flag = np.bool8(ptvPar.tiff_flag)
+        self.imx = ptvPar.imx
+        self.imy = ptvPar.imy
+        self.pix_x = ptvPar.pix_x
+        self.pix_y = ptvPar.pix_y
+        self.chfield = ptvPar.chfield
 
         # read_calibration parameters
-        calOriParams = par.CalOriParams(ptvParams.n_img, path=self.par_path)
-        calOriParams.read()
+        calOriPar = par.CalOriPar(ptvPar.n_img, path=self.par_path)
+        calOriPar.read()
 
-        self.pair_Flag = np.bool8(calOriParams.pair_flag)
-        self.img_cal_name = calOriParams.img_cal_name
-        self.img_ori = calOriParams.img_ori
-        self.fixp_name = calOriParams.fixp_name
+        self.pair_Flag = np.bool8(calOriPar.pair_flag)
+        self.img_cal_name = calOriPar.img_cal_name
+        self.img_ori = calOriPar.img_ori
+        self.fixp_name = calOriPar.fixp_name
 
         # load read_targ_rec
-        targRecParams = par.TargRecParams(ptvParams.n_img, path=self.par_path)
-        targRecParams.read()
+        targRecPar = par.TargRecPar(ptvPar.n_img, path=self.par_path)
+        targRecPar.read()
 
-        for i in range(ptvParams.n_img):
+        for i in range(ptvPar.n_img):
             exec(
-                "self.Gray_Tresh_{0} = targRecParams.gvthres[{1}]".format(
+                "self.Gray_Tresh_{0} = targRecPar.gvthres[{1}]".format(
                     i + 1, i
                 )
             )
 
-        self.Min_Npix = targRecParams.nnmin
-        self.Max_Npix = targRecParams.nnmax
-        self.Min_Npix_x = targRecParams.nxmin
-        self.Max_Npix_x = targRecParams.nxmax
-        self.Min_Npix_y = targRecParams.nymin
-        self.Max_Npix_y = targRecParams.nymax
-        self.Sum_Grey = targRecParams.sumg_min
-        self.Tol_Disc = targRecParams.disco
-        self.Size_Cross = targRecParams.cr_sz
+        self.Min_Npix = targRecPar.nnmin
+        self.Max_Npix = targRecPar.nnmax
+        self.Min_Npix_x = targRecPar.nxmin
+        self.Max_Npix_x = targRecPar.nxmax
+        self.Min_Npix_y = targRecPar.nymin
+        self.Max_Npix_y = targRecPar.nymax
+        self.Sum_Grey = targRecPar.sumg_min
+        self.Tol_Disc = targRecPar.disco
+        self.Size_Cross = targRecPar.cr_sz
 
         # load pft_version
-        pftVersionParams = par.PftVersionParams(path=self.par_path)
-        pftVersionParams.read()
-        self.Existing_Target = np.bool8(pftVersionParams.Existing_Target)
+        pftVersionPar = par.PftVersionPar(path=self.par_path)
+        pftVersionPar.read()
+        self.Existing_Target = np.bool8(pftVersionPar.Existing_Target)
 
         # load sequence_par
-        sequenceParams = par.SequenceParams(
-            ptvParams.n_img, path=self.par_path
+        sequencePar = par.SequencePar(
+            ptvPar.n_img, path=self.par_path
         )
-        sequenceParams.read()
+        sequencePar.read()
 
-        for i in range(ptvParams.n_img):
+        for i in range(ptvPar.n_img):
             exec(
-                "self.Basename_{0}_Seq = sequenceParams.base_name[{1}]".format(
+                "self.Basename_{0}_Seq = sequencePar.base_name[{1}]".format(
                     i + 1, i
                 )
             )
 
-        self.Seq_First = sequenceParams.first
-        self.Seq_Last = sequenceParams.last
+        self.Seq_First = sequencePar.first
+        self.Seq_Last = sequencePar.last
 
         # load criteria_par
-        criteriaParams = par.CriteriaParams(path=self.par_path)
-        criteriaParams.read()
-        self.Xmin = criteriaParams.X_lay[0]
-        self.Xmax = criteriaParams.X_lay[1]
-        self.Zmin1 = criteriaParams.Zmin_lay[0]
-        self.Zmin2 = criteriaParams.Zmin_lay[1]
-        self.Zmax1 = criteriaParams.Zmax_lay[0]
-        self.Zmax2 = criteriaParams.Zmax_lay[1]
-        self.Min_Corr_nx = criteriaParams.cnx
-        self.Min_Corr_ny = criteriaParams.cny
-        self.Min_Corr_npix = criteriaParams.cn
-        self.Sum_gv = criteriaParams.csumg
-        self.Min_Weight_corr = criteriaParams.corrmin
-        self.Tol_Band = criteriaParams.eps0
+        criteriaPar = par.CriteriaPar(path=self.par_path)
+        criteriaPar.read()
+        self.Xmin = criteriaPar.X_lay[0]
+        self.Xmax = criteriaPar.X_lay[1]
+        self.Zmin1 = criteriaPar.Zmin_lay[0]
+        self.Zmin2 = criteriaPar.Zmin_lay[1]
+        self.Zmax1 = criteriaPar.Zmax_lay[0]
+        self.Zmax2 = criteriaPar.Zmax_lay[1]
+        self.Min_Corr_nx = criteriaPar.cnx
+        self.Min_Corr_ny = criteriaPar.cny
+        self.Min_Corr_npix = criteriaPar.cn
+        self.Sum_gv = criteriaPar.csumg
+        self.Min_Weight_corr = criteriaPar.corrmin
+        self.Tol_Band = criteriaPar.eps0
         
         # write masking parameters
         masking_filename = Path(self.par_path) / 'masking.json'
@@ -748,7 +747,7 @@ class Main_Params(HasTraits):
 
 
 # -----------------------------------------------------------------------------
-class Calib_Params(HasTraits):
+class Calib_Par(HasTraits):
 
     # general and unsed variables
     pair_enable_flag = Bool(True)
@@ -1079,7 +1078,7 @@ class Calib_Params(HasTraits):
         show_border=True,
     )
 
-    Calib_Params_View = View(
+    Calib_Par_View = View(
         Tabbed(Group1, Group2, Group3, Group4, Group5, Group6),
         buttons=["Undo", "OK", "Cancel"],
         handler=CalHandler(),
@@ -1090,51 +1089,51 @@ class Calib_Params(HasTraits):
         # print("reloading")
         # self.__init__(self)
         # load ptv_par
-        ptvParams = par.PtvParams(path=self.par_path)
-        ptvParams.read()
+        ptvPar = par.PtvPar(path=self.par_path)
+        ptvPar.read()
 
         # read picture size parameters
-        self.h_image_size = ptvParams.imx
-        self.v_image_size = ptvParams.imy
-        self.h_pixel_size = ptvParams.pix_x
-        self.v_pixel_size = ptvParams.pix_y
-        self.img_cal = ptvParams.img_cal
-        if ptvParams.allcam_flag:
+        self.h_image_size = ptvPar.imx
+        self.v_image_size = ptvPar.imy
+        self.h_pixel_size = ptvPar.pix_x
+        self.v_pixel_size = ptvPar.pix_y
+        self.img_cal = ptvPar.img_cal
+        if ptvPar.allcam_flag:
             self.pair_enable_flag = False
         else:
             self.pair_enable_flag = True
 
         # unesed parameters
 
-        self.n_img = ptvParams.n_img
-        self.img_name = ptvParams.img_name
-        self.hp_flag = np.bool8(ptvParams.hp_flag)
-        self.allcam_flag = np.bool8(ptvParams.allcam_flag)
-        self.mmp_n1 = ptvParams.mmp_n1
-        self.mmp_n2 = ptvParams.mmp_n2
-        self.mmp_n3 = ptvParams.mmp_n3
-        self.mmp_d = ptvParams.mmp_d
+        self.n_img = ptvPar.n_img
+        self.img_name = ptvPar.img_name
+        self.hp_flag = np.bool8(ptvPar.hp_flag)
+        self.allcam_flag = np.bool8(ptvPar.allcam_flag)
+        self.mmp_n1 = ptvPar.mmp_n1
+        self.mmp_n2 = ptvPar.mmp_n2
+        self.mmp_n3 = ptvPar.mmp_n3
+        self.mmp_d = ptvPar.mmp_d
 
         # read_calibration parameters
-        calOriParams = par.CalOriParams(self.n_img, path=self.par_path)
-        calOriParams.read()
+        calOriPar = par.CalOriPar(self.n_img, path=self.par_path)
+        calOriPar.read()
         (fixp_name, img_cal_name, img_ori, tiff_flag, pair_flag, chfield) = (
-            calOriParams.fixp_name,
-            calOriParams.img_cal_name,
-            calOriParams.img_ori,
-            calOriParams.tiff_flag,
-            calOriParams.pair_flag,
-            calOriParams.chfield,
+            calOriPar.fixp_name,
+            calOriPar.img_cal_name,
+            calOriPar.img_ori,
+            calOriPar.tiff_flag,
+            calOriPar.pair_flag,
+            calOriPar.chfield,
         )
 
         for i in range(self.n_img):
             exec(
-                "self.cam_{0} = calOriParams.img_cal_name[{1}]".format(
+                "self.cam_{0} = calOriPar.img_cal_name[{1}]".format(
                     i + 1, i
                 )
             )
             exec(
-                "self.ori_cam_{0} = calOriParams.img_ori[{1}]".format(i + 1, i)
+                "self.ori_cam_{0} = calOriPar.img_ori[{1}]".format(i + 1, i)
             )
 
         self.tiff_head = np.bool8(tiff_flag)
@@ -1148,8 +1147,8 @@ class Calib_Params(HasTraits):
             self.chfield = "Field even"
 
         # read detect plate parameters
-        detectPlateParams = par.DetectPlateParams(path=self.par_path)
-        detectPlateParams.read()
+        detectPlatePar = par.DetectPlatePar(path=self.par_path)
+        detectPlatePar.read()
 
         (
             gv_th1,
@@ -1166,19 +1165,19 @@ class Calib_Params(HasTraits):
             sum_of_grey,
             size_of_crosses,
         ) = (
-            detectPlateParams.gvth_1,
-            detectPlateParams.gvth_2,
-            detectPlateParams.gvth_3,
-            detectPlateParams.gvth_4,
-            detectPlateParams.tol_dis,
-            detectPlateParams.min_npix,
-            detectPlateParams.max_npix,
-            detectPlateParams.min_npix_x,
-            detectPlateParams.max_npix_x,
-            detectPlateParams.min_npix_y,
-            detectPlateParams.max_npix_y,
-            detectPlateParams.sum_grey,
-            detectPlateParams.size_cross,
+            detectPlatePar.gvth_1,
+            detectPlatePar.gvth_2,
+            detectPlatePar.gvth_3,
+            detectPlatePar.gvth_4,
+            detectPlatePar.tol_dis,
+            detectPlatePar.min_npix,
+            detectPlatePar.max_npix,
+            detectPlatePar.min_npix_x,
+            detectPlatePar.max_npix_x,
+            detectPlatePar.min_npix_y,
+            detectPlatePar.max_npix_y,
+            detectPlatePar.sum_grey,
+            detectPlatePar.size_cross,
         )
 
         for i in range(self.n_img):
@@ -1195,24 +1194,24 @@ class Calib_Params(HasTraits):
         self.size_of_crosses = size_of_crosses
 
         # read manual orientaion parameters
-        manOriParams = par.ManOriParams(self.n_img, [], path=self.par_path)
-        manOriParams.read()
+        manOriPar = par.ManOriPar(self.n_img, [], path=self.par_path)
+        manOriPar.read()
 
         for i in range(self.n_img):
             for j in range(4):  # 4 points per image
-                exec(f"self.img_{i+1}_p{j+1} = manOriParams.nr[{i*4+j}]")
+                exec(f"self.img_{i+1}_p{j+1} = manOriPar.nr[{i*4+j}]")
 
         # examine arameters
-        examineParams = par.ExamineParams(path=self.par_path)
-        examineParams.read()
+        examinePar = par.ExaminePar(path=self.par_path)
+        examinePar.read()
         (self.Examine_Flag, self.Combine_Flag) = (
-            examineParams.Examine_Flag,
-            examineParams.Combine_Flag,
+            examinePar.Examine_Flag,
+            examinePar.Combine_Flag,
         )
 
         # orientation parameters
-        orientParams = par.OrientParams(path=self.par_path)
-        orientParams.read()
+        orientPar = par.OrientPar(path=self.par_path)
+        orientPar.read()
         (
             po_num_of_ori,
             cc,
@@ -1227,18 +1226,18 @@ class Calib_Params(HasTraits):
             shear,
             interf,
         ) = (
-            orientParams.pnfo,
-            orientParams.cc,
-            orientParams.xh,
-            orientParams.yh,
-            orientParams.k1,
-            orientParams.k2,
-            orientParams.k3,
-            orientParams.p1,
-            orientParams.p2,
-            orientParams.scale,
-            orientParams.shear,
-            orientParams.interf,
+            orientPar.pnfo,
+            orientPar.cc,
+            orientPar.xh,
+            orientPar.yh,
+            orientPar.k1,
+            orientPar.k2,
+            orientPar.k3,
+            orientPar.p1,
+            orientPar.p2,
+            orientPar.scale,
+            orientPar.shear,
+            orientPar.interf,
         )
 
         self.point_number_of_orientation = po_num_of_ori
@@ -1254,8 +1253,8 @@ class Calib_Params(HasTraits):
         self.shear = np.bool8(shear)
         self.interf = np.bool8(interf)
 
-        dumbbellParams = par.DumbbellParams(path=self.par_path)
-        dumbbellParams.read()
+        dumbbellPar = par.DumbbellPar(path=self.par_path)
+        dumbbellPar.read()
         (
             self.dumbbell_eps,
             self.dumbbell_scale,
@@ -1264,26 +1263,26 @@ class Calib_Params(HasTraits):
             self.dumbbell_step,
             self.dumbbell_niter,
         ) = (
-            dumbbellParams.dumbbell_eps,
-            dumbbellParams.dumbbell_scale,
-            dumbbellParams.dumbbell_gradient_descent,
-            dumbbellParams.dumbbell_penalty_weight,
-            dumbbellParams.dumbbell_step,
-            dumbbellParams.dumbbell_niter,
+            dumbbellPar.dumbbell_eps,
+            dumbbellPar.dumbbell_scale,
+            dumbbellPar.dumbbell_gradient_descent,
+            dumbbellPar.dumbbell_penalty_weight,
+            dumbbellPar.dumbbell_step,
+            dumbbellPar.dumbbell_niter,
         )
 
-        shakingParams = par.ShakingParams(path=self.par_path)
-        shakingParams.read()
+        shakingPar = par.ShakingPar(path=self.par_path)
+        shakingPar.read()
         (
             self.shaking_first_frame,
             self.shaking_last_frame,
             self.shaking_max_num_points,
             self.shaking_max_num_frames,
         ) = (
-            shakingParams.shaking_first_frame,
-            shakingParams.shaking_last_frame,
-            shakingParams.shaking_max_num_points,
-            shakingParams.shaking_max_num_frames,
+            shakingPar.shaking_first_frame,
+            shakingPar.shaking_last_frame,
+            shakingPar.shaking_max_num_points,
+            shakingPar.shaking_max_num_frames,
         )
 
     def __init__(self, par_path):
@@ -1294,64 +1293,64 @@ class Calib_Params(HasTraits):
     # ---------------------------------------------------------------------------
 
 
-class Paramset(HasTraits):
+class Paret(HasTraits):
     name = Str
     par_path = Path
-    m_params = Instance(Main_Params)
-    c_params = Instance(Calib_Params)
-    t_params = Instance(Tracking_Params)
+    m_Par = Instance(Main_Par)
+    c_Par = Instance(Calib_Par)
+    t_Par = Instance(Tracking_Par)
 
 
 class Experiment(HasTraits):
-    active_params = Instance(Paramset)
-    paramsets = List(Paramset)
+    active_Par = Instance(Paret)
+    Parets = List(Paret)
 
     def __init__(self):
         HasTraits.__init__(self)
-        self.changed_active_params = False
+        self.changed_active_Par = False
 
-    def getParamsetIdx(self, paramset):
+    def getParetIdx(self, Paret):
         if isinstance(
-                paramset,
-                type(1)):  # integer value (index of the paramset)
-            return paramset
+                Paret,
+                type(1)):  # integer value (index of the Paret)
+            return Paret
         else:  # Value is instance of Pramset
-            return self.paramsets.index(paramset)
+            return self.Parets.index(Paret)
 
-    def addParamset(self, name: str, par_path: Path):
-        self.paramsets.append(
-            Paramset(
+    def addParet(self, name: str, par_path: Path):
+        self.Parets.append(
+            Paret(
                 name=name,
                 par_path=par_path,
-                m_params=Main_Params(par_path=par_path),
-                c_params=Calib_Params(par_path=par_path),
-                t_params=Tracking_Params(par_path=par_path),
+                m_Par=Main_Par(par_path=par_path),
+                c_Par=Calib_Par(par_path=par_path),
+                t_Par=Tracking_Par(par_path=par_path),
             )
         )
 
-    def removeParamset(self, paramset):
-        paramset_idx = self.getParamsetIdx(paramset)
-        self.paramsets.remove(self.paramsets[paramset_idx])
+    def removeParet(self, Paret):
+        Paret_idx = self.getParetIdx(Paret)
+        self.Parets.remove(self.Parets[Paret_idx])
 
-    def nParamsets(self):
-        return len(self.paramsets)
+    def nParets(self):
+        return len(self.Parets)
 
-    def setActive(self, paramset):
-        paramset_idx = self.getParamsetIdx(paramset)
-        self.active_params = self.paramsets[paramset_idx]
-        self.paramsets.pop(paramset_idx)
-        self.paramsets.insert(0, self.active_params)
+    def setActive(self, Paret):
+        Paret_idx = self.getParetIdx(Paret)
+        self.active_Par = self.Parets[Paret_idx]
+        self.Parets.pop(Paret_idx)
+        self.Parets.insert(0, self.active_Par)
         self.syncActiveDir()
 
     def syncActiveDir(self):
         default_parameters_path = Path(par.par_dir_prefix).resolve()
-        print(f" Syncing parameters between two folders: \n")
-        print(f"{self.active_params.par_path}, {default_parameters_path}")
-        par.copy_params_dir(self.active_params.par_path, default_parameters_path)
+        print(" Syncing parameters between two folders: \n")
+        print(f"{self.active_Par.par_path}, {default_parameters_path}")
+        par.copy_Par_dir(self.active_Par.par_path, default_parameters_path)
 
     def populate_runs(self, exp_path: Path):
         # Read all parameters directories from an experiment directory
-        self.paramsets = []
+        self.Parets = []
         
         # list all directories
         dir_contents = [
@@ -1374,20 +1373,20 @@ class Experiment(HasTraits):
             new_path = Path(new_name).resolve()
             print(f" Copying to the new folder {new_path} \n")
             print("------------------------------------------\n")
-            par.copy_params_dir(dir_contents[0], new_path)
+            par.copy_Par_dir(dir_contents[0], new_path)
             dir_contents.append(new_path)
 
         # take each path in the dir_contents and create a tree entity with the short name
         for dir_item in dir_contents:
             # par_path = exp_path / dir_item
             if str(dir_item.stem) != par.par_dir_prefix:
-                # This should be a params dir, add a tree entry for it.
+                # This should be a Par dir, add a tree entry for it.
                 exp_name = str(dir_item.stem).rsplit('parameters',maxsplit=1)[-1]
 
                 print(f"Experiment name is: {exp_name}")
-                print(f" adding Parameter set\n")
-                self.addParamset(exp_name, dir_item)
+                print(" adding Parameter set\n")
+                self.addParet(exp_name, dir_item)
 
-        if not self.changed_active_params:
-            if self.nParamsets() > 0:
+        if not self.changed_active_Par:
+            if self.nParets() > 0:
                 self.setActive(0)

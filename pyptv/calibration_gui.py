@@ -12,7 +12,6 @@ from  pathlib import Path
 import numpy as np
 from skimage.io import imread
 from skimage.util import img_as_ubyte
-from skimage.color import rgb2gray
 
 from traits.api import HasTraits, Str, Int, Bool, Instance, Button
 from traitsui.api import View, Item, HGroup, VGroup, ListEditor
@@ -23,7 +22,6 @@ from chaco.api import (
     ArrayPlotData,
     gray,
     ArrayDataSource,
-    LinearMapper,
 )
 
 # from traitsui.menu import MenuBar, ToolBar, Menu, Action
@@ -33,16 +31,14 @@ from chaco.tools.better_zoom import BetterZoom as SimpleZoom
 # from chaco.tools.simple_zoom import SimpleZoom
 from pyptv.text_box_overlay import TextBoxOverlay
 from pyptv.code_editor import codeEditor
-from pyptv.quiverplot import QuiverPlot
 
 
 
-from optv.imgcoord import image_coordinates
-from optv.transforms import convert_arr_metric_to_pixel
-from optv.orientation import match_detection_to_ref
-from optv.orientation import external_calibration, full_calibration
-from optv.calibration import Calibration
-from optv.tracking_framebuf import TargetArray
+from openptv_python.imgcoord import image_coordinates
+from openptv_python.orientation import match_detection_to_ref
+from openptv_python.orientation import external_calibration, full_calibration
+from openptv_python.calibration import Calibration
+from openptv_python.track import Target
 
 
 from pyptv import ptv, parameter_gui, parameters as par
@@ -50,8 +46,9 @@ from pyptv import ptv, parameter_gui, parameters as par
 
 # -------------------------------------------
 class ClickerTool(ImageInspectorTool):
-    left_changed = Int(1)
-    right_changed = Int(1)
+    """ A tool to handle mouse clicks on an image plot. """
+    left_changed = True
+    right_changed = True
     x = 0
     y = 0
 
@@ -70,10 +67,11 @@ class ClickerTool(ImageInspectorTool):
             self.y = y_index
             print(self.x)
             print(self.y)
-            self.left_changed = 1 - self.left_changed
+            self.left_changed = not self.left_changed
             self.last_mouse_position = (event.x, event.y)
 
     def normal_right_down(self, event):
+        """ Handles the right mouse button being clicked. """
         plot = self.component
         if plot is not None:
             ndx = plot.map_index((event.x, event.y))
@@ -222,8 +220,8 @@ class PlotWindow(HasTraits):
             x1c, y1c, x2c, y2c, min_length=0
         )
         if len(x1) > 0:
-            xs = ArrayDataSource(x1)
-            ys = ArrayDataSource(y1)
+            ArrayDataSource(x1)
+            ArrayDataSource(y1)
 
             # quiverplot = QuiverPlot(
             #     index=xs,
@@ -364,7 +362,7 @@ class CalibrationGUI(HasTraits):
         self.man_ori_dat_path = self.working_folder / "man_ori.dat"
 
         print(" Copying parameters inside Calibration GUI: \n")
-        par.copy_params_dir(self.active_path, self.par_path)
+        par.copy_Par_dir(self.active_path, self.par_path)
 
         
         os.chdir(self.working_folder)
@@ -507,10 +505,10 @@ class CalibrationGUI(HasTraits):
     # --------------------------------------------------
 
     def _button_edit_cal_parameters_fired(self):
-        cp = parameter_gui.Calib_Params(par_path=self.par_path)
+        cp = parameter_gui.Calib_Par(par_path=self.par_path)
         cp.edit_traits(kind="modal")
         # at the end of a modification, copy the parameters
-        par.copy_params_dir(self.par_path, self.active_path)
+        par.copy_Par_dir(self.par_path, self.active_path)
         (
             self.cpar,
             self.spar,
@@ -536,7 +534,7 @@ class CalibrationGUI(HasTraits):
             print("\n Copied man_ori.dat \n")
 
         # copy parameters from active to default folder parameters/
-        par.copy_params_dir(self.active_path, self.par_path)
+        par.copy_Par_dir(self.active_path, self.par_path)
 
         # read from parameters
         (
@@ -553,15 +551,15 @@ class CalibrationGUI(HasTraits):
 
         print(self.tpar.get_grey_thresholds())
 
-        self.calParams = par.CalOriParams(self.n_cams, self.par_path)
-        self.calParams.read()
+        self.calPar = par.CalOriPar(self.n_cams, self.par_path)
+        self.calPar.read()
 
         if self.epar.Combine_Flag is True:
             print("Combine Flag")
-            self.MultiParams = par.MultiPlaneParams()
-            self.MultiParams.read()
-            for i in range(self.MultiParams.n_planes):
-                print(self.MultiParams.plane_name[i])
+            self.MultiPar = par.MultiPlanePar()
+            self.MultiPar.read()
+            for i in range(self.MultiPar.n_planes):
+                print(self.MultiPar.plane_name[i])
 
             self.pass_raw_orient = True
             self.status_text = "Multiplane calibration."
@@ -569,7 +567,7 @@ class CalibrationGUI(HasTraits):
         # read calibration images
         self.cal_images = []
         for i in range(len(self.camera)):
-            imname = self.calParams.img_cal_name[i]
+            imname = self.calPar.img_cal_name[i]
             im = imread(imname)
             # im = ImageData.fromfile(imname).data
             if im.ndim > 2:
@@ -706,7 +704,7 @@ class CalibrationGUI(HasTraits):
             projected = image_coordinates(
                 np.atleast_2d(row["pos"]),
                 self.cals[i_cam],
-                self.cpar.get_multimedia_params(),
+                self.cpar.get_multimedia_Par(),
             )
             pos = convert_arr_metric_to_pixel(projected, self.cpar)
 
@@ -843,7 +841,7 @@ class CalibrationGUI(HasTraits):
         # backup the ORI/ADDPAR files first
         self.backup_ori_files()
 
-        op = par.OrientParams()
+        op = par.OrientPar()
         op.read()
 
         # recognized names for the flags:
@@ -892,18 +890,18 @@ class CalibrationGUI(HasTraits):
                 all_detected = []
 
                 for i in range(
-                    self.MultiParams.n_planes
+                    self.MultiPar.n_planes
                 ):  # combine all single planes
 
-                    # c = self.calParams.img_ori[i_cam][-9] # Get camera id
+                    # c = self.calPar.img_ori[i_cam][-9] # Get camera id
                     # not all ends with a number
-                    c = re.findall("\\d+", self.calParams.img_ori[i_cam])[0]
+                    c = re.findall("\\d+", self.calPar.img_ori[i_cam])[0]
 
                     file_known = (
-                        self.MultiParams.plane_name[i] + c + ".tif.fix"
+                        self.MultiPar.plane_name[i] + c + ".tif.fix"
                     )
                     file_detected = (
-                        self.MultiParams.plane_name[i] + c + ".tif.crd"
+                        self.MultiPar.plane_name[i] + c + ".tif.crd"
                     )
 
                     # Load calibration point information from plane i
@@ -1019,7 +1017,7 @@ class CalibrationGUI(HasTraits):
         otherwise external_calibration overwrites zeros
         """
 
-        ori = self.calParams.img_ori[i_cam]
+        ori = self.calPar.img_ori[i_cam]
         if addpar_flag:
             addpar = ori.replace("ori", "addpar")
         else:
@@ -1036,7 +1034,7 @@ class CalibrationGUI(HasTraits):
         These files are needed for multiplane calibration.
         """
 
-        ori = self.calParams.img_ori[i_cam]
+        ori = self.calPar.img_ori[i_cam]
         txt_detected = ori.replace("ori", "crd")
         txt_matched = ori.replace("ori", "fix")
 
@@ -1134,9 +1132,9 @@ class CalibrationGUI(HasTraits):
 
     def backup_ori_files(self):
         """backup ORI/ADDPAR files to the backup_cal directory"""
-        calOriParams = par.CalOriParams(self.n_cams, path=self.par_path)
-        calOriParams.read()
-        for f in calOriParams.img_ori[: self.n_cams]:
+        calOriPar = par.CalOriPar(self.n_cams, path=self.par_path)
+        calOriPar.read()
+        for f in calOriPar.img_ori[: self.n_cams]:
             print(f"Backing up {f}")
             shutil.copyfile(f, f + ".bck")
             g = f.replace("ori", "addpar")
@@ -1144,10 +1142,10 @@ class CalibrationGUI(HasTraits):
 
     def restore_ori_files(self):
         # backup ORI/ADDPAR files to the backup_cal directory
-        calOriParams = par.CalOriParams(self.n_cams, path=self.par_path)
-        calOriParams.read()
+        calOriPar = par.CalOriPar(self.n_cams, path=self.par_path)
+        calOriPar.read()
 
-        for f in calOriParams.img_ori[: self.n_cams]:
+        for f in calOriPar.img_ori[: self.n_cams]:
             print(f"Restoring {f}")
             shutil.copyfile(f + ".bck", f)
             g = f.replace("ori", "addpar")
@@ -1155,9 +1153,9 @@ class CalibrationGUI(HasTraits):
 
     def protect_ori_files(self):
         # backup ORI/ADDPAR files to the backup_cal directory
-        calOriParams = par.CalOriParams(self.n_cams, path=self.par_path)
-        calOriParams.read()
-        for f in calOriParams.img_ori[: self.n_cams]:
+        calOriPar = par.CalOriPar(self.n_cams, path=self.par_path)
+        calOriPar.read()
+        for f in calOriPar.img_ori[: self.n_cams]:
             with open(f, "r") as d:
                 d.read().split()
                 if not np.all(
@@ -1172,7 +1170,7 @@ class CalibrationGUI(HasTraits):
 
     def _read_cal_points(self) -> np.ndarray:
         data = np.loadtxt(
-                Path(str(self.calParams.fixp_name)),
+                Path(str(self.calPar.fixp_name)),
                 delimiter = ',',
                 dtype=[("id", "i4"), ("pos", "3f8")],
                 skiprows=0,
