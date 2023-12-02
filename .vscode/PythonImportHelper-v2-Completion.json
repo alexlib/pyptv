@@ -7000,6 +7000,24 @@
         "documentation": {}
     },
     {
+        "label": "napari",
+        "kind": 6,
+        "isExtraImport": true,
+        "importPath": "napari",
+        "description": "napari",
+        "detail": "napari",
+        "documentation": {}
+    },
+    {
+        "label": "imageio",
+        "kind": 6,
+        "isExtraImport": true,
+        "importPath": "imageio",
+        "description": "imageio",
+        "detail": "imageio",
+        "documentation": {}
+    },
+    {
         "label": "scipy.optimize",
         "kind": 6,
         "isExtraImport": true,
