@@ -1,5 +1,4 @@
-import pathlib
-import os
+from pathlib import Path
 import numpy as np
 from optv.calibration import Calibration
 from optv.correspondences import correspondences, MatchedCoords
@@ -24,7 +23,12 @@ from skimage.io import imread
 from pyptv import parameters as par
 
 
+def negative(img):
+    """ Negative 8-bit image """
+    return 255 - img
+
 def simple_highpass(img, cpar):
+    """ Simple highpass is using liboptv preprocess_image """
     return preprocess_image(img, 0, cpar, 25)
 
 
@@ -88,7 +92,7 @@ def py_pre_processing_c(list_of_images, cpar):
 def py_detection_proc_c(list_of_images, cpar, tpar, cals):
     """Detection of targets"""
 
-    pftVersionParams = par.PftVersionParams(path="parameters")
+    pftVersionParams = par.PftVersionParams(path=Path("parameters"))
     pftVersionParams.read()
     Existing_Target = bool(pftVersionParams.Existing_Target)
 
@@ -202,13 +206,13 @@ def py_sequence_loop(exp):
         exp.cals,
     )
 
-    pftVersionParams = par.PftVersionParams(path="./parameters")
+    pftVersionParams = par.PftVersionParams(path=Path("parameters"))
     pftVersionParams.read()
-    Existing_Target = np.bool(pftVersionParams.Existing_Target)
+    Existing_Target = np.bool8(pftVersionParams.Existing_Target)
 
     # sequence loop for all frames
     for frame in range(spar.get_first(), spar.get_last() + 1):
-        print(f"processing {frame} frame")
+        # print(f"processing {frame} frame")
 
         detections = []
         corrected = []
@@ -218,14 +222,31 @@ def py_sequence_loop(exp):
             else:
                 # imname = spar.get_img_base_name(i_cam) + str(frame).encode()
                 imname = spar.get_img_base_name(i_cam).decode()
-                imname = pathlib.Path(imname.replace('#',f'{frame}'))
-                print(f'Image name {imname}')
+                imname = Path(imname.replace('#',f'{frame}'))
+                # print(f'Image name {imname}')
 
                 if not imname.exists():
                     print(f"{imname} does not exist")
 
                 img = imread(imname)
                 # time.sleep(.1) # I'm not sure we need it here
+                
+                if 'exp1' in exp.__dict__:
+                    if exp.exp1.active_params.m_params.Inverse:
+                        print("Invert image")
+                        img = 255 - img
+
+                    if exp.exp1.active_params.m_params.Subtr_Mask:
+                        # print("Subtracting mask")
+                        try:
+                            mask_name = exp.exp1.active_params.m_params.Base_Name_Mask.replace('#',str(i_cam+1))
+                            mask = imread(mask_name)
+                            img[mask] = 0
+
+                        except ValueError:
+                            print("failed to read the mask")
+                    
+                
                 high_pass = simple_highpass(img, cpar)
                 targs = target_recognition(high_pass, tpar, i_cam, cpar)
 
@@ -243,8 +264,12 @@ def py_sequence_loop(exp):
             detections, corrected, cals, vpar, cpar)
 
         # Save targets only after they've been modified:
+        # this is a workaround of the proper way to construct _targets name
         for i_cam in range(n_cams):
-            detections[i_cam].write(spar.get_img_base_name(i_cam), frame)
+            detections[i_cam].write(
+                spar.get_img_base_name(i_cam),
+                frame
+                )
 
         print("Frame " + str(frame) + " had " +
               repr([s.shape[1] for s in sorted_pos]) + " correspondences.")

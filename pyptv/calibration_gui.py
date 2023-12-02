@@ -4,24 +4,24 @@ Copyright (c) 2013 - the OpenPTV team
 The software is distributed under the terms of MIT-like license
 http://opensource.org/licenses/MIT
 """
-import pathlib
+
 import os
 import shutil
 import re
-
+from  pathlib import Path
 import numpy as np
 from skimage.io import imread
-from skimage import img_as_ubyte
+from skimage.util import img_as_ubyte
 from skimage.color import rgb2gray
 
 from traits.api import HasTraits, Str, Int, Bool, Instance, Button
 from traitsui.api import View, Item, HGroup, VGroup, ListEditor
 from enable.component_editor import ComponentEditor
+    
 from chaco.api import (
     Plot,
     ArrayPlotData,
     gray,
-    ImagePlot,
     ArrayDataSource,
     LinearMapper,
 )
@@ -30,32 +30,26 @@ from chaco.api import (
 from chaco.tools.image_inspector_tool import ImageInspectorTool
 from chaco.tools.better_zoom import BetterZoom as SimpleZoom
 
-from optv.imgcoord import image_coordinates  # type: ignore
-from optv.transforms import convert_arr_metric_to_pixel  # type: ignore
-from optv.orientation import match_detection_to_ref  # type: ignore
-from optv.orientation import external_calibration, full_calibration  # type: ignore
-from optv.calibration import Calibration  # type: ignore
-from optv.tracking_framebuf import TargetArray  # type: ignore
-
-from .pbi import pbi_full_calibration
-
 # from chaco.tools.simple_zoom import SimpleZoom
 from pyptv.text_box_overlay import TextBoxOverlay
 from pyptv.code_editor import codeEditor
 from pyptv.quiverplot import QuiverPlot
 
-from pyptv import ptv
-from pyptv import parameter_gui as pargui
-from pyptv import parameters as par
+
+
+from optv.imgcoord import image_coordinates
+from optv.transforms import convert_arr_metric_to_pixel
+from optv.orientation import match_detection_to_ref
+from optv.orientation import external_calibration, full_calibration
+from optv.calibration import Calibration
+from optv.tracking_framebuf import TargetArray
+
+
+from pyptv import ptv, parameter_gui, parameters as par
 
 
 # -------------------------------------------
 class ClickerTool(ImageInspectorTool):
-    """ClickerTool class
-
-    Args:
-        ImageInspectorTool (_type_): enables left/right mouse clicks with content
-    """
     left_changed = Int(1)
     right_changed = Int(1)
     x = 0
@@ -104,63 +98,32 @@ class ClickerTool(ImageInspectorTool):
 
 # ----------------------------------------------------------
 
-# class CalImagePlot(ImagePlot):
-#     """ extends ImagePlot class with tools list """
-#     def __init__(self, *args, **kwargs):
-#         ImagePlot.__init__(self, *args, **kwargs)
-#         self.tools = []
-    
-# class CalPlot(Plot):
-#     """Calibration Plot class, a subclass of Plot to include overlays property
 
-#     Args:
-#         Plot (_type_): _description_
-#     """
-#     def __init__(self, *args, **kwargs):
-#         Plot.__init__(self, *args, **kwargs)
-#         self.overlays = []
-    
 class PlotWindow(HasTraits):
-    """PlotWindow class of Traits type
-
-    Args:
-        HasTraits (_type_): _description_
-
-    Returns:
-        _type_: _description_
-    """
-    _plot_data = Instance(ArrayPlotData)
     _plot = Instance(Plot)
     _click_tool = Instance(ClickerTool)
-    _img_plot = Instance(ImagePlot)
     _right_click_avail = 0
     name = Str
-    view = View(Item(name="_plot", editor=ComponentEditor(),
-                     show_label=False), )
+    view = View(
+        Item(name="_plot", editor=ComponentEditor(), show_label=False),
+    )
 
     def __init__(self):
-        super(HasTraits, self).__init__()
+        # super(HasTraits, self).__init__()
+        super().__init__()
         # -------------- Initialization of plot system ----------------
         padd = 25
         self._plot_data = ArrayPlotData()
-        self._x = []
-        self._y = []
+        self._x, self._y = [], []
         self.man_ori = [1, 2, 3, 4]
         self._plot = Plot(self._plot_data, default_origin="top left")
-        self._plot.padding_left = padd
-        self._plot.padding_right = padd
-        self._plot.padding_top = padd
-        self._plot.padding_bottom = padd
-        self._plot.overlays = []
-        self._quiverplots = []
+        self._plot.padding = (padd, padd, padd, padd)
+        # self._quiverplots = []
 
         # -------------------------------------------------------------
 
     def left_clicked_event(self):
-        """Left click function
-        enables values at the click position in pixels, 
-        adds a cross and a number annotation
-        """
+        """ left click event """
         print("left clicked")
         if len(self._x) < 4:
             self._x.append(self._click_tool.x)
@@ -168,15 +131,13 @@ class PlotWindow(HasTraits):
         print(self._x, self._y)
 
         self.drawcross("coord_x", "coord_y", self._x, self._y, "red", 5)
-        self._plot.overlays = []  # type: ignore
+        
+        if self._plot.overlays is not None:
+            self._plot.overlays.clear() # type: ignore
         self.plot_num_overlay(self._x, self._y, self.man_ori)
 
     def right_clicked_event(self):
-        """Right click event redefined 
-        to draw a cross and print a number, 
-        in calibration ir deletes the last _x, _y value
-        collected by the left click
-        """
+        """ right click event """
         print("right clicked")
         if len(self._x) > 0:
             self._x.pop()
@@ -184,42 +145,45 @@ class PlotWindow(HasTraits):
             print(self._x, self._y)
 
             self.drawcross("coord_x", "coord_y", self._x, self._y, "red", 5)
-            self._plot.overlays = []  # type: ignore
+            if self._plot.overlays is not None:
+                self._plot.overlays.clear() # type: ignore
             self.plot_num_overlay(self._x, self._y, self.man_ori)
         else:
             if self._right_click_avail:
                 print("deleting point")
-                self.py_rclick_delete(self._click_tool.x, self._click_tool.y,
-                                      self.cameraN)
+                self.py_rclick_delete(
+                    self._click_tool.x, self._click_tool.y, self.cameraN
+                )
                 x = []
                 y = []
                 self.py_get_pix_N(x, y, self.cameraN)
                 self.drawcross("x", "y", x[0], y[0], "blue", 4)
 
     def attach_tools(self):
-        """Attaching ClickerTool to the plot
-        """
+        """ Attaches the necessary tools to the plot """
         self._click_tool = ClickerTool(self._img_plot)
-        self._click_tool.on_trait_change(self.left_clicked_event,
-                                         "left_changed")
-        self._click_tool.on_trait_change(self.right_clicked_event,
-                                         "right_changed")
+        self._click_tool.on_trait_change(
+            self.left_clicked_event, "left_changed"
+        )
+        self._click_tool.on_trait_change(
+            self.right_clicked_event, "right_changed"
+        )
         self._img_plot.tools.append(self._click_tool)
-        self._zoom_tool = SimpleZoom(component=self._plot,
-                                     tool_mode="box",
-                                     always_on=False)
+        self._zoom_tool = SimpleZoom(
+            component=self._plot, tool_mode="box", always_on=False
+        )
         self._zoom_tool.max_zoom_out_factor = 1.0
         self._img_plot.tools.append(self._zoom_tool)
         if self._plot.index_mapper is not None:
-            self._plot.index_mapper.on_trait_change(self.handle_mapper,
-                                                    "updated",
-                                                    remove=False)
+            self._plot.index_mapper.on_trait_change(
+                self.handle_mapper, "updated", remove=False
+            )
         if self._plot.value_mapper is not None:
-            self._plot.value_mapper.on_trait_change(self.handle_mapper,
-                                                    "updated",
-                                                    remove=False)
+            self._plot.value_mapper.on_trait_change(
+                self.handle_mapper, "updated", remove=False
+            )
 
-    def drawcross(self, str_x, str_y, x, y, color1, mrk_size):
+    def drawcross(self, str_x, str_y, x, y, color1="blue", mrk_size=1, marker="plus"):
         """
         Draws crosses on images
         """
@@ -229,7 +193,7 @@ class PlotWindow(HasTraits):
             (str_x, str_y),
             type="scatter",
             color=color1,
-            marker="plus",
+            marker=marker,
             marker_size=mrk_size,
         )
         self._plot.request_redraw()
@@ -254,33 +218,38 @@ class PlotWindow(HasTraits):
             draws 2 red lines with thickness = 2 :  100,100->400,300 and 200,100->400,200
 
         """
-        x1, y1, x2, y2 = self.remove_short_lines(x1c,
-                                                 y1c,
-                                                 x2c,
-                                                 y2c,
-                                                 min_length=0)
+        x1, y1, x2, y2 = self.remove_short_lines(
+            x1c, y1c, x2c, y2c, min_length=0
+        )
         if len(x1) > 0:
             xs = ArrayDataSource(x1)
             ys = ArrayDataSource(y1)
 
-            quiverplot = QuiverPlot(
-                index=xs,
-                value=ys,
-                index_mapper=LinearMapper(range=self._plot.index_mapper.range),
-                value_mapper=LinearMapper(range=self._plot.value_mapper.range),
-                origin=self._plot.origin,
+            # quiverplot = QuiverPlot(
+            #     index=xs,
+            #     value=ys,
+            #     index_mapper=LinearMapper(range=self._plot.index_mapper.range),
+            #     value_mapper=LinearMapper(range=self._plot.value_mapper.range),
+            #     origin=self._plot.origin,
+            #     arrow_size=0,
+            #     line_color=color,
+            #     line_width=linewidth,
+            #     ep_index=np.array(x2) * scale,
+            #     ep_value=np.array(y2) * scale,
+            # )
+            vectors = np.array(((np.array(x2)-np.array(x1))/scale, 
+                                (np.array(y2)-np.array(y1))/scale)).T
+            self._plot_data.set_data("index", x1)
+            self._plot_data.set_data("value", y1)
+            self._plot_data.set_data("vectors", vectors)
+            # self._quiverplots.append(quiverplot)
+            self._plot.quiverplot(
+                ('index','value','vectors'),
                 arrow_size=0,
-                line_color=color,
-                line_width=linewidth,
-                ep_index=np.array(x2) * scale,
-                ep_value=np.array(y2) * scale,
-            )
-            self._plot.add(quiverplot)
-            # we need this to track how many quiverplots are in the current
-            # plot
-            self._quiverplots.append(quiverplot)
-            # import pdb; pdb.set_trace()
-
+                line_color="red"
+                )
+            # self._plot.overlays.append(quiverplot)
+        
     def remove_short_lines(self, x1, y1, x2, y2, min_length=2):
         """removes short lines from the array of lines
         parameters:
@@ -296,8 +265,10 @@ class PlotWindow(HasTraits):
         # dx, dy = 2, 2  # minimum allowable dx,dy
         x1f, y1f, x2f, y2f = [], [], [], []
         for i in range(len(x1)):
-            if (abs(x1[i] - x2[i]) > min_length
-                    or abs(y1[i] - y2[i]) > min_length):
+            if (
+                abs(x1[i] - x2[i]) > min_length
+                or abs(y1[i] - y2[i]) > min_length
+            ):
                 x1f.append(x1[i])
                 y1f.append(y1[i])
                 x2f.append(x2[i])
@@ -308,7 +279,8 @@ class PlotWindow(HasTraits):
         for i in range(0, len(self._plot.overlays)):
             if hasattr(self._plot.overlays[i], "real_position"):
                 coord_x1, coord_y1 = self._plot.map_screen(
-                    [self._plot.overlays[i].real_position])[0]
+                    [self._plot.overlays[i].real_position]
+                )[0]
                 self._plot.overlays[i].alternate_position = (
                     coord_x1,
                     coord_y1,
@@ -329,9 +301,12 @@ class PlotWindow(HasTraits):
 
     def update_image(self, image, is_float):
         if is_float:
-            self._plot_data.set_data("imagedata", image.astype(np.float))
+            self._plot_data.set_data("imagedata", image.astype(float))
         else:
-            self._plot_data.set_data("imagedata", image.astype(np.byte))
+            self._plot_data.set_data("imagedata", image.astype(np.uint8))
+            
+        # Alex added to plot the image here from update image
+        self._img_plt = self._plot.img_plot("imagedata", colormap=gray)[0]
 
         self._plot.request_redraw()
 
@@ -340,24 +315,6 @@ class PlotWindow(HasTraits):
 
 
 class CalibrationGUI(HasTraits):
-    """Calibration GUI class of TraitsUI type
-
-    Args:
-        HasTraits (_type_): see traitsui
-
-    Raises:
-        IOError: _description_
-        ValueError: _description_
-        ValueError: _description_
-        ValueError: _description_
-        IOError: _description_
-        ValueError: _description_
-        ValueError: _description_
-        ValueError: _description_
-
-    Returns:
-        _type_: _description_
-    """
     status_text = Str("")
     ori_img_name = []
     ori_img = []
@@ -383,14 +340,12 @@ class CalibrationGUI(HasTraits):
     button_checkpoint = Button()
     button_ap_figures = Button()
     button_edit_ori_files = Button()
-    button_pbi = Button()
-
-    # button_test = Button()
+    button_test = Button()
 
     # ---------------------------------------------------
     # Constructor
     # ---------------------------------------------------
-    def __init__(self, active_path):
+    def __init__(self, active_path: Path):
         """Initialize CalibrationGUI
 
         Inputs:
@@ -402,16 +357,21 @@ class CalibrationGUI(HasTraits):
         super(CalibrationGUI, self).__init__()
         self.need_reset = 0
 
-        self.active_path = pathlib.Path(active_path)
+        self.active_path = active_path
         self.working_folder = self.active_path.parent
         self.par_path = self.working_folder / "parameters"
+        
+        self.man_ori_dat_path = self.working_folder / "man_ori.dat"
 
+        print(" Copying parameters inside Calibration GUI: \n")
         par.copy_params_dir(self.active_path, self.par_path)
 
+        
         os.chdir(self.working_folder)
-        print("Inside a folder: ", os.getcwd())
+        print(f"Inside a folder: {Path.cwd()}")
+        
         # read parameters
-        with open(self.par_path / "ptv.par", "r", encoding="utf8") as f:
+        with open(self.par_path / "ptv.par", "r") as f:
             self.n_cams = int(f.readline())
 
         self.camera = [PlotWindow() for i in range(self.n_cams)]
@@ -520,11 +480,6 @@ class CalibrationGUI(HasTraits):
                         label="Edit ori files",
                         show_label=False,
                     ),
-                    Item(
-                        name="button_pbi",
-                        label="pbi tuning",
-                        show_label=False,
-                    ),
                     show_left=False,
                 ),
             ),
@@ -552,7 +507,7 @@ class CalibrationGUI(HasTraits):
     # --------------------------------------------------
 
     def _button_edit_cal_parameters_fired(self):
-        cp = pargui.Calib_Params(par_path=self.par_path)
+        cp = parameter_gui.Calib_Params(par_path=self.par_path)
         cp.edit_traits(kind="modal")
         # at the end of a modification, copy the parameters
         par.copy_params_dir(self.par_path, self.active_path)
@@ -615,22 +570,20 @@ class CalibrationGUI(HasTraits):
         self.cal_images = []
         for i in range(len(self.camera)):
             imname = self.calParams.img_cal_name[i]
-            # for imname in self.calParams.img_cal_name:
-            # self.cal_images.append(imread(imname))
             im = imread(imname)
+            # im = ImageData.fromfile(imname).data
             if im.ndim > 2:
-                im = rgb2gray(im)
+                im = rgb2gray(im[:,:,:3])
 
             self.cal_images.append(img_as_ubyte(im))
 
         self.reset_show_images()
 
         # Loading manual parameters here
-        man_ori_path = os.path.join(self.par_path, "man_ori.par")
 
-        f = open(man_ori_path, "r")
+        f = open(os.path.join(self.par_path, "man_ori.par"), "r")
         if f is None:
-            print("\n Error loading man_ori.par")
+            print("\n Error loading man_ori.par from parameters")
         else:
             for i in range(len(self.camera)):
                 for j in range(4):
@@ -644,17 +597,17 @@ class CalibrationGUI(HasTraits):
         if self.need_reset:
             self.reset_show_images()
             self.need_reset = False
-
         print(" Detection procedure \n")
         self.status_text = "Detection procedure"
 
         if self.cpar.get_hp_flag():
-            print('Highpass is applied')
-            self.cal_images = ptv.py_pre_processing_c(self.cal_images,
-                                                      self.cpar)
+            self.cal_images = ptv.py_pre_processing_c(
+                self.cal_images, self.cpar
+            )
 
         self.detections, corrected = ptv.py_detection_proc_c(
-            self.cal_images, self.cpar, self.tpar, self.cals)
+            self.cal_images, self.cpar, self.tpar, self.cals
+        )
 
         x = [[i.pos()[0] for i in row] for row in self.detections]
         y = [[i.pos()[1] for i in row] for row in self.detections]
@@ -664,35 +617,34 @@ class CalibrationGUI(HasTraits):
         for i in range(self.n_cams):
             self.camera[i]._right_click_avail = 1
 
-        self.need_reset = True
-
     def _button_manual_fired(self):
-        print('Start manual orientation, use clicks')
+        print('Start manual orientation, use clicks and then press this button again')
         points_set = True
         for i in range(self.n_cams):
             if len(self.camera[i]._x) < 4:
-                print("inside manual click")
-                print(self.camera[i]._x)
+                print(f"Camera {i} less than 4 points: {self.camera[i]._x}")
                 points_set = False
+            else:
+                print(f"Camera {i} has 4 points: {self.camera[i]._x}")
 
         if points_set:
-            man_ori_path = os.path.join(os.getcwd(), "man_ori.dat")
-            print(f'Manual orientation file is {man_ori_path}')
-            with open(man_ori_path, "w", encoding="utf-8") as f:
+            print(f'Manual orientation file is {self.man_ori_dat_path}')
+            with open(self.man_ori_dat_path, "w", encoding="utf-8") as f:
                 if f is None:
                     self.status_text = "Error saving man_ori.dat."
                 else:
                     for i in range(self.n_cams):
                         for j in range(4):
                             f.write(
-                                "%f %f\n" %
-                                (self.camera[i]._x[j], self.camera[i]._y[j]))
+                                "%f %f\n"
+                                % (self.camera[i]._x[j], self.camera[i]._y[j])
+                            )
 
                     self.status_text = "man_ori.dat saved."
                     # f.close()
         else:
             self.status_text = (
-                "Set 4 points on each calibration image for manual orientation"
+                "Click on 4 points on each calibration image for manual orientation"
             )
 
     def _button_file_orient_fired(self):
@@ -700,8 +652,8 @@ class CalibrationGUI(HasTraits):
             self.reset_show_images()
             self.need_reset = 0
 
-        man_ori_path = os.path.join(self.working_folder, "man_ori.dat")
-        with open(man_ori_path, "r") as f:
+        
+        with open(self.man_ori_dat_path, "r") as f:
             for i in range(self.n_cams):
                 self.camera[i]._x = []
                 self.camera[i]._y = []
@@ -711,8 +663,10 @@ class CalibrationGUI(HasTraits):
                     self.camera[i]._y.append(float(line[1]))
 
         self.status_text = "man_ori.dat loaded."
-        shutil.copyfile(man_ori_path, os.path.join(self.par_path,
-                                                   "man_ori.dat"))
+        shutil.copyfile(
+            self.man_ori_dat_path, 
+            self.par_path / "man_ori.dat",
+            )
 
         # TODO: rewrite using Parameters subclass
         man_ori_par_path = os.path.join(self.par_path, "man_ori.par")
@@ -799,7 +753,7 @@ class CalibrationGUI(HasTraits):
                     y.append(t.pos()[1])
 
             self.sorted_targs.append(targs)
-            self.camera[i_cam]._plot.overlays.clear()
+            self.camera[i_cam]._plot.overlays = []
             self.camera[i_cam].plot_num_overlay(x, y, pnr)
 
         self.status_text = "Sort grid finished."
@@ -855,7 +809,8 @@ class CalibrationGUI(HasTraits):
 
             # in pixels:
             manual_detection_points = np.array(
-                (self.camera[i_cam]._x, self.camera[i_cam]._y)).T
+                (self.camera[i_cam]._x, self.camera[i_cam]._y)
+            ).T
 
             success = external_calibration(
                 self.cals[i_cam],
@@ -936,30 +891,39 @@ class CalibrationGUI(HasTraits):
                 all_known = []
                 all_detected = []
 
-                for i in range(self.MultiParams.n_planes
-                               ):  # combine all single planes
+                for i in range(
+                    self.MultiParams.n_planes
+                ):  # combine all single planes
 
                     # c = self.calParams.img_ori[i_cam][-9] # Get camera id
                     # not all ends with a number
                     c = re.findall("\\d+", self.calParams.img_ori[i_cam])[0]
 
-                    file_known = (self.MultiParams.plane_name[i] + c +
-                                  ".tif.fix")
-                    file_detected = (self.MultiParams.plane_name[i] + c +
-                                     ".tif.crd")
+                    file_known = (
+                        self.MultiParams.plane_name[i] + c + ".tif.fix"
+                    )
+                    file_detected = (
+                        self.MultiParams.plane_name[i] + c + ".tif.crd"
+                    )
 
                     # Load calibration point information from plane i
                     try:
                         known = np.loadtxt(file_known)
                         detected = np.loadtxt(file_detected)
                     except BaseException:
-                        raise IOError("reading {} or {} failed".format(
-                            file_known, file_detected))
+                        raise IOError(
+                            "reading {} or {} failed".format(
+                                file_known, file_detected
+                            )
+                        )
 
                     if np.any(detected == -999):
                         raise ValueError(
-                            ("Using undetected points in {} will cause " +
-                             "silliness. Quitting.").format(file_detected))
+                            (
+                                "Using undetected points in {} will cause "
+                                + "silliness. Quitting."
+                            ).format(file_detected)
+                        )
 
                     num_known = len(known)
                     num_detect = len(detected)
@@ -971,8 +935,11 @@ class CalibrationGUI(HasTraits):
                                 {file_known}, {file_detected}")
 
                     if len(all_known) > 0:
-                        detected[:, 0] = (all_detected[-1][-1, 0] + 1 +
-                                          np.arange(len(detected)))
+                        detected[:, 0] = (
+                            all_detected[-1][-1, 0]
+                            + 1
+                            + np.arange(len(detected))
+                        )
 
                     # Append to list of total known and detected points
                     all_known.append(known)
@@ -994,10 +961,9 @@ class CalibrationGUI(HasTraits):
                     targ.set_pnr(tix)
                     targ.set_pos(det[1:])
 
-                self.cal_points = np.empty(
-                    (all_known.shape[0], )).astype(dtype=[("id",
-                                                           "i4"), ("pos",
-                                                                   "3f8")])
+                self.cal_points = np.empty((all_known.shape[0],)).astype(
+                    dtype=[("id", "i4"), ("pos", "3f8")]
+                )
                 self.cal_points["pos"] = all_known
             else:
                 targs = self.sorted_targs[i_cam]
@@ -1026,13 +992,9 @@ class CalibrationGUI(HasTraits):
                     y.append(pos[1])
 
             self.camera[i_cam]._plot.overlays.clear()
-            self.drawcross("orient_x",
-                           "orient_y",
-                           x,
-                           y,
-                           "orange",
-                           5,
-                           i_cam=i_cam)
+            self.drawcross(
+                "orient_x", "orient_y", x, y, "orange", 5, i_cam=i_cam
+            )
 
             # self.camera[i]._plot_data.set_data(
             #     'imagedata', self.ori_img[i].astype(np.float))
@@ -1041,8 +1003,8 @@ class CalibrationGUI(HasTraits):
             self.camera[i_cam].drawquiver(
                 x,
                 y,
-                x + scale * residuals[:len(x), 0],
-                y + scale * residuals[:len(x), 1],
+                x + scale * residuals[: len(x), 0],
+                y + scale * residuals[: len(x), 1],
                 "red",
             )
             # self.camera[i]._plot.index_mapper.range.set_bounds(0, self.h_pixel)
@@ -1050,190 +1012,14 @@ class CalibrationGUI(HasTraits):
 
         self.status_text = "Orientation finished."
 
-    def _button_pbi_fired(self):
-        """
-        """
-        print('Button pbi is fired')
-        scale = 5000
-
-        if self.need_reset:
-            self.reset_show_images()
-            self.need_reset = 0
-
-        # backup the ORI/ADDPAR files first
-        self.backup_ori_files()
-
-        op = par.OrientParams()
-        op.read()
-
-        # recognized names for the flags:
-        names = [
-            "cc",
-            "xh",
-            "yh",
-            "k1",
-            "k2",
-            "k3",
-            "p1",
-            "p2",
-            "scale",
-            "shear",
-        ]
-        op_names = [
-            op.cc,
-            op.xh,
-            op.yh,
-            op.k1,
-            op.k2,
-            op.k3,
-            op.p1,
-            op.p2,
-            op.scale,
-            op.shear,
-        ]
-
-        flags = []
-        for name, op_name in zip(names, op_names):
-            if op_name == 1:
-                flags.append(name)
-
-        for i_cam in range(self.n_cams):  # iterate over all cameras
-
-            if self.epar.Combine_Flag:
-
-                self.status_text = "Multiplane calibration"
-                all_known = []
-                all_detected = []
-
-                for i in range(self.MultiParams.n_planes  # type: ignore
-                               ):  # combine all single planes
-
-                    # c = self.calParams.img_ori[i_cam][-9] # Get camera id
-                    # not all ends with a number
-                    c = re.findall("\\d+", self.calParams.img_ori[i_cam])[0]
-
-                    file_known = (self.MultiParams.plane_name[i] + c +
-                                  ".tif.fix")
-                    file_detected = (self.MultiParams.plane_name[i] + c +
-                                     ".tif.crd")
-
-                    # Load calibration point information from plane i
-                    try:
-                        known = np.loadtxt(file_known)
-                        detected = np.loadtxt(file_detected)
-                    except BaseException as exc:
-                        raise IOError(f"reading {file_known} or \
-                            {file_detected} failed") from exc
-
-                    if np.any(detected == -999):
-                        raise ValueError(
-                            ("Using undetected points in {} will cause " +
-                             "silliness. Quitting.").format(file_detected))
-
-                    num_known = len(known)
-                    num_detect = len(detected)
-
-                    if num_known != num_detect:
-                        raise ValueError(
-                            f"Number of detected points {num_known} does not match"
-                            " number of known points {num_detect} for \
-                                {file_known}, {file_detected}")
-
-                    if len(all_known) > 0:
-                        detected[:, 0] = (all_detected[-1][-1, 0] + 1 +
-                                          np.arange(len(detected)))
-
-                    # Append to list of total known and detected points
-                    all_known.append(known)
-                    all_detected.append(detected)
-
-                # Make into the format needed for full_calibration.
-                all_known = np.vstack(all_known)[:, 1:]
-                all_detected = np.vstack(all_detected)
-
-                # this is the main difference in the multiplane mode
-                # that we fill the targs and cal_points by the
-                # combined information
-
-                targs = TargetArray(len(all_detected))
-                for tix in range(len(all_detected)):
-                    targ = targs[tix]
-                    det = all_detected[tix]
-
-                    targ.set_pnr(tix)
-                    targ.set_pos(det[1:])
-
-                self.cal_points = np.empty(
-                    (all_known.shape[0], )).astype(dtype=[("id",
-                                                           "i4"), ("pos",
-                                                                   "3f8")])
-                self.cal_points["pos"] = all_known
-            else:
-                targs = self.sorted_targs[i_cam]
-                
-            # convert targs for the fitness function
-            targs_list = np.array([t.pos() for t in targs])
-
-            try:
-                res_cal, err_est = full_calibration(
-                    self.cals[i_cam],
-                    self.cal_points["pos"],  # type: ignore
-                    targs_list,
-                    self.cpar,
-                    flags,
-                )
-            except BaseException as exc:
-                raise ValueError("full calibration failed\n") from exc
-            
-            # save the results
-            self.cals[i_cam] = res_cal
-            self._write_ori(i_cam, addpar_flag=True)
-
-            # Plot the output
-            # self.reset_plots()
-
-            x, y = [], []
-            for r, t in zip(residuals, targ_ix):
-                if t != -999:
-                    pos = targs[t].pos()
-                    x.append(pos[0])
-                    y.append(pos[1])
-
-            self.camera[i_cam]._plot.overlays = []
-            self.drawcross("orient_x",
-                           "orient_y",
-                           x,
-                           y,
-                           "orange",
-                           5,
-                           i_cam=i_cam)
-
-            # self.camera[i]._plot_data.set_data(
-            #     'imagedata', self.ori_img[i].astype(np.float))
-            # self.camera[i]._img_plot = self.camera[
-            #     i]._plot.img_plot('imagedata', colormap=gray)[0]
-            self.camera[i_cam].drawquiver(
-                x,
-                y,
-                x + scale * residuals[:len(x), 0],
-                y + scale * residuals[:len(x), 1],
-                "red",
-            )
-            # self.camera[i]._plot.index_mapper.range.set_bounds(0, self.h_pixel)
-            # self.camera[i]._plot.value_mapper.range.set_bounds(0, self.v_pixel)
-
-        self.status_text = "Orientation converged."
-
-
-
-    def _write_ori(self, i_cam=0, addpar_flag=False):
+    def _write_ori(self, i_cam, addpar_flag=False):
         """Writes ORI and ADDPAR files for a single calibration result
         of i_cam
         addpar_flag is a boolean that allows to keep previous addpar
         otherwise external_calibration overwrites zeros
         """
 
-        ori = str(self.calParams.img_ori[i_cam])
+        ori = self.calParams.img_ori[i_cam]
         if addpar_flag:
             addpar = ori.replace("ori", "addpar")
         else:
@@ -1282,9 +1068,11 @@ class CalibrationGUI(HasTraits):
         self.reset_plots()
         for i in range(len(self.camera)):
             self.camera[i]._plot_data.set_data(
-                "imagedata", self.ori_img[i].astype(np.float))
+                "imagedata", self.ori_img[i].astype(np.float)
+            )
             self.camera[i]._img_plot = self.camera[i]._plot.img_plot(
-                "imagedata", colormap=gray)[0]
+                "imagedata", colormap=gray
+            )[0]
             self.camera[i].drawquiver(x1[i], y1[i], x2[i], y2[i], "red")
             self.camera[i]._plot.index_mapper.range.set_bounds(0, self.h_pixel)
             self.camera[i]._plot.value_mapper.range.set_bounds(0, self.v_pixel)
@@ -1299,29 +1087,33 @@ class CalibrationGUI(HasTraits):
     def reset_plots(self):
         for i in range(len(self.camera)):
             self.camera[i]._plot.delplot(
-                *self.camera[i]._plot.plots.keys()[0:])
-            self.camera[i]._plot.overlays = []
-            for j in range(len(self.camera[i]._quiverplots)):
-                self.camera[i]._plot.remove(self.camera[i]._quiverplots[j])
-            self.camera[i]._quiverplots = []
+                *self.camera[i]._plot.plots.keys()[0:]
+            )
+            self.camera[i]._plot.overlays.clear()
+            # for j in range(len(self.camera[i]._quiverplots)):
+            #     self.camera[i]._plot.remove(self.camera[i]._quiverplots[j])
+            # self.camera[i]._quiverplots = []
 
     def reset_show_images(self):
         for i, cam in enumerate(self.camera):
             cam._plot.delplot(*list(cam._plot.plots.keys())[0:])
             cam._plot.overlays = []
             # self.camera[i]._plot_data.set_data('imagedata',self.ori_img[i].astype(np.byte))
-            cam._plot_data.set_data("imagedata",
-                                    self.cal_images[i].astype(np.byte))
+            cam._plot_data.set_data(
+                "imagedata", self.cal_images[i].astype(np.uint8)
+            )
 
             cam._img_plot = cam._plot.img_plot("imagedata", colormap=gray)[0]
             cam._x = []
             cam._y = []
             cam._img_plot.tools = []
+            
+            # for j in range(len(cam._quiverplots)):
+            #     cam._plot.remove(cam._quiverplots[j])
+            # cam._quiverplots = []
+            
             cam.attach_tools()
             cam._plot.request_redraw()
-            for j in range(len(cam._quiverplots)):
-                cam._plot.remove(cam._quiverplots[j])
-            cam._quiverplots = []
 
     def _button_edit_ori_files_fired(self):
         editor = codeEditor(path=self.par_path)
@@ -1334,8 +1126,9 @@ class CalibrationGUI(HasTraits):
         """
         if i_cam is None:
             for i in range(self.n_cams):
-                self.camera[i].drawcross(str_x, str_y, x[i], y[i], color1,
-                                         size1)
+                self.camera[i].drawcross(
+                    str_x, str_y, x[i], y[i], color1, size1
+                )
         else:
             self.camera[i_cam].drawcross(str_x, str_y, x, y, color1, size1)
 
@@ -1343,7 +1136,7 @@ class CalibrationGUI(HasTraits):
         """backup ORI/ADDPAR files to the backup_cal directory"""
         calOriParams = par.CalOriParams(self.n_cams, path=self.par_path)
         calOriParams.read()
-        for f in calOriParams.img_ori[:self.n_cams]:
+        for f in calOriParams.img_ori[: self.n_cams]:
             print(f"Backing up {f}")
             shutil.copyfile(f, f + ".bck")
             g = f.replace("ori", "addpar")
@@ -1354,7 +1147,7 @@ class CalibrationGUI(HasTraits):
         calOriParams = par.CalOriParams(self.n_cams, path=self.par_path)
         calOriParams.read()
 
-        for f in calOriParams.img_ori[:self.n_cams]:
+        for f in calOriParams.img_ori[: self.n_cams]:
             print(f"Restoring {f}")
             shutil.copyfile(f + ".bck", f)
             g = f.replace("ori", "addpar")
@@ -1364,34 +1157,36 @@ class CalibrationGUI(HasTraits):
         # backup ORI/ADDPAR files to the backup_cal directory
         calOriParams = par.CalOriParams(self.n_cams, path=self.par_path)
         calOriParams.read()
-        for f in calOriParams.img_ori[:self.n_cams]:
+        for f in calOriParams.img_ori[: self.n_cams]:
             with open(f, "r") as d:
                 d.read().split()
-                if not np.all(np.isfinite(np.asarray(d).astype(
-                        "f"))):  # if there NaN for instance
+                if not np.all(
+                    np.isfinite(np.asarray(d).astype("f"))
+                ):  # if there NaN for instance
                     print("protected ORI file %s " % f)
                     shutil.copyfile(f + ".bck", f)
 
-    def update_plots(self, images, is_float=0):
-        for i in range(len(images)):
-            self.camera[i].update_image(images[i], is_float)
+    # def update_plots(self, images):
+    #     for i in range(len(images)):
+    #         self.camera[i].update_image(images[i])
 
     def _read_cal_points(self):
         return np.atleast_1d(
             np.loadtxt(
-                pathlib.Path(self.calParams.fixp_name),
+                self.calParams.fixp_name,
                 dtype=[("id", "i4"), ("pos", "3f8")],
                 skiprows=0,
-            ))
+            )
+        )
 
 
 if __name__ == "__main__":
     import sys
 
     if len(sys.argv) == 1:
-        active_path = "../test_cavity/parametersRun1"
+        active_path = Path("../test_cavity/parametersRun1")
     else:
-        active_path = sys.argv[0]
+        active_path = Path(sys.argv[0])
 
     calib_gui = CalibrationGUI(active_path)
     calib_gui.configure_traits()

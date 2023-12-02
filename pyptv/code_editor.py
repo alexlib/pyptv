@@ -7,17 +7,13 @@ from traits.api import (
     Code,
     Int,
     List,
-    Str,
     Button,
-    Float,
-    Instance,
-    Directory,
     File,
 )
 
 from traitsui.api import Item, Group, View, Handler, ListEditor
 
-import os
+from pathlib import Path
 from pyptv import parameters as par
 
 
@@ -91,6 +87,7 @@ class codeEditor(HasTraits):
     )
 
     def __init__(self, path):
+        """ Initialize by reading parameters and filling the editor windows """
         # load ptv_par
         ptvParams = par.PtvParams(path=path)
         ptvParams.read()
@@ -102,5 +99,5 @@ class codeEditor(HasTraits):
 
         for i in range(self.n_img):
             self.oriEditors.append(
-                oriEditor(get_path(calOriParams.img_ori[i]))
+                oriEditor(calOriParams.img_ori[i])
             )

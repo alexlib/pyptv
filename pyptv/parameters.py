@@ -1,16 +1,16 @@
 from __future__ import print_function
 from __future__ import absolute_import
-import pathlib
-from builtins import range
-import os
+
+from pathlib import Path
 import shutil
+from tqdm import tqdm
 from traits.api import HasTraits, Str, Float, Int, List, Bool
 
 import yaml
 
 # Temporary path for parameters (active run will be copied here)
-par_dir_prefix = "parameters"
-MAX_CAM = 4
+par_dir_prefix = str("parameters")
+max_cam = int(4)
 
 
 def g(f):
@@ -19,28 +19,16 @@ def g(f):
 
 
 # Base class for all parameters classes
+
+
 class Parameters(HasTraits):
-    """base class for all parameter classes
-
-    Args:
-        HasTraits : see traits.api
-
-    Raises:
-        NotImplementedError: _description_
-        NotImplementedError: _description_
-        NotImplementedError: _description_
-        NotImplementedError: _description_
-
-    Returns:
-        _type_: _description_
-    """
     # default path of the directory of the param files
-    default_path = pathlib.Path("parameters")
+    default_path = Path("parameters")
 
-    def __init__(self, path=default_path):
+    def __init__(self, path: Path=default_path):
         HasTraits.__init__(self)
-        self.path = pathlib.Path(path)
-        self.exp_path = self.path.parent
+        self.path = path.resolve()
+        self.exp_path = self.path.parent 
 
     # returns the name of the specific params file
     def filename(self):
@@ -48,7 +36,7 @@ class Parameters(HasTraits):
 
     # returns the path to the specific params file
     def filepath(self):
-        return pathlib.Path(self.path) / self.filename()
+        return self.path.joinpath(self.filename())
 
     # sets all variables of the param file (no actual writing to disk)
     def set(self, *vars):
@@ -65,15 +53,13 @@ class Parameters(HasTraits):
     def to_yaml(self):
         """Creates YAML file"""
         yaml_file = self.filepath().replace(".par", ".yaml")
-        with open(yaml_file, "w", encoding="utf8") as outfile:
+        with open(yaml_file, "w") as outfile:
             yaml.dump(self.__dict__, outfile, default_flow_style=False)
 
     def from_yaml(self):
-        """reading from YAML file
-        """
         yaml_file = self.filepath().replace(".par", ".yaml")
-        with open(yaml_file,"r",encoding="utf8") as f:
-            yaml_args = yaml.load(f, Loader=yaml.Loader)
+        with open(yaml_file) as f:
+            yaml_args = yaml.load(f)
 
         for k, v in yaml_args.items():
             if isinstance(v, list) and len(v) > 1:  # multi line
@@ -85,34 +71,25 @@ class Parameters(HasTraits):
 
     def istherefile(self, filename):
         """checks if the filename exists in the experimental path"""
-        full_path = self.exp_path / filename
-        if not full_path.exists:
-            warning(f"{full_path} is not found")
+        if not self.exp_path.joinpath(filename).is_file():
+            warning(f"{filename} not found")
 
 
 # Print detailed error to the console and show the user a friendly error window
 def error(owner, msg):
-    print("Exception caught, message: %s" % (msg))
+    print(f"Exception caught, message: {msg}")
 
 
 def warning(msg):
-    print("Warning message: %s" % (msg))
+    print(f"Warning message: {msg}")
 
 
 # Reads a parameters directory and returns a dictionary with all parameter
 # objects
 def readParamsDir(par_path):
-    """ Read Parameters from Directory
-
-    Args:
-        par_path (pathlib.Path): path of /parameters folder
-
-    Returns:
-        _type_: set of parameters
-    """
+    # get n_img from ptv.par
     ptvParams = PtvParams(path=par_path)
     ptvParams.read()
-    
     n_img = ptvParams.n_img
     n_pts = Int(4)
 
@@ -140,18 +117,33 @@ def readParamsDir(par_path):
     return ret
 
 
-def copy_params_dir(src, dest):
-    ext_set = (".dat", ".par", ".yaml")
-    files = [f for f in os.listdir(src) if f.endswith(ext_set)]
+def copy_params_dir(src: Path, dest: Path):
+    """ Copying all parameter files from /src folder to /dest 
+        including .dat, .par and .yaml files
+    """
+    ext_set = ("*.dat", "*.par", "*.yaml")
+    files = []
+    for ext in ext_set:
+        files.extend(src.glob(ext))
+        
+    # print(f'List of parameter files in {src} is \n {files} \n')    
+    # print(f'Destination folder is {dest.resolve()}')
+    # files = [f for f in src.iterdir() if str(f.parts[-1]).endswith(ext_set)]    
 
-    if not os.path.exists(dest):
-        os.mkdir(dest)
-    print("copy from %s to %s" % (src, dest))
-    for f in files:
+    if not dest.is_dir():
+        print(f"Destination folder does not exist, creating it")
+        dest.mkdir(parents=True, exist_ok=True)
+
+    print(f"Copying now file by file from {src} to {dest}: \n")
+
+    for f in tqdm(files):
+        # print(f"From {f} to {dest / f.name} ")
         shutil.copyfile(
-            os.path.abspath(os.path.join(src, f)),
-            os.path.abspath(os.path.join(dest, f)),
+            f,
+            dest / f.name,
         )
+
+    print(f"Successfully \n")
 
 
 # Specific parameter classes #######
@@ -203,8 +195,8 @@ class PtvParams(Parameters):
     def __init__(
         self,
         n_img=Int,
-        img_name=List(Str),
-        img_cal=List(Str),
+        img_name=List,
+        img_cal=List,
         hp_flag=Bool,
         allcam_flag=Bool,
         tiff_flag=Bool,
@@ -258,16 +250,16 @@ class PtvParams(Parameters):
         return "ptv.par"
 
     def read(self):
-        if not os.path.isfile(self.filepath()):
+        if not self.filepath().exists():
             warning(f"{self.filepath()} does not exist ")
         try:
             with open(self.filepath(), "r", encoding="utf8") as f:
                 self.n_img = int(g(f))
 
-                self.img_name = [None] * MAX_CAM
-                self.img_cal = [None] * MAX_CAM
+                self.img_name = [None] * max_cam
+                self.img_cal = [None] * max_cam
                 for i in range(self.n_img):
-                    # for i in range(MAX_CAM):
+                    # for i in range(max_cam):
                     self.img_name[i] = g(f)
                     self.img_cal[i] = g(f)
 
@@ -297,7 +289,7 @@ class PtvParams(Parameters):
             with open(self.filepath(), "w") as f:
                 f.write("%d\n" % self.n_img)
                 for i in range(self.n_img):
-                    # for i in range(MAX_CAM):
+                    # for i in range(max_cam):
                     f.write("%s\n" % self.img_name[i])
                     f.write("%s\n" % self.img_cal[i])
 
@@ -355,6 +347,7 @@ class CalOriParams(Parameters):
         path=Parameters.default_path,
     ):
         Parameters.__init__(self, path)
+
         (
             self.n_img,
             self.fixp_name,
@@ -378,14 +371,15 @@ class CalOriParams(Parameters):
 
     def read(self):
         try:
-            with open(self.filepath(), "r",encoding="utf8") as f:
-                self.fixp_name = str(g(f))
+            with open(self.filepath(), "r") as f:
+
+                self.fixp_name = g(f)
                 self.istherefile(self.fixp_name)
 
                 self.img_cal_name = []
                 self.img_ori = []
-                for i in range(self.n_img):  # type: ignore
-                    # for i in range(MAX_CAM):
+                for i in range(self.n_img):
+                    # for i in range(max_cam):
                     self.img_cal_name.append(g(f))
                     self.img_ori.append(g(f))
 
@@ -407,7 +401,7 @@ class CalOriParams(Parameters):
 
                 f.write("%s\n" % self.fixp_name)
                 for i in range(self.n_img):
-                    # for i in range(MAX_CAM):
+                    # for i in range(max_cam):
                     f.write("%s\n" % self.img_cal_name[i])
                     f.write("%s\n" % self.img_ori[i])
 
@@ -460,7 +454,7 @@ class SequenceParams(Parameters):
             with open(self.filepath(), "r") as f:
                 self.base_name = []
                 for i in range(self.n_img):
-                    # for i in range(MAX_CAM):
+                    # for i in range(max_cam):
                     self.base_name.append(g(f))
 
                 self.first = int(g(f))
@@ -472,7 +466,7 @@ class SequenceParams(Parameters):
         try:
             with open(self.filepath(), "w") as f:
                 for i in range(self.n_img):
-                    # for i in range(MAX_CAM):
+                    # for i in range(max_cam):
                     f.write("%s\n" % self.base_name[i])
 
                 f.write("%d\n" % self.first)
@@ -681,9 +675,9 @@ class TargRecParams(Parameters):
         try:
             with open(self.filepath(), "r") as f:
 
-                self.gvthres = [0] * MAX_CAM
+                self.gvthres = [0] * max_cam
                 # for i in range(self.n_img):
-                for i in range(MAX_CAM):
+                for i in range(max_cam):
                     self.gvthres[i] = int(g(f))
 
                 self.disco = int(g(f))
@@ -703,7 +697,7 @@ class TargRecParams(Parameters):
         try:
             f = open(self.filepath(), "w")
             #            for i in range(self.n_img):
-            for i in range(MAX_CAM):
+            for i in range(max_cam):
                 f.write("%d\n" % self.gvthres[i])
 
             f.write("%d\n" % self.disco)
@@ -1233,7 +1227,7 @@ class ExamineParams(Parameters):
         return "examine.par"
 
     def read(self):
-        if os.path.exists(self.filepath()) is False:
+        if not self.filepath().exists():
             f = open(self.filepath(), "w")
             f.write("%d\n" % 0)
             f.write("%d\n" % 0)
@@ -1330,7 +1324,7 @@ class DumbbellParams(Parameters):
         return "dumbbell.par"
 
     def read(self):
-        if os.path.exists(self.filepath()) is False:
+        if not self.filepath().exists():
             f = open(self.filepath(), "w")
             f.write("%f\n" % 0.0)
             f.write("%f\n" % 0.0)
@@ -1425,7 +1419,7 @@ class ShakingParams(Parameters):
         return "shaking.par"
 
     def read(self):
-        if os.path.exists(self.filepath()) is False:
+        if not self.filepath().exists():
             f = open(self.filepath(), "w")
             f.write("%f\n" % 0)
             f.write("%f\n" % 0)
@@ -1494,8 +1488,8 @@ class MultiPlaneParams(Parameters):
                 self.n_planes = int(g(f))
                 for i in range(self.n_planes):
                     self.plane_name.append(g(f))
-                    if not os.path.isfile(self.plane_name[i]):
-                        print("plane %s is missing." % self.plane_name[i])
+                    # if not self.plane_name[i].is_file():
+                    #     print(f"Plane {self.plane_name[i]} is missing.")
 
         except BaseException:
             error(None, "%s not found" % self.filepath())

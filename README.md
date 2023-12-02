@@ -20,7 +20,16 @@ Both PyPTV and the OpenPTV library are in the development phase and continuously
 
 ## Installation instructions
 
+Short version:
+
+    pip install numpy
+    python -m pip install pyptv --index-url https://pypi.fury.io/pyptv --extra-index-url https://pypi.org/simple
+
+
+Detailed instructions for various platforms are in our documentation: 
 https://openptv-python.readthedocs.io/en/latest/installation_instruction.html
+
+
 
 
 
