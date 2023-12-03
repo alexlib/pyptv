@@ -34,15 +34,16 @@ from chaco.tools.better_zoom import BetterZoom as SimpleZoom
 from pyptv.text_box_overlay import TextBoxOverlay
 from pyptv.code_editor import codeEditor
 from pyptv.quiverplot import QuiverPlot
+from openptv_python.image_processing import prepare_image
 
 
 
-from optv.imgcoord import image_coordinates
-from optv.transforms import convert_arr_metric_to_pixel
-from optv.orientation import match_detection_to_ref
-from optv.orientation import external_calibration, full_calibration
-from optv.calibration import Calibration
-from optv.tracking_framebuf import TargetArray
+# from optv.imgcoord import image_coordinates
+# from optv.transforms import convert_arr_metric_to_pixel
+# from optv.orientation import match_detection_to_ref
+# from optv.orientation import external_calibration, full_calibration
+# from optv.calibration import Calibration
+# from optv.tracking_framebuf import TargetArray
 
 
 from pyptv import ptv, parameter_gui, parameters as par
@@ -601,9 +602,10 @@ class CalibrationGUI(HasTraits):
         self.status_text = "Detection procedure"
 
         if self.cpar.get_hp_flag():
-            self.cal_images = ptv.py_pre_processing_c(
-                self.cal_images, self.cpar
-            )
+            # self.cal_images = ptv.py_pre_processing_c(
+            #     self.cal_images, self.cpar
+            # )
+            self.cal_images = [prepare_image(im, 1, 0) for im in self.cal_images]
 
         self.detections, corrected = ptv.py_detection_proc_c(
             self.cal_images, self.cpar, self.tpar, self.cals
