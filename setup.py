@@ -4,6 +4,7 @@ requirements = [
     'chaco',
     'enable',
     'optv',
+    'openptv_python',
     'PyQt5',
     'scikit-image',
     'Pygments',
@@ -18,7 +19,7 @@ requirements = [
 
 setup(
     name='pyptv',
-    version='0.2.4',
+    version='0.3.0a',
     description='Python GUI for the OpenPTV library `liboptv`',
     author="Alex Liberzon",
     author_email='alex.liberzon@gmail.com',
