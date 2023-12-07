@@ -23,7 +23,6 @@ from chaco.api import (
     ArrayPlotData,
     gray,
     ArrayDataSource,
-    LinearMapper,
 )
 
 # from traitsui.menu import MenuBar, ToolBar, Menu, Action
@@ -33,11 +32,17 @@ from chaco.tools.better_zoom import BetterZoom as SimpleZoom
 # from chaco.tools.simple_zoom import SimpleZoom
 from pyptv.text_box_overlay import TextBoxOverlay
 from pyptv.code_editor import codeEditor
-from pyptv.quiverplot import QuiverPlot
 
 
 
-from optv.imgcoord import image_coordinates
+# first replacement
+# from optv.imgcoord import image_coordinates
+from openptv_python.imgcoord import image_coordinates
+# Control parameters
+from openptv_python.parameters import ControlPar
+from openptv_python.calibration import Calibration as _Calibration
+from openptv_python.trafo import metric_to_pixel
+
 from optv.transforms import convert_arr_metric_to_pixel
 from optv.orientation import match_detection_to_ref
 from optv.orientation import external_calibration, full_calibration
@@ -520,6 +525,17 @@ class CalibrationGUI(HasTraits):
             self.cals,
             self.epar,
         ) = ptv.py_start_proc_c(self.n_cams)
+        
+
+        self._cpar = ControlPar(self.n_cams).from_file(os.path.join(self.par_path,"ptv.par"))
+        self._cals = []
+        for i_cam in range(self.n_cams):
+            self._cals.append(_Calibration().from_file(
+                self._cpar.cal_img_base_name[i_cam] + ".ori", 
+                self._cpar.cal_img_base_name[i_cam] + ".addpar"
+                )
+            )
+                              
 
     def _button_showimg_fired(self):
 
@@ -576,6 +592,15 @@ class CalibrationGUI(HasTraits):
                 im = rgb2gray(im[:,:,:3])
 
             self.cal_images.append(img_as_ubyte(im))
+            
+        self._cpar = ControlPar(self.n_cams).from_file(os.path.join(self.par_path,"ptv.par"))
+        self._cals = []
+        for i_cam in range(self.n_cams):
+            self._cals.append(_Calibration().from_file(
+                self._cpar.cal_img_base_name[i_cam] + ".ori",
+                self._cpar.cal_img_base_name[i_cam] + ".addpar"
+                )
+            )
 
         self.reset_show_images()
 
@@ -690,32 +715,38 @@ class CalibrationGUI(HasTraits):
 
         self.cal_points = self._read_cal_points()
 
-        self.cals = []
+        self.cals = [Calibration() for _ in range(self.n_cams)]
         for i_cam in range(self.n_cams):
-            cal = Calibration()
             tmp = self.cpar.get_cal_img_base_name(i_cam)
-            cal.from_file(tmp + b".ori", tmp + b".addpar")
-            self.cals.append(cal)
+            self.cals[i_cam].from_file(tmp + b".ori", tmp + b".addpar")
+
+        self._cals = []
+        for i_cam in range(self.n_cams):
+            self._cals.append(_Calibration().from_file(
+                self._cpar.cal_img_base_name[i_cam] + ".ori",
+                self._cpar.cal_img_base_name[i_cam] + ".addpar"
+                )
+            )
 
         for i_cam in range(self.n_cams):
             self._project_cal_points(i_cam)
 
     def _project_cal_points(self, i_cam, color="yellow"):
-        x, y = [], []
-        for row in self.cal_points:
-            projected = image_coordinates(
-                np.atleast_2d(row["pos"]),
-                self.cals[i_cam],
-                self.cpar.get_multimedia_params(),
-            )
-            pos = convert_arr_metric_to_pixel(projected, self.cpar)
+        # x, y = [], []
+        # for row in self.cal_points:
+        #     projected = img_coord(
+        #         np.atleast_2d(row["pos"]),
+        #         self._cals[i_cam],
+        #         self._cpar.mm,
+        #     )
+        #     x1,y1 = metric_to_pixel(projected[0], projected[1], self._cpar)
 
-            x.append(pos[0][0])
-            y.append(pos[0][1])
+        #     x.append(x1)
+        #     y.append(y1)
+        
+        out = image_coordinates(self.cal_points["pos"], self._cals[i_cam], self._cpar.mm)
 
-        # x.append(x1)
-        # y.append(y1)
-        self.drawcross("init_x", "init_y", x, y, color, 3, i_cam=i_cam)
+        self.drawcross("init_x", "init_y", out[:,0].tolist(), out[:,1].tolist(), color, 3, i_cam=i_cam)
         self.status_text = "Initial guess finished."
 
     def _button_sort_grid_fired(self):
@@ -1174,6 +1205,7 @@ class CalibrationGUI(HasTraits):
         return np.atleast_1d(
             np.loadtxt(
                 self.calParams.fixp_name,
+                delimiter=',',
                 dtype=[("id", "i4"), ("pos", "3f8")],
                 skiprows=0,
             )
@@ -1184,7 +1216,8 @@ if __name__ == "__main__":
     import sys
 
     if len(sys.argv) == 1:
-        active_path = Path("../test_cavity/parametersRun1")
+        # active_path = Path("../test_cavity/parametersRun1")
+        active_path = Path("/home/user/Downloads/1024_15/proPTV_OpenPTV_MyPTV_Test_case_1024_15/parametersPlane1")
     else:
         active_path = Path(sys.argv[0])
 

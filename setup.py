@@ -4,7 +4,7 @@ requirements = [
     'chaco',
     'enable',
     'optv',
-    'openptv_python',
+    'openptv-python',
     'PyQt5',
     'scikit-image',
     'Pygments',
