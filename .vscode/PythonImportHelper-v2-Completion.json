@@ -5422,6 +5422,14 @@
         "documentation": {}
     },
     {
+        "label": "parameter_gui",
+        "importPath": "pyptv",
+        "description": "pyptv",
+        "isExtraImport": true,
+        "detail": "pyptv",
+        "documentation": {}
+    },
+    {
         "label": "parameters",
         "importPath": "pyptv",
         "description": "pyptv",
@@ -6276,15 +6284,6 @@
         "documentation": {}
     },
     {
-        "label": "optv.image_processing",
-        "kind": 6,
-        "isExtraImport": true,
-        "importPath": "optv.image_processing",
-        "description": "optv.image_processing",
-        "detail": "optv.image_processing",
-        "documentation": {}
-    },
-    {
         "label": "preprocess_image",
         "importPath": "optv.image_processing",
         "description": "optv.image_processing",
@@ -7014,6 +7013,14 @@
         "description": "openptv_python.segmentation",
         "isExtraImport": true,
         "detail": "openptv_python.segmentation",
+        "documentation": {}
+    },
+    {
+        "label": "arr_metric_to_pixel",
+        "importPath": "openptv_python.trafo",
+        "description": "openptv_python.trafo",
+        "isExtraImport": true,
+        "detail": "openptv_python.trafo",
         "documentation": {}
     },
     {
@@ -8946,7 +8953,7 @@
         "kind": 6,
         "importPath": "pyptv.calibration_gui",
         "description": "pyptv.calibration_gui",
-        "peekOfCode": "class PlotWindow(HasTraits):\n    \"\"\" PlotWindow class \"\"\"\n    _plot = Instance(Plot)\n    # _plot = Instance(Component)\n    _click_tool = Instance(ClickerTool)\n    _right_click_avail = 0\n    name = Str(\"Camera\")\n    view = View(\n        Item(name=\"_plot\", editor=ComponentEditor(), show_label=False),\n    )",
+        "peekOfCode": "class PlotWindow(HasTraits):\n    \"\"\" PlotWindow class \"\"\"\n    _plot = Instance(Plot)\n    # _plot = Instance(Component)\n    _click_tool = Instance(ClickerTool)\n    _right_click_avail = 0\n    _name = Str(\"Camera\")\n    view = View(\n        Item(name=\"_plot\", editor=ComponentEditor(), show_label=False),\n    )",
         "detail": "pyptv.calibration_gui",
         "documentation": {}
     },
