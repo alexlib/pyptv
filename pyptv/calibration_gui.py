@@ -1200,7 +1200,7 @@ if __name__ == "__main__":
     if len(sys.argv) == 1:
         # active_path = Path("../test_cavity/parametersRun1")
         active_path = Path(
-            "/home/user/Downloads/1024_15/proPTV_OpenPTV_MyPTV_Test_case_1024_15/parametersMultiplane")
+            "/home/user/Downloads/1024_15/proPTV_OpenPTV_MyPTV_Test_case_1024_15/parametersMultiPlane")
     else:
         active_path = Path(sys.argv[0])
 
