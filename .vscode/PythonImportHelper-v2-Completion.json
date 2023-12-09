@@ -7000,6 +7000,14 @@
         "documentation": {}
     },
     {
+        "label": "full_calibration",
+        "importPath": "openptv_python.calibration",
+        "description": "openptv_python.calibration",
+        "isExtraImport": true,
+        "detail": "openptv_python.calibration",
+        "documentation": {}
+    },
+    {
         "label": "prepare_image",
         "importPath": "openptv_python.image_processing",
         "description": "openptv_python.image_processing",
@@ -9602,15 +9610,6 @@
         "importPath": "pyptv.ptv",
         "description": "pyptv.ptv",
         "peekOfCode": "def py_get_pix(x, y):\n    \"\"\"\n    Returns a list of lists of target positions\n    def py_get_pix(x,y):\n    global pix\n    cdef int i,j\n    for i in range(cpar[0].num_cams):\n        x1=[]\n        y1=[]\n        for j in range(num[i]):",
-        "detail": "pyptv.ptv",
-        "documentation": {}
-    },
-    {
-        "label": "py_calibration",
-        "kind": 2,
-        "importPath": "pyptv.ptv",
-        "description": "pyptv.ptv",
-        "peekOfCode": "def py_calibration(selection):\n    \"\"\"Calibration\n    def py_calibration(sel):\n    calibration_proc_c(sel)\"\"\"\n    if selection == 1:  # read calibration parameters into liboptv\n        pass\n    if selection == 2:  # run detection of targets\n        pass\n    if selection == 9:  # initial guess\n        \"\"\"Reads from a target file the 3D points and projects them on",
         "detail": "pyptv.ptv",
         "documentation": {}
     },

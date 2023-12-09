@@ -417,24 +417,6 @@ def py_get_pix(x, y):
     return x, y
 
 
-def py_calibration(selection):
-    """Calibration
-    def py_calibration(sel):
-    calibration_proc_c(sel)"""
-    if selection == 1:  # read calibration parameters into liboptv
-        pass
-
-    if selection == 2:  # run detection of targets
-        pass
-
-    if selection == 9:  # initial guess
-        """Reads from a target file the 3D points and projects them on
-        the calibration images
-        It is the same function as show trajectories, just read from a different
-        file
-        """
-
-
 def py_multiplanecalibration(exp):
     """Performs multiplane calibration, in which for all cameras the pre-processed plane in multiplane.par al combined.
     Overwrites the ori and addpar files of the cameras specified in cal_ori.par of the multiplane parameter folder

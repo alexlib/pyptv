@@ -5,6 +5,7 @@ The software is distributed under the terms of MIT-like license
 http://opensource.org/licenses/MIT
 """
 
+import optv.orientation
 import os
 import shutil
 import re
@@ -59,6 +60,7 @@ from openptv_python.tracking_frame_buf import TargetArray
 from openptv_python.image_processing import prepare_image
 from openptv_python.segmentation import target_recognition
 from openptv_python.trafo import arr_metric_to_pixel
+from openptv_python.calibration import full_calibration
 
 # from pyptv import ptv, parameter_gui, parameters as par
 from pyptv import parameters as par
@@ -389,6 +391,8 @@ class CalibrationGUI(HasTraits):
     cals: list[Calibration] = []
     epar: ExaminePar = ExaminePar()
     MultiParams: MultiPlanesPar = MultiPlanesPar()
+    
+    cal_points = np.empty(0, dtype=[("id", int), ("pos", float, 3)])
     
     # ---------------------------------------------------
     # Constructor
@@ -890,61 +894,28 @@ class CalibrationGUI(HasTraits):
         # backup the ORI/ADDPAR files first
         self.backup_ori_files()
 
-        op = par.OrientParams()
-        op.read()
-
-        # recognized names for the flags:
-        names = [
-            "cc",
-            "xh",
-            "yh",
-            "k1",
-            "k2",
-            "k3",
-            "p1",
-            "p2",
-            "scale",
-            "shear",
-        ]
-        op_names = [
-            op.cc,
-            op.xh,
-            op.yh,
-            op.k1,
-            op.k2,
-            op.k3,
-            op.p1,
-            op.p2,
-            op.scale,
-            op.shear,
-        ]
-
-        flags = []
-        for name, op_name in zip(names, op_names):
-            if op_name == 1:
-                flags.append(name)
+        orient_par = OrientPar().from_file(os.path.join(self.par_path, "orient.par"))
 
         for i_cam in range(self.n_cams):  # iterate over all cameras
 
-            if self.epar.Combine_Flag:
+            if self.epar.combine_flag:
 
                 self.status_text = "Multiplane calibration."
-                """ Performs multiplane calibration, in which for all cameras the
-                pre-processed planes in multi_plane.par combined.
-                Overwrites the ori and addpar files of the cameras specified
-                in cal_ori.par of the multiplane parameter folder
-                """
+                # """ Performs multiplane calibration, in which for all cameras the
+                # pre-processed planes in multi_plane.par combined.
+                # Overwrites the ori and addpar files of the cameras specified
+                # in cal_ori.par of the multiplane parameter folder
+                # """
 
                 all_known = []
                 all_detected = []
 
-                for i in range(
-                    self.MultiParams.n_planes
-                ):  # combine all single planes
+                for i in range(self.MultiParams.num_planes):
+                    # combine all single planes
 
                     # c = self.calParams.img_ori[i_cam][-9] # Get camera id
                     # not all ends with a number
-                    c = re.findall("\\d+", self.calParams.img_ori[i_cam])[0]
+                    c = re.findall("\\d+", self.calParams.img_ori0[i_cam])[0]
 
                     file_known = (
                         self.MultiParams.plane_name[i] + c + ".tif.fix"
@@ -957,19 +928,16 @@ class CalibrationGUI(HasTraits):
                     try:
                         known = np.loadtxt(file_known)
                         detected = np.loadtxt(file_detected)
-                    except BaseException:
+                    except BaseException as exc:
                         raise IOError(
-                            "reading {} or {} failed".format(
-                                file_known, file_detected
-                            )
-                        )
+                            f"reading {file_known} or {file_detected} failed" 
+                            ) from exc
 
                     if np.any(detected == -999):
                         raise ValueError(
                             (
-                                "Using undetected points in {} will cause "
-                                + "silliness. Quitting."
-                            ).format(file_detected)
+                                f"Using undetected points in {file_detected} is prohibited "
+                            )
                         )
 
                     num_known = len(known)
@@ -1000,10 +968,11 @@ class CalibrationGUI(HasTraits):
                 # that we fill the targs and cal_points by the
                 # combined information
 
-                targs = TargetArray(len(all_detected))
-                for tix in range(len(all_detected)):
+                # targs = TargetArray(len(all_detected))
+                targs = [Target() for _ in range(len(all_detected))]
+                for tix, det in enumerate(all_detected):
                     targ = targs[tix]
-                    det = all_detected[tix]
+                    # det = all_detected[tix]
 
                     targ.set_pnr(tix)
                     targ.set_pos(det[1:])
@@ -1021,7 +990,7 @@ class CalibrationGUI(HasTraits):
                     self.cal_points["pos"],
                     targs,
                     self.cpar,
-                    flags,
+                    orient_par,
                 )
             except BaseException as exc:
                 raise ValueError("full calibration failed\n") from exc
