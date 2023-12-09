@@ -9,15 +9,15 @@ OpenPTV library is distributed under the terms of LGPL license
 see http://www.openptv.net for more details.
 
 """
-
-from traits.etsconfig.api import ETSConfig
-ETSConfig.toolkit = 'qt4'
-
 import os
-from pathlib import Path, PurePath
+from pathlib import Path
 import sys
 import time
 import importlib
+
+
+from traits.etsconfig.api import ETSConfig
+ETSConfig.toolkit = 'qt4'
 
 import numpy as np
 import optv
@@ -42,7 +42,7 @@ from chaco.tools.api import PanTool, ZoomTool
 from chaco.tools.image_inspector_tool import ImageInspectorTool
 from enable.component_editor import ComponentEditor
 from skimage.util import img_as_ubyte
-from skimage.color import rgb2gray
+from skimage import color
 from skimage.io import imread
 
 from pyptv import parameters as par
@@ -116,7 +116,7 @@ class CameraWindow(HasTraits):
     name = ""
     view = View(Item(name="_plot", editor=ComponentEditor(), show_label=False))
 
-    def __init__(self, color, name):
+    def __init__(self, cam_color, name):
         """
         Initialization of plot system
         """
@@ -135,7 +135,7 @@ class CameraWindow(HasTraits):
             self.right_p_y1,
             self._quiverplots,
         ) = ([], [], [], [], [])
-        self.cam_color = color
+        self.cam_color = cam_color
         self.name = name
         
 
@@ -394,7 +394,7 @@ class TreeMenuHandler(Handler):
     def copy_set_params(self, editor, object):
         experiment = editor.get_parent(object)
         paramset = object
-        print(f" Copying set of parameters \n")
+        print(" Copying set of parameters \n")
         print(f"paramset is {paramset.name}")
         print(f"paramset id is {int(paramset.name.split('Run')[-1])}")
         # print(f"experiment is {experiment}\n")
@@ -607,14 +607,14 @@ class TreeMenuHandler(Handler):
                     )
                 )
                 if im.ndim > 2:
-                    im = rgb2gray(im)
+                    im = color.rgb2gray(im)
 
                 mainGui.orig_image[i] = img_as_ubyte(im)
             except IOError:
                 print("Error reading image, setting zero image")
                 h_img = mainGui.exp1.active_params.m_params.imx
                 v_img = mainGui.exp1.active_params.m_params.imy
-                temp_img = img_as_ubyte(np.zeros((h_img, v_img)))
+                img_as_ubyte(np.zeros((h_img, v_img)))
                 # print(f"setting images of size {temp_img.shape}")
                 exec(f"mainGui.orig_image[{i}] = temp_img")
 
@@ -897,7 +897,6 @@ class TreeMenuHandler(Handler):
         print("Saving trajectories for Paraview\n")
         info.object.clear_plots(remove_background=False)
         seq_first = info.object.exp1.active_params.m_params.Seq_First
-        seq_last = info.object.exp1.active_params.m_params.Seq_Last
         info.object.load_set_seq_image(seq_first, display_only=True)
 
         # borrowed from flowtracks that does much better job on this
@@ -1229,7 +1228,7 @@ class MainGUI(HasTraits):
         try:
             _ = self.sorted_pos
             plot_epipolar = True
-        except:
+        except AttributeError:
             plot_epipolar = False
             
         
@@ -1491,8 +1490,11 @@ def main():
         exp_path = Path(sys.argv[1]).resolve()
         print(f"Experimental path is {exp_path}")
     else:
-        exp_path = software_path.parent / "test_cavity"
-        exp_path = Path('/home/user/Downloads/one-dot-example/working_folder')
+        # exp_path = software_path.parent / "test_cavity"
+        # exp_path = Path('/home/user/Downloads/one-dot-example/working_folder')
+        exp_path = Path(
+            "/home/user/Downloads/1024_15/proPTV_OpenPTV_MyPTV_Test_case_1024_15/")
+        
         print(f"Without input, PyPTV fallbacks to a default {exp_path} \n")
         
 

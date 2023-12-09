@@ -3,8 +3,8 @@ from setuptools import setup
 requirements = [
     'chaco',
     'enable',
-    'optv',
-    'openptv-python',
+    'optv', # liboptv C with Python bindings
+    'openptv-python', # Python version of liboptv
     'PyQt5',
     'scikit-image',
     'Pygments',

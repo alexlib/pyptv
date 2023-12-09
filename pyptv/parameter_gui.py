@@ -1,4 +1,3 @@
-import os
 import json
 from pathlib import Path
 
@@ -1152,10 +1151,10 @@ class Calib_Params(HasTraits):
         detectPlateParams.read()
 
         (
-            gv_th1,
-            gv_th2,
-            gv_th3,
-            gv_th4,
+            gvth_1,
+            gvth_2,
+            gvth_3,
+            gvth_4,
             tolerable_discontinuity,
             min_npix,
             max_npix,
@@ -1182,7 +1181,7 @@ class Calib_Params(HasTraits):
         )
 
         for i in range(self.n_img):
-            exec("self.grey_value_treshold_{0} = gv_th{0}".format(i + 1))
+            exec("self.grey_value_treshold_{0} = gvth_{0}".format(i + 1))
 
         self.tolerable_discontinuity = tolerable_discontinuity
         self.min_npix = min_npix
@@ -1295,6 +1294,7 @@ class Calib_Params(HasTraits):
 
 
 class Paramset(HasTraits):
+    """ A class that holds all parameters for a single parameter set."""
     name = Str
     par_path = Path
     m_params = Instance(Main_Params)
@@ -1303,13 +1303,15 @@ class Paramset(HasTraits):
 
 
 class Experiment(HasTraits):
+    """ A class that holds all parameters for a single experiment."""
     active_params = Instance(Paramset)
     paramsets = List(Paramset)
+    changed_active_params = False
 
     def __init__(self):
         HasTraits.__init__(self)
-        self.changed_active_params = False
-
+        self.paramsets = []
+        
     def getParamsetIdx(self, paramset):
         if isinstance(
                 paramset,
@@ -1344,10 +1346,18 @@ class Experiment(HasTraits):
         self.syncActiveDir()
 
     def syncActiveDir(self):
+        """ Sync the active parameters directory to the default parameters directory."""
         default_parameters_path = Path(par.par_dir_prefix).resolve()
-        print(f" Syncing parameters between two folders: \n")
+        print(" Syncing parameters between two folders: \n")
         print(f"{self.active_params.par_path}, {default_parameters_path}")
         par.copy_params_dir(self.active_params.par_path, default_parameters_path)
+        
+    def updateActiveDir(self):
+        """ Sync back the parameters to the active parameters directory."""
+        default_parameters_path = Path(par.par_dir_prefix).resolve()
+        print(" Syncing parameters between two folders: \n")
+        print(f"{self.active_params.par_path}, {default_parameters_path}")
+        par.copy_params_dir(default_parameters_path, self.active_params.par_path)        
 
     def populate_runs(self, exp_path: Path):
         # Read all parameters directories from an experiment directory
@@ -1385,7 +1395,7 @@ class Experiment(HasTraits):
                 exp_name = str(dir_item.stem).rsplit('parameters',maxsplit=1)[-1]
 
                 print(f"Experiment name is: {exp_name}")
-                print(f" adding Parameter set\n")
+                print(" adding Parameter set\n")
                 self.addParamset(exp_name, dir_item)
 
         if not self.changed_active_params:

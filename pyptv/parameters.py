@@ -10,7 +10,7 @@ import yaml
 
 # Temporary path for parameters (active run will be copied here)
 par_dir_prefix = str("parameters")
-max_cam = int(4)
+MAX_CAM = 4 # maximum number of cameras so far
 
 
 def g(f):
@@ -131,7 +131,7 @@ def copy_params_dir(src: Path, dest: Path):
     # files = [f for f in src.iterdir() if str(f.parts[-1]).endswith(ext_set)]    
 
     if not dest.is_dir():
-        print(f"Destination folder does not exist, creating it")
+        print("Destination folder does not exist, creating it")
         dest.mkdir(parents=True, exist_ok=True)
 
     print(f"Copying now file by file from {src} to {dest}: \n")
@@ -143,7 +143,7 @@ def copy_params_dir(src: Path, dest: Path):
             dest / f.name,
         )
 
-    print(f"Successfully \n")
+    print("Successfully \n")
 
 
 # Specific parameter classes #######
@@ -256,10 +256,10 @@ class PtvParams(Parameters):
             with open(self.filepath(), "r", encoding="utf8") as f:
                 self.n_img = int(g(f))
 
-                self.img_name = [None] * max_cam
-                self.img_cal = [None] * max_cam
+                self.img_name = [''] * MAX_CAM
+                self.img_cal = [''] * MAX_CAM
                 for i in range(self.n_img):
-                    # for i in range(max_cam):
+                    # for i in range(MAX_CAM):
                     self.img_name[i] = g(f)
                     self.img_cal[i] = g(f)
 
@@ -289,7 +289,7 @@ class PtvParams(Parameters):
             with open(self.filepath(), "w") as f:
                 f.write("%d\n" % self.n_img)
                 for i in range(self.n_img):
-                    # for i in range(max_cam):
+                    # for i in range(MAX_CAM):
                     f.write("%s\n" % self.img_name[i])
                     f.write("%s\n" % self.img_cal[i])
 
@@ -379,7 +379,7 @@ class CalOriParams(Parameters):
                 self.img_cal_name = []
                 self.img_ori = []
                 for i in range(self.n_img):
-                    # for i in range(max_cam):
+                    # for i in range(MAX_CAM):
                     self.img_cal_name.append(g(f))
                     self.img_ori.append(g(f))
 
@@ -401,7 +401,7 @@ class CalOriParams(Parameters):
 
                 f.write("%s\n" % self.fixp_name)
                 for i in range(self.n_img):
-                    # for i in range(max_cam):
+                    # for i in range(MAX_CAM):
                     f.write("%s\n" % self.img_cal_name[i])
                     f.write("%s\n" % self.img_ori[i])
 
@@ -454,7 +454,7 @@ class SequenceParams(Parameters):
             with open(self.filepath(), "r") as f:
                 self.base_name = []
                 for i in range(self.n_img):
-                    # for i in range(max_cam):
+                    # for i in range(MAX_CAM):
                     self.base_name.append(g(f))
 
                 self.first = int(g(f))
@@ -466,7 +466,7 @@ class SequenceParams(Parameters):
         try:
             with open(self.filepath(), "w") as f:
                 for i in range(self.n_img):
-                    # for i in range(max_cam):
+                    # for i in range(MAX_CAM):
                     f.write("%s\n" % self.base_name[i])
 
                 f.write("%d\n" % self.first)
@@ -675,9 +675,9 @@ class TargRecParams(Parameters):
         try:
             with open(self.filepath(), "r") as f:
 
-                self.gvthres = [0] * max_cam
+                self.gvthres = [0] * MAX_CAM
                 # for i in range(self.n_img):
-                for i in range(max_cam):
+                for i in range(MAX_CAM):
                     self.gvthres[i] = int(g(f))
 
                 self.disco = int(g(f))
@@ -697,7 +697,7 @@ class TargRecParams(Parameters):
         try:
             f = open(self.filepath(), "w")
             #            for i in range(self.n_img):
-            for i in range(max_cam):
+            for i in range(MAX_CAM):
                 f.write("%d\n" % self.gvthres[i])
 
             f.write("%d\n" % self.disco)

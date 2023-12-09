@@ -1,6 +1,6 @@
 from numpy import linspace, meshgrid, exp
 
-from chaco.api import ArrayPlotData, Plot, viridis, gray
+from chaco.api import ArrayPlotData, Plot, viridis
 from enable.api import ComponentEditor
 from traits.api import HasTraits, Instance
 from traitsui.api import Item, View

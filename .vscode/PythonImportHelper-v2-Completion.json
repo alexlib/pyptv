@@ -212,22 +212,6 @@
         "documentation": {}
     },
     {
-        "label": "Path",
-        "importPath": "pathlib",
-        "description": "pathlib",
-        "isExtraImport": true,
-        "detail": "pathlib",
-        "documentation": {}
-    },
-    {
-        "label": "PurePath",
-        "importPath": "pathlib",
-        "description": "pathlib",
-        "isExtraImport": true,
-        "detail": "pathlib",
-        "documentation": {}
-    },
-    {
         "label": "numpy",
         "kind": 6,
         "isExtraImport": true,
@@ -869,14 +853,6 @@
         "documentation": {}
     },
     {
-        "label": "rgb2gray",
-        "importPath": "skimage.color",
-        "description": "skimage.color",
-        "isExtraImport": true,
-        "detail": "skimage.color",
-        "documentation": {}
-    },
-    {
         "label": "HasTraits",
         "importPath": "traits.api",
         "description": "traits.api",
@@ -2021,22 +1997,6 @@
         "documentation": {}
     },
     {
-        "label": "List",
-        "importPath": "traits.api",
-        "description": "traits.api",
-        "isExtraImport": true,
-        "detail": "traits.api",
-        "documentation": {}
-    },
-    {
-        "label": "Int",
-        "importPath": "traits.api",
-        "description": "traits.api",
-        "isExtraImport": true,
-        "detail": "traits.api",
-        "documentation": {}
-    },
-    {
         "label": "HasTraits",
         "importPath": "traits.api",
         "description": "traits.api",
@@ -2453,14 +2413,6 @@
         "documentation": {}
     },
     {
-        "label": "Enum",
-        "importPath": "traits.api",
-        "description": "traits.api",
-        "isExtraImport": true,
-        "detail": "traits.api",
-        "documentation": {}
-    },
-    {
         "label": "HasTraits",
         "importPath": "traits.api",
         "description": "traits.api",
@@ -2478,14 +2430,6 @@
     },
     {
         "label": "observe",
-        "importPath": "traits.api",
-        "description": "traits.api",
-        "isExtraImport": true,
-        "detail": "traits.api",
-        "documentation": {}
-    },
-    {
-        "label": "Str",
         "importPath": "traits.api",
         "description": "traits.api",
         "isExtraImport": true,
@@ -3421,14 +3365,6 @@
         "documentation": {}
     },
     {
-        "label": "Handler",
-        "importPath": "traitsui.api",
-        "description": "traitsui.api",
-        "isExtraImport": true,
-        "detail": "traitsui.api",
-        "documentation": {}
-    },
-    {
         "label": "ListEditor",
         "importPath": "traitsui.api",
         "description": "traitsui.api",
@@ -4509,14 +4445,6 @@
         "documentation": {}
     },
     {
-        "label": "gray",
-        "importPath": "chaco.api",
-        "description": "chaco.api",
-        "isExtraImport": true,
-        "detail": "chaco.api",
-        "documentation": {}
-    },
-    {
         "label": "ArrayPlotData",
         "importPath": "chaco.api",
         "description": "chaco.api",
@@ -4589,22 +4517,6 @@
         "documentation": {}
     },
     {
-        "label": "add_default_grids",
-        "importPath": "chaco.api",
-        "description": "chaco.api",
-        "isExtraImport": true,
-        "detail": "chaco.api",
-        "documentation": {}
-    },
-    {
-        "label": "add_default_axes",
-        "importPath": "chaco.api",
-        "description": "chaco.api",
-        "isExtraImport": true,
-        "detail": "chaco.api",
-        "documentation": {}
-    },
-    {
         "label": "ArrayPlotData",
         "importPath": "chaco.api",
         "description": "chaco.api",
@@ -4662,14 +4574,6 @@
     },
     {
         "label": "TextBoxOverlay",
-        "importPath": "chaco.api",
-        "description": "chaco.api",
-        "isExtraImport": true,
-        "detail": "chaco.api",
-        "documentation": {}
-    },
-    {
-        "label": "DataFramePlotData",
         "importPath": "chaco.api",
         "description": "chaco.api",
         "isExtraImport": true,
@@ -5126,14 +5030,6 @@
         "documentation": {}
     },
     {
-        "label": "external_calibration",
-        "importPath": "optv.orientation",
-        "description": "optv.orientation",
-        "isExtraImport": true,
-        "detail": "optv.orientation",
-        "documentation": {}
-    },
-    {
         "label": "full_calibration",
         "importPath": "optv.orientation",
         "description": "optv.orientation",
@@ -5239,14 +5135,6 @@
     },
     {
         "label": "TargetArray",
-        "importPath": "optv.tracking_framebuf",
-        "description": "optv.tracking_framebuf",
-        "isExtraImport": true,
-        "detail": "optv.tracking_framebuf",
-        "documentation": {}
-    },
-    {
-        "label": "CORRES_NONE",
         "importPath": "optv.tracking_framebuf",
         "description": "optv.tracking_framebuf",
         "isExtraImport": true,
@@ -5528,6 +5416,14 @@
     },
     {
         "label": "img_as_ubyte",
+        "importPath": "skimage",
+        "description": "skimage",
+        "isExtraImport": true,
+        "detail": "skimage",
+        "documentation": {}
+    },
+    {
+        "label": "color",
         "importPath": "skimage",
         "description": "skimage",
         "isExtraImport": true,
@@ -6492,14 +6388,6 @@
         "documentation": {}
     },
     {
-        "label": "epipolar_curve",
-        "importPath": "optv.epipolar",
-        "description": "optv.epipolar",
-        "isExtraImport": true,
-        "detail": "optv.epipolar",
-        "documentation": {}
-    },
-    {
         "label": "time",
         "kind": 6,
         "isExtraImport": true,
@@ -6944,6 +6832,14 @@
         "documentation": {}
     },
     {
+        "label": "read_control_par",
+        "importPath": "openptv_python.parameters",
+        "description": "openptv_python.parameters",
+        "isExtraImport": true,
+        "detail": "openptv_python.parameters",
+        "documentation": {}
+    },
+    {
         "label": "sortgrid",
         "importPath": "openptv_python.sortgrid",
         "description": "openptv_python.sortgrid",
@@ -6960,19 +6856,11 @@
         "documentation": {}
     },
     {
-        "label": "orient",
+        "label": "full_calibration",
         "importPath": "openptv_python.orientation",
         "description": "openptv_python.orientation",
         "isExtraImport": true,
         "detail": "openptv_python.orientation",
-        "documentation": {}
-    },
-    {
-        "label": "TargetArray",
-        "importPath": "openptv_python.tracking_frame_buf",
-        "description": "openptv_python.tracking_frame_buf",
-        "isExtraImport": true,
-        "detail": "openptv_python.tracking_frame_buf",
         "documentation": {}
     },
     {
@@ -6984,23 +6872,7 @@
         "documentation": {}
     },
     {
-        "label": "TargetArray",
-        "importPath": "openptv_python.tracking_frame_buf",
-        "description": "openptv_python.tracking_frame_buf",
-        "isExtraImport": true,
-        "detail": "openptv_python.tracking_frame_buf",
-        "documentation": {}
-    },
-    {
         "label": "Calibration",
-        "importPath": "openptv_python.calibration",
-        "description": "openptv_python.calibration",
-        "isExtraImport": true,
-        "detail": "openptv_python.calibration",
-        "documentation": {}
-    },
-    {
-        "label": "full_calibration",
         "importPath": "openptv_python.calibration",
         "description": "openptv_python.calibration",
         "isExtraImport": true,
@@ -8961,7 +8833,7 @@
         "kind": 6,
         "importPath": "pyptv.calibration_gui",
         "description": "pyptv.calibration_gui",
-        "peekOfCode": "class PlotWindow(HasTraits):\n    \"\"\" PlotWindow class \"\"\"\n    _plot = Instance(Plot)\n    # _plot = Instance(Component)\n    _click_tool = Instance(ClickerTool)\n    _right_click_avail = 0\n    _name = Str(\"Camera\")\n    view = View(\n        Item(name=\"_plot\", editor=ComponentEditor(), show_label=False),\n    )",
+        "peekOfCode": "class PlotWindow(HasTraits):\n    \"\"\" PlotWindow class \"\"\"\n    plot_window = Instance(Plot)\n    # plot_window = Instance(Component)\n    _click_tool = Instance(ClickerTool)\n    _right_click_avail = 0\n    _name = f\"Cam {1}\"\n    view = View(\n        Item(name=\"plot_window\", editor=ComponentEditor(), show_label=False),\n    )",
         "detail": "pyptv.calibration_gui",
         "documentation": {}
     },
@@ -9060,7 +8932,7 @@
         "kind": 2,
         "importPath": "pyptv.draw_3d_target",
         "description": "pyptv.draw_3d_target",
-        "peekOfCode": "def plot_3d_target(filename):\n    d = np.loadtxt(filename)\n    # %%\n    from mpl_toolkits.mplot3d import Axes3D\n    ax = plt.figure(figsize=(12,10)).add_subplot(projection='3d')\n    # \n    for row in d:\n        ax.plot(row[1],row[2],row[3],'ro')\n        ax.text(row[1],row[2],row[3],f'{row[0]:.0f}',None)\n    ax.set_xlim(d[:,1].min(),d[:,1].max())",
+        "peekOfCode": "def plot_3d_target(filename):\n    d = np.loadtxt(filename)\n    # %%\n    ax = plt.figure(figsize=(12,10)).add_subplot(projection='3d')\n    # \n    for row in d:\n        ax.plot(row[1],row[2],row[3],'ro')\n        ax.text(row[1],row[2],row[3],f'{row[0]:.0f}',None)\n    ax.set_xlim(d[:,1].min(),d[:,1].max())\n    ax.set_ylim(d[:,2].min(),d[:,2].max())",
         "detail": "pyptv.draw_3d_target",
         "documentation": {}
     },
@@ -9231,7 +9103,7 @@
         "kind": 6,
         "importPath": "pyptv.parameter_gui",
         "description": "pyptv.parameter_gui",
-        "peekOfCode": "class Paramset(HasTraits):\n    name = Str\n    par_path = Path\n    m_params = Instance(Main_Params)\n    c_params = Instance(Calib_Params)\n    t_params = Instance(Tracking_Params)\nclass Experiment(HasTraits):\n    active_params = Instance(Paramset)\n    paramsets = List(Paramset)\n    def __init__(self):",
+        "peekOfCode": "class Paramset(HasTraits):\n    \"\"\" A class that holds all parameters for a single parameter set.\"\"\"\n    name = Str\n    par_path = Path\n    m_params = Instance(Main_Params)\n    c_params = Instance(Calib_Params)\n    t_params = Instance(Tracking_Params)\nclass Experiment(HasTraits):\n    \"\"\" A class that holds all parameters for a single experiment.\"\"\"\n    active_params = Instance(Paramset)",
         "detail": "pyptv.parameter_gui",
         "documentation": {}
     },
@@ -9240,7 +9112,7 @@
         "kind": 6,
         "importPath": "pyptv.parameter_gui",
         "description": "pyptv.parameter_gui",
-        "peekOfCode": "class Experiment(HasTraits):\n    active_params = Instance(Paramset)\n    paramsets = List(Paramset)\n    def __init__(self):\n        HasTraits.__init__(self)\n        self.changed_active_params = False\n    def getParamsetIdx(self, paramset):\n        if isinstance(\n                paramset,\n                type(1)):  # integer value (index of the paramset)",
+        "peekOfCode": "class Experiment(HasTraits):\n    \"\"\" A class that holds all parameters for a single experiment.\"\"\"\n    active_params = Instance(Paramset)\n    paramsets = List(Paramset)\n    changed_active_params = False\n    def __init__(self):\n        HasTraits.__init__(self)\n        self.paramsets = []\n    def getParamsetIdx(self, paramset):\n        if isinstance(",
         "detail": "pyptv.parameter_gui",
         "documentation": {}
     },
@@ -9465,16 +9337,16 @@
         "kind": 5,
         "importPath": "pyptv.parameters",
         "description": "pyptv.parameters",
-        "peekOfCode": "par_dir_prefix = str(\"parameters\")\nmax_cam = int(4)\ndef g(f):\n    \"\"\" Returns a line without white spaces \"\"\"\n    return f.readline().strip()\n# Base class for all parameters classes\nclass Parameters(HasTraits):\n    # default path of the directory of the param files\n    default_path = Path(\"parameters\")\n    def __init__(self, path: Path=default_path):",
+        "peekOfCode": "par_dir_prefix = str(\"parameters\")\nMAX_CAM = 4 # maximum number of cameras so far\ndef g(f):\n    \"\"\" Returns a line without white spaces \"\"\"\n    return f.readline().strip()\n# Base class for all parameters classes\nclass Parameters(HasTraits):\n    # default path of the directory of the param files\n    default_path = Path(\"parameters\")\n    def __init__(self, path: Path=default_path):",
         "detail": "pyptv.parameters",
         "documentation": {}
     },
     {
-        "label": "max_cam",
+        "label": "MAX_CAM",
         "kind": 5,
         "importPath": "pyptv.parameters",
         "description": "pyptv.parameters",
-        "peekOfCode": "max_cam = int(4)\ndef g(f):\n    \"\"\" Returns a line without white spaces \"\"\"\n    return f.readline().strip()\n# Base class for all parameters classes\nclass Parameters(HasTraits):\n    # default path of the directory of the param files\n    default_path = Path(\"parameters\")\n    def __init__(self, path: Path=default_path):\n        HasTraits.__init__(self)",
+        "peekOfCode": "MAX_CAM = 4 # maximum number of cameras so far\ndef g(f):\n    \"\"\" Returns a line without white spaces \"\"\"\n    return f.readline().strip()\n# Base class for all parameters classes\nclass Parameters(HasTraits):\n    # default path of the directory of the param files\n    default_path = Path(\"parameters\")\n    def __init__(self, path: Path=default_path):\n        HasTraits.__init__(self)",
         "detail": "pyptv.parameters",
         "documentation": {}
     },
@@ -9564,52 +9436,7 @@
         "kind": 2,
         "importPath": "pyptv.ptv",
         "description": "pyptv.ptv",
-        "peekOfCode": "def py_trackcorr_init(exp):\n    \"\"\"Reads all the necessary stuff into Tracker\"\"\"\n    tracker = Tracker(exp.cpar, exp.vpar, exp.track_par, exp.spar, exp.cals,\n                      default_naming)\n    return tracker\ndef py_trackcorr_loop():\n    \"\"\"Supposedly returns some lists of the linked targets at every step of a tracker\"\"\"\n    pass\ndef py_traject_loop():\n    \"\"\"Used to plot trajectories after the full run",
-        "detail": "pyptv.ptv",
-        "documentation": {}
-    },
-    {
-        "label": "py_trackcorr_loop",
-        "kind": 2,
-        "importPath": "pyptv.ptv",
-        "description": "pyptv.ptv",
-        "peekOfCode": "def py_trackcorr_loop():\n    \"\"\"Supposedly returns some lists of the linked targets at every step of a tracker\"\"\"\n    pass\ndef py_traject_loop():\n    \"\"\"Used to plot trajectories after the full run\n    def py_traject_loop(seq):\n    global intx1_tr,intx2_tr,inty1_tr,inty2_tr,m1_tr\n    trajectories_c(seq, cpar)\n    intx1,intx2,inty1,inty2=[],[],[],[]\n    for i in range(cpar[0].num_cams):",
-        "detail": "pyptv.ptv",
-        "documentation": {}
-    },
-    {
-        "label": "py_traject_loop",
-        "kind": 2,
-        "importPath": "pyptv.ptv",
-        "description": "pyptv.ptv",
-        "peekOfCode": "def py_traject_loop():\n    \"\"\"Used to plot trajectories after the full run\n    def py_traject_loop(seq):\n    global intx1_tr,intx2_tr,inty1_tr,inty2_tr,m1_tr\n    trajectories_c(seq, cpar)\n    intx1,intx2,inty1,inty2=[],[],[],[]\n    for i in range(cpar[0].num_cams):\n        intx1_t,intx2_t,inty1_t,inty2_t=[],[],[],[]\n        for j in range(m1_tr):\n            intx1_t.append(intx1_tr[i][j])",
-        "detail": "pyptv.ptv",
-        "documentation": {}
-    },
-    {
-        "label": "py_rclick_delete",
-        "kind": 2,
-        "importPath": "pyptv.ptv",
-        "description": "pyptv.ptv",
-        "peekOfCode": "def py_rclick_delete(x, y, n):\n    \"\"\"a tool to delete clicked points\n    def py_right_click(int coord_x, int coord_y, n_image):\n    global rclick_intx1,rclick_inty1,rclick_intx2,rclick_inty2,rclick_points_x1, rclick_points_y1,rclick_count,rclick_points_intx1, rclick_points_inty1\n    x2_points,y2_points,x1,y1,x2,y2=[],[],[],[],[],[]\n    cdef volume_par *vpar = read_volume_par(\"parameters/criteria.par\")\n    r = mouse_proc_c (coord_x, coord_y, 3, n_image, vpar, cpar)\n    free(vpar)\n    if r == -1:\n        return -1,-1,-1,-1,-1,-1,-1,-1",
-        "detail": "pyptv.ptv",
-        "documentation": {}
-    },
-    {
-        "label": "py_get_pix_N",
-        "kind": 2,
-        "importPath": "pyptv.ptv",
-        "description": "pyptv.ptv",
-        "peekOfCode": "def py_get_pix_N(x, y, n):\n    \"\"\"\n    def py_get_pix_N(x,y,n_image):\n    global pix\n    cdef int i,j\n    i=n_image\n    x1=[]\n    y1=[]\n    for j in range(num[i]):\n        x1.append(pix[i][j].x)",
-        "detail": "pyptv.ptv",
-        "documentation": {}
-    },
-    {
-        "label": "py_get_pix",
-        "kind": 2,
-        "importPath": "pyptv.ptv",
-        "description": "pyptv.ptv",
-        "peekOfCode": "def py_get_pix(x, y):\n    \"\"\"\n    Returns a list of lists of target positions\n    def py_get_pix(x,y):\n    global pix\n    cdef int i,j\n    for i in range(cpar[0].num_cams):\n        x1=[]\n        y1=[]\n        for j in range(num[i]):",
+        "peekOfCode": "def py_trackcorr_init(exp):\n    \"\"\"Reads all the necessary stuff into Tracker\"\"\"\n    tracker = Tracker(exp.cpar, exp.vpar, exp.track_par, exp.spar, exp.cals,\n                      default_naming)\n    return tracker\ndef py_multiplanecalibration(exp):\n    \"\"\"Performs multiplane calibration, in which for all cameras the pre-processed plane in multiplane.par al combined.\n    Overwrites the ori and addpar files of the cameras specified in cal_ori.par of the multiplane parameter folder\n    \"\"\"\n    for i_cam in range(exp.n_cams):  # iterate over all cameras",
         "detail": "pyptv.ptv",
         "documentation": {}
     },
@@ -9717,7 +9544,7 @@
         "kind": 5,
         "importPath": "pyptv.pyptv_gui",
         "description": "pyptv.pyptv_gui",
-        "peekOfCode": "ETSConfig.toolkit = 'qt4'\nimport os\nfrom pathlib import Path, PurePath\nimport sys\nimport time\nimport importlib\nimport numpy as np\nimport optv\nfrom traits.api import HasTraits, Int, Bool, Instance, List, Enum, Any\nfrom traitsui.api import (",
+        "peekOfCode": "ETSConfig.toolkit = 'qt4'\nimport numpy as np\nimport optv\nfrom traits.api import HasTraits, Int, Bool, Instance, List, Enum, Any\nfrom traitsui.api import (\n    View,\n    Item,\n    ListEditor,\n    Handler,\n    TreeEditor,",
         "detail": "pyptv.pyptv_gui",
         "documentation": {}
     },
@@ -9915,7 +9742,7 @@
         "kind": 5,
         "importPath": "setup",
         "description": "setup",
-        "peekOfCode": "requirements = [\n    'chaco',\n    'enable',\n    'optv',\n    'openptv-python',\n    'PyQt5',\n    'scikit-image',\n    'Pygments',\n    'six',\n    'imagecodecs',",
+        "peekOfCode": "requirements = [\n    'chaco',\n    'enable',\n    'optv', # liboptv C with Python bindings\n    'openptv-python', # Python version of liboptv\n    'PyQt5',\n    'scikit-image',\n    'Pygments',\n    'six',\n    'imagecodecs',",
         "detail": "setup",
         "documentation": {}
     }
