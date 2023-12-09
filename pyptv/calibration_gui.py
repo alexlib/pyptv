@@ -914,10 +914,10 @@ class CalibrationGUI(HasTraits):
                     c = re.findall("\\d+", self.calParams.img_ori0[i_cam])[0]
 
                     file_known = (
-                        self.MultiParams.plane_name[i] + c + ".tif.fix"
+                        self.MultiParams.filename[i] + c + ".tif.fix"
                     )
                     file_detected = (
-                        self.MultiParams.plane_name[i] + c + ".tif.crd"
+                        self.MultiParams.filename[i] + c + ".tif.crd"
                     )
 
                     # Load calibration point information from plane i
@@ -1200,7 +1200,7 @@ if __name__ == "__main__":
     if len(sys.argv) == 1:
         # active_path = Path("../test_cavity/parametersRun1")
         active_path = Path(
-            "/home/user/Downloads/1024_15/proPTV_OpenPTV_MyPTV_Test_case_1024_15/parametersPlane1")
+            "/home/user/Downloads/1024_15/proPTV_OpenPTV_MyPTV_Test_case_1024_15/parametersMultiplane")
     else:
         active_path = Path(sys.argv[0])
 
