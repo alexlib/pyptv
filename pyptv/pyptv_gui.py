@@ -53,6 +53,7 @@ from pyptv.parameter_gui import Experiment, Paramset
 from pyptv.quiverplot import QuiverPlot
 from pyptv.detection_gui import DetectionGUI
 import optv.orientation
+from optv.epipolar import epipolar_curve
 
 
 class Clicker(ImageInspectorTool):
@@ -1269,7 +1270,7 @@ class MainGUI(HasTraits):
                 for j in range(self.n_cams):
                     if i == j:
                         continue
-                    pts = optv.epipolar.epipolar_curve(
+                    pts = epipolar_curve(
                         point,
                         self.cals[i],
                         self.cals[j],
