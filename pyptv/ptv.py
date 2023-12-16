@@ -1,5 +1,7 @@
 from pathlib import Path
 import numpy as np
+from typing import List
+
 from openptv_python.calibration import Calibration
 from openptv_python.correspondences import correspondences, MatchedCoords
 from openptv_python.image_processing import preprocess_image
@@ -75,7 +77,7 @@ def py_start_proc_c(n_cams):
     return cpar, spar, vpar, track_par, tpar, cals, epar
 
 
-def py_pre_processing_c(list_of_images, cpar):
+def py_pre_processing_c(list_of_images: List[np.ndarray], cpar: ControlPar) -> List[np.ndarray]:
     """Image pre-processing, mostly highpass filter, could be extended in
     the future
 
@@ -103,7 +105,8 @@ def py_detection_proc_c(list_of_images, cpar, tpar, cals):
         else:
             targs = target_recognition(img, tpar, i_cam, cpar)
 
-        targs.sort_y()
+        targs.sort(key=lambda t: t.y)
+        
         detections.append(targs)
         mc = MatchedCoords(targs, cpar, cals[i_cam])
         corrected.append(mc)

@@ -336,7 +336,7 @@ class DetectionGUI(HasTraits):
         self.cpar, self.spar, self.vpar, self.track_par, self.tpar, \
         self.cals, self.epar = ptv.py_start_proc_c(self.n_cams)
 
-        self.tpar.read('parameters/detect_plate.par')
+        self.tpar.from_file('parameters/detect_plate.par')
 
         self.thresholds = self.tpar.get_grey_thresholds()
         self.pixel_count_bounds = list(self.tpar.get_pixel_count_bounds())
@@ -415,46 +415,54 @@ class DetectionGUI(HasTraits):
 
 
     def _grey_thresh_changed(self):
-        self.thresholds[0] = self.grey_thresh
-        self.tpar.set_grey_thresholds(self.thresholds)
+        # self.thresholds[0] = self.grey_thresh
+        self.tpar.gvthresh[0] = self.grey_thresh
+        # set_grey_thresholds(self.thresholds)
         # print(f"tpar is now {self.tpar.get_grey_thresholds()}")
         # run detection again
         self._button_detection_fired()
 
     def _min_npix_changed(self):
-        self.pixel_count_bounds[0] = self.min_npix
-        self.tpar.set_pixel_count_bounds(self.pixel_count_bounds)
+        # self.pixel_count_bounds[0] = self.min_npix
+        self.tpar.nnmin = self.min_npix
+        # set_pixel_count_bounds(self.pixel_count_bounds)
         # print(f"set min {self.tpar.get_pixel_count_bounds()}")
         self._button_detection_fired()
 
     def _max_npix_changed(self):
-        self.pixel_count_bounds[1] = self.max_npix
-        self.tpar.set_pixel_count_bounds(self.pixel_count_bounds)
+        # self.pixel_count_bounds[1] = self.max_npix
+        self.tpar.nnmax = self.max_npix
+        # self.tpar.set_pixel_count_bounds(self.pixel_count_bounds)
         # print(f"set max {self.tpar.get_pixel_count_bounds()}")
         self._button_detection_fired()
 
     def _min_npix_x_changed(self):
-        self.xsize_bounds[0] = self.min_npix_x
-        self.tpar.set_xsize_bounds(self.xsize_bounds)
+        # self.xsize_bounds[0] = self.min_npix_x
+        self.tpar.nxmin = self.min_npix_x
+        # self.tpar.set_xsize_bounds(self.xsize_bounds)
         self._button_detection_fired()
 
     def _max_npix_x_changed(self):
-        self.xsize_bounds[1] = self.max_npix_x
-        self.tpar.set_xsize_bounds(self.xsize_bounds)
+        # self.xsize_bounds[1] = self.max_npix_x
+        # self.tpar.set_xsize_bounds(self.xsize_bounds)
+        self.tpar.nxmax = self.max_npix_x
         self._button_detection_fired()
 
     def _min_npix_y_changed(self):
-        self.ysize_bounds[0] = self.min_npix_y
-        self.tpar.set_ysize_bounds(self.ysize_bounds)
+        # self.ysize_bounds[0] = self.min_npix_y
+        # self.tpar.set_ysize_bounds(self.ysize_bounds)
+        self.tpar.nymin = self.min_npix_y
         # self._button_detection_fired()
 
     def _max_npix_y_changed(self):
-        self.ysize_bounds[1] = self.max_npix_y
-        self.tpar.set_ysize_bounds(self.ysize_bounds)
+        # self.ysize_bounds[1] = self.max_npix_y
+        # self.tpar.set_ysize_bounds(self.ysize_bounds)
+        self.tpar.nymax = self.max_npix_y
         self._button_detection_fired()
 
     def _sum_of_grey_changed(self):
-        self.tpar.set_min_sum_grey(self.sum_of_grey)
+        #self.tpar.set_min_sum_grey(self.sum_of_grey)
+        self.tpar.sumg = self.sum_of_grey
         self._button_detection_fired()
 
 
@@ -497,7 +505,7 @@ class DetectionGUI(HasTraits):
 
         targs = target_recognition(self.cal_image, self.tpar, 0, self.cpar)
         
-        targs.sort_y()
+        targs.sort(key=lambda x: x.y)
 
         x = [i.pos()[0] for i in targs]
         y = [i.pos()[1] for i in targs]
@@ -535,7 +543,7 @@ class DetectionGUI(HasTraits):
 if __name__ == "__main__":
 
     if len(sys.argv) == 1:
-        parameters_path = pathlib.Path().absolute() / 'tests' / 'test_cavity' / 'parameters'
+        parameters_path = pathlib.Path().absolute().parent / 'tests' / 'test_cavity' / 'parameters'
         # par_path = pathlib.Path('/home/user/Downloads/Test_8_with_50_pic/parameters')
     else:
         parameters_path = pathlib.Path(sys.argv[1]) / 'parameters'
