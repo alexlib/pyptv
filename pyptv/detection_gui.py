@@ -21,10 +21,10 @@ from chaco.tools.better_zoom import BetterZoom as SimpleZoom
 
 from skimage.io import imread
 from skimage import img_as_ubyte
-from skimage.color import rgb2gray
+from skimage import color
 
 # from optv import segmentation
-from optv.segmentation import target_recognition
+from openptv_python.segmentation import target_recognition
 from pyptv import ptv
 
 from pyptv.text_box_overlay import TextBoxOverlay
@@ -34,8 +34,8 @@ from pyptv.quiverplot import QuiverPlot
 
 # -------------------------------------------
 class ClickerTool(ImageInspectorTool):
-    left_changed = Int(1)
-    right_changed = Int(1)
+    left_changed = 0
+    right_changed = 0
     x = 0
     y = 0
     
@@ -111,8 +111,8 @@ class PlotWindow(HasTraits):
         self._plot.padding_top = padd
         self._plot.padding_bottom = padd
         self._quiverplots = []
-        self.py_rclick_delete = ptv.py_rclick_delete
-        self.py_get_pix_N = ptv.py_get_pix_N
+        # self.py_rclick_delete = ptv.py_rclick_delete
+        # self.py_get_pix_N = ptv.py_get_pix_N
 
         # -------------------------------------------------------------
 
@@ -287,6 +287,7 @@ class DetectionGUI(HasTraits):
     inverse_flag = Bool(False, label='inverse')
     button_detection = Button(label='Detect dots')
     image_name = Str("cal/cam1.tif", label="Image file name")
+    cal_image = np.zeros((256, 256))
 
     # ---------------------------------------------------
     # Constructor
@@ -335,7 +336,7 @@ class DetectionGUI(HasTraits):
         self.cpar, self.spar, self.vpar, self.track_par, self.tpar, \
         self.cals, self.epar = ptv.py_start_proc_c(self.n_cams)
 
-        self.tpar.read(b'parameters/detect_plate.par')
+        self.tpar.read('parameters/detect_plate.par')
 
         self.thresholds = self.tpar.get_grey_thresholds()
         self.pixel_count_bounds = list(self.tpar.get_pixel_count_bounds())
@@ -471,7 +472,7 @@ class DetectionGUI(HasTraits):
         im = imread(self.image_name)
         # print(f'image size is {im.shape}')
         if im.ndim > 2:
-            im = rgb2gray(im)
+            im = color.rgb2gray(im)
         
         if self.inverse_flag is True:
             im = 255 - im
@@ -495,6 +496,7 @@ class DetectionGUI(HasTraits):
         #     ptv.py_detection_proc_c([self.cal_image], self.cpar, self.tpar, self.cals)
 
         targs = target_recognition(self.cal_image, self.tpar, 0, self.cpar)
+        
         targs.sort_y()
 
         x = [i.pos()[0] for i in targs]
@@ -533,10 +535,10 @@ class DetectionGUI(HasTraits):
 if __name__ == "__main__":
 
     if len(sys.argv) == 1:
-        par_path = pathlib.Path().absolute() / 'tests' / 'test_cavity' / 'parameters'
+        parameters_path = pathlib.Path().absolute() / 'tests' / 'test_cavity' / 'parameters'
         # par_path = pathlib.Path('/home/user/Downloads/Test_8_with_50_pic/parameters')
     else:
-        par_path = pathlib.Path(sys.argv[1]) / 'parameters'
+        parameters_path = pathlib.Path(sys.argv[1]) / 'parameters'
 
-    detection_gui = DetectionGUI(par_path)
+    detection_gui = DetectionGUI(parameters_path)
     detection_gui.configure_traits()

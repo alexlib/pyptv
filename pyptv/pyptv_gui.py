@@ -20,7 +20,7 @@ from traits.etsconfig.api import ETSConfig
 ETSConfig.toolkit = 'qt4'
 
 import numpy as np
-import optv
+
 from traits.api import HasTraits, Int, Bool, Instance, List, Enum, Any
 from traitsui.api import (
     View,
@@ -35,8 +35,9 @@ from traitsui.api import (
 
 
 
-
-from traitsui.menu import Action, Menu, MenuBar
+from pyface.action.api import MenuBarManager as MenuBar
+from pyface.action.api import MenuManager as Menu
+from traitsui.menu import Action
 from chaco.api import ArrayDataSource, ArrayPlotData, LinearMapper, Plot, gray
 from chaco.tools.api import PanTool, ZoomTool
 from chaco.tools.image_inspector_tool import ImageInspectorTool
@@ -52,8 +53,6 @@ from pyptv.directory_editor import DirectoryEditorDialog
 from pyptv.parameter_gui import Experiment, Paramset
 from pyptv.quiverplot import QuiverPlot
 from pyptv.detection_gui import DetectionGUI
-import optv.orientation
-from optv.epipolar import epipolar_curve
 
 
 class Clicker(ImageInspectorTool):
@@ -61,9 +60,11 @@ class Clicker(ImageInspectorTool):
     Clicker class handles right mouse click actions from the tree
     and menubar actions
     """
-    left_changed = Int(0)
-    right_changed = Int(0)
+    left_changed = 0
+    right_changed = 0
     x,y = 0,0
+    last_mouse_position = (0,0)
+    data_value = 0
 
     def __init__(self, *args, **kwargs):
         # Clicker.__init__(self,*args, **kwargs)
@@ -84,6 +85,7 @@ class Clicker(ImageInspectorTool):
             
 
     def normal_right_down(self, event):
+        """ Mouse right button use to select the point for tracking"""
         plot = self.component
         if plot is not None:
             self.x, self.y = plot.map_index((event.x, event.y))
@@ -92,13 +94,6 @@ class Clicker(ImageInspectorTool):
             # print(f"right: x={self.x}, y={self.y}, I={self.data_value}")
             self.right_changed = 1 - self.right_changed
             
-        
-
-    # def normal_mouse_move(self, event):
-    #     pass
-
-
-
 # --------------------------------------------------------------
 class CameraWindow(HasTraits):
     """CameraWindow class contains the relevant information and functions for
@@ -111,7 +106,8 @@ class CameraWindow(HasTraits):
 
     _plot = Instance(Plot)
     _click_tool = Instance(Clicker)
-    rclicked = Int(0)
+    rclicked = 0
+    
 
     cam_color = ""
     name = ""
@@ -138,6 +134,9 @@ class CameraWindow(HasTraits):
         ) = ([], [], [], [], [])
         self.cam_color = cam_color
         self.name = name
+        
+        self._plot_data.set_data("imagedata", np.zeros((256, 256), dtype = np.uint8))
+        self._img_plot = self._plot.img_plot("imagedata", colormap=gray)[0]
         
 
     def attach_tools(self):
