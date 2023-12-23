@@ -3,7 +3,7 @@ import numpy as np
 from typing import List
 
 from openptv_python.calibration import Calibration
-from openptv_python.correspondences import correspondences, MatchedCoords
+from openptv_python.correspondences import py_correspondences, MatchedCoords
 from openptv_python.image_processing import preprocess_image
 from openptv_python.orientation import (
     point_positions,
@@ -15,6 +15,7 @@ from openptv_python.parameters import (
     TrackPar,
     SequencePar,
     TargetPar,
+    PftVersionPar,
     read_control_par,
     read_volume_par,
     read_sequence_par,
@@ -23,11 +24,14 @@ from openptv_python.parameters import (
     read_examine_par,
 )
 from openptv_python.segmentation import target_recognition
-from openptv_python.tracking_frame_buf import read_targets, TargetArray
+from openptv_python.tracking_frame_buf import (
+    read_targets, 
+    TargetArray, 
+    match_coords,
+    write_targets
+)
 from openptv_python.track import Tracker, default_naming
 from skimage.io import imread
-from pyptv import parameters as par
-
 
 def negative(img):
     """ Negative 8-bit image """
@@ -93,14 +97,11 @@ def py_pre_processing_c(list_of_images: List[np.ndarray], cpar: ControlPar) -> L
 
 def py_detection_proc_c(list_of_images, cpar, tpar, cals):
     """Detection of targets"""
-
-    pftVersionPar = par.PftVersionPar(path=Path("parameters"))
-    pftVersionPar.read()
-    Existing_Target = bool(pftVersionPar.Existing_Target)
+    pft = PftVersionPar().from_file("parameters/pft_version.par")
 
     detections, corrected = [], []
     for i_cam, img in enumerate(list_of_images):
-        if Existing_Target:
+        if pft.existing_target_flag:
             targs = read_targets(cpar.get_img_base_name(i_cam), 0)
         else:
             targs = target_recognition(img, tpar, i_cam, cpar)
@@ -108,7 +109,8 @@ def py_detection_proc_c(list_of_images, cpar, tpar, cals):
         targs.sort(key=lambda t: t.y)
         
         detections.append(targs)
-        mc = MatchedCoords(targs, cpar, cals[i_cam])
+        # mc = MatchedCoords(targs, cpar, cals[i_cam])
+        mc = match_coords(targs, cpar, cals[i_cam])
         corrected.append(mc)
 
     return detections, corrected
@@ -129,12 +131,16 @@ def py_correspondences_proc_c(exp):
     #            return False
 
     # Corresp. + positions.
-    sorted_pos, sorted_corresp, num_targs = correspondences(
+    sorted_pos, sorted_corresp, num_targs = py_correspondences(
         exp.detections, exp.corrected, exp.cals, exp.vpar, exp.cpar)
-
+    
     # Save targets only after they've been modified:
     for i_cam in range(exp.n_cams):
-        exp.detections[i_cam].write(exp.spar.get_img_base_name(i_cam), frame)
+        write_targets(exp.detections[i_cam],
+                      len(exp.detections[i_cam]), 
+                      exp.spar.get_img_base_name(i_cam), 
+                      frame
+                      ) 
 
     print("Frame " + str(frame) + " had " +
           repr([s.shape[1] for s in sorted_pos]) + " correspondences.")
