@@ -74,3 +74,6 @@ pyptv/.vscode/launch.json
 # Wheels
 **/wheels/
 .vscode/*.json
+.vscode/PythonImportHelper-v2-Completion.json
+pyptv/.vscode/PythonImportHelper-v2-Completion.json
+.vscode/PythonImportHelper-v2-Completion.json
