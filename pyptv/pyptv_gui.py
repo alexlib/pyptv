@@ -9,6 +9,7 @@ OpenPTV library is distributed under the terms of LGPL license
 see http://www.openptv.net for more details.
 
 """
+import optv.epipolar
 import os
 from pathlib import Path
 import sys
@@ -53,6 +54,7 @@ from pyptv.directory_editor import DirectoryEditorDialog
 from pyptv.parameter_gui import Experiment, Paramset
 from pyptv.quiverplot import QuiverPlot
 from pyptv.detection_gui import DetectionGUI
+from openptv_python.epi import epipolar_curve
 
 
 class Clicker(ImageInspectorTool):
@@ -60,8 +62,8 @@ class Clicker(ImageInspectorTool):
     Clicker class handles right mouse click actions from the tree
     and menubar actions
     """
-    left_changed = 0
-    right_changed = 0
+    left_changed = Int(0)
+    right_changed = Int(0)
     x,y = 0,0
     last_mouse_position = (0,0)
     data_value = 0
@@ -81,7 +83,9 @@ class Clicker(ImageInspectorTool):
             self.data_value = plot.value.data[self.y, self.x]
             self.last_mouse_position = (event.x, event.y)
             self.left_changed = 1 - self.left_changed
-            # print(f"left: x={self.x}, y={self.y}, I={self.data_value}, {self.left_changed}")
+            print(f"left: x={self.x}, y={self.y}, I={self.data_value}, {self.left_changed}")
+            
+        return
             
 
     def normal_right_down(self, event):
@@ -91,8 +95,10 @@ class Clicker(ImageInspectorTool):
             self.x, self.y = plot.map_index((event.x, event.y))
             self.last_mouse_position = (event.x, event.y)
             self.data_value = plot.value.data[self.y, self.x]
-            # print(f"right: x={self.x}, y={self.y}, I={self.data_value}")
+            print(f"right: x={self.x}, y={self.y}, I={self.data_value}")
             self.right_changed = 1 - self.right_changed
+            
+        return
             
 # --------------------------------------------------------------
 class CameraWindow(HasTraits):
@@ -417,7 +423,7 @@ class TreeMenuHandler(Handler):
         par.copy_params_dir(paramset.par_path, new_dir_path)
         experiment.addParamset(new_name, new_dir_path)
 
-    def rename_set_params(editor, object):
+    def rename_set_params(self, editor, object):
         """rename_set_params renames the node name on the tree and also
         the folder of parameters"""
         experiment = editor.get_parent(object)

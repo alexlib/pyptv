@@ -156,22 +156,6 @@
         "documentation": {}
     },
     {
-        "label": "PurePath",
-        "importPath": "pathlib",
-        "description": "pathlib",
-        "isExtraImport": true,
-        "detail": "pathlib",
-        "documentation": {}
-    },
-    {
-        "label": "Path",
-        "importPath": "pathlib",
-        "description": "pathlib",
-        "isExtraImport": true,
-        "detail": "pathlib",
-        "documentation": {}
-    },
-    {
         "label": "Path",
         "importPath": "pathlib",
         "description": "pathlib",
@@ -829,582 +813,6 @@
         "documentation": {}
     },
     {
-        "label": "rgb2gray",
-        "importPath": "skimage.color",
-        "description": "skimage.color",
-        "isExtraImport": true,
-        "detail": "skimage.color",
-        "documentation": {}
-    },
-    {
-        "label": "rgb2gray",
-        "importPath": "skimage.color",
-        "description": "skimage.color",
-        "isExtraImport": true,
-        "detail": "skimage.color",
-        "documentation": {}
-    },
-    {
-        "label": "rgb2gray",
-        "importPath": "skimage.color",
-        "description": "skimage.color",
-        "isExtraImport": true,
-        "detail": "skimage.color",
-        "documentation": {}
-    },
-    {
-        "label": "HasTraits",
-        "importPath": "traits.api",
-        "description": "traits.api",
-        "isExtraImport": true,
-        "detail": "traits.api",
-        "documentation": {}
-    },
-    {
-        "label": "Str",
-        "importPath": "traits.api",
-        "description": "traits.api",
-        "isExtraImport": true,
-        "detail": "traits.api",
-        "documentation": {}
-    },
-    {
-        "label": "Int",
-        "importPath": "traits.api",
-        "description": "traits.api",
-        "isExtraImport": true,
-        "detail": "traits.api",
-        "documentation": {}
-    },
-    {
-        "label": "Bool",
-        "importPath": "traits.api",
-        "description": "traits.api",
-        "isExtraImport": true,
-        "detail": "traits.api",
-        "documentation": {}
-    },
-    {
-        "label": "Instance",
-        "importPath": "traits.api",
-        "description": "traits.api",
-        "isExtraImport": true,
-        "detail": "traits.api",
-        "documentation": {}
-    },
-    {
-        "label": "Button",
-        "importPath": "traits.api",
-        "description": "traits.api",
-        "isExtraImport": true,
-        "detail": "traits.api",
-        "documentation": {}
-    },
-    {
-        "label": "HasTraits",
-        "importPath": "traits.api",
-        "description": "traits.api",
-        "isExtraImport": true,
-        "detail": "traits.api",
-        "documentation": {}
-    },
-    {
-        "label": "Code",
-        "importPath": "traits.api",
-        "description": "traits.api",
-        "isExtraImport": true,
-        "detail": "traits.api",
-        "documentation": {}
-    },
-    {
-        "label": "Int",
-        "importPath": "traits.api",
-        "description": "traits.api",
-        "isExtraImport": true,
-        "detail": "traits.api",
-        "documentation": {}
-    },
-    {
-        "label": "List",
-        "importPath": "traits.api",
-        "description": "traits.api",
-        "isExtraImport": true,
-        "detail": "traits.api",
-        "documentation": {}
-    },
-    {
-        "label": "Button",
-        "importPath": "traits.api",
-        "description": "traits.api",
-        "isExtraImport": true,
-        "detail": "traits.api",
-        "documentation": {}
-    },
-    {
-        "label": "File",
-        "importPath": "traits.api",
-        "description": "traits.api",
-        "isExtraImport": true,
-        "detail": "traits.api",
-        "documentation": {}
-    },
-    {
-        "label": "HasTraits",
-        "importPath": "traits.api",
-        "description": "traits.api",
-        "isExtraImport": true,
-        "detail": "traits.api",
-        "documentation": {}
-    },
-    {
-        "label": "Str",
-        "importPath": "traits.api",
-        "description": "traits.api",
-        "isExtraImport": true,
-        "detail": "traits.api",
-        "documentation": {}
-    },
-    {
-        "label": "Int",
-        "importPath": "traits.api",
-        "description": "traits.api",
-        "isExtraImport": true,
-        "detail": "traits.api",
-        "documentation": {}
-    },
-    {
-        "label": "Bool",
-        "importPath": "traits.api",
-        "description": "traits.api",
-        "isExtraImport": true,
-        "detail": "traits.api",
-        "documentation": {}
-    },
-    {
-        "label": "Instance",
-        "importPath": "traits.api",
-        "description": "traits.api",
-        "isExtraImport": true,
-        "detail": "traits.api",
-        "documentation": {}
-    },
-    {
-        "label": "Button",
-        "importPath": "traits.api",
-        "description": "traits.api",
-        "isExtraImport": true,
-        "detail": "traits.api",
-        "documentation": {}
-    },
-    {
-        "label": "Range",
-        "importPath": "traits.api",
-        "description": "traits.api",
-        "isExtraImport": true,
-        "detail": "traits.api",
-        "documentation": {}
-    },
-    {
-        "label": "HasTraits",
-        "importPath": "traits.api",
-        "description": "traits.api",
-        "isExtraImport": true,
-        "detail": "traits.api",
-        "documentation": {}
-    },
-    {
-        "label": "Directory",
-        "importPath": "traits.api",
-        "description": "traits.api",
-        "isExtraImport": true,
-        "detail": "traits.api",
-        "documentation": {}
-    },
-    {
-        "label": "HasTraits",
-        "importPath": "traits.api",
-        "description": "traits.api",
-        "isExtraImport": true,
-        "detail": "traits.api",
-        "documentation": {}
-    },
-    {
-        "label": "Instance",
-        "importPath": "traits.api",
-        "description": "traits.api",
-        "isExtraImport": true,
-        "detail": "traits.api",
-        "documentation": {}
-    },
-    {
-        "label": "HasTraits",
-        "importPath": "traits.api",
-        "description": "traits.api",
-        "isExtraImport": true,
-        "detail": "traits.api",
-        "documentation": {}
-    },
-    {
-        "label": "Instance",
-        "importPath": "traits.api",
-        "description": "traits.api",
-        "isExtraImport": true,
-        "detail": "traits.api",
-        "documentation": {}
-    },
-    {
-        "label": "File",
-        "importPath": "traits.api",
-        "description": "traits.api",
-        "isExtraImport": true,
-        "detail": "traits.api",
-        "documentation": {}
-    },
-    {
-        "label": "HasTraits",
-        "importPath": "traits.api",
-        "description": "traits.api",
-        "isExtraImport": true,
-        "detail": "traits.api",
-        "documentation": {}
-    },
-    {
-        "label": "Instance",
-        "importPath": "traits.api",
-        "description": "traits.api",
-        "isExtraImport": true,
-        "detail": "traits.api",
-        "documentation": {}
-    },
-    {
-        "label": "HasTraits",
-        "importPath": "traits.api",
-        "description": "traits.api",
-        "isExtraImport": true,
-        "detail": "traits.api",
-        "documentation": {}
-    },
-    {
-        "label": "Str",
-        "importPath": "traits.api",
-        "description": "traits.api",
-        "isExtraImport": true,
-        "detail": "traits.api",
-        "documentation": {}
-    },
-    {
-        "label": "Float",
-        "importPath": "traits.api",
-        "description": "traits.api",
-        "isExtraImport": true,
-        "detail": "traits.api",
-        "documentation": {}
-    },
-    {
-        "label": "Int",
-        "importPath": "traits.api",
-        "description": "traits.api",
-        "isExtraImport": true,
-        "detail": "traits.api",
-        "documentation": {}
-    },
-    {
-        "label": "List",
-        "importPath": "traits.api",
-        "description": "traits.api",
-        "isExtraImport": true,
-        "detail": "traits.api",
-        "documentation": {}
-    },
-    {
-        "label": "Bool",
-        "importPath": "traits.api",
-        "description": "traits.api",
-        "isExtraImport": true,
-        "detail": "traits.api",
-        "documentation": {}
-    },
-    {
-        "label": "Enum",
-        "importPath": "traits.api",
-        "description": "traits.api",
-        "isExtraImport": true,
-        "detail": "traits.api",
-        "documentation": {}
-    },
-    {
-        "label": "Instance",
-        "importPath": "traits.api",
-        "description": "traits.api",
-        "isExtraImport": true,
-        "detail": "traits.api",
-        "documentation": {}
-    },
-    {
-        "label": "HasTraits",
-        "importPath": "traits.api",
-        "description": "traits.api",
-        "isExtraImport": true,
-        "detail": "traits.api",
-        "documentation": {}
-    },
-    {
-        "label": "Str",
-        "importPath": "traits.api",
-        "description": "traits.api",
-        "isExtraImport": true,
-        "detail": "traits.api",
-        "documentation": {}
-    },
-    {
-        "label": "Float",
-        "importPath": "traits.api",
-        "description": "traits.api",
-        "isExtraImport": true,
-        "detail": "traits.api",
-        "documentation": {}
-    },
-    {
-        "label": "Int",
-        "importPath": "traits.api",
-        "description": "traits.api",
-        "isExtraImport": true,
-        "detail": "traits.api",
-        "documentation": {}
-    },
-    {
-        "label": "List",
-        "importPath": "traits.api",
-        "description": "traits.api",
-        "isExtraImport": true,
-        "detail": "traits.api",
-        "documentation": {}
-    },
-    {
-        "label": "Bool",
-        "importPath": "traits.api",
-        "description": "traits.api",
-        "isExtraImport": true,
-        "detail": "traits.api",
-        "documentation": {}
-    },
-    {
-        "label": "HasTraits",
-        "importPath": "traits.api",
-        "description": "traits.api",
-        "isExtraImport": true,
-        "detail": "traits.api",
-        "documentation": {}
-    },
-    {
-        "label": "Int",
-        "importPath": "traits.api",
-        "description": "traits.api",
-        "isExtraImport": true,
-        "detail": "traits.api",
-        "documentation": {}
-    },
-    {
-        "label": "Bool",
-        "importPath": "traits.api",
-        "description": "traits.api",
-        "isExtraImport": true,
-        "detail": "traits.api",
-        "documentation": {}
-    },
-    {
-        "label": "Instance",
-        "importPath": "traits.api",
-        "description": "traits.api",
-        "isExtraImport": true,
-        "detail": "traits.api",
-        "documentation": {}
-    },
-    {
-        "label": "List",
-        "importPath": "traits.api",
-        "description": "traits.api",
-        "isExtraImport": true,
-        "detail": "traits.api",
-        "documentation": {}
-    },
-    {
-        "label": "Enum",
-        "importPath": "traits.api",
-        "description": "traits.api",
-        "isExtraImport": true,
-        "detail": "traits.api",
-        "documentation": {}
-    },
-    {
-        "label": "Any",
-        "importPath": "traits.api",
-        "description": "traits.api",
-        "isExtraImport": true,
-        "detail": "traits.api",
-        "documentation": {}
-    },
-    {
-        "label": "HasTraits",
-        "importPath": "traits.api",
-        "description": "traits.api",
-        "isExtraImport": true,
-        "detail": "traits.api",
-        "documentation": {}
-    },
-    {
-        "label": "Instance",
-        "importPath": "traits.api",
-        "description": "traits.api",
-        "isExtraImport": true,
-        "detail": "traits.api",
-        "documentation": {}
-    },
-    {
-        "label": "Int",
-        "importPath": "traits.api",
-        "description": "traits.api",
-        "isExtraImport": true,
-        "detail": "traits.api",
-        "documentation": {}
-    },
-    {
-        "label": "Array",
-        "importPath": "traits.api",
-        "description": "traits.api",
-        "isExtraImport": true,
-        "detail": "traits.api",
-        "documentation": {}
-    },
-    {
-        "label": "Enum",
-        "importPath": "traits.api",
-        "description": "traits.api",
-        "isExtraImport": true,
-        "detail": "traits.api",
-        "documentation": {}
-    },
-    {
-        "label": "Float",
-        "importPath": "traits.api",
-        "description": "traits.api",
-        "isExtraImport": true,
-        "detail": "traits.api",
-        "documentation": {}
-    },
-    {
-        "label": "Instance",
-        "importPath": "traits.api",
-        "description": "traits.api",
-        "isExtraImport": true,
-        "detail": "traits.api",
-        "documentation": {}
-    },
-    {
-        "label": "Int",
-        "importPath": "traits.api",
-        "description": "traits.api",
-        "isExtraImport": true,
-        "detail": "traits.api",
-        "documentation": {}
-    },
-    {
-        "label": "Callable",
-        "importPath": "traits.api",
-        "description": "traits.api",
-        "isExtraImport": true,
-        "detail": "traits.api",
-        "documentation": {}
-    },
-    {
-        "label": "Enum",
-        "importPath": "traits.api",
-        "description": "traits.api",
-        "isExtraImport": true,
-        "detail": "traits.api",
-        "documentation": {}
-    },
-    {
-        "label": "HasTraits",
-        "importPath": "traits.api",
-        "description": "traits.api",
-        "isExtraImport": true,
-        "detail": "traits.api",
-        "documentation": {}
-    },
-    {
-        "label": "Instance",
-        "importPath": "traits.api",
-        "description": "traits.api",
-        "isExtraImport": true,
-        "detail": "traits.api",
-        "documentation": {}
-    },
-    {
-        "label": "observe",
-        "importPath": "traits.api",
-        "description": "traits.api",
-        "isExtraImport": true,
-        "detail": "traits.api",
-        "documentation": {}
-    },
-    {
-        "label": "Str",
-        "importPath": "traits.api",
-        "description": "traits.api",
-        "isExtraImport": true,
-        "detail": "traits.api",
-        "documentation": {}
-    },
-    {
-        "label": "Any",
-        "importPath": "traits.api",
-        "description": "traits.api",
-        "isExtraImport": true,
-        "detail": "traits.api",
-        "documentation": {}
-    },
-    {
-        "label": "Enum",
-        "importPath": "traits.api",
-        "description": "traits.api",
-        "isExtraImport": true,
-        "detail": "traits.api",
-        "documentation": {}
-    },
-    {
-        "label": "Int",
-        "importPath": "traits.api",
-        "description": "traits.api",
-        "isExtraImport": true,
-        "detail": "traits.api",
-        "documentation": {}
-    },
-    {
-        "label": "Str",
-        "importPath": "traits.api",
-        "description": "traits.api",
-        "isExtraImport": true,
-        "detail": "traits.api",
-        "documentation": {}
-    },
-    {
-        "label": "Float",
-        "importPath": "traits.api",
-        "description": "traits.api",
-        "isExtraImport": true,
-        "detail": "traits.api",
-        "documentation": {}
-    },
-    {
-        "label": "Trait",
-        "importPath": "traits.api",
-        "description": "traits.api",
-        "isExtraImport": true,
-        "detail": "traits.api",
-        "documentation": {}
-    },
-    {
         "label": "HasTraits",
         "importPath": "traits.api",
         "description": "traits.api",
@@ -2485,6 +1893,534 @@
         "documentation": {}
     },
     {
+        "label": "HasTraits",
+        "importPath": "traits.api",
+        "description": "traits.api",
+        "isExtraImport": true,
+        "detail": "traits.api",
+        "documentation": {}
+    },
+    {
+        "label": "Str",
+        "importPath": "traits.api",
+        "description": "traits.api",
+        "isExtraImport": true,
+        "detail": "traits.api",
+        "documentation": {}
+    },
+    {
+        "label": "Bool",
+        "importPath": "traits.api",
+        "description": "traits.api",
+        "isExtraImport": true,
+        "detail": "traits.api",
+        "documentation": {}
+    },
+    {
+        "label": "Instance",
+        "importPath": "traits.api",
+        "description": "traits.api",
+        "isExtraImport": true,
+        "detail": "traits.api",
+        "documentation": {}
+    },
+    {
+        "label": "Button",
+        "importPath": "traits.api",
+        "description": "traits.api",
+        "isExtraImport": true,
+        "detail": "traits.api",
+        "documentation": {}
+    },
+    {
+        "label": "HasTraits",
+        "importPath": "traits.api",
+        "description": "traits.api",
+        "isExtraImport": true,
+        "detail": "traits.api",
+        "documentation": {}
+    },
+    {
+        "label": "Code",
+        "importPath": "traits.api",
+        "description": "traits.api",
+        "isExtraImport": true,
+        "detail": "traits.api",
+        "documentation": {}
+    },
+    {
+        "label": "Int",
+        "importPath": "traits.api",
+        "description": "traits.api",
+        "isExtraImport": true,
+        "detail": "traits.api",
+        "documentation": {}
+    },
+    {
+        "label": "List",
+        "importPath": "traits.api",
+        "description": "traits.api",
+        "isExtraImport": true,
+        "detail": "traits.api",
+        "documentation": {}
+    },
+    {
+        "label": "Button",
+        "importPath": "traits.api",
+        "description": "traits.api",
+        "isExtraImport": true,
+        "detail": "traits.api",
+        "documentation": {}
+    },
+    {
+        "label": "File",
+        "importPath": "traits.api",
+        "description": "traits.api",
+        "isExtraImport": true,
+        "detail": "traits.api",
+        "documentation": {}
+    },
+    {
+        "label": "HasTraits",
+        "importPath": "traits.api",
+        "description": "traits.api",
+        "isExtraImport": true,
+        "detail": "traits.api",
+        "documentation": {}
+    },
+    {
+        "label": "Str",
+        "importPath": "traits.api",
+        "description": "traits.api",
+        "isExtraImport": true,
+        "detail": "traits.api",
+        "documentation": {}
+    },
+    {
+        "label": "Int",
+        "importPath": "traits.api",
+        "description": "traits.api",
+        "isExtraImport": true,
+        "detail": "traits.api",
+        "documentation": {}
+    },
+    {
+        "label": "Bool",
+        "importPath": "traits.api",
+        "description": "traits.api",
+        "isExtraImport": true,
+        "detail": "traits.api",
+        "documentation": {}
+    },
+    {
+        "label": "Instance",
+        "importPath": "traits.api",
+        "description": "traits.api",
+        "isExtraImport": true,
+        "detail": "traits.api",
+        "documentation": {}
+    },
+    {
+        "label": "Button",
+        "importPath": "traits.api",
+        "description": "traits.api",
+        "isExtraImport": true,
+        "detail": "traits.api",
+        "documentation": {}
+    },
+    {
+        "label": "Range",
+        "importPath": "traits.api",
+        "description": "traits.api",
+        "isExtraImport": true,
+        "detail": "traits.api",
+        "documentation": {}
+    },
+    {
+        "label": "HasTraits",
+        "importPath": "traits.api",
+        "description": "traits.api",
+        "isExtraImport": true,
+        "detail": "traits.api",
+        "documentation": {}
+    },
+    {
+        "label": "Directory",
+        "importPath": "traits.api",
+        "description": "traits.api",
+        "isExtraImport": true,
+        "detail": "traits.api",
+        "documentation": {}
+    },
+    {
+        "label": "HasTraits",
+        "importPath": "traits.api",
+        "description": "traits.api",
+        "isExtraImport": true,
+        "detail": "traits.api",
+        "documentation": {}
+    },
+    {
+        "label": "Instance",
+        "importPath": "traits.api",
+        "description": "traits.api",
+        "isExtraImport": true,
+        "detail": "traits.api",
+        "documentation": {}
+    },
+    {
+        "label": "HasTraits",
+        "importPath": "traits.api",
+        "description": "traits.api",
+        "isExtraImport": true,
+        "detail": "traits.api",
+        "documentation": {}
+    },
+    {
+        "label": "Instance",
+        "importPath": "traits.api",
+        "description": "traits.api",
+        "isExtraImport": true,
+        "detail": "traits.api",
+        "documentation": {}
+    },
+    {
+        "label": "File",
+        "importPath": "traits.api",
+        "description": "traits.api",
+        "isExtraImport": true,
+        "detail": "traits.api",
+        "documentation": {}
+    },
+    {
+        "label": "HasTraits",
+        "importPath": "traits.api",
+        "description": "traits.api",
+        "isExtraImport": true,
+        "detail": "traits.api",
+        "documentation": {}
+    },
+    {
+        "label": "Instance",
+        "importPath": "traits.api",
+        "description": "traits.api",
+        "isExtraImport": true,
+        "detail": "traits.api",
+        "documentation": {}
+    },
+    {
+        "label": "HasTraits",
+        "importPath": "traits.api",
+        "description": "traits.api",
+        "isExtraImport": true,
+        "detail": "traits.api",
+        "documentation": {}
+    },
+    {
+        "label": "Str",
+        "importPath": "traits.api",
+        "description": "traits.api",
+        "isExtraImport": true,
+        "detail": "traits.api",
+        "documentation": {}
+    },
+    {
+        "label": "Float",
+        "importPath": "traits.api",
+        "description": "traits.api",
+        "isExtraImport": true,
+        "detail": "traits.api",
+        "documentation": {}
+    },
+    {
+        "label": "Int",
+        "importPath": "traits.api",
+        "description": "traits.api",
+        "isExtraImport": true,
+        "detail": "traits.api",
+        "documentation": {}
+    },
+    {
+        "label": "List",
+        "importPath": "traits.api",
+        "description": "traits.api",
+        "isExtraImport": true,
+        "detail": "traits.api",
+        "documentation": {}
+    },
+    {
+        "label": "Bool",
+        "importPath": "traits.api",
+        "description": "traits.api",
+        "isExtraImport": true,
+        "detail": "traits.api",
+        "documentation": {}
+    },
+    {
+        "label": "Enum",
+        "importPath": "traits.api",
+        "description": "traits.api",
+        "isExtraImport": true,
+        "detail": "traits.api",
+        "documentation": {}
+    },
+    {
+        "label": "Instance",
+        "importPath": "traits.api",
+        "description": "traits.api",
+        "isExtraImport": true,
+        "detail": "traits.api",
+        "documentation": {}
+    },
+    {
+        "label": "HasTraits",
+        "importPath": "traits.api",
+        "description": "traits.api",
+        "isExtraImport": true,
+        "detail": "traits.api",
+        "documentation": {}
+    },
+    {
+        "label": "Str",
+        "importPath": "traits.api",
+        "description": "traits.api",
+        "isExtraImport": true,
+        "detail": "traits.api",
+        "documentation": {}
+    },
+    {
+        "label": "Float",
+        "importPath": "traits.api",
+        "description": "traits.api",
+        "isExtraImport": true,
+        "detail": "traits.api",
+        "documentation": {}
+    },
+    {
+        "label": "Int",
+        "importPath": "traits.api",
+        "description": "traits.api",
+        "isExtraImport": true,
+        "detail": "traits.api",
+        "documentation": {}
+    },
+    {
+        "label": "List",
+        "importPath": "traits.api",
+        "description": "traits.api",
+        "isExtraImport": true,
+        "detail": "traits.api",
+        "documentation": {}
+    },
+    {
+        "label": "Bool",
+        "importPath": "traits.api",
+        "description": "traits.api",
+        "isExtraImport": true,
+        "detail": "traits.api",
+        "documentation": {}
+    },
+    {
+        "label": "HasTraits",
+        "importPath": "traits.api",
+        "description": "traits.api",
+        "isExtraImport": true,
+        "detail": "traits.api",
+        "documentation": {}
+    },
+    {
+        "label": "Int",
+        "importPath": "traits.api",
+        "description": "traits.api",
+        "isExtraImport": true,
+        "detail": "traits.api",
+        "documentation": {}
+    },
+    {
+        "label": "Bool",
+        "importPath": "traits.api",
+        "description": "traits.api",
+        "isExtraImport": true,
+        "detail": "traits.api",
+        "documentation": {}
+    },
+    {
+        "label": "Instance",
+        "importPath": "traits.api",
+        "description": "traits.api",
+        "isExtraImport": true,
+        "detail": "traits.api",
+        "documentation": {}
+    },
+    {
+        "label": "List",
+        "importPath": "traits.api",
+        "description": "traits.api",
+        "isExtraImport": true,
+        "detail": "traits.api",
+        "documentation": {}
+    },
+    {
+        "label": "Enum",
+        "importPath": "traits.api",
+        "description": "traits.api",
+        "isExtraImport": true,
+        "detail": "traits.api",
+        "documentation": {}
+    },
+    {
+        "label": "Any",
+        "importPath": "traits.api",
+        "description": "traits.api",
+        "isExtraImport": true,
+        "detail": "traits.api",
+        "documentation": {}
+    },
+    {
+        "label": "HasTraits",
+        "importPath": "traits.api",
+        "description": "traits.api",
+        "isExtraImport": true,
+        "detail": "traits.api",
+        "documentation": {}
+    },
+    {
+        "label": "Instance",
+        "importPath": "traits.api",
+        "description": "traits.api",
+        "isExtraImport": true,
+        "detail": "traits.api",
+        "documentation": {}
+    },
+    {
+        "label": "Int",
+        "importPath": "traits.api",
+        "description": "traits.api",
+        "isExtraImport": true,
+        "detail": "traits.api",
+        "documentation": {}
+    },
+    {
+        "label": "Array",
+        "importPath": "traits.api",
+        "description": "traits.api",
+        "isExtraImport": true,
+        "detail": "traits.api",
+        "documentation": {}
+    },
+    {
+        "label": "Enum",
+        "importPath": "traits.api",
+        "description": "traits.api",
+        "isExtraImport": true,
+        "detail": "traits.api",
+        "documentation": {}
+    },
+    {
+        "label": "Float",
+        "importPath": "traits.api",
+        "description": "traits.api",
+        "isExtraImport": true,
+        "detail": "traits.api",
+        "documentation": {}
+    },
+    {
+        "label": "Instance",
+        "importPath": "traits.api",
+        "description": "traits.api",
+        "isExtraImport": true,
+        "detail": "traits.api",
+        "documentation": {}
+    },
+    {
+        "label": "Int",
+        "importPath": "traits.api",
+        "description": "traits.api",
+        "isExtraImport": true,
+        "detail": "traits.api",
+        "documentation": {}
+    },
+    {
+        "label": "Callable",
+        "importPath": "traits.api",
+        "description": "traits.api",
+        "isExtraImport": true,
+        "detail": "traits.api",
+        "documentation": {}
+    },
+    {
+        "label": "HasTraits",
+        "importPath": "traits.api",
+        "description": "traits.api",
+        "isExtraImport": true,
+        "detail": "traits.api",
+        "documentation": {}
+    },
+    {
+        "label": "Instance",
+        "importPath": "traits.api",
+        "description": "traits.api",
+        "isExtraImport": true,
+        "detail": "traits.api",
+        "documentation": {}
+    },
+    {
+        "label": "observe",
+        "importPath": "traits.api",
+        "description": "traits.api",
+        "isExtraImport": true,
+        "detail": "traits.api",
+        "documentation": {}
+    },
+    {
+        "label": "Any",
+        "importPath": "traits.api",
+        "description": "traits.api",
+        "isExtraImport": true,
+        "detail": "traits.api",
+        "documentation": {}
+    },
+    {
+        "label": "Enum",
+        "importPath": "traits.api",
+        "description": "traits.api",
+        "isExtraImport": true,
+        "detail": "traits.api",
+        "documentation": {}
+    },
+    {
+        "label": "Int",
+        "importPath": "traits.api",
+        "description": "traits.api",
+        "isExtraImport": true,
+        "detail": "traits.api",
+        "documentation": {}
+    },
+    {
+        "label": "Str",
+        "importPath": "traits.api",
+        "description": "traits.api",
+        "isExtraImport": true,
+        "detail": "traits.api",
+        "documentation": {}
+    },
+    {
+        "label": "Float",
+        "importPath": "traits.api",
+        "description": "traits.api",
+        "isExtraImport": true,
+        "detail": "traits.api",
+        "documentation": {}
+    },
+    {
+        "label": "Trait",
+        "importPath": "traits.api",
+        "description": "traits.api",
+        "isExtraImport": true,
+        "detail": "traits.api",
+        "documentation": {}
+    },
+    {
         "label": "View",
         "importPath": "traitsui.api",
         "description": "traitsui.api",
@@ -2957,14 +2893,6 @@
         "documentation": {}
     },
     {
-        "label": "Handler",
-        "importPath": "traitsui.api",
-        "description": "traitsui.api",
-        "isExtraImport": true,
-        "detail": "traitsui.api",
-        "documentation": {}
-    },
-    {
         "label": "ListEditor",
         "importPath": "traitsui.api",
         "description": "traitsui.api",
@@ -3754,302 +3682,6 @@
         "description": "enable.component_editor",
         "isExtraImport": true,
         "detail": "enable.component_editor",
-        "documentation": {}
-    },
-    {
-        "label": "ComponentEditor",
-        "importPath": "enable.component_editor",
-        "description": "enable.component_editor",
-        "isExtraImport": true,
-        "detail": "enable.component_editor",
-        "documentation": {}
-    },
-    {
-        "label": "Plot",
-        "importPath": "chaco.api",
-        "description": "chaco.api",
-        "isExtraImport": true,
-        "detail": "chaco.api",
-        "documentation": {}
-    },
-    {
-        "label": "ArrayPlotData",
-        "importPath": "chaco.api",
-        "description": "chaco.api",
-        "isExtraImport": true,
-        "detail": "chaco.api",
-        "documentation": {}
-    },
-    {
-        "label": "gray",
-        "importPath": "chaco.api",
-        "description": "chaco.api",
-        "isExtraImport": true,
-        "detail": "chaco.api",
-        "documentation": {}
-    },
-    {
-        "label": "ArrayDataSource",
-        "importPath": "chaco.api",
-        "description": "chaco.api",
-        "isExtraImport": true,
-        "detail": "chaco.api",
-        "documentation": {}
-    },
-    {
-        "label": "LinearMapper",
-        "importPath": "chaco.api",
-        "description": "chaco.api",
-        "isExtraImport": true,
-        "detail": "chaco.api",
-        "documentation": {}
-    },
-    {
-        "label": "Plot",
-        "importPath": "chaco.api",
-        "description": "chaco.api",
-        "isExtraImport": true,
-        "detail": "chaco.api",
-        "documentation": {}
-    },
-    {
-        "label": "ArrayPlotData",
-        "importPath": "chaco.api",
-        "description": "chaco.api",
-        "isExtraImport": true,
-        "detail": "chaco.api",
-        "documentation": {}
-    },
-    {
-        "label": "gray",
-        "importPath": "chaco.api",
-        "description": "chaco.api",
-        "isExtraImport": true,
-        "detail": "chaco.api",
-        "documentation": {}
-    },
-    {
-        "label": "\\",
-        "importPath": "chaco.api",
-        "description": "chaco.api",
-        "isExtraImport": true,
-        "detail": "chaco.api",
-        "documentation": {}
-    },
-    {
-        "label": "ArrayPlotData",
-        "importPath": "chaco.api",
-        "description": "chaco.api",
-        "isExtraImport": true,
-        "detail": "chaco.api",
-        "documentation": {}
-    },
-    {
-        "label": "viridis",
-        "importPath": "chaco.api",
-        "description": "chaco.api",
-        "isExtraImport": true,
-        "detail": "chaco.api",
-        "documentation": {}
-    },
-    {
-        "label": "Plot",
-        "importPath": "chaco.api",
-        "description": "chaco.api",
-        "isExtraImport": true,
-        "detail": "chaco.api",
-        "documentation": {}
-    },
-    {
-        "label": "ArrayPlotData",
-        "importPath": "chaco.api",
-        "description": "chaco.api",
-        "isExtraImport": true,
-        "detail": "chaco.api",
-        "documentation": {}
-    },
-    {
-        "label": "Plot",
-        "importPath": "chaco.api",
-        "description": "chaco.api",
-        "isExtraImport": true,
-        "detail": "chaco.api",
-        "documentation": {}
-    },
-    {
-        "label": "viridis",
-        "importPath": "chaco.api",
-        "description": "chaco.api",
-        "isExtraImport": true,
-        "detail": "chaco.api",
-        "documentation": {}
-    },
-    {
-        "label": "gray",
-        "importPath": "chaco.api",
-        "description": "chaco.api",
-        "isExtraImport": true,
-        "detail": "chaco.api",
-        "documentation": {}
-    },
-    {
-        "label": "ArrayPlotData",
-        "importPath": "chaco.api",
-        "description": "chaco.api",
-        "isExtraImport": true,
-        "detail": "chaco.api",
-        "documentation": {}
-    },
-    {
-        "label": "ImageData",
-        "importPath": "chaco.api",
-        "description": "chaco.api",
-        "isExtraImport": true,
-        "detail": "chaco.api",
-        "documentation": {}
-    },
-    {
-        "label": "Plot",
-        "importPath": "chaco.api",
-        "description": "chaco.api",
-        "isExtraImport": true,
-        "detail": "chaco.api",
-        "documentation": {}
-    },
-    {
-        "label": "PlotGraphicsContext",
-        "importPath": "chaco.api",
-        "description": "chaco.api",
-        "isExtraImport": true,
-        "detail": "chaco.api",
-        "documentation": {}
-    },
-    {
-        "label": "ArrayDataSource",
-        "importPath": "chaco.api",
-        "description": "chaco.api",
-        "isExtraImport": true,
-        "detail": "chaco.api",
-        "documentation": {}
-    },
-    {
-        "label": "ArrayPlotData",
-        "importPath": "chaco.api",
-        "description": "chaco.api",
-        "isExtraImport": true,
-        "detail": "chaco.api",
-        "documentation": {}
-    },
-    {
-        "label": "LinearMapper",
-        "importPath": "chaco.api",
-        "description": "chaco.api",
-        "isExtraImport": true,
-        "detail": "chaco.api",
-        "documentation": {}
-    },
-    {
-        "label": "Plot",
-        "importPath": "chaco.api",
-        "description": "chaco.api",
-        "isExtraImport": true,
-        "detail": "chaco.api",
-        "documentation": {}
-    },
-    {
-        "label": "gray",
-        "importPath": "chaco.api",
-        "description": "chaco.api",
-        "isExtraImport": true,
-        "detail": "chaco.api",
-        "documentation": {}
-    },
-    {
-        "label": "add_default_grids",
-        "importPath": "chaco.api",
-        "description": "chaco.api",
-        "isExtraImport": true,
-        "detail": "chaco.api",
-        "documentation": {}
-    },
-    {
-        "label": "add_default_axes",
-        "importPath": "chaco.api",
-        "description": "chaco.api",
-        "isExtraImport": true,
-        "detail": "chaco.api",
-        "documentation": {}
-    },
-    {
-        "label": "ArrayPlotData",
-        "importPath": "chaco.api",
-        "description": "chaco.api",
-        "isExtraImport": true,
-        "detail": "chaco.api",
-        "documentation": {}
-    },
-    {
-        "label": "\\",
-        "importPath": "chaco.api",
-        "description": "chaco.api",
-        "isExtraImport": true,
-        "detail": "chaco.api",
-        "documentation": {}
-    },
-    {
-        "label": "AbstractDataSource",
-        "importPath": "chaco.api",
-        "description": "chaco.api",
-        "isExtraImport": true,
-        "detail": "chaco.api",
-        "documentation": {}
-    },
-    {
-        "label": "ScatterPlot",
-        "importPath": "chaco.api",
-        "description": "chaco.api",
-        "isExtraImport": true,
-        "detail": "chaco.api",
-        "documentation": {}
-    },
-    {
-        "label": "Plot",
-        "importPath": "chaco.api",
-        "description": "chaco.api",
-        "isExtraImport": true,
-        "detail": "chaco.api",
-        "documentation": {}
-    },
-    {
-        "label": "ArrayPlotData",
-        "importPath": "chaco.api",
-        "description": "chaco.api",
-        "isExtraImport": true,
-        "detail": "chaco.api",
-        "documentation": {}
-    },
-    {
-        "label": "ScatterInspectorOverlay",
-        "importPath": "chaco.api",
-        "description": "chaco.api",
-        "isExtraImport": true,
-        "detail": "chaco.api",
-        "documentation": {}
-    },
-    {
-        "label": "TextBoxOverlay",
-        "importPath": "chaco.api",
-        "description": "chaco.api",
-        "isExtraImport": true,
-        "detail": "chaco.api",
-        "documentation": {}
-    },
-    {
-        "label": "DataFramePlotData",
-        "importPath": "chaco.api",
-        "description": "chaco.api",
-        "isExtraImport": true,
-        "detail": "chaco.api",
         "documentation": {}
     },
     {
@@ -4581,6 +4213,246 @@
         "documentation": {}
     },
     {
+        "label": "Plot",
+        "importPath": "chaco.api",
+        "description": "chaco.api",
+        "isExtraImport": true,
+        "detail": "chaco.api",
+        "documentation": {}
+    },
+    {
+        "label": "ArrayPlotData",
+        "importPath": "chaco.api",
+        "description": "chaco.api",
+        "isExtraImport": true,
+        "detail": "chaco.api",
+        "documentation": {}
+    },
+    {
+        "label": "gray",
+        "importPath": "chaco.api",
+        "description": "chaco.api",
+        "isExtraImport": true,
+        "detail": "chaco.api",
+        "documentation": {}
+    },
+    {
+        "label": "Plot",
+        "importPath": "chaco.api",
+        "description": "chaco.api",
+        "isExtraImport": true,
+        "detail": "chaco.api",
+        "documentation": {}
+    },
+    {
+        "label": "ArrayPlotData",
+        "importPath": "chaco.api",
+        "description": "chaco.api",
+        "isExtraImport": true,
+        "detail": "chaco.api",
+        "documentation": {}
+    },
+    {
+        "label": "gray",
+        "importPath": "chaco.api",
+        "description": "chaco.api",
+        "isExtraImport": true,
+        "detail": "chaco.api",
+        "documentation": {}
+    },
+    {
+        "label": "\\",
+        "importPath": "chaco.api",
+        "description": "chaco.api",
+        "isExtraImport": true,
+        "detail": "chaco.api",
+        "documentation": {}
+    },
+    {
+        "label": "ArrayPlotData",
+        "importPath": "chaco.api",
+        "description": "chaco.api",
+        "isExtraImport": true,
+        "detail": "chaco.api",
+        "documentation": {}
+    },
+    {
+        "label": "viridis",
+        "importPath": "chaco.api",
+        "description": "chaco.api",
+        "isExtraImport": true,
+        "detail": "chaco.api",
+        "documentation": {}
+    },
+    {
+        "label": "Plot",
+        "importPath": "chaco.api",
+        "description": "chaco.api",
+        "isExtraImport": true,
+        "detail": "chaco.api",
+        "documentation": {}
+    },
+    {
+        "label": "ArrayPlotData",
+        "importPath": "chaco.api",
+        "description": "chaco.api",
+        "isExtraImport": true,
+        "detail": "chaco.api",
+        "documentation": {}
+    },
+    {
+        "label": "Plot",
+        "importPath": "chaco.api",
+        "description": "chaco.api",
+        "isExtraImport": true,
+        "detail": "chaco.api",
+        "documentation": {}
+    },
+    {
+        "label": "viridis",
+        "importPath": "chaco.api",
+        "description": "chaco.api",
+        "isExtraImport": true,
+        "detail": "chaco.api",
+        "documentation": {}
+    },
+    {
+        "label": "ArrayPlotData",
+        "importPath": "chaco.api",
+        "description": "chaco.api",
+        "isExtraImport": true,
+        "detail": "chaco.api",
+        "documentation": {}
+    },
+    {
+        "label": "ImageData",
+        "importPath": "chaco.api",
+        "description": "chaco.api",
+        "isExtraImport": true,
+        "detail": "chaco.api",
+        "documentation": {}
+    },
+    {
+        "label": "Plot",
+        "importPath": "chaco.api",
+        "description": "chaco.api",
+        "isExtraImport": true,
+        "detail": "chaco.api",
+        "documentation": {}
+    },
+    {
+        "label": "PlotGraphicsContext",
+        "importPath": "chaco.api",
+        "description": "chaco.api",
+        "isExtraImport": true,
+        "detail": "chaco.api",
+        "documentation": {}
+    },
+    {
+        "label": "ArrayDataSource",
+        "importPath": "chaco.api",
+        "description": "chaco.api",
+        "isExtraImport": true,
+        "detail": "chaco.api",
+        "documentation": {}
+    },
+    {
+        "label": "ArrayPlotData",
+        "importPath": "chaco.api",
+        "description": "chaco.api",
+        "isExtraImport": true,
+        "detail": "chaco.api",
+        "documentation": {}
+    },
+    {
+        "label": "LinearMapper",
+        "importPath": "chaco.api",
+        "description": "chaco.api",
+        "isExtraImport": true,
+        "detail": "chaco.api",
+        "documentation": {}
+    },
+    {
+        "label": "Plot",
+        "importPath": "chaco.api",
+        "description": "chaco.api",
+        "isExtraImport": true,
+        "detail": "chaco.api",
+        "documentation": {}
+    },
+    {
+        "label": "gray",
+        "importPath": "chaco.api",
+        "description": "chaco.api",
+        "isExtraImport": true,
+        "detail": "chaco.api",
+        "documentation": {}
+    },
+    {
+        "label": "ArrayPlotData",
+        "importPath": "chaco.api",
+        "description": "chaco.api",
+        "isExtraImport": true,
+        "detail": "chaco.api",
+        "documentation": {}
+    },
+    {
+        "label": "\\",
+        "importPath": "chaco.api",
+        "description": "chaco.api",
+        "isExtraImport": true,
+        "detail": "chaco.api",
+        "documentation": {}
+    },
+    {
+        "label": "AbstractDataSource",
+        "importPath": "chaco.api",
+        "description": "chaco.api",
+        "isExtraImport": true,
+        "detail": "chaco.api",
+        "documentation": {}
+    },
+    {
+        "label": "ScatterPlot",
+        "importPath": "chaco.api",
+        "description": "chaco.api",
+        "isExtraImport": true,
+        "detail": "chaco.api",
+        "documentation": {}
+    },
+    {
+        "label": "Plot",
+        "importPath": "chaco.api",
+        "description": "chaco.api",
+        "isExtraImport": true,
+        "detail": "chaco.api",
+        "documentation": {}
+    },
+    {
+        "label": "ArrayPlotData",
+        "importPath": "chaco.api",
+        "description": "chaco.api",
+        "isExtraImport": true,
+        "detail": "chaco.api",
+        "documentation": {}
+    },
+    {
+        "label": "ScatterInspectorOverlay",
+        "importPath": "chaco.api",
+        "description": "chaco.api",
+        "isExtraImport": true,
+        "detail": "chaco.api",
+        "documentation": {}
+    },
+    {
+        "label": "TextBoxOverlay",
+        "importPath": "chaco.api",
+        "description": "chaco.api",
+        "isExtraImport": true,
+        "detail": "chaco.api",
+        "documentation": {}
+    },
+    {
         "label": "ImageInspectorTool",
         "importPath": "chaco.tools.image_inspector_tool",
         "description": "chaco.tools.image_inspector_tool",
@@ -4818,14 +4690,6 @@
         "description": "pyptv.code_editor",
         "isExtraImport": true,
         "detail": "pyptv.code_editor",
-        "documentation": {}
-    },
-    {
-        "label": "QuiverPlot",
-        "importPath": "pyptv.quiverplot",
-        "description": "pyptv.quiverplot",
-        "isExtraImport": true,
-        "detail": "pyptv.quiverplot",
         "documentation": {}
     },
     {
@@ -4890,22 +4754,6 @@
         "description": "optv.imgcoord",
         "isExtraImport": true,
         "detail": "optv.imgcoord",
-        "documentation": {}
-    },
-    {
-        "label": "image_coordinates",
-        "importPath": "optv.imgcoord",
-        "description": "optv.imgcoord",
-        "isExtraImport": true,
-        "detail": "optv.imgcoord",
-        "documentation": {}
-    },
-    {
-        "label": "convert_arr_metric_to_pixel",
-        "importPath": "optv.transforms",
-        "description": "optv.transforms",
-        "isExtraImport": true,
-        "detail": "optv.transforms",
         "documentation": {}
     },
     {
@@ -4974,54 +4822,6 @@
         "documentation": {}
     },
     {
-        "label": "match_detection_to_ref",
-        "importPath": "optv.orientation",
-        "description": "optv.orientation",
-        "isExtraImport": true,
-        "detail": "optv.orientation",
-        "documentation": {}
-    },
-    {
-        "label": "external_calibration",
-        "importPath": "optv.orientation",
-        "description": "optv.orientation",
-        "isExtraImport": true,
-        "detail": "optv.orientation",
-        "documentation": {}
-    },
-    {
-        "label": "full_calibration",
-        "importPath": "optv.orientation",
-        "description": "optv.orientation",
-        "isExtraImport": true,
-        "detail": "optv.orientation",
-        "documentation": {}
-    },
-    {
-        "label": "point_positions",
-        "importPath": "optv.orientation",
-        "description": "optv.orientation",
-        "isExtraImport": true,
-        "detail": "optv.orientation",
-        "documentation": {}
-    },
-    {
-        "label": "external_calibration",
-        "importPath": "optv.orientation",
-        "description": "optv.orientation",
-        "isExtraImport": true,
-        "detail": "optv.orientation",
-        "documentation": {}
-    },
-    {
-        "label": "full_calibration",
-        "importPath": "optv.orientation",
-        "description": "optv.orientation",
-        "isExtraImport": true,
-        "detail": "optv.orientation",
-        "documentation": {}
-    },
-    {
         "label": "point_positions",
         "importPath": "optv.orientation",
         "description": "optv.orientation",
@@ -5059,54 +4859,6 @@
         "description": "optv.calibration",
         "isExtraImport": true,
         "detail": "optv.calibration",
-        "documentation": {}
-    },
-    {
-        "label": "Calibration",
-        "importPath": "optv.calibration",
-        "description": "optv.calibration",
-        "isExtraImport": true,
-        "detail": "optv.calibration",
-        "documentation": {}
-    },
-    {
-        "label": "Calibration",
-        "importPath": "optv.calibration",
-        "description": "optv.calibration",
-        "isExtraImport": true,
-        "detail": "optv.calibration",
-        "documentation": {}
-    },
-    {
-        "label": "TargetArray",
-        "importPath": "optv.tracking_framebuf",
-        "description": "optv.tracking_framebuf",
-        "isExtraImport": true,
-        "detail": "optv.tracking_framebuf",
-        "documentation": {}
-    },
-    {
-        "label": "CORRES_NONE",
-        "importPath": "optv.tracking_framebuf",
-        "description": "optv.tracking_framebuf",
-        "isExtraImport": true,
-        "detail": "optv.tracking_framebuf",
-        "documentation": {}
-    },
-    {
-        "label": "read_targets",
-        "importPath": "optv.tracking_framebuf",
-        "description": "optv.tracking_framebuf",
-        "isExtraImport": true,
-        "detail": "optv.tracking_framebuf",
-        "documentation": {}
-    },
-    {
-        "label": "TargetArray",
-        "importPath": "optv.tracking_framebuf",
-        "description": "optv.tracking_framebuf",
-        "isExtraImport": true,
-        "detail": "optv.tracking_framebuf",
         "documentation": {}
     },
     {
@@ -5230,78 +4982,6 @@
         "documentation": {}
     },
     {
-        "label": "ptv",
-        "importPath": "pyptv",
-        "description": "pyptv",
-        "isExtraImport": true,
-        "detail": "pyptv",
-        "documentation": {}
-    },
-    {
-        "label": "parameter_gui",
-        "importPath": "pyptv",
-        "description": "pyptv",
-        "isExtraImport": true,
-        "detail": "pyptv",
-        "documentation": {}
-    },
-    {
-        "label": "parameters",
-        "importPath": "pyptv",
-        "description": "pyptv",
-        "isExtraImport": true,
-        "detail": "pyptv",
-        "documentation": {}
-    },
-    {
-        "label": "parameters",
-        "importPath": "pyptv",
-        "description": "pyptv",
-        "isExtraImport": true,
-        "detail": "pyptv",
-        "documentation": {}
-    },
-    {
-        "label": "ptv",
-        "importPath": "pyptv",
-        "description": "pyptv",
-        "isExtraImport": true,
-        "detail": "pyptv",
-        "documentation": {}
-    },
-    {
-        "label": "parameters",
-        "importPath": "pyptv",
-        "description": "pyptv",
-        "isExtraImport": true,
-        "detail": "pyptv",
-        "documentation": {}
-    },
-    {
-        "label": "parameters",
-        "importPath": "pyptv",
-        "description": "pyptv",
-        "isExtraImport": true,
-        "detail": "pyptv",
-        "documentation": {}
-    },
-    {
-        "label": "parameters",
-        "importPath": "pyptv",
-        "description": "pyptv",
-        "isExtraImport": true,
-        "detail": "pyptv",
-        "documentation": {}
-    },
-    {
-        "label": "ptv",
-        "importPath": "pyptv",
-        "description": "pyptv",
-        "isExtraImport": true,
-        "detail": "pyptv",
-        "documentation": {}
-    },
-    {
         "label": "parameters",
         "importPath": "pyptv",
         "description": "pyptv",
@@ -5335,6 +5015,62 @@
     },
     {
         "label": "parameters",
+        "importPath": "pyptv",
+        "description": "pyptv",
+        "isExtraImport": true,
+        "detail": "pyptv",
+        "documentation": {}
+    },
+    {
+        "label": "parameters",
+        "importPath": "pyptv",
+        "description": "pyptv",
+        "isExtraImport": true,
+        "detail": "pyptv",
+        "documentation": {}
+    },
+    {
+        "label": "parameters",
+        "importPath": "pyptv",
+        "description": "pyptv",
+        "isExtraImport": true,
+        "detail": "pyptv",
+        "documentation": {}
+    },
+    {
+        "label": "ptv",
+        "importPath": "pyptv",
+        "description": "pyptv",
+        "isExtraImport": true,
+        "detail": "pyptv",
+        "documentation": {}
+    },
+    {
+        "label": "parameter_gui",
+        "importPath": "pyptv",
+        "description": "pyptv",
+        "isExtraImport": true,
+        "detail": "pyptv",
+        "documentation": {}
+    },
+    {
+        "label": "ptv",
+        "importPath": "pyptv",
+        "description": "pyptv",
+        "isExtraImport": true,
+        "detail": "pyptv",
+        "documentation": {}
+    },
+    {
+        "label": "parameters",
+        "importPath": "pyptv",
+        "description": "pyptv",
+        "isExtraImport": true,
+        "detail": "pyptv",
+        "documentation": {}
+    },
+    {
+        "label": "ptv",
         "importPath": "pyptv",
         "description": "pyptv",
         "isExtraImport": true,
@@ -5399,7 +5135,23 @@
         "documentation": {}
     },
     {
+        "label": "color",
+        "importPath": "skimage",
+        "description": "skimage",
+        "isExtraImport": true,
+        "detail": "skimage",
+        "documentation": {}
+    },
+    {
         "label": "img_as_ubyte",
+        "importPath": "skimage",
+        "description": "skimage",
+        "isExtraImport": true,
+        "detail": "skimage",
+        "documentation": {}
+    },
+    {
+        "label": "color",
         "importPath": "skimage",
         "description": "skimage",
         "isExtraImport": true,
@@ -5431,19 +5183,11 @@
         "documentation": {}
     },
     {
-        "label": "target_recognition",
-        "importPath": "optv.segmentation",
-        "description": "optv.segmentation",
+        "label": "color",
+        "importPath": "skimage",
+        "description": "skimage",
         "isExtraImport": true,
-        "detail": "optv.segmentation",
-        "documentation": {}
-    },
-    {
-        "label": "target_recognition",
-        "importPath": "optv.segmentation",
-        "description": "optv.segmentation",
-        "isExtraImport": true,
-        "detail": "optv.segmentation",
+        "detail": "skimage",
         "documentation": {}
     },
     {
@@ -5586,6 +5330,14 @@
     },
     {
         "label": "black_color_trait",
+        "importPath": "enable.api",
+        "description": "enable.api",
+        "isExtraImport": true,
+        "detail": "enable.api",
+        "documentation": {}
+    },
+    {
+        "label": "ComponentEditor",
         "importPath": "enable.api",
         "description": "enable.api",
         "isExtraImport": true,
@@ -6164,22 +5916,6 @@
         "documentation": {}
     },
     {
-        "label": "correspondences",
-        "importPath": "optv.correspondences",
-        "description": "optv.correspondences",
-        "isExtraImport": true,
-        "detail": "optv.correspondences",
-        "documentation": {}
-    },
-    {
-        "label": "MatchedCoords",
-        "importPath": "optv.correspondences",
-        "description": "optv.correspondences",
-        "isExtraImport": true,
-        "detail": "optv.correspondences",
-        "documentation": {}
-    },
-    {
         "label": "preprocess_image",
         "importPath": "optv.image_processing",
         "description": "optv.image_processing",
@@ -6193,54 +5929,6 @@
         "description": "optv.image_processing",
         "isExtraImport": true,
         "detail": "optv.image_processing",
-        "documentation": {}
-    },
-    {
-        "label": "preprocess_image",
-        "importPath": "optv.image_processing",
-        "description": "optv.image_processing",
-        "isExtraImport": true,
-        "detail": "optv.image_processing",
-        "documentation": {}
-    },
-    {
-        "label": "ControlParams",
-        "importPath": "optv.parameters",
-        "description": "optv.parameters",
-        "isExtraImport": true,
-        "detail": "optv.parameters",
-        "documentation": {}
-    },
-    {
-        "label": "VolumeParams",
-        "importPath": "optv.parameters",
-        "description": "optv.parameters",
-        "isExtraImport": true,
-        "detail": "optv.parameters",
-        "documentation": {}
-    },
-    {
-        "label": "TrackingParams",
-        "importPath": "optv.parameters",
-        "description": "optv.parameters",
-        "isExtraImport": true,
-        "detail": "optv.parameters",
-        "documentation": {}
-    },
-    {
-        "label": "SequenceParams",
-        "importPath": "optv.parameters",
-        "description": "optv.parameters",
-        "isExtraImport": true,
-        "detail": "optv.parameters",
-        "documentation": {}
-    },
-    {
-        "label": "TargetParams",
-        "importPath": "optv.parameters",
-        "description": "optv.parameters",
-        "isExtraImport": true,
-        "detail": "optv.parameters",
         "documentation": {}
     },
     {
@@ -6356,19 +6044,12 @@
         "documentation": {}
     },
     {
-        "label": "Tracker",
-        "importPath": "optv.tracker",
-        "description": "optv.tracker",
+        "label": "optv.epipolar",
+        "kind": 6,
         "isExtraImport": true,
-        "detail": "optv.tracker",
-        "documentation": {}
-    },
-    {
-        "label": "default_naming",
-        "importPath": "optv.tracker",
-        "description": "optv.tracker",
-        "isExtraImport": true,
-        "detail": "optv.tracker",
+        "importPath": "optv.epipolar",
+        "description": "optv.epipolar",
+        "detail": "optv.epipolar",
         "documentation": {}
     },
     {
@@ -6567,22 +6248,6 @@
         "documentation": {}
     },
     {
-        "label": "Menu",
-        "importPath": "traitsui.menu",
-        "description": "traitsui.menu",
-        "isExtraImport": true,
-        "detail": "traitsui.menu",
-        "documentation": {}
-    },
-    {
-        "label": "MenuBar",
-        "importPath": "traitsui.menu",
-        "description": "traitsui.menu",
-        "isExtraImport": true,
-        "detail": "traitsui.menu",
-        "documentation": {}
-    },
-    {
         "label": "CalibrationGUI",
         "importPath": "pyptv.calibration_gui",
         "description": "pyptv.calibration_gui",
@@ -6768,6 +6433,14 @@
         "documentation": {}
     },
     {
+        "label": "image_coordinates",
+        "importPath": "openptv_python.imgcoord",
+        "description": "openptv_python.imgcoord",
+        "isExtraImport": true,
+        "detail": "openptv_python.imgcoord",
+        "documentation": {}
+    },
+    {
         "label": "ControlPar",
         "importPath": "openptv_python.parameters",
         "description": "openptv_python.parameters",
@@ -6840,6 +6513,182 @@
         "documentation": {}
     },
     {
+        "label": "ControlPar",
+        "importPath": "openptv_python.parameters",
+        "description": "openptv_python.parameters",
+        "isExtraImport": true,
+        "detail": "openptv_python.parameters",
+        "documentation": {}
+    },
+    {
+        "label": "TargetPar",
+        "importPath": "openptv_python.parameters",
+        "description": "openptv_python.parameters",
+        "isExtraImport": true,
+        "detail": "openptv_python.parameters",
+        "documentation": {}
+    },
+    {
+        "label": "OrientPar",
+        "importPath": "openptv_python.parameters",
+        "description": "openptv_python.parameters",
+        "isExtraImport": true,
+        "detail": "openptv_python.parameters",
+        "documentation": {}
+    },
+    {
+        "label": "VolumePar",
+        "importPath": "openptv_python.parameters",
+        "description": "openptv_python.parameters",
+        "isExtraImport": true,
+        "detail": "openptv_python.parameters",
+        "documentation": {}
+    },
+    {
+        "label": "CalibrationPar",
+        "importPath": "openptv_python.parameters",
+        "description": "openptv_python.parameters",
+        "isExtraImport": true,
+        "detail": "openptv_python.parameters",
+        "documentation": {}
+    },
+    {
+        "label": "ExaminePar",
+        "importPath": "openptv_python.parameters",
+        "description": "openptv_python.parameters",
+        "isExtraImport": true,
+        "detail": "openptv_python.parameters",
+        "documentation": {}
+    },
+    {
+        "label": "MultiPlanesPar",
+        "importPath": "openptv_python.parameters",
+        "description": "openptv_python.parameters",
+        "isExtraImport": true,
+        "detail": "openptv_python.parameters",
+        "documentation": {}
+    },
+    {
+        "label": "TrackPar",
+        "importPath": "openptv_python.parameters",
+        "description": "openptv_python.parameters",
+        "isExtraImport": true,
+        "detail": "openptv_python.parameters",
+        "documentation": {}
+    },
+    {
+        "label": "read_control_par",
+        "importPath": "openptv_python.parameters",
+        "description": "openptv_python.parameters",
+        "isExtraImport": true,
+        "detail": "openptv_python.parameters",
+        "documentation": {}
+    },
+    {
+        "label": "ControlPar",
+        "importPath": "openptv_python.parameters",
+        "description": "openptv_python.parameters",
+        "isExtraImport": true,
+        "detail": "openptv_python.parameters",
+        "documentation": {}
+    },
+    {
+        "label": "VolumePar",
+        "importPath": "openptv_python.parameters",
+        "description": "openptv_python.parameters",
+        "isExtraImport": true,
+        "detail": "openptv_python.parameters",
+        "documentation": {}
+    },
+    {
+        "label": "TrackPar",
+        "importPath": "openptv_python.parameters",
+        "description": "openptv_python.parameters",
+        "isExtraImport": true,
+        "detail": "openptv_python.parameters",
+        "documentation": {}
+    },
+    {
+        "label": "SequencePar",
+        "importPath": "openptv_python.parameters",
+        "description": "openptv_python.parameters",
+        "isExtraImport": true,
+        "detail": "openptv_python.parameters",
+        "documentation": {}
+    },
+    {
+        "label": "TargetPar",
+        "importPath": "openptv_python.parameters",
+        "description": "openptv_python.parameters",
+        "isExtraImport": true,
+        "detail": "openptv_python.parameters",
+        "documentation": {}
+    },
+    {
+        "label": "PftVersionPar",
+        "importPath": "openptv_python.parameters",
+        "description": "openptv_python.parameters",
+        "isExtraImport": true,
+        "detail": "openptv_python.parameters",
+        "documentation": {}
+    },
+    {
+        "label": "read_control_par",
+        "importPath": "openptv_python.parameters",
+        "description": "openptv_python.parameters",
+        "isExtraImport": true,
+        "detail": "openptv_python.parameters",
+        "documentation": {}
+    },
+    {
+        "label": "read_volume_par",
+        "importPath": "openptv_python.parameters",
+        "description": "openptv_python.parameters",
+        "isExtraImport": true,
+        "detail": "openptv_python.parameters",
+        "documentation": {}
+    },
+    {
+        "label": "read_sequence_par",
+        "importPath": "openptv_python.parameters",
+        "description": "openptv_python.parameters",
+        "isExtraImport": true,
+        "detail": "openptv_python.parameters",
+        "documentation": {}
+    },
+    {
+        "label": "read_target_par",
+        "importPath": "openptv_python.parameters",
+        "description": "openptv_python.parameters",
+        "isExtraImport": true,
+        "detail": "openptv_python.parameters",
+        "documentation": {}
+    },
+    {
+        "label": "read_track_par",
+        "importPath": "openptv_python.parameters",
+        "description": "openptv_python.parameters",
+        "isExtraImport": true,
+        "detail": "openptv_python.parameters",
+        "documentation": {}
+    },
+    {
+        "label": "read_examine_par",
+        "importPath": "openptv_python.parameters",
+        "description": "openptv_python.parameters",
+        "isExtraImport": true,
+        "detail": "openptv_python.parameters",
+        "documentation": {}
+    },
+    {
+        "label": "sortgrid",
+        "importPath": "openptv_python.sortgrid",
+        "description": "openptv_python.sortgrid",
+        "isExtraImport": true,
+        "detail": "openptv_python.sortgrid",
+        "documentation": {}
+    },
+    {
         "label": "sortgrid",
         "importPath": "openptv_python.sortgrid",
         "description": "openptv_python.sortgrid",
@@ -6864,11 +6713,99 @@
         "documentation": {}
     },
     {
+        "label": "raw_orient",
+        "importPath": "openptv_python.orientation",
+        "description": "openptv_python.orientation",
+        "isExtraImport": true,
+        "detail": "openptv_python.orientation",
+        "documentation": {}
+    },
+    {
+        "label": "full_calibration",
+        "importPath": "openptv_python.orientation",
+        "description": "openptv_python.orientation",
+        "isExtraImport": true,
+        "detail": "openptv_python.orientation",
+        "documentation": {}
+    },
+    {
+        "label": "point_positions",
+        "importPath": "openptv_python.orientation",
+        "description": "openptv_python.orientation",
+        "isExtraImport": true,
+        "detail": "openptv_python.orientation",
+        "documentation": {}
+    },
+    {
+        "label": "full_calibration",
+        "importPath": "openptv_python.orientation",
+        "description": "openptv_python.orientation",
+        "isExtraImport": true,
+        "detail": "openptv_python.orientation",
+        "documentation": {}
+    },
+    {
         "label": "Target",
         "importPath": "openptv_python.tracking_frame_buf",
         "description": "openptv_python.tracking_frame_buf",
         "isExtraImport": true,
         "detail": "openptv_python.tracking_frame_buf",
+        "documentation": {}
+    },
+    {
+        "label": "Target",
+        "importPath": "openptv_python.tracking_frame_buf",
+        "description": "openptv_python.tracking_frame_buf",
+        "isExtraImport": true,
+        "detail": "openptv_python.tracking_frame_buf",
+        "documentation": {}
+    },
+    {
+        "label": "read_targets",
+        "importPath": "openptv_python.tracking_frame_buf",
+        "description": "openptv_python.tracking_frame_buf",
+        "isExtraImport": true,
+        "detail": "openptv_python.tracking_frame_buf",
+        "documentation": {}
+    },
+    {
+        "label": "TargetArray",
+        "importPath": "openptv_python.tracking_frame_buf",
+        "description": "openptv_python.tracking_frame_buf",
+        "isExtraImport": true,
+        "detail": "openptv_python.tracking_frame_buf",
+        "documentation": {}
+    },
+    {
+        "label": "match_coords",
+        "importPath": "openptv_python.tracking_frame_buf",
+        "description": "openptv_python.tracking_frame_buf",
+        "isExtraImport": true,
+        "detail": "openptv_python.tracking_frame_buf",
+        "documentation": {}
+    },
+    {
+        "label": "write_targets",
+        "importPath": "openptv_python.tracking_frame_buf",
+        "description": "openptv_python.tracking_frame_buf",
+        "isExtraImport": true,
+        "detail": "openptv_python.tracking_frame_buf",
+        "documentation": {}
+    },
+    {
+        "label": "Calibration",
+        "importPath": "openptv_python.calibration",
+        "description": "openptv_python.calibration",
+        "isExtraImport": true,
+        "detail": "openptv_python.calibration",
+        "documentation": {}
+    },
+    {
+        "label": "Calibration",
+        "importPath": "openptv_python.calibration",
+        "description": "openptv_python.calibration",
+        "isExtraImport": true,
+        "detail": "openptv_python.calibration",
         "documentation": {}
     },
     {
@@ -6888,6 +6825,46 @@
         "documentation": {}
     },
     {
+        "label": "prepare_image",
+        "importPath": "openptv_python.image_processing",
+        "description": "openptv_python.image_processing",
+        "isExtraImport": true,
+        "detail": "openptv_python.image_processing",
+        "documentation": {}
+    },
+    {
+        "label": "preprocess_image",
+        "importPath": "openptv_python.image_processing",
+        "description": "openptv_python.image_processing",
+        "isExtraImport": true,
+        "detail": "openptv_python.image_processing",
+        "documentation": {}
+    },
+    {
+        "label": "target_recognition",
+        "importPath": "openptv_python.segmentation",
+        "description": "openptv_python.segmentation",
+        "isExtraImport": true,
+        "detail": "openptv_python.segmentation",
+        "documentation": {}
+    },
+    {
+        "label": "target_recognition",
+        "importPath": "openptv_python.segmentation",
+        "description": "openptv_python.segmentation",
+        "isExtraImport": true,
+        "detail": "openptv_python.segmentation",
+        "documentation": {}
+    },
+    {
+        "label": "target_recognition",
+        "importPath": "openptv_python.segmentation",
+        "description": "openptv_python.segmentation",
+        "isExtraImport": true,
+        "detail": "openptv_python.segmentation",
+        "documentation": {}
+    },
+    {
         "label": "target_recognition",
         "importPath": "openptv_python.segmentation",
         "description": "openptv_python.segmentation",
@@ -6901,6 +6878,78 @@
         "description": "openptv_python.trafo",
         "isExtraImport": true,
         "detail": "openptv_python.trafo",
+        "documentation": {}
+    },
+    {
+        "label": "arr_metric_to_pixel",
+        "importPath": "openptv_python.trafo",
+        "description": "openptv_python.trafo",
+        "isExtraImport": true,
+        "detail": "openptv_python.trafo",
+        "documentation": {}
+    },
+    {
+        "label": "List",
+        "importPath": "typing",
+        "description": "typing",
+        "isExtraImport": true,
+        "detail": "typing",
+        "documentation": {}
+    },
+    {
+        "label": "py_correspondences",
+        "importPath": "openptv_python.correspondences",
+        "description": "openptv_python.correspondences",
+        "isExtraImport": true,
+        "detail": "openptv_python.correspondences",
+        "documentation": {}
+    },
+    {
+        "label": "MatchedCoords",
+        "importPath": "openptv_python.correspondences",
+        "description": "openptv_python.correspondences",
+        "isExtraImport": true,
+        "detail": "openptv_python.correspondences",
+        "documentation": {}
+    },
+    {
+        "label": "Tracker",
+        "importPath": "openptv_python.track",
+        "description": "openptv_python.track",
+        "isExtraImport": true,
+        "detail": "openptv_python.track",
+        "documentation": {}
+    },
+    {
+        "label": "default_naming",
+        "importPath": "openptv_python.track",
+        "description": "openptv_python.track",
+        "isExtraImport": true,
+        "detail": "openptv_python.track",
+        "documentation": {}
+    },
+    {
+        "label": "MenuBarManager",
+        "importPath": "pyface.action.api",
+        "description": "pyface.action.api",
+        "isExtraImport": true,
+        "detail": "pyface.action.api",
+        "documentation": {}
+    },
+    {
+        "label": "MenuManager",
+        "importPath": "pyface.action.api",
+        "description": "pyface.action.api",
+        "isExtraImport": true,
+        "detail": "pyface.action.api",
+        "documentation": {}
+    },
+    {
+        "label": "epipolar_curve",
+        "importPath": "openptv_python.epi",
+        "description": "openptv_python.epi",
+        "isExtraImport": true,
+        "detail": "openptv_python.epi",
         "documentation": {}
     },
     {
@@ -7870,7 +7919,7 @@
         "kind": 6,
         "importPath": "build.lib.pyptv.calibration_gui",
         "description": "build.lib.pyptv.calibration_gui",
-        "peekOfCode": "class ClickerTool(ImageInspectorTool):\n    left_changed = Int(1)\n    right_changed = Int(1)\n    x = 0\n    y = 0\n    def normal_left_down(self, event):\n        \"\"\"Handles the left mouse button being clicked.\n        Fires the **new_value** event with the data (if any) from the event's\n        position.\n        \"\"\"",
+        "peekOfCode": "class ClickerTool(ImageInspectorTool):\n    left_changed = Bool(True)\n    right_changed = Bool(True)\n    x = 0\n    y = 0\n    def normal_left_down(self, event):\n        \"\"\"Handles the left mouse button being clicked.\n        Fires the **new_value** event with the data (if any) from the event's\n        position.\n        \"\"\"",
         "detail": "build.lib.pyptv.calibration_gui",
         "documentation": {}
     },
@@ -7879,7 +7928,7 @@
         "kind": 6,
         "importPath": "build.lib.pyptv.calibration_gui",
         "description": "build.lib.pyptv.calibration_gui",
-        "peekOfCode": "class PlotWindow(HasTraits):\n    _plot = Instance(Plot)\n    _click_tool = Instance(ClickerTool)\n    _right_click_avail = 0\n    name = Str\n    view = View(\n        Item(name=\"_plot\", editor=ComponentEditor(), show_label=False),\n    )\n    def __init__(self):\n        # super(HasTraits, self).__init__()",
+        "peekOfCode": "class PlotWindow(HasTraits):\n    \"\"\" PlotWindow class \"\"\"\n    plot_window = Instance(Plot)\n    # plot_window = Instance(Component)\n    _click_tool = Instance(ClickerTool)\n    _right_click_avail = 0\n    _name = f\"Cam {1}\"\n    view = View(\n        Item(name=\"plot_window\", editor=ComponentEditor(), show_label=False),\n    )",
         "detail": "build.lib.pyptv.calibration_gui",
         "documentation": {}
     },
@@ -7978,7 +8027,7 @@
         "kind": 2,
         "importPath": "build.lib.pyptv.draw_3d_target",
         "description": "build.lib.pyptv.draw_3d_target",
-        "peekOfCode": "def plot_3d_target(filename):\n    d = np.loadtxt(filename)\n    # %%\n    from mpl_toolkits.mplot3d import Axes3D\n    ax = plt.figure(figsize=(12,10)).add_subplot(projection='3d')\n    # \n    for row in d:\n        ax.plot(row[1],row[2],row[3],'ro')\n        ax.text(row[1],row[2],row[3],f'{row[0]:.0f}',None)\n    ax.set_xlim(d[:,1].min(),d[:,1].max())",
+        "peekOfCode": "def plot_3d_target(filename):\n    d = np.loadtxt(filename)\n    # %%\n    ax = plt.figure(figsize=(12,10)).add_subplot(projection='3d')\n    # \n    for row in d:\n        ax.plot(row[1],row[2],row[3],'ro')\n        ax.text(row[1],row[2],row[3],f'{row[0]:.0f}',None)\n    ax.set_xlim(d[:,1].min(),d[:,1].max())\n    ax.set_ylim(d[:,2].min(),d[:,2].max())",
         "detail": "build.lib.pyptv.draw_3d_target",
         "documentation": {}
     },
@@ -8149,7 +8198,7 @@
         "kind": 6,
         "importPath": "build.lib.pyptv.parameter_gui",
         "description": "build.lib.pyptv.parameter_gui",
-        "peekOfCode": "class Paramset(HasTraits):\n    name = Str\n    par_path = Path\n    m_params = Instance(Main_Params)\n    c_params = Instance(Calib_Params)\n    t_params = Instance(Tracking_Params)\nclass Experiment(HasTraits):\n    active_params = Instance(Paramset)\n    paramsets = List(Paramset)\n    def __init__(self):",
+        "peekOfCode": "class Paramset(HasTraits):\n    \"\"\" A class that holds all parameters for a single parameter set.\"\"\"\n    name = Str\n    par_path = Path\n    m_params = Instance(Main_Params)\n    c_params = Instance(Calib_Params)\n    t_params = Instance(Tracking_Params)\nclass Experiment(HasTraits):\n    \"\"\" A class that holds all parameters for a single experiment.\"\"\"\n    active_params = Instance(Paramset)",
         "detail": "build.lib.pyptv.parameter_gui",
         "documentation": {}
     },
@@ -8158,7 +8207,7 @@
         "kind": 6,
         "importPath": "build.lib.pyptv.parameter_gui",
         "description": "build.lib.pyptv.parameter_gui",
-        "peekOfCode": "class Experiment(HasTraits):\n    active_params = Instance(Paramset)\n    paramsets = List(Paramset)\n    def __init__(self):\n        HasTraits.__init__(self)\n        self.changed_active_params = False\n    def getParamsetIdx(self, paramset):\n        if isinstance(\n                paramset,\n                type(1)):  # integer value (index of the paramset)",
+        "peekOfCode": "class Experiment(HasTraits):\n    \"\"\" A class that holds all parameters for a single experiment.\"\"\"\n    active_params = Instance(Paramset)\n    paramsets = List(Paramset)\n    changed_active_params = False\n    def __init__(self):\n        HasTraits.__init__(self)\n        self.paramsets = []\n    def getParamsetIdx(self, paramset):\n        if isinstance(",
         "detail": "build.lib.pyptv.parameter_gui",
         "documentation": {}
     },
@@ -8383,16 +8432,16 @@
         "kind": 5,
         "importPath": "build.lib.pyptv.parameters",
         "description": "build.lib.pyptv.parameters",
-        "peekOfCode": "par_dir_prefix = str(\"parameters\")\nmax_cam = int(4)\ndef g(f):\n    \"\"\" Returns a line without white spaces \"\"\"\n    return f.readline().strip()\n# Base class for all parameters classes\nclass Parameters(HasTraits):\n    # default path of the directory of the param files\n    default_path = Path(\"parameters\")\n    def __init__(self, path: Path=default_path):",
+        "peekOfCode": "par_dir_prefix = str(\"parameters\")\nMAX_CAM = 4 # maximum number of cameras so far\ndef g(f):\n    \"\"\" Returns a line without white spaces \"\"\"\n    return f.readline().strip()\n# Base class for all parameters classes\nclass Parameters(HasTraits):\n    # default path of the directory of the param files\n    default_path = Path(\"parameters\")\n    def __init__(self, path: Path=default_path):",
         "detail": "build.lib.pyptv.parameters",
         "documentation": {}
     },
     {
-        "label": "max_cam",
+        "label": "MAX_CAM",
         "kind": 5,
         "importPath": "build.lib.pyptv.parameters",
         "description": "build.lib.pyptv.parameters",
-        "peekOfCode": "max_cam = int(4)\ndef g(f):\n    \"\"\" Returns a line without white spaces \"\"\"\n    return f.readline().strip()\n# Base class for all parameters classes\nclass Parameters(HasTraits):\n    # default path of the directory of the param files\n    default_path = Path(\"parameters\")\n    def __init__(self, path: Path=default_path):\n        HasTraits.__init__(self)",
+        "peekOfCode": "MAX_CAM = 4 # maximum number of cameras so far\ndef g(f):\n    \"\"\" Returns a line without white spaces \"\"\"\n    return f.readline().strip()\n# Base class for all parameters classes\nclass Parameters(HasTraits):\n    # default path of the directory of the param files\n    default_path = Path(\"parameters\")\n    def __init__(self, path: Path=default_path):\n        HasTraits.__init__(self)",
         "detail": "build.lib.pyptv.parameters",
         "documentation": {}
     },
@@ -8482,61 +8531,7 @@
         "kind": 2,
         "importPath": "build.lib.pyptv.ptv",
         "description": "build.lib.pyptv.ptv",
-        "peekOfCode": "def py_trackcorr_init(exp):\n    \"\"\"Reads all the necessary stuff into Tracker\"\"\"\n    tracker = Tracker(exp.cpar, exp.vpar, exp.track_par, exp.spar, exp.cals,\n                      default_naming)\n    return tracker\ndef py_trackcorr_loop():\n    \"\"\"Supposedly returns some lists of the linked targets at every step of a tracker\"\"\"\n    pass\ndef py_traject_loop():\n    \"\"\"Used to plot trajectories after the full run",
-        "detail": "build.lib.pyptv.ptv",
-        "documentation": {}
-    },
-    {
-        "label": "py_trackcorr_loop",
-        "kind": 2,
-        "importPath": "build.lib.pyptv.ptv",
-        "description": "build.lib.pyptv.ptv",
-        "peekOfCode": "def py_trackcorr_loop():\n    \"\"\"Supposedly returns some lists of the linked targets at every step of a tracker\"\"\"\n    pass\ndef py_traject_loop():\n    \"\"\"Used to plot trajectories after the full run\n    def py_traject_loop(seq):\n    global intx1_tr,intx2_tr,inty1_tr,inty2_tr,m1_tr\n    trajectories_c(seq, cpar)\n    intx1,intx2,inty1,inty2=[],[],[],[]\n    for i in range(cpar[0].num_cams):",
-        "detail": "build.lib.pyptv.ptv",
-        "documentation": {}
-    },
-    {
-        "label": "py_traject_loop",
-        "kind": 2,
-        "importPath": "build.lib.pyptv.ptv",
-        "description": "build.lib.pyptv.ptv",
-        "peekOfCode": "def py_traject_loop():\n    \"\"\"Used to plot trajectories after the full run\n    def py_traject_loop(seq):\n    global intx1_tr,intx2_tr,inty1_tr,inty2_tr,m1_tr\n    trajectories_c(seq, cpar)\n    intx1,intx2,inty1,inty2=[],[],[],[]\n    for i in range(cpar[0].num_cams):\n        intx1_t,intx2_t,inty1_t,inty2_t=[],[],[],[]\n        for j in range(m1_tr):\n            intx1_t.append(intx1_tr[i][j])",
-        "detail": "build.lib.pyptv.ptv",
-        "documentation": {}
-    },
-    {
-        "label": "py_rclick_delete",
-        "kind": 2,
-        "importPath": "build.lib.pyptv.ptv",
-        "description": "build.lib.pyptv.ptv",
-        "peekOfCode": "def py_rclick_delete(x, y, n):\n    \"\"\"a tool to delete clicked points\n    def py_right_click(int coord_x, int coord_y, n_image):\n    global rclick_intx1,rclick_inty1,rclick_intx2,rclick_inty2,rclick_points_x1, rclick_points_y1,rclick_count,rclick_points_intx1, rclick_points_inty1\n    x2_points,y2_points,x1,y1,x2,y2=[],[],[],[],[],[]\n    cdef volume_par *vpar = read_volume_par(\"parameters/criteria.par\")\n    r = mouse_proc_c (coord_x, coord_y, 3, n_image, vpar, cpar)\n    free(vpar)\n    if r == -1:\n        return -1,-1,-1,-1,-1,-1,-1,-1",
-        "detail": "build.lib.pyptv.ptv",
-        "documentation": {}
-    },
-    {
-        "label": "py_get_pix_N",
-        "kind": 2,
-        "importPath": "build.lib.pyptv.ptv",
-        "description": "build.lib.pyptv.ptv",
-        "peekOfCode": "def py_get_pix_N(x, y, n):\n    \"\"\"\n    def py_get_pix_N(x,y,n_image):\n    global pix\n    cdef int i,j\n    i=n_image\n    x1=[]\n    y1=[]\n    for j in range(num[i]):\n        x1.append(pix[i][j].x)",
-        "detail": "build.lib.pyptv.ptv",
-        "documentation": {}
-    },
-    {
-        "label": "py_get_pix",
-        "kind": 2,
-        "importPath": "build.lib.pyptv.ptv",
-        "description": "build.lib.pyptv.ptv",
-        "peekOfCode": "def py_get_pix(x, y):\n    \"\"\"\n    Returns a list of lists of target positions\n    def py_get_pix(x,y):\n    global pix\n    cdef int i,j\n    for i in range(cpar[0].num_cams):\n        x1=[]\n        y1=[]\n        for j in range(num[i]):",
-        "detail": "build.lib.pyptv.ptv",
-        "documentation": {}
-    },
-    {
-        "label": "py_calibration",
-        "kind": 2,
-        "importPath": "build.lib.pyptv.ptv",
-        "description": "build.lib.pyptv.ptv",
-        "peekOfCode": "def py_calibration(selection):\n    \"\"\"Calibration\n    def py_calibration(sel):\n    calibration_proc_c(sel)\"\"\"\n    if selection == 1:  # read calibration parameters into liboptv\n        pass\n    if selection == 2:  # run detection of targets\n        pass\n    if selection == 9:  # initial guess\n        \"\"\"Reads from a target file the 3D points and projects them on",
+        "peekOfCode": "def py_trackcorr_init(exp):\n    \"\"\"Reads all the necessary stuff into Tracker\"\"\"\n    tracker = Tracker(exp.cpar, exp.vpar, exp.track_par, exp.spar, exp.cals,\n                      default_naming)\n    return tracker\ndef py_multiplanecalibration(exp):\n    \"\"\"Performs multiplane calibration, in which for all cameras the pre-processed plane in multiplane.par al combined.\n    Overwrites the ori and addpar files of the cameras specified in cal_ori.par of the multiplane parameter folder\n    \"\"\"\n    for i_cam in range(exp.n_cams):  # iterate over all cameras",
         "detail": "build.lib.pyptv.ptv",
         "documentation": {}
     },
@@ -8644,7 +8639,7 @@
         "kind": 5,
         "importPath": "build.lib.pyptv.pyptv_gui",
         "description": "build.lib.pyptv.pyptv_gui",
-        "peekOfCode": "ETSConfig.toolkit = 'qt4'\nimport os\nfrom pathlib import Path, PurePath\nimport sys\nimport time\nimport importlib\nimport numpy as np\nimport optv\nfrom traits.api import HasTraits, Int, Bool, Instance, List, Enum, Any\nfrom traitsui.api import (",
+        "peekOfCode": "ETSConfig.toolkit = 'qt4'\nimport numpy as np\nimport optv\nfrom traits.api import HasTraits, Int, Bool, Instance, List, Enum, Any\nfrom traitsui.api import (\n    View,\n    Item,\n    ListEditor,\n    Handler,\n    TreeEditor,",
         "detail": "build.lib.pyptv.pyptv_gui",
         "documentation": {}
     },
@@ -8833,7 +8828,7 @@
         "kind": 6,
         "importPath": "pyptv.calibration_gui",
         "description": "pyptv.calibration_gui",
-        "peekOfCode": "class PlotWindow(HasTraits):\n    \"\"\" PlotWindow class \"\"\"\n    plot_window = Instance(Plot)\n    # plot_window = Instance(Component)\n    _click_tool = Instance(ClickerTool)\n    _right_click_avail = 0\n    _name = f\"Cam {1}\"\n    view = View(\n        Item(name=\"plot_window\", editor=ComponentEditor(), show_label=False),\n    )",
+        "peekOfCode": "class PlotWindow(HasTraits):\n    \"\"\" PlotWindow class \"\"\"\n    plot_window = Instance(Plot)\n    # plot_window = Instance(Component)\n    _click_tool = Instance(ClickerTool)\n    right_click_available = 0\n    _name = f\"Cam {1}\"\n    view = View(\n        Item(name=\"plot_window\", editor=ComponentEditor(), show_label=False),\n    )",
         "detail": "pyptv.calibration_gui",
         "documentation": {}
     },
@@ -8896,7 +8891,7 @@
         "kind": 6,
         "importPath": "pyptv.detection_gui",
         "description": "pyptv.detection_gui",
-        "peekOfCode": "class ClickerTool(ImageInspectorTool):\n    left_changed = Int(1)\n    right_changed = Int(1)\n    x = 0\n    y = 0\n    def __init__(self, *args, **kwargs):\n        super(ClickerTool, self).__init__(*args, **kwargs)\n    def normal_left_down(self, event):\n        \"\"\" Handles the left mouse button being clicked.\n        Fires the **new_value** event with the data (if any) from the event's",
+        "peekOfCode": "class ClickerTool(ImageInspectorTool):\n    left_changed = 0\n    right_changed = 0\n    x = 0\n    y = 0\n    def __init__(self, *args, **kwargs):\n        super(ClickerTool, self).__init__(*args, **kwargs)\n    def normal_left_down(self, event):\n        \"\"\" Handles the left mouse button being clicked.\n        Fires the **new_value** event with the data (if any) from the event's",
         "detail": "pyptv.detection_gui",
         "documentation": {}
     },
@@ -9364,7 +9359,7 @@
         "kind": 2,
         "importPath": "pyptv.ptv",
         "description": "pyptv.ptv",
-        "peekOfCode": "def simple_highpass(img, cpar):\n    \"\"\" Simple highpass is using liboptv preprocess_image \"\"\"\n    return preprocess_image(img, 0, cpar, 25)\ndef py_set_img(img, i):\n    \"\"\"Not used anymore, was transferring images to the C\"\"\"\n    pass\ndef py_start_proc_c(n_cams):\n    \"\"\"Read parameters\"\"\"\n    # Control parameters\n    cpar = ControlParams(n_cams)",
+        "peekOfCode": "def simple_highpass(img, cpar):\n    \"\"\" Simple highpass is using liboptv preprocess_image \"\"\"\n    return preprocess_image(img, 0, cpar, 25)\ndef py_set_img(img, i):\n    \"\"\"Not used anymore, was transferring images to the C\"\"\"\n    pass\ndef py_start_proc_c(n_cams):\n    \"\"\"Read parameters\"\"\"\n    # Control parameters\n    # cpar = ControlPar(n_cams)",
         "detail": "pyptv.ptv",
         "documentation": {}
     },
@@ -9373,7 +9368,7 @@
         "kind": 2,
         "importPath": "pyptv.ptv",
         "description": "pyptv.ptv",
-        "peekOfCode": "def py_set_img(img, i):\n    \"\"\"Not used anymore, was transferring images to the C\"\"\"\n    pass\ndef py_start_proc_c(n_cams):\n    \"\"\"Read parameters\"\"\"\n    # Control parameters\n    cpar = ControlParams(n_cams)\n    cpar.read_control_par(b\"parameters/ptv.par\")\n    # Sequence parameters\n    spar = SequenceParams(num_cams=n_cams)",
+        "peekOfCode": "def py_set_img(img, i):\n    \"\"\"Not used anymore, was transferring images to the C\"\"\"\n    pass\ndef py_start_proc_c(n_cams):\n    \"\"\"Read parameters\"\"\"\n    # Control parameters\n    # cpar = ControlPar(n_cams)\n    cpar = read_control_par(\"parameters/ptv.par\")\n    # Sequence parameters\n    spar  = read_sequence_par(\"parameters/sequence.par\", n_cams)",
         "detail": "pyptv.ptv",
         "documentation": {}
     },
@@ -9382,7 +9377,7 @@
         "kind": 2,
         "importPath": "pyptv.ptv",
         "description": "pyptv.ptv",
-        "peekOfCode": "def py_start_proc_c(n_cams):\n    \"\"\"Read parameters\"\"\"\n    # Control parameters\n    cpar = ControlParams(n_cams)\n    cpar.read_control_par(b\"parameters/ptv.par\")\n    # Sequence parameters\n    spar = SequenceParams(num_cams=n_cams)\n    spar.read_sequence_par(b\"parameters/sequence.par\", n_cams)\n    # Volume parameters\n    vpar = VolumeParams()",
+        "peekOfCode": "def py_start_proc_c(n_cams):\n    \"\"\"Read parameters\"\"\"\n    # Control parameters\n    # cpar = ControlPar(n_cams)\n    cpar = read_control_par(\"parameters/ptv.par\")\n    # Sequence parameters\n    spar  = read_sequence_par(\"parameters/sequence.par\", n_cams)\n    # Volume parameters\n    vpar = read_volume_par(\"parameters/criteria.par\")\n    # Tracking parameters",
         "detail": "pyptv.ptv",
         "documentation": {}
     },
@@ -9391,7 +9386,7 @@
         "kind": 2,
         "importPath": "pyptv.ptv",
         "description": "pyptv.ptv",
-        "peekOfCode": "def py_pre_processing_c(list_of_images, cpar):\n    \"\"\"Image pre-processing, mostly highpass filter, could be extended in\n    the future\n    Inputs:\n        list of images\n        cpar ControlParams()\n    \"\"\"\n    newlist = []\n    for img in list_of_images:\n        newlist.append(simple_highpass(img, cpar))",
+        "peekOfCode": "def py_pre_processing_c(list_of_images: List[np.ndarray], cpar: ControlPar) -> List[np.ndarray]:\n    \"\"\"Image pre-processing, mostly highpass filter, could be extended in\n    the future\n    Inputs:\n        list of images\n        cpar ControlPar()\n    \"\"\"\n    newlist = []\n    for img in list_of_images:\n        newlist.append(simple_highpass(img, cpar))",
         "detail": "pyptv.ptv",
         "documentation": {}
     },
@@ -9400,7 +9395,7 @@
         "kind": 2,
         "importPath": "pyptv.ptv",
         "description": "pyptv.ptv",
-        "peekOfCode": "def py_detection_proc_c(list_of_images, cpar, tpar, cals):\n    \"\"\"Detection of targets\"\"\"\n    pftVersionParams = par.PftVersionParams(path=Path(\"parameters\"))\n    pftVersionParams.read()\n    Existing_Target = bool(pftVersionParams.Existing_Target)\n    detections, corrected = [], []\n    for i_cam, img in enumerate(list_of_images):\n        if Existing_Target:\n            targs = read_targets(cpar.get_img_base_name(i_cam), 0)\n        else:",
+        "peekOfCode": "def py_detection_proc_c(list_of_images, cpar, tpar, cals):\n    \"\"\"Detection of targets\"\"\"\n    pft = PftVersionPar().from_file(\"parameters/pft_version.par\")\n    detections, corrected = [], []\n    for i_cam, img in enumerate(list_of_images):\n        if pft.existing_target_flag:\n            targs = read_targets(cpar.get_img_base_name(i_cam), 0)\n        else:\n            targs = target_recognition(img, tpar, i_cam, cpar)\n        targs.sort(key=lambda t: t.y)",
         "detail": "pyptv.ptv",
         "documentation": {}
     },
@@ -9418,7 +9413,7 @@
         "kind": 2,
         "importPath": "pyptv.ptv",
         "description": "pyptv.ptv",
-        "peekOfCode": "def py_determination_proc_c(n_cams, sorted_pos, sorted_corresp, corrected):\n    \"\"\"Returns 3d positions\"\"\"\n    # Control parameters\n    cpar = ControlParams(n_cams)\n    cpar.read_control_par(b\"parameters/ptv.par\")\n    # Volume parameters\n    vpar = VolumeParams()\n    vpar.read_volume_par(b\"parameters/criteria.par\")\n    cals = []\n    for i_cam in range(n_cams):",
+        "peekOfCode": "def py_determination_proc_c(n_cams, sorted_pos, sorted_corresp, corrected):\n    \"\"\"Returns 3d positions\"\"\"\n    # Control parameters\n    cpar = ControlPar(n_cams)\n    cpar.read_control_par(\"parameters/ptv.par\")\n    # Volume parameters\n    vpar = VolumePar()\n    vpar.read_volume_par(\"parameters/criteria.par\")\n    cals = []\n    for i_cam in range(n_cams):",
         "detail": "pyptv.ptv",
         "documentation": {}
     },
@@ -9445,7 +9440,7 @@
         "kind": 2,
         "importPath": "pyptv.ptv",
         "description": "pyptv.ptv",
-        "peekOfCode": "def py_multiplanecalibration(exp):\n    \"\"\"Performs multiplane calibration, in which for all cameras the pre-processed plane in multiplane.par al combined.\n    Overwrites the ori and addpar files of the cameras specified in cal_ori.par of the multiplane parameter folder\n    \"\"\"\n    for i_cam in range(exp.n_cams):  # iterate over all cameras\n        all_known = []\n        all_detected = []\n        for i in range(exp.MultiParams.n_planes):  # combine all single planes\n            c = exp.calParams.img_ori[i_cam][-9]  # Get camera id\n            file_known = exp.MultiParams.plane_name[i] + str(c) + \".tif.fix\"",
+        "peekOfCode": "def py_multiplanecalibration(exp):\n    \"\"\"Performs multiplane calibration, in which for all cameras the pre-processed plane in multiplane.par al combined.\n    Overwrites the ori and addpar files of the cameras specified in cal_ori.par of the multiplane parameter folder\n    \"\"\"\n    for i_cam in range(exp.n_cams):  # iterate over all cameras\n        all_known = []\n        all_detected = []\n        for i in range(exp.MultiPar.n_planes):  # combine all single planes\n            c = exp.calPar.img_ori[i_cam][-9]  # Get camera id\n            file_known = exp.MultiPar.plane_name[i] + str(c) + \".tif.fix\"",
         "detail": "pyptv.ptv",
         "documentation": {}
     },
@@ -9481,7 +9476,7 @@
         "kind": 6,
         "importPath": "pyptv.pyptv_gui",
         "description": "pyptv.pyptv_gui",
-        "peekOfCode": "class Clicker(ImageInspectorTool):\n    \"\"\"\n    Clicker class handles right mouse click actions from the tree\n    and menubar actions\n    \"\"\"\n    left_changed = Int(0)\n    right_changed = Int(0)\n    x,y = 0,0\n    def __init__(self, *args, **kwargs):\n        # Clicker.__init__(self,*args, **kwargs)",
+        "peekOfCode": "class Clicker(ImageInspectorTool):\n    \"\"\"\n    Clicker class handles right mouse click actions from the tree\n    and menubar actions\n    \"\"\"\n    left_changed = Int(0)\n    right_changed = Int(0)\n    x,y = 0,0\n    last_mouse_position = (0,0)\n    data_value = 0",
         "detail": "pyptv.pyptv_gui",
         "documentation": {}
     },
@@ -9544,7 +9539,7 @@
         "kind": 5,
         "importPath": "pyptv.pyptv_gui",
         "description": "pyptv.pyptv_gui",
-        "peekOfCode": "ETSConfig.toolkit = 'qt4'\nimport numpy as np\nimport optv\nfrom traits.api import HasTraits, Int, Bool, Instance, List, Enum, Any\nfrom traitsui.api import (\n    View,\n    Item,\n    ListEditor,\n    Handler,\n    TreeEditor,",
+        "peekOfCode": "ETSConfig.toolkit = 'qt4'\nimport numpy as np\nfrom traits.api import HasTraits, Int, Bool, Instance, List, Enum, Any\nfrom traitsui.api import (\n    View,\n    Item,\n    ListEditor,\n    Handler,\n    TreeEditor,\n    TreeNode,",
         "detail": "pyptv.pyptv_gui",
         "documentation": {}
     },
