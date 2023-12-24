@@ -59,9 +59,8 @@ from openptv_python.trafo import arr_metric_to_pixel
 
 
 # from pyptv import ptv, parameter_gui, parameters as par
-from pyptv import parameters as par
 from pyptv import parameter_gui
-
+from pyptv import ptv
 
 
 # -------------------------------------------
@@ -121,7 +120,7 @@ class PlotWindow(HasTraits):
     plot_window = Instance(Plot)
     # plot_window = Instance(Component)
     _click_tool = Instance(ClickerTool)
-    _right_click_avail = 0
+    right_click_available = 0
     _name = f"Cam {1}"
     view = View(
         Item(name="plot_window", editor=ComponentEditor(), show_label=False),
@@ -178,7 +177,7 @@ class PlotWindow(HasTraits):
                 self.plot_window.overlays.clear()  # type: ignore
             self.plot_num_overlay(self._x, self._y, self.man_ori)
         else:
-            if self._right_click_avail:
+            if self.right_click_available:
                 print("deleting point")
                 self.py_rclick_delete(
                     self._click_tool.x, self._click_tool.y, self.cameraN
@@ -361,6 +360,7 @@ class CalibrationGUI(HasTraits):
     # -------------------------------------------------------------
     button_edit_cal_parameters = Button()
     button_showimg = Button()
+    button_highpass = Button()
     button_detection = Button()
     button_manual = Button()
     button_file_orient = Button()
@@ -451,6 +451,12 @@ class CalibrationGUI(HasTraits):
                         label="Load/Show Images",
                         show_label=False,
                     ),
+                    Item(
+                        name="button_highpass",
+                        label="Highpass",
+                        show_label=False,
+                        enabled_when="pass_init",
+                    ),                    
                     Item(
                         name="button_detection",
                         label="Detection",
@@ -595,19 +601,6 @@ class CalibrationGUI(HasTraits):
             )
             print("\n Copied man_ori.dat \n")
 
-        # copy parameters from active to default folder parameters/
-        # par.copy_params_dir(self.active_path, self.par_path)
-
-        # read from parameters
-        # (
-        #     self.cpar,
-        #     self.spar,
-        #     self.vpar,
-        #     self.track_par,
-        #     self.tpar,
-        #     self.cals,
-        #     self.epar,
-        # ) = ptv.py_start_proc_c(self.n_cams)
 
         self.cpar = ControlPar(self.n_cams).from_file(
             os.path.join(self.par_path, "ptv.par"))
@@ -646,8 +639,8 @@ class CalibrationGUI(HasTraits):
         self.cals = []
         for i_cam in range(self.n_cams):
             self.cals.append(Calibration().from_file(
-                self.cpar.cal_img_base_name[i_cam] + ".ori",
-                self.cpar.cal_img_base_name[i_cam] + ".addpar"
+                self.calParams.img_ori0[i_cam],
+                self.calParams.img_ori0[i_cam].replace(".ori",".addpar"),
             )
             )
 
@@ -665,6 +658,19 @@ class CalibrationGUI(HasTraits):
 
         self.pass_init = True
         self.status_text = "Initialization finished."
+        
+    def _button_highpass_fired(self):
+        """Highpass button fired"""
+        print("highpass calibration started")
+        
+        
+        self.cal_images = ptv.py_pre_processing_c(
+                self.cal_images, 
+                self.cpar
+                )
+
+        print("highpass finished")           
+        self.reset_show_images()
 
     def _button_detection_fired(self):
         if self.need_reset:
@@ -673,9 +679,9 @@ class CalibrationGUI(HasTraits):
         print(" Detection procedure \n")
         self.status_text = "Detection procedure"
 
-        if self.cpar.get_hp_flag():
-            for img in self.cal_images:
-                img = prepare_image(img, 1, 0)
+        # if self.cpar.get_hp_flag():
+        #     for counter, img in enumerate(self.cal_images):
+        #         self.cal_images[counter] = prepare_image(img, 1, 0)
                 
         self.detections = []
         for img in self.cal_images:
@@ -689,7 +695,7 @@ class CalibrationGUI(HasTraits):
         self.drawcross("x", "y", x, y, "blue", 4)
 
         for i in range(self.n_cams):
-            self.camera[i]._right_click_avail = 1
+            self.camera[i].right_click_available = 1
 
     def _button_manual_fired(self):
         print('Start manual orientation, use clicks and then press this button again')
@@ -766,9 +772,9 @@ class CalibrationGUI(HasTraits):
         self.cals = []
         for i_cam in range(self.n_cams):
             self.cals.append(Calibration().from_file(
-                self.cpar.cal_img_base_name[i_cam] + ".ori",
-                self.cpar.cal_img_base_name[i_cam] + ".addpar"
-                )
+                self.calParams.img_ori0[i_cam],
+                self.calParams.img_ori0[i_cam].replace(".ori",".addpar"),
+            )
             )
 
         for i_cam in range(self.n_cams):
@@ -1200,7 +1206,7 @@ if __name__ == "__main__":
     if len(sys.argv) == 1:
         # active_path = Path("../test_cavity/parametersRun1")
         active_path = Path(
-            "/home/user/Downloads/1024_15/proPTV_OpenPTV_MyPTV_Test_case_1024_15/parametersMultiPlane")
+            "/home/user/Downloads/rbc300/parameters")
     else:
         active_path = Path(sys.argv[0])
 
