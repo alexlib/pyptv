@@ -62,8 +62,8 @@ class Clicker(ImageInspectorTool):
     Clicker class handles right mouse click actions from the tree
     and menubar actions
     """
-    left_changed = Int(0)
-    right_changed = Int(0)
+    left_changed = Int(1)
+    right_changed = Int(1)
     x,y = 0,0
     last_mouse_position = (0,0)
     data_value = 0
@@ -95,8 +95,8 @@ class Clicker(ImageInspectorTool):
             self.x, self.y = plot.map_index((event.x, event.y))
             self.last_mouse_position = (event.x, event.y)
             self.data_value = plot.value.data[self.y, self.x]
-            print(f"right: x={self.x}, y={self.y}, I={self.data_value}")
             self.right_changed = 1 - self.right_changed
+            print(f"right: x={self.x}, y={self.y}, I={self.data_value}")
             
         return
             
@@ -112,7 +112,7 @@ class CameraWindow(HasTraits):
 
     _plot = Instance(Plot)
     _click_tool = Instance(Clicker)
-    rclicked = 0
+    rclicked = Int(0)
     
 
     cam_color = ""

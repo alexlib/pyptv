@@ -9476,7 +9476,7 @@
         "kind": 6,
         "importPath": "pyptv.pyptv_gui",
         "description": "pyptv.pyptv_gui",
-        "peekOfCode": "class Clicker(ImageInspectorTool):\n    \"\"\"\n    Clicker class handles right mouse click actions from the tree\n    and menubar actions\n    \"\"\"\n    left_changed = Int(0)\n    right_changed = Int(0)\n    x,y = 0,0\n    last_mouse_position = (0,0)\n    data_value = 0",
+        "peekOfCode": "class Clicker(ImageInspectorTool):\n    \"\"\"\n    Clicker class handles right mouse click actions from the tree\n    and menubar actions\n    \"\"\"\n    left_changed = Int(1)\n    right_changed = Int(1)\n    x,y = 0,0\n    last_mouse_position = (0,0)\n    data_value = 0",
         "detail": "pyptv.pyptv_gui",
         "documentation": {}
     },
