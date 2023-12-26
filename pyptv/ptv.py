@@ -73,9 +73,8 @@ def py_start_proc_c(n_cams):
     # Calibration parameters
     cals = []
     for i_cam in range(n_cams):
-        cal = Calibration()
         tmp = cpar.cal_img_base_name[i_cam]
-        cal.from_file(tmp + ".ori", tmp + ".addpar")
+        cal = Calibration().from_file(tmp + ".ori", tmp + ".addpar")
         cals.append(cal)
 
     return cpar, spar, vpar, track_par, tpar, cals, epar
