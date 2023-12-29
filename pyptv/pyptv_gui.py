@@ -594,6 +594,8 @@ class TreeMenuHandler(Handler):
         # info.object.drawcross("pair_x", "pair_y", x, y, "yellow", 3)
         # info.object.drawcross("unused_x","unused_y",unused[:,0],unused[:,1],"blue",3)
 
+        
+
     def init_action(self, info):
         """init_action - clears existing plots from the camera windows,
         initializes C image arrays with mainGui.orig_image and
@@ -1500,7 +1502,7 @@ def main():
         # exp_path = Path('/home/user/Downloads/one-dot-example/working_folder')
         exp_path = Path(
             "/home/user/Downloads/rbc300/")
-        exp_path = Path("/home/user/Downloads/one-dot-example/working_folder")
+        # exp_path = Path("/home/user/Downloads/one-dot-example/working_folder")
         print(f"Without input, PyPTV fallbacks to a default {exp_path} \n")
         
 
