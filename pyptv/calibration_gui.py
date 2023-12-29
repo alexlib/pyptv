@@ -1190,14 +1190,17 @@ class CalibrationGUI(HasTraits):
     #         self.camera[i].update_image(images[i])
 
     def _read_cal_points(self) -> np.ndarray:
-        return np.atleast_1d(
-            np.loadtxt(
+        # we prepare for , or \t
+        with open(self.calParams.fixp_name,'r',encoding="utf-8") as f:
+            line = f.readline()
+            
+        delimiter = ',' if ',' in line else '\t'
+        
+        tmp = np.genfromtxt(
                 self.calParams.fixp_name,
-                delimiter=',',
-                dtype=[("id", "i4"), ("pos", "3f8")],
-                skiprows=0,
-            )
-        )
+                delimiter=delimiter,
+                dtype=[("id", "i4"), ("pos", "3f8")])
+        return tmp
 
 
 if __name__ == "__main__":
