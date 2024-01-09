@@ -22,6 +22,7 @@ from chaco.tools.better_zoom import BetterZoom as SimpleZoom
 from skimage.io import imread
 from skimage import img_as_ubyte
 from skimage import color
+from skimage.exposure import adjust_gamma
 
 # from optv import segmentation
 from openptv_python.segmentation import target_recognition
@@ -420,33 +421,33 @@ class DetectionGUI(HasTraits):
         # set_grey_thresholds(self.thresholds)
         # print(f"tpar is now {self.tpar.get_grey_thresholds()}")
         # run detection again
-        self._button_detection_fired()
+        # self._button_detection_fired()
 
     def _min_npix_changed(self):
         # self.pixel_count_bounds[0] = self.min_npix
         self.tpar.nnmin = self.min_npix
         # set_pixel_count_bounds(self.pixel_count_bounds)
         # print(f"set min {self.tpar.get_pixel_count_bounds()}")
-        self._button_detection_fired()
+        # self._button_detection_fired()
 
     def _max_npix_changed(self):
         # self.pixel_count_bounds[1] = self.max_npix
         self.tpar.nnmax = self.max_npix
         # self.tpar.set_pixel_count_bounds(self.pixel_count_bounds)
         # print(f"set max {self.tpar.get_pixel_count_bounds()}")
-        self._button_detection_fired()
+        # self._button_detection_fired()
 
     def _min_npix_x_changed(self):
         # self.xsize_bounds[0] = self.min_npix_x
         self.tpar.nxmin = self.min_npix_x
         # self.tpar.set_xsize_bounds(self.xsize_bounds)
-        self._button_detection_fired()
+        # self._button_detection_fired()
 
     def _max_npix_x_changed(self):
         # self.xsize_bounds[1] = self.max_npix_x
         # self.tpar.set_xsize_bounds(self.xsize_bounds)
         self.tpar.nxmax = self.max_npix_x
-        self._button_detection_fired()
+        # self._button_detection_fired()
 
     def _min_npix_y_changed(self):
         # self.ysize_bounds[0] = self.min_npix_y
@@ -458,12 +459,12 @@ class DetectionGUI(HasTraits):
         # self.ysize_bounds[1] = self.max_npix_y
         # self.tpar.set_ysize_bounds(self.ysize_bounds)
         self.tpar.nymax = self.max_npix_y
-        self._button_detection_fired()
+        # self._button_detection_fired()
 
     def _sum_of_grey_changed(self):
         #self.tpar.set_min_sum_grey(self.sum_of_grey)
         self.tpar.sumg = self.sum_of_grey
-        self._button_detection_fired()
+        # self._button_detection_fired()
 
 
     def _button_showimg_fired(self):
@@ -481,7 +482,9 @@ class DetectionGUI(HasTraits):
         # print(f'image size is {im.shape}')
         if im.ndim > 2:
             im = color.rgb2gray(im)
-        
+                        
+        im = adjust_gamma(im, 0.25)
+
         if self.inverse_flag is True:
             im = 255 - im
             
@@ -541,10 +544,18 @@ class DetectionGUI(HasTraits):
     #     self.camera[0].update_image(self.cal_image, is_float)
 
 if __name__ == "__main__":
+    
+    from fast_targ_rec import fast_targ_rec
+
+    # Example usage
+    img = [[1, 2, 3], [4, 5, 6], [7, 8, 9]]
+    result = fast_targ_rec(img, 5, 2, 3, 10, 2, 5, 2, 5, 20, 0, 2, 0, 2)
+    print(result)
 
     if len(sys.argv) == 1:
         parameters_path = pathlib.Path().absolute().parent / 'tests' / 'test_cavity' / 'parameters'
         # par_path = pathlib.Path('/home/user/Downloads/Test_8_with_50_pic/parameters')
+        parameters_path = pathlib.Path("/home/user/Downloads/rbc300/parameters")
     else:
         parameters_path = pathlib.Path(sys.argv[1]) / 'parameters'
 

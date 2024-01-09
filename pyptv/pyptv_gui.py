@@ -46,6 +46,7 @@ from enable.component_editor import ComponentEditor
 from skimage.util import img_as_ubyte
 from skimage import color
 from skimage.io import imread
+from skimage.exposure import adjust_gamma
 
 from pyptv import parameters as par
 from pyptv import ptv
@@ -608,15 +609,11 @@ class TreeMenuHandler(Handler):
 
         for i in range(len(mainGui.camera_list)):
             try:
-                im = imread(
-                    getattr(
-                        mainGui.exp1.active_params.m_params,
-                        f"Name_{i+1}_Image",
-                    )
-                )
+                imname = getattr(mainGui.exp1.active_params.m_params, f"Name_{i+1}_Image")
+                im = imread(imname)
                 if im.ndim > 2:
                     im = color.rgb2gray(im)
-
+                im = adjust_gamma(im, 0.25)
                 mainGui.orig_image[i] = img_as_ubyte(im)
             except IOError:
                 print("Error reading image, setting zero image")

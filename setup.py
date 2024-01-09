@@ -1,4 +1,7 @@
 from setuptools import setup
+from setuptools import setup
+from Cython.Build import cythonize
+
 
 requirements = [
     'chaco',
@@ -25,6 +28,7 @@ setup(
     author_email='alex.liberzon@gmail.com',
     url='https://github.com/alexlib/pyptv',
     packages=['pyptv'],
+    ext_modules=cythonize("./pyptv/fast_targ_rec.pyx"),
     entry_points={
         'console_scripts': [
             'pyptv=pyptv.pyptv_gui:main'

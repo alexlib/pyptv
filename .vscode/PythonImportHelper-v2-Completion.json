@@ -6889,6 +6889,22 @@
         "documentation": {}
     },
     {
+        "label": "adjust_gamma",
+        "importPath": "skimage.exposure",
+        "description": "skimage.exposure",
+        "isExtraImport": true,
+        "detail": "skimage.exposure",
+        "documentation": {}
+    },
+    {
+        "label": "adjust_gamma",
+        "importPath": "skimage.exposure",
+        "description": "skimage.exposure",
+        "isExtraImport": true,
+        "detail": "skimage.exposure",
+        "documentation": {}
+    },
+    {
         "label": "List",
         "importPath": "typing",
         "description": "typing",
@@ -6958,6 +6974,22 @@
         "description": "setuptools",
         "isExtraImport": true,
         "detail": "setuptools",
+        "documentation": {}
+    },
+    {
+        "label": "setup",
+        "importPath": "setuptools",
+        "description": "setuptools",
+        "isExtraImport": true,
+        "detail": "setuptools",
+        "documentation": {}
+    },
+    {
+        "label": "cythonize",
+        "importPath": "Cython.Build",
+        "description": "Cython.Build",
+        "isExtraImport": true,
+        "detail": "Cython.Build",
         "documentation": {}
     },
     {
