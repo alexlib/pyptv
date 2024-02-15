@@ -1533,8 +1533,8 @@ def main():
         exp_path = Path(sys.argv[1]).resolve()
         print(f"Experimental path is {exp_path}")
     else:
-        exp_path = software_path.parent / "test_cavity"
-        exp_path = Path('/home/user/Documents/repos/test_cavity')
+        # exp_path = software_path.parent / "test_cavity"
+        exp_path = Path('/home/user/Downloads/rbc300')
         print(f"Without input, PyPTV fallbacks to a default {exp_path} \n")
 
     if not exp_path.is_dir() or not exp_path.exists():

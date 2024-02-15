@@ -24,6 +24,7 @@ def negative(img):
     """ Negative 8-bit image """
     return 255 - img
 
+
 def simple_highpass(img, cpar):
     """ Simple highpass is using liboptv preprocess_image """
     return preprocess_image(img, 0, cpar, 25)
@@ -38,12 +39,12 @@ def py_start_proc_c(n_cams):
     """Read parameters"""
 
     # Control parameters
-    cpar = ControlPar(n_cams)
-    cpar.from_file("parameters/ptv.par")
+    cpar = ControlPar(n_cams).from_file("parameters/ptv.par")
+
 
     # Sequence parameters
-    spar = SequencePar(num_cams=n_cams)
-    spar.from_file("parameters/sequence.par")
+    spar = SequencePar()
+    spar.from_file("parameters/sequence.par", num_cams=n_cams)
 
     # Volume parameters
     vpar = VolumePar()
@@ -179,14 +180,15 @@ def py_determination_proc_c(n_cams, sorted_pos, sorted_corresp, corrected):
             print(f'Opened {fname} \n')
             rt_is.write(str(pos.shape[0]) + "\n")
             for pix, pt in enumerate(pos):
-                pt_args = (pix + 1, ) + tuple(pt) + tuple(print_corresp[:, pix])
-                rt_is.write("%4d %9.3f %9.3f %9.3f %4d %4d %4d %4d\n" % pt_args)
+                pt_args = (pix + 1, ) + tuple(pt) + \
+                    tuple(print_corresp[:, pix])
+                rt_is.write(
+                    "%4d %9.3f %9.3f %9.3f %4d %4d %4d %4d\n" % pt_args)
     except FileNotFoundError:
-        msg = "Sorry, the file "+ fname + "does not exist."
-        print(msg) # Sorry, the file John.txt does not exist.
+        msg = "Sorry, the file " + fname + "does not exist."
+        print(msg)  # Sorry, the file John.txt does not exist.
 
     # rt_is.close()
-
 
 
 def py_sequence_loop(exp):
@@ -228,7 +230,7 @@ def py_sequence_loop(exp):
 
                 img = img_as_ubyte(imread(imname))
                 # time.sleep(.1) # I'm not sure we need it here
-                
+
                 if 'exp1' in exp.__dict__:
                     if exp.exp1.active_Par.m_Par.Inverse:
                         print("Invert image")
@@ -237,14 +239,14 @@ def py_sequence_loop(exp):
                     if exp.exp1.active_Par.m_Par.Subtr_Mask:
                         # print("Subtracting mask")
                         try:
-                            mask_name = exp.exp1.active_Par.m_Par.Base_Name_Mask.replace('#',str(i_cam+1))
+                            mask_name = exp.exp1.active_Par.m_Par.Base_Name_Mask.replace(
+                                '#', str(i_cam+1))
                             mask = imread(mask_name)
                             img[mask] = 0
 
                         except ValueError:
                             print("failed to read the mask")
-                    
-                
+
                 high_pass = simple_highpass(img, cpar)
                 targs = target_recognition(high_pass, tpar, i_cam, cpar)
 
@@ -267,7 +269,7 @@ def py_sequence_loop(exp):
             detections[i_cam].write(
                 spar.get_img_base_name(i_cam),
                 frame
-                )
+            )
 
         print("Frame " + str(frame) + " had " +
               repr([s.shape[1] for s in sorted_pos]) + " correspondences.")
@@ -298,8 +300,10 @@ def py_sequence_loop(exp):
         with open(rt_is_filename, "w", encoding="utf8") as rt_is:
             rt_is.write(str(pos.shape[0]) + "\n")
             for pix, pt in enumerate(pos):
-                pt_args = (pix + 1, ) + tuple(pt) + tuple(print_corresp[:, pix])
-                rt_is.write("%4d %9.3f %9.3f %9.3f %4d %4d %4d %4d\n" % pt_args)
+                pt_args = (pix + 1, ) + tuple(pt) + \
+                    tuple(print_corresp[:, pix])
+                rt_is.write(
+                    "%4d %9.3f %9.3f %9.3f %4d %4d %4d %4d\n" % pt_args)
         # rt_is.close()
     # end of a sequence loop
 
