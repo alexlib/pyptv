@@ -1,7 +1,10 @@
 from pathlib import Path
 import numpy as np
+from typing import List
+
 from openptv_python.calibration import Calibration
-from openptv_python.correspondences import correspondences
+from openptv_python.correspondences import py_correspondences, MatchedCoords
+from openptv_python.image_processing import preprocess_image
 from openptv_python.orientation import (
     point_positions,
     full_calibration,
@@ -12,18 +15,27 @@ from openptv_python.parameters import (
     TrackPar,
     SequencePar,
     TargetPar,
+    PftVersionPar,
+    read_control_par,
+    read_volume_par,
+    read_sequence_par,
+    read_target_par,
+    read_track_par,
+    read_examine_par,
 )
 from openptv_python.segmentation import target_recognition
-from openptv_python.tracking_frame_buf import read_targets
+from openptv_python.tracking_frame_buf import (
+    read_targets, 
+    TargetArray, 
+    match_coords,
+    write_targets
+)
+from openptv_python.track import Tracker, default_naming
 from skimage.io import imread
-from skimage.util import img_as_ubyte
-from pyptv import parameters as par
-
 
 def negative(img):
     """ Negative 8-bit image """
     return 255 - img
-
 
 def simple_highpass(img, cpar):
     """ Simple highpass is using liboptv preprocess_image """
@@ -39,41 +51,36 @@ def py_start_proc_c(n_cams):
     """Read parameters"""
 
     # Control parameters
-    cpar = ControlPar(n_cams).from_file("parameters/ptv.par")
-
+    # cpar = ControlPar(n_cams)
+    cpar = read_control_par("parameters/ptv.par")
 
     # Sequence parameters
-    spar = SequencePar()
-    spar.from_file("parameters/sequence.par", num_cams=n_cams)
+    spar  = read_sequence_par("parameters/sequence.par", n_cams)
 
     # Volume parameters
-    vpar = VolumePar()
-    vpar.from_file("parameters/criteria.par")
+    vpar = read_volume_par("parameters/criteria.par")
 
     # Tracking parameters
-    track_par = TrackPar()
-    track_par.from_file("parameters/track.par")
+    track_par = read_track_par("parameters/track.par")
 
     # Target parameters
-    tpar = TargetPar()
-    tpar.from_file("parameters/targ_rec.par")
+    tpar = read_target_par("parameters/targ_rec.par")
 
     # Examine parameters, multiplane (single plane vs combined calibration)
-    epar = par.ExaminePar()
-    epar.read()
+    epar = read_examine_par("parameters/examine.par")
+
 
     # Calibration parameters
     cals = []
     for i_cam in range(n_cams):
-        cal = Calibration()
         tmp = cpar.cal_img_base_name[i_cam]
-        cal.from_file(tmp + ".ori", tmp + ".addpar")
+        cal = Calibration().from_file(tmp + ".ori", tmp + ".addpar")
         cals.append(cal)
 
     return cpar, spar, vpar, track_par, tpar, cals, epar
 
 
-def py_pre_processing_c(list_of_images, cpar):
+def py_pre_processing_c(list_of_images: List[np.ndarray], cpar: ControlPar) -> List[np.ndarray]:
     """Image pre-processing, mostly highpass filter, could be extended in
     the future
 
@@ -89,21 +96,20 @@ def py_pre_processing_c(list_of_images, cpar):
 
 def py_detection_proc_c(list_of_images, cpar, tpar, cals):
     """Detection of targets"""
-
-    pftVersionPar = par.PftVersionPar(path=Path("parameters"))
-    pftVersionPar.read()
-    Existing_Target = bool(pftVersionPar.Existing_Target)
+    pft = PftVersionPar().from_file("parameters/pft_version.par")
 
     detections, corrected = [], []
     for i_cam, img in enumerate(list_of_images):
-        if Existing_Target:
+        if pft.existing_target_flag:
             targs = read_targets(cpar.get_img_base_name(i_cam), 0)
         else:
             targs = target_recognition(img, tpar, i_cam, cpar)
 
-        targs.sort_y()
+        targs.sort(key=lambda t: t.y)
+        
         detections.append(targs)
-        mc = MatchedCoords(targs, cpar, cals[i_cam])
+        # mc = MatchedCoords(targs, cpar, cals[i_cam])
+        mc = match_coords(targs, cpar, cals[i_cam])
         corrected.append(mc)
 
     return detections, corrected
@@ -124,12 +130,16 @@ def py_correspondences_proc_c(exp):
     #            return False
 
     # Corresp. + positions.
-    sorted_pos, sorted_corresp, num_targs = correspondences(
+    sorted_pos, sorted_corresp, num_targs = py_correspondences(
         exp.detections, exp.corrected, exp.cals, exp.vpar, exp.cpar)
-
+    
     # Save targets only after they've been modified:
     for i_cam in range(exp.n_cams):
-        exp.detections[i_cam].write(exp.spar.get_img_base_name(i_cam), frame)
+        write_targets(exp.detections[i_cam],
+                      len(exp.detections[i_cam]), 
+                      exp.spar.get_img_base_name(i_cam), 
+                      frame
+                      ) 
 
     print("Frame " + str(frame) + " had " +
           repr([s.shape[1] for s in sorted_pos]) + " correspondences.")
@@ -142,17 +152,17 @@ def py_determination_proc_c(n_cams, sorted_pos, sorted_corresp, corrected):
 
     # Control parameters
     cpar = ControlPar(n_cams)
-    cpar.read_control_par(b"parameters/ptv.par")
+    cpar.read_control_par("parameters/ptv.par")
 
     # Volume parameters
     vpar = VolumePar()
-    vpar.read_volume_par(b"parameters/criteria.par")
+    vpar.read_volume_par("parameters/criteria.par")
 
     cals = []
     for i_cam in range(n_cams):
         cal = Calibration()
         tmp = cpar.get_cal_img_base_name(i_cam)
-        cal.from_file(tmp + b".ori", tmp + b".addpar")
+        cal.from_file(tmp + ".ori", tmp + ".addpar")
         cals.append(cal)
 
     # Distinction between quad/trip irrelevant here.
@@ -171,8 +181,8 @@ def py_determination_proc_c(n_cams, sorted_pos, sorted_corresp, corrected):
         print_corresp = sorted_corresp
 
     # Save rt_is in a temporary file
-    fname = b"".join([default_naming["corres"],
-                      b".123456789"])  # hard-coded frame number
+    fname = "".join([default_naming["corres"],
+                      ".123456789"])  # hard-coded frame number
     print(f'Prepared {fname} to write positions\n')
 
     try:
@@ -180,15 +190,14 @@ def py_determination_proc_c(n_cams, sorted_pos, sorted_corresp, corrected):
             print(f'Opened {fname} \n')
             rt_is.write(str(pos.shape[0]) + "\n")
             for pix, pt in enumerate(pos):
-                pt_args = (pix + 1, ) + tuple(pt) + \
-                    tuple(print_corresp[:, pix])
-                rt_is.write(
-                    "%4d %9.3f %9.3f %9.3f %4d %4d %4d %4d\n" % pt_args)
+                pt_args = (pix + 1, ) + tuple(pt) + tuple(print_corresp[:, pix])
+                rt_is.write("%4d %9.3f %9.3f %9.3f %4d %4d %4d %4d\n" % pt_args)
     except FileNotFoundError:
-        msg = "Sorry, the file " + fname + "does not exist."
-        print(msg)  # Sorry, the file John.txt does not exist.
+        msg = "Sorry, the file "+ fname + "does not exist."
+        print(msg) # Sorry, the file John.txt does not exist.
 
     # rt_is.close()
+
 
 
 def py_sequence_loop(exp):
@@ -221,32 +230,31 @@ def py_sequence_loop(exp):
             else:
                 # imname = spar.get_img_base_name(i_cam) + str(frame).encode()
                 imname = spar.get_img_base_name(i_cam).decode()
-                imname = Path(imname % frame)
-                # imname = Path(imname.replace('#',f'{frame}'))
+                imname = Path(imname.replace('#',f'{frame}'))
                 # print(f'Image name {imname}')
 
                 if not imname.exists():
                     print(f"{imname} does not exist")
 
-                img = img_as_ubyte(imread(imname))
+                img = imread(imname)
                 # time.sleep(.1) # I'm not sure we need it here
-
+                
                 if 'exp1' in exp.__dict__:
-                    if exp.exp1.active_Par.m_Par.Inverse:
+                    if exp.exp1.active_params.m_params.Inverse:
                         print("Invert image")
                         img = 255 - img
 
-                    if exp.exp1.active_Par.m_Par.Subtr_Mask:
+                    if exp.exp1.active_params.m_params.Subtr_Mask:
                         # print("Subtracting mask")
                         try:
-                            mask_name = exp.exp1.active_Par.m_Par.Base_Name_Mask.replace(
-                                '#', str(i_cam+1))
+                            mask_name = exp.exp1.active_params.m_params.Base_Name_Mask.replace('#',str(i_cam+1))
                             mask = imread(mask_name)
                             img[mask] = 0
 
                         except ValueError:
                             print("failed to read the mask")
-
+                    
+                
                 high_pass = simple_highpass(img, cpar)
                 targs = target_recognition(high_pass, tpar, i_cam, cpar)
 
@@ -269,7 +277,7 @@ def py_sequence_loop(exp):
             detections[i_cam].write(
                 spar.get_img_base_name(i_cam),
                 frame
-            )
+                )
 
         print("Frame " + str(frame) + " had " +
               repr([s.shape[1] for s in sorted_pos]) + " correspondences.")
@@ -300,10 +308,8 @@ def py_sequence_loop(exp):
         with open(rt_is_filename, "w", encoding="utf8") as rt_is:
             rt_is.write(str(pos.shape[0]) + "\n")
             for pix, pt in enumerate(pos):
-                pt_args = (pix + 1, ) + tuple(pt) + \
-                    tuple(print_corresp[:, pix])
-                rt_is.write(
-                    "%4d %9.3f %9.3f %9.3f %4d %4d %4d %4d\n" % pt_args)
+                pt_args = (pix + 1, ) + tuple(pt) + tuple(print_corresp[:, pix])
+                rt_is.write("%4d %9.3f %9.3f %9.3f %4d %4d %4d %4d\n" % pt_args)
         # rt_is.close()
     # end of a sequence loop
 
@@ -313,128 +319,6 @@ def py_trackcorr_init(exp):
     tracker = Tracker(exp.cpar, exp.vpar, exp.track_par, exp.spar, exp.cals,
                       default_naming)
     return tracker
-
-
-def py_trackcorr_loop():
-    """Supposedly returns some lists of the linked targets at every step of a tracker"""
-    pass
-
-
-def py_traject_loop():
-    """Used to plot trajectories after the full run
-
-    def py_traject_loop(seq):
-    global intx1_tr,intx2_tr,inty1_tr,inty2_tr,m1_tr
-    trajectories_c(seq, cpar)
-    intx1,intx2,inty1,inty2=[],[],[],[]
-
-    for i in range(cpar[0].num_cams):
-        intx1_t,intx2_t,inty1_t,inty2_t=[],[],[],[]
-        for j in range(m1_tr):
-            intx1_t.append(intx1_tr[i][j])
-            inty1_t.append(inty1_tr[i][j])
-            intx2_t.append(intx2_tr[i][j])
-            inty2_t.append(inty2_tr[i][j])
-        intx1.append(intx1_t)
-        inty1.append(inty1_t)
-        intx2.append(intx2_t)
-        inty2.append(inty2_t)
-    return intx1,inty1,intx2,inty2,m1_tr
-
-    """
-
-
-# ------- Utilities ----------#
-
-
-def py_rclick_delete(x, y, n):
-    """a tool to delete clicked points
-
-    def py_right_click(int coord_x, int coord_y, n_image):
-    global rclick_intx1,rclick_inty1,rclick_intx2,rclick_inty2,rclick_points_x1, rclick_points_y1,rclick_count,rclick_points_intx1, rclick_points_inty1
-
-    x2_points,y2_points,x1,y1,x2,y2=[],[],[],[],[],[]
-
-    cdef volume_par *vpar = read_volume_par("parameters/criteria.par")
-    r = mouse_proc_c (coord_x, coord_y, 3, n_image, vpar, cpar)
-    free(vpar)
-
-    if r == -1:
-        return -1,-1,-1,-1,-1,-1,-1,-1
-    for i in range(cpar[0].num_cams):
-        x2_temp,y2_temp=[],[]
-        for j in range(rclick_count[i]):
-            x2_temp.append(rclick_points_x1[i][j])
-            y2_temp.append(rclick_points_y1[i][j])
-
-        x2_points.append(x2_temp)
-        y2_points.append(y2_temp)
-        x1.append(rclick_intx1[i])
-        y1.append(rclick_inty1[i])
-        x2.append(rclick_intx2[i])
-        y2.append(rclick_inty2[i])
-
-    return  x1,y1,x2,y2,x2_points,y2_points,rclick_points_intx1, rclick_points_inty1
-
-
-    """
-    pass
-
-
-def py_get_pix_N(x, y, n):
-    """
-    def py_get_pix_N(x,y,n_image):
-    global pix
-    cdef int i,j
-    i=n_image
-    x1=[]
-    y1=[]
-    for j in range(num[i]):
-        x1.append(pix[i][j].x)
-        y1.append(pix[i][j].y)
-        x.append(x1)
-        y.append(y1)
-
-    """
-    pass
-
-
-def py_get_pix(x, y):
-    """
-    Returns a list of lists of target positions
-
-    def py_get_pix(x,y):
-    global pix
-    cdef int i,j
-    for i in range(cpar[0].num_cams):
-        x1=[]
-        y1=[]
-        for j in range(num[i]):
-            x1.append(pix[i][j].x)
-            y1.append(pix[i][j].y)
-        x.append(x1)
-        y.append(y1)
-
-    """
-    return x, y
-
-
-def py_calibration(selection):
-    """Calibration
-    def py_calibration(sel):
-    calibration_proc_c(sel)"""
-    if selection == 1:  # read calibration parameters into liboptv
-        pass
-
-    if selection == 2:  # run detection of targets
-        pass
-
-    if selection == 9:  # initial guess
-        """Reads from a target file the 3D points and projects them on
-        the calibration images
-        It is the same function as show trajectories, just read from a different
-        file
-        """
 
 
 def py_multiplanecalibration(exp):

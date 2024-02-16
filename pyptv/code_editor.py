@@ -3,7 +3,6 @@ Editor for editing the cameras ori files
 """
 # Imports:
 import os
-
 from traits.api import (
     HasTraits,
     Code,
@@ -90,15 +89,15 @@ class codeEditor(HasTraits):
     def __init__(self, path):
         """ Initialize by reading parameters and filling the editor windows """
         # load ptv_par
-        ptvPar = par.PtvPar(path=path)
-        ptvPar.read()
-        self.n_img = ptvPar.n_img
+        ptvParams = par.PtvParams(path=path)
+        ptvParams.read()
+        self.n_img = ptvParams.n_img
 
         # load cal_ori
-        calOriPar = par.CalOriPar(self.n_img, path=path)
-        calOriPar.read()
+        calOriParams = par.CalOriParams(self.n_img, path=path)
+        calOriParams.read()
 
         for i in range(self.n_img):
             self.oriEditors.append(
-                oriEditor(calOriPar.img_ori[i])
+                oriEditor(calOriParams.img_ori[i])
             )

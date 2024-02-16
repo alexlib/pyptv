@@ -10,7 +10,7 @@ import yaml
 
 # Temporary path for parameters (active run will be copied here)
 par_dir_prefix = str("parameters")
-max_cam = int(4)
+MAX_CAM = 4 # maximum number of cameras so far
 
 
 def g(f):
@@ -260,10 +260,10 @@ class PtvPar(Parameters):
             with open(self.filepath(), "r", encoding="utf8") as f:
                 self.n_img = int(g(f))
 
-                self.img_name = [None] * max_cam
-                self.img_cal = [None] * max_cam
+                self.img_name = [''] * MAX_CAM
+                self.img_cal = [''] * MAX_CAM
                 for i in range(self.n_img):
-                    # for i in range(max_cam):
+                    # for i in range(MAX_CAM):
                     self.img_name[i] = g(f)
                     self.img_cal[i] = g(f)
 
@@ -293,7 +293,7 @@ class PtvPar(Parameters):
             with open(self.filepath(), "w") as f:
                 f.write("%d\n" % self.n_img)
                 for i in range(self.n_img):
-                    # for i in range(max_cam):
+                    # for i in range(MAX_CAM):
                     f.write("%s\n" % self.img_name[i])
                     f.write("%s\n" % self.img_cal[i])
 
@@ -383,7 +383,7 @@ class CalOriPar(Parameters):
                 self.img_cal_name = []
                 self.img_ori = []
                 for i in range(self.n_img):
-                    # for i in range(max_cam):
+                    # for i in range(MAX_CAM):
                     self.img_cal_name.append(g(f))
                     self.img_ori.append(g(f))
 
@@ -405,7 +405,7 @@ class CalOriPar(Parameters):
 
                 f.write("%s\n" % self.fixp_name)
                 for i in range(self.n_img):
-                    # for i in range(max_cam):
+                    # for i in range(MAX_CAM):
                     f.write("%s\n" % self.img_cal_name[i])
                     f.write("%s\n" % self.img_ori[i])
 
@@ -458,7 +458,7 @@ class SequencePar(Parameters):
             with open(self.filepath(), "r") as f:
                 self.base_name = []
                 for i in range(self.n_img):
-                    # for i in range(max_cam):
+                    # for i in range(MAX_CAM):
                     self.base_name.append(g(f))
 
                 self.first = int(g(f))
@@ -470,7 +470,7 @@ class SequencePar(Parameters):
         try:
             with open(self.filepath(), "w") as f:
                 for i in range(self.n_img):
-                    # for i in range(max_cam):
+                    # for i in range(MAX_CAM):
                     f.write("%s\n" % self.base_name[i])
 
                 f.write("%d\n" % self.first)
@@ -679,9 +679,9 @@ class TargRecPar(Parameters):
         try:
             with open(self.filepath(), "r") as f:
 
-                self.gvthres = [0] * max_cam
+                self.gvthres = [0] * MAX_CAM
                 # for i in range(self.n_img):
-                for i in range(max_cam):
+                for i in range(MAX_CAM):
                     self.gvthres[i] = int(g(f))
 
                 self.disco = int(g(f))
@@ -701,7 +701,7 @@ class TargRecPar(Parameters):
         try:
             f = open(self.filepath(), "w")
             #            for i in range(self.n_img):
-            for i in range(max_cam):
+            for i in range(MAX_CAM):
                 f.write("%d\n" % self.gvthres[i])
 
             f.write("%d\n" % self.disco)
