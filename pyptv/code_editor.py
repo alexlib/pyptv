@@ -89,12 +89,12 @@ class codeEditor(HasTraits):
     def __init__(self, path):
         """ Initialize by reading parameters and filling the editor windows """
         # load ptv_par
-        ptvParams = par.PtvParams(path=path)
+        ptvParams = par.PtvPar(path=path)
         ptvParams.read()
         self.n_img = ptvParams.n_img
 
         # load cal_ori
-        calOriParams = par.CalOriParams(self.n_img, path=path)
+        calOriParams = par.CalOriPar(self.n_img, path=path)
         calOriParams.read()
 
         for i in range(self.n_img):

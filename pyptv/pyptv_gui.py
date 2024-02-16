@@ -607,13 +607,13 @@ class TreeMenuHandler(Handler):
         # synchronize the active run params dir with the temp params dir
         mainGui.exp1.syncActiveDir()
 
-        for i in range(len(mainGui.camera_list)):
+        for i, camera in enumerate(mainGui.camera_list):
             try:
                 imname = getattr(mainGui.exp1.active_params.m_params, f"Name_{i+1}_Image")
                 im = imread(imname)
                 if im.ndim > 2:
-                    im = color.rgb2gray(im)
-                im = adjust_gamma(im, 0.25)
+                    im = color.rgb2gray(im[:, :, :3])
+                # im = adjust_gamma(im, 0.25)
                 mainGui.orig_image[i] = img_as_ubyte(im)
             except IOError:
                 print("Error reading image, setting zero image")
@@ -623,8 +623,8 @@ class TreeMenuHandler(Handler):
                 # print(f"setting images of size {temp_img.shape}")
                 exec(f"mainGui.orig_image[{i}] = temp_img")
 
-            if hasattr(mainGui.camera_list[i], "img_plot"):
-                del mainGui.camera_list[i].img_plot
+            if hasattr(camera, "img_plot"):
+                del camera.img_plot
         mainGui.clear_plots()
         print("\n Init action \n")
         # mainGui.update_plots(mainGui.orig_image, is_float=False)
