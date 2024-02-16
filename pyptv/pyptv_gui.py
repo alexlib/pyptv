@@ -36,7 +36,7 @@ from traitsui.api import (
 
 
 
-from pyface.action.api import MenuBarManager as MenuBar
+from pyface.action.menu_bar_manager import MenuBarManager as MenuBar
 from pyface.action.api import MenuManager as Menu
 from traitsui.menu import Action
 from chaco.api import ArrayDataSource, ArrayPlotData, LinearMapper, Plot, gray
@@ -63,8 +63,8 @@ class Clicker(ImageInspectorTool):
     Clicker class handles right mouse click actions from the tree
     and menubar actions
     """
-    left_changed = Int(1)
-    right_changed = Int(1)
+    left_changed = 1
+    right_changed = 1
     x,y = 0,0
     last_mouse_position = (0,0)
     data_value = 0

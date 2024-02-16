@@ -121,7 +121,7 @@ def readParDir(par_path):
     return ret
 
 
-def copy_Par_dir(src: Path, dest: Path):
+def copy_parameters_directory(src: Path, dest: Path):
     """ Copying all parameter files from /src folder to /dest 
         including .dat, .par and .yaml files
     """
