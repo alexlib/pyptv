@@ -1427,20 +1427,22 @@ class MainGUI(HasTraits):
                 # print(f" base name in GUI is {self.base_name[i]}")
 
         # i = seq
-        seq_ch = f"{seq:04d}"
+        # seq_ch = f"{seq:04d}"
+        # seq_ch = f"{seq:d}"
+        
 
         if not update_all:
             j = self.current_camera
             # img_name = self.base_name[j] + seq_ch
             # img_name = self.base_name[j].replace("#", seq_ch)
-            img_name = self.base_name[j] % seq_ch # works with jumps from 1 to 10
+            img_name = self.base_name[j] % seq # works with jumps from 1 to 10
             # print(f"Image name in load_set_seq is {img_name}")
             self.load_disp_image(img_name, j, display_only)
         else:
             for j in range(n_cams):
                 # img_name = self.base_name[j] + seq_ch
                 # img_name = self.base_name[j].replace("#", seq_ch)
-                img_name = self.base_name[j] % seq_ch # works with jumps from 1 to 10                
+                img_name = self.base_name[j] % seq # works with jumps from 1 to 10                
                 # print(f"Image name in load_set_seq is {img_name}")
                 self.load_disp_image(img_name, j, display_only)
 
@@ -1493,8 +1495,9 @@ def main():
         exp_path = Path(sys.argv[1]).resolve()
         print(f"Experimental path is {exp_path}")
     else:
-        exp_path = software_path.parent / "test_cavity"
-        exp_path = Path('/home/user/Downloads/one-dot-example/working_folder')
+        # exp_path = software_path.parent / "test_cavity"
+        # exp_path = Path('/home/user/Downloads/one-dot-example/working_folder')
+        exp_path = Path('/home/user/Downloads/test_crossing_particle')
         print(f"Without input, PyPTV fallbacks to a default {exp_path} \n")
         
 
