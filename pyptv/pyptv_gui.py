@@ -1432,13 +1432,15 @@ class MainGUI(HasTraits):
         if not update_all:
             j = self.current_camera
             # img_name = self.base_name[j] + seq_ch
-            img_name = self.base_name[j].replace("#", seq_ch)
+            # img_name = self.base_name[j].replace("#", seq_ch)
+            img_name = self.base_name[j] % seq_ch # works with jumps from 1 to 10
             # print(f"Image name in load_set_seq is {img_name}")
             self.load_disp_image(img_name, j, display_only)
         else:
             for j in range(n_cams):
                 # img_name = self.base_name[j] + seq_ch
-                img_name = self.base_name[j].replace("#", seq_ch)
+                # img_name = self.base_name[j].replace("#", seq_ch)
+                img_name = self.base_name[j] % seq_ch # works with jumps from 1 to 10                
                 # print(f"Image name in load_set_seq is {img_name}")
                 self.load_disp_image(img_name, j, display_only)
 

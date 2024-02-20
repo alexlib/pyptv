@@ -222,7 +222,8 @@ def py_sequence_loop(exp):
             else:
                 # imname = spar.get_img_base_name(i_cam) + str(frame).encode()
                 imname = spar.get_img_base_name(i_cam).decode()
-                imname = Path(imname.replace('#',f'{frame}'))
+                # imname = Path(imname.replace('#',f'{frame}'))
+                imname = Path(imname % frame) # works with jumps from 1 to 10 
                 # print(f'Image name {imname}')
 
                 if not imname.exists():
@@ -239,7 +240,8 @@ def py_sequence_loop(exp):
                     if exp.exp1.active_params.m_params.Subtr_Mask:
                         # print("Subtracting mask")
                         try:
-                            mask_name = exp.exp1.active_params.m_params.Base_Name_Mask.replace('#',str(i_cam+1))
+                            # mask_name = exp.exp1.active_params.m_params.Base_Name_Mask.replace('#',str(i_cam+1))
+                            mask_name = exp.exp1.active_params.m_params.Base_Name_Mask % (i_cam + 1)
                             mask = imread(mask_name)
                             img[mask] = 0
 
