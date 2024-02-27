@@ -53,6 +53,7 @@ from pyptv.parameter_gui import Experiment, Paramset
 from pyptv.quiverplot import QuiverPlot
 from pyptv.detection_gui import DetectionGUI
 import optv.orientation
+from pyptv.ptv import py_create_rolling_median, py_remove_rolling_median
 
 
 class Clicker(ImageInspectorTool):
@@ -486,20 +487,41 @@ class TreeMenuHandler(Handler):
             for i, im in enumerate(info.object.orig_image):
                 info.object.orig_image[i] = 255 - im
 
+        # if info.object.exp1.active_params.m_params.Subtr_Mask:
+        #     print("Subtracting mask")
+        #     try:
+        #         for i, im in enumerate(info.object.orig_image):
+        #             mask_name = (
+        #                 info.object.exp1.active_params.m_params.Base_Name_Mask.replace(
+        #                     "#", str(i)
+        #                 )
+        #             )
+        #             mask = imread(mask_name)
+        #             im[mask] = 0
+        #             info.object.orig_image[i] = im
+        #     except ValueError as exc:
+        #         raise ValueError("Failed subtracting mask") from exc
+        
         if info.object.exp1.active_params.m_params.Subtr_Mask:
-            print("Subtracting mask")
-            try:
-                for i, im in enumerate(info.object.orig_image):
-                    mask_name = (
-                        info.object.exp1.active_params.m_params.Base_Name_Mask.replace(
-                            "#", str(i)
-                        )
-                    )
-                    mask = imread(mask_name)
-                    im[mask] = 0
-                    info.object.orig_image[i] = im
-            except ValueError as exc:
-                raise ValueError("Failed subtracting mask") from exc
+            print("Subtracting rolling median")
+            if hasattr(info.object,'rolling_median'):
+                info.object.orig_image = py_remove_rolling_median(info.object.orig_image, info.object.rolling_median)
+            else:
+                info.object.rolling_median = py_create_rolling_median(info.object.orig_image)
+                info.object.orig_image = py_remove_rolling_median(info.object.orig_image, info.object.rolling_median)
+            # try:
+            #     for i, im in enumerate(info.object.orig_image):
+            #         mask_name = (
+            #             info.object.exp1.active_params.m_params.Base_Name_Mask.replace(
+            #                 "#", str(i)
+            #             )
+            #         )
+            #         mask = imread(mask_name)
+            #         im[mask] = 0
+            #         info.object.orig_image[i] = im
+            # except ValueError as exc:
+            #     raise ValueError("Failed subtracting mask") from exc        
+        
 
         print("highpass started")
         info.object.orig_image = ptv.py_pre_processing_c(
@@ -1497,7 +1519,7 @@ def main():
     else:
         # exp_path = software_path.parent / "test_cavity"
         # exp_path = Path('/home/user/Downloads/one-dot-example/working_folder')
-        exp_path = Path('/home/user/Downloads/test_crossing_particle')
+        exp_path = Path('/home/user/Downloads/For_Alex_test_34')
         print(f"Without input, PyPTV fallbacks to a default {exp_path} \n")
         
 

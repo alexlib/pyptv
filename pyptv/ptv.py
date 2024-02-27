@@ -21,6 +21,7 @@ from optv.tracker import Tracker, default_naming
 from optv.epipolar import epipolar_curve
 from skimage.io import imread
 from pyptv import parameters as par
+from scipy.ndimage.filters import median_filter
 
 
 def negative(img):
@@ -88,6 +89,25 @@ def py_pre_processing_c(list_of_images, cpar):
         newlist.append(simple_highpass(img, cpar))
     return newlist
 
+def py_create_rolling_median(list_of_images, window_size=10):
+    """ Create a large image array in which every image is a median of 
+    image_list[i-window_size:i+window_size]
+    """
+    if window_size < len(list_of_images):
+        window_size = len(list_of_images)
+        
+    rolling_median = median_filter(np.array(list_of_images), size=(window_size, 1, 1))
+    return rolling_median
+                                   
+def py_remove_rolling_median(list_of_images, rolling_median):
+    """Image pre-processing, mostly highpass filter, could be extended in
+    the future
+
+    Inputs:
+        list of images
+        cpar ControlParams()
+    """
+    return (np.array(list_of_images) - rolling_median).tolist()
 
 def py_detection_proc_c(list_of_images, cpar, tpar, cals):
     """Detection of targets"""
