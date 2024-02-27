@@ -211,8 +211,8 @@ def py_sequence_loop(exp):
     Existing_Target = np.bool8(pftVersionParams.Existing_Target)
 
     # sequence loop for all frames
-    for frame in range(spar.get_first(), spar.get_last() + 1):
-        # print(f"processing {frame} frame")
+    for frame in range(spar.get_first(), spar.get_last()-1):
+        # print(f"processing {frame = }")
 
         detections = []
         corrected = []
@@ -240,10 +240,10 @@ def py_sequence_loop(exp):
                     if exp.exp1.active_params.m_params.Subtr_Mask:
                         # print("Subtracting mask")
                         try:
-                            # mask_name = exp.exp1.active_params.m_params.Base_Name_Mask.replace('#',str(i_cam+1))
-                            mask_name = exp.exp1.active_params.m_params.Base_Name_Mask % (i_cam + 1)
-                            mask = imread(mask_name)
-                            img[mask] = 0
+                            background_name = exp.exp1.active_params.m_params.Base_Name_Mask.replace('#',str(i_cam))
+                            # background_name = exp.exp1.active_params.m_params.Base_Name_Mask % (i_cam + 1)
+                            background = imread(background_name)
+                            img = np.clip(img - background, 0, 255).astype(np.uint8)
 
                         except ValueError:
                             print("failed to read the mask")

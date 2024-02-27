@@ -490,14 +490,15 @@ class TreeMenuHandler(Handler):
             print("Subtracting mask")
             try:
                 for i, im in enumerate(info.object.orig_image):
-                    mask_name = (
+                    background_name = (
                         info.object.exp1.active_params.m_params.Base_Name_Mask.replace(
                             "#", str(i)
                         )
                     )
-                    mask = imread(mask_name)
-                    im[mask] = 0
-                    info.object.orig_image[i] = im
+                    background = imread(background_name)
+                    # im[mask] = 0
+                    info.object.orig_image[i] = np.clip(info.object.orig_image[i] - background, 0, 255).astype(np.uint8)
+                    
             except ValueError as exc:
                 raise ValueError("Failed subtracting mask") from exc
 
@@ -773,6 +774,7 @@ class TreeMenuHandler(Handler):
 
         # load first image from sequence
         info.object.load_set_seq_image(seq_first)
+        info.object.overlay_set_images(seq_first, seq_last)
 
         print("Starting detect_part_track")
         x1_a, x2_a, y1_a, y2_a = [], [], [], []
@@ -824,7 +826,8 @@ class TreeMenuHandler(Handler):
         info.object.clear_plots(remove_background=False)
         seq_first = info.object.exp1.active_params.m_params.Seq_First
         seq_last = info.object.exp1.active_params.m_params.Seq_Last
-        info.object.load_set_seq_image(seq_first, display_only=True)
+        # info.object.load_set_seq_image(seq_first, display_only=True)
+        info.object.overlay_set_images(seq_first, seq_last)
 
         from flowtracks.io import trajectories_ptvis
 
@@ -1431,7 +1434,7 @@ class MainGUI(HasTraits):
         # seq_ch = f"{seq:d}"
         
 
-        if not update_all:
+        if update_all is False:
             j = self.current_camera
             # img_name = self.base_name[j] + seq_ch
             # img_name = self.base_name[j].replace("#", seq_ch)
@@ -1445,6 +1448,27 @@ class MainGUI(HasTraits):
                 img_name = self.base_name[j] % seq # works with jumps from 1 to 10                
                 # print(f"Image name in load_set_seq is {img_name}")
                 self.load_disp_image(img_name, j, display_only)
+                
+                
+    def overlay_set_images(self, seq_first: int, seq_last:int):
+        """load and set sequence images and overlay them for tracking show
+
+        Args:
+            seq (_type_): sequance properties
+            update_all (bool, optional): _description_. Defaults to True.
+            display_only (bool, optional): _description_. Defaults to False.
+        """
+        
+        for cam_id in range(len(self.camera_list)):
+            
+            temp_img = []
+            for seq in range(seq_first, seq_last):
+                temp_img.append(img_as_ubyte(imread(self.base_name[cam_id] % seq)))
+        
+            temp_img = np.array(temp_img)
+            temp_img = np.max(temp_img, axis=0)
+            self.camera_list[cam_id].update_image(temp_img)
+                    
 
     def load_disp_image(self, img_name: str, j: int, display_only: bool = False):
         """load and display image
@@ -1497,7 +1521,7 @@ def main():
     else:
         # exp_path = software_path.parent / "test_cavity"
         # exp_path = Path('/home/user/Downloads/one-dot-example/working_folder')
-        exp_path = Path('/home/user/Downloads/test_crossing_particle')
+        exp_path = Path('/home/user/Downloads/For_Alex_test_34')
         print(f"Without input, PyPTV fallbacks to a default {exp_path} \n")
         
 
