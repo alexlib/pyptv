@@ -417,7 +417,7 @@ class TreeMenuHandler(Handler):
         par.copy_params_dir(paramset.par_path, new_dir_path)
         experiment.addParamset(new_name, new_dir_path)
 
-    def rename_set_params(editor, object):
+    def rename_set_params(self, editor, object):
         """rename_set_params renames the node name on the tree and also
         the folder of parameters"""
         experiment = editor.get_parent(object)
@@ -437,7 +437,7 @@ class TreeMenuHandler(Handler):
         experiment.removeParamset(paramset)
         experiment.addParamset(new_name, new_dir_path)
 
-    def delete_set_params(editor, object):
+    def delete_set_params(self, editor, object):
         """delete_set_params deletes the node and the folder of parameters"""
         # experiment = editor.get_parent(object)
         paramset = object
