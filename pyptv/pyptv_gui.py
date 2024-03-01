@@ -1521,9 +1521,9 @@ def main():
     else:
         # exp_path = software_path.parent / "test_cavity"
         # exp_path = Path('/home/user/Downloads/one-dot-example/working_folder')
-        exp_path = Path('/home/user/Downloads/For_Alex_test_34')
+        # exp_path = Path('/home/user/Downloads/test_crossing_particle')
+        exp_path = Path('/home/user/Downloads/rbc300')
         print(f"Without input, PyPTV fallbacks to a default {exp_path} \n")
-        
 
     if not exp_path.is_dir() or not exp_path.exists():
         raise OSError(f"Wrong experimental directory {exp_path}")
