@@ -55,7 +55,7 @@ from pyptv.quiverplot import QuiverPlot
 from pyptv.detection_gui import DetectionGUI
 from openptv_python.epi import epipolar_curve
 from openptv_python.imgcoord import image_coordinates
-from openptv_python.trafo import convert_arr_metric_to_pixel
+from openptv_python.trafo import arr_metric_to_pixel
 
 class Clicker(ImageInspectorTool):
     """
