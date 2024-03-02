@@ -35,7 +35,7 @@ from traitsui.api import (
 
 
 
-from pyface.workbench.action.menu_bar_manager import MenuBarManager as MenuBar
+from pyface.action.api import MenuBarManager, MenuManager
 
 from traitsui.menu import Action
 from chaco.api import ArrayDataSource, ArrayPlotData, LinearMapper, Plot, gray
@@ -972,16 +972,16 @@ DeleteSetParams = Action(
 # -----------------------------------------
 # Defines the menubar
 # ------------------------------------------
-menu_bar = MenuBar(
-    Menu(
+menu_bar = MenuBarManager(
+    MenuManager(
         Action(name="New", action="new_action"),
         Action(name="Open", action="open_action"),
         Action(name="Save As", action="saveas_action"),
         Action(name="Exit", action="exit_action"),
         name="File",
     ),
-    Menu(Action(name="Init / Restart", action="init_action"), name="Start"),
-    Menu(
+    MenuManager(Action(name="Init / Restart", action="init_action"), name="Start"),
+    MenuManager(
         Action(
             name="High pass filter",
             action="highpass_action",
@@ -999,7 +999,7 @@ menu_bar = MenuBar(
         ),
         name="Preprocess",
     ),
-    Menu(
+    MenuManager(
         Action(
             name="3D positions",
             action="three_d_positions",
@@ -1007,7 +1007,7 @@ menu_bar = MenuBar(
         ),
         name="3D Positions",
     ),
-    Menu(
+    MenuManager(
         Action(
             name="Create calibration",
             action="calib_action",
@@ -1015,7 +1015,7 @@ menu_bar = MenuBar(
         ),
         name="Calibration",
     ),
-    Menu(
+    MenuManager(
         Action(
             name="Sequence without display",
             action="sequence_action",
@@ -1023,7 +1023,7 @@ menu_bar = MenuBar(
         ),
         name="Sequence",
     ),
-    Menu(
+    MenuManager(
         Action(
             name="Detected Particles",
             action="detect_part_track",
@@ -1053,8 +1053,8 @@ menu_bar = MenuBar(
         ),
         name="Tracking",
     ),
-    Menu(Action(name="Select plugin", action="plugin_action"), name="Plugins"),
-    Menu(
+    MenuManager(Action(name="Select plugin", action="plugin_action"), name="Plugins"),
+    MenuManager(
         Action(name="Detection GUI demo", action="detection_gui_action"),
         name="Detection demo",
     ),
@@ -1077,14 +1077,14 @@ tree_editor_exp = TreeEditor(
             children="paramsets",
             label="=Parameters",
             add=[Paramset],
-            menu=Menu(CopySetParams),
+            menu=MenuManager(CopySetParams),
         ),
         TreeNode(
             node_for=[Paramset],
             auto_open=True,
             children="",
             label="name",
-            menu=Menu(
+            menu=MenuManager(
                 # NewAction,
                 CopySetParams,
                 RenameSetParams,
