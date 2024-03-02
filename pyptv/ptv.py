@@ -215,9 +215,8 @@ def py_sequence_loop(exp):
         exp.cals,
     )
 
-    pftVersionPar = par.PftVersionPar(path=Path("parameters"))
-    pftVersionPar.read()
-    Existing_Target = np.bool8(pftVersionPar.Existing_Target)
+    pftVersionPar = PftVersionPar().from_file("parameters/pft_version.par")
+    Existing_Target = bool(pftVersionPar.existing_target_flag)
 
     # sequence loop for all frames
     first_frame = spar.get_first()
@@ -230,7 +229,7 @@ def py_sequence_loop(exp):
         detections = []
         corrected = []
         for i_cam in range(n_cams):
-            base_image_name = spar.get_img_base_name(i_cam).decode()
+            base_image_name = spar.get_img_base_name(i_cam)
             if Existing_Target:
                 targs = read_targets(spar.get_img_base_name(i_cam), frame)
             else:
@@ -266,7 +265,7 @@ def py_sequence_loop(exp):
                 high_pass = simple_highpass(img, cpar)
                 targs = target_recognition(high_pass, tpar, i_cam, cpar)
 
-            targs.sort_y()
+            targs.sort(key=lambda t: t.y)
             detections.append(targs)
             masked_coords = MatchedCoords(targs, cpar, cals[i_cam])
             pos, _ = masked_coords.as_arrays()
