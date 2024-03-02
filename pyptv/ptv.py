@@ -15,6 +15,7 @@ from openptv_python.parameters import (
     TrackPar,
     SequencePar,
     TargetPar,
+    OrientPar,
     PftVersionPar,
     read_control_par,
     read_volume_par,
@@ -26,7 +27,7 @@ from openptv_python.parameters import (
 from openptv_python.segmentation import target_recognition
 from openptv_python.tracking_frame_buf import (
     read_targets, 
-    TargetArray, 
+    Target, 
     match_coords,
     write_targets
 )
@@ -366,18 +367,16 @@ def py_multiplanecalibration(exp):
         all_known = np.vstack(all_known)[:, 1:]
         all_detected = np.vstack(all_detected)
 
-        targs = TargetArray(len(all_detected))
-        for tix in range(len(all_detected)):
+        targs = [Target() for _ in range(len(all_detected))]
+        for tix, detected in enumerate(all_detected):
             targ = targs[tix]
-            det = all_detected[tix]
-
             targ.set_pnr(tix)
-            targ.set_pos(det[1:])
+            targ.set_pos(detected[1:])
 
         # backup the ORI/ADDPAR files first
         exp.backup_ori_files()
 
-        op = par.OrientPar()
+        op = OrientPar()
         op.read()
 
         # recognized names for the flags:
