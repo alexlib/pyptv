@@ -35,8 +35,8 @@ from traitsui.api import (
 
 
 
-from pyface.action.menu_manager import MenuBarManager as MenuBar
-from pyface.action.menu_manager import Menu
+from pyface.workbench.action.menu_bar_manager import MenuBarManager as MenuBar
+
 from traitsui.menu import Action
 from chaco.api import ArrayDataSource, ArrayPlotData, LinearMapper, Plot, gray
 from chaco.tools.api import PanTool, ZoomTool
