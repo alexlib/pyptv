@@ -9,7 +9,6 @@ OpenPTV library is distributed under the terms of LGPL license
 see http://www.openptv.net for more details.
 
 """
-import optv.epipolar
 import os
 from pathlib import Path
 import sys
@@ -36,8 +35,8 @@ from traitsui.api import (
 
 
 
-from pyface.action.menu_bar_manager import MenuBarManager as MenuBar
-from pyface.action.api import MenuManager as Menu
+from pyface.action.menu_manager import MenuBarManager as MenuBar
+from pyface.action.menu_manager import Menu
 from traitsui.menu import Action
 from chaco.api import ArrayDataSource, ArrayPlotData, LinearMapper, Plot, gray
 from chaco.tools.api import PanTool, ZoomTool
@@ -46,7 +45,6 @@ from enable.component_editor import ComponentEditor
 from skimage.util import img_as_ubyte
 from skimage import color
 from skimage.io import imread
-from skimage.exposure import adjust_gamma
 
 from pyptv import parameters as par
 from pyptv import ptv
@@ -56,7 +54,8 @@ from pyptv.parameter_gui import Experiment, Paramset
 from pyptv.quiverplot import QuiverPlot
 from pyptv.detection_gui import DetectionGUI
 from openptv_python.epi import epipolar_curve
-
+from openptv_python.imgcoord import image_coordinates
+from openptv_python.trafo import convert_arr_metric_to_pixel
 
 class Clicker(ImageInspectorTool):
     """
@@ -613,7 +612,6 @@ class TreeMenuHandler(Handler):
                 im = imread(imname)
                 if im.ndim > 2:
                     im = color.rgb2gray(im[:, :, :3])
-                # im = adjust_gamma(im, 0.25)
                 mainGui.orig_image[i] = img_as_ubyte(im)
             except IOError:
                 print("Error reading image, setting zero image")
@@ -856,12 +854,12 @@ class TreeMenuHandler(Handler):
                 # head_x.append(pos[0][0])
                 # head_y.append(pos[0][1])
 
-                projected = optv.imgcoord.image_coordinates(
+                projected = image_coordinates(
                     np.atleast_2d(traj.pos() * 1000),
                     info.object.cals[i_cam],
                     info.object.cpar.get_multimedia_params(),
                 )
-                pos = optv.transforms.convert_arr_metric_to_pixel(
+                pos = convert_arr_metric_to_pixel(
                     projected, info.object.cpar
                 )
 
