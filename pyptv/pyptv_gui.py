@@ -493,7 +493,7 @@ class TreeMenuHandler(Handler):
                 info.object.orig_image[i] = 255 - im
 
         if info.object.exp1.active_params.m_params.Subtr_Mask:
-            print("Subtracting mask")
+            print("Subtracting background mask")
             try:
                 for i, im in enumerate(info.object.orig_image):
                     mask_name = (
@@ -502,10 +502,9 @@ class TreeMenuHandler(Handler):
                         )
                     )
                     mask = imread(mask_name)
-                    im[mask] = 0
-                    info.object.orig_image[i] = im
+                    info.object.orig_image[i] = np.clip(info.object.orig_image[i] - mask, 0, 255).astype(np.uint8)
             except ValueError as exc:
-                raise ValueError("Failed subtracting mask") from exc
+                raise ValueError("Failed subtracting background") from exc
 
         print("highpass started")
         info.object.orig_image = ptv.py_pre_processing_c(
