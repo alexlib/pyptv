@@ -56,6 +56,7 @@ from pyptv.detection_gui import DetectionGUI
 from openptv_python.epi import epipolar_curve
 from openptv_python.imgcoord import image_coordinates
 from openptv_python.trafo import arr_metric_to_pixel
+from openptv_python.tracking_frame_buf import read_targets
 
 class Clicker(ImageInspectorTool):
     """
@@ -791,7 +792,7 @@ class TreeMenuHandler(Handler):
             for i_seq in range(seq_first, seq_last + 1):  # loop over sequences
                 intx_green, inty_green = [], []
                 intx_blue, inty_blue = [], []
-                targets = optv.tracking_framebuf.read_targets(base_names[i_img], i_seq)
+                targets = read_targets(base_names[i_img], i_seq)
 
                 for t in targets:
                     if t.tnr() > -1:
@@ -1495,7 +1496,7 @@ def main():
         # exp_path = software_path.parent / "test_cavity"
         # exp_path = Path('/home/user/Downloads/one-dot-example/working_folder')
         exp_path = Path(
-            "/home/user/Downloads/rbc300/")
+            "/home/user/Downloads/For_Alex_test_34/")
         # exp_path = Path("/home/user/Downloads/one-dot-example/working_folder")
         print(f"Without input, PyPTV fallbacks to a default {exp_path} \n")
         
