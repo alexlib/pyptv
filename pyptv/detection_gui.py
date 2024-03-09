@@ -515,7 +515,7 @@ class DetectionGUI(HasTraits):
 
         # print("n particles is %d " % len(x))
 
-        self.camera[0].drawcross("x", "y", np.array(x), np.array(y), "yellow", 8)
+        self.camera[0].drawcross("x", "y", np.array(x), np.array(y), "red", 8)
         self.camera[0]._right_click_avail = 1
 
         # for i in range(self.n_cams):

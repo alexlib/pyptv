@@ -34,6 +34,36 @@ from openptv_python.tracking_frame_buf import (
 from openptv_python.track import Tracker, default_naming
 from skimage.io import imread
 
+
+
+def process_path(input_path):
+    """ Process a file path, accepting either a pathlib.Path object or a string.
+    
+    Args:
+        input_path (Union[pathlib.Path, str]): The input file path.
+    
+    Returns:
+        pathlib.Path: A Path object representing the processed path.
+    """
+    if isinstance(input_path, Path):
+        # If input_path is already a Path object, return it as is
+        return input_path
+    else:
+        # Otherwise, convert the string to a Path object
+        return Path(input_path)
+
+# # Example usage:
+# file_path1 = pathlib.Path('my_directory/my_file.txt')
+# file_path2 = 'another_directory/another_file.txt'
+
+# # Call the function with both Path objects and strings
+# processed_path1 = process_path(file_path1)
+# processed_path2 = process_path(file_path2)
+
+# print(f"Processed path 1: {processed_path1}")
+# print(f"Processed path 2: {processed_path2}")
+
+
 def negative(img):
     """ Negative 8-bit image """
     return 255 - img
@@ -53,29 +83,29 @@ def py_start_proc_c(n_cams):
 
     # Control parameters
     # cpar = ControlPar(n_cams)
-    cpar = read_control_par("parameters/ptv.par")
+    cpar = read_control_par(process_path("parameters/ptv.par"))
 
     # Sequence parameters
-    spar  = read_sequence_par("parameters/sequence.par", n_cams)
+    spar  = read_sequence_par(process_path("parameters/sequence.par"), n_cams)
 
     # Volume parameters
-    vpar = read_volume_par("parameters/criteria.par")
+    vpar = read_volume_par(process_path("parameters/criteria.par"))
 
     # Tracking parameters
-    track_par = read_track_par("parameters/track.par")
+    track_par = read_track_par(process_path("parameters/track.par"))
 
     # Target parameters
-    tpar = read_target_par("parameters/targ_rec.par")
+    tpar = read_target_par(process_path("parameters/targ_rec.par"))
 
     # Examine parameters, multiplane (single plane vs combined calibration)
-    epar = read_examine_par("parameters/examine.par")
+    epar = read_examine_par(process_path("parameters/examine.par"))
 
 
     # Calibration parameters
     cals = []
     for i_cam in range(n_cams):
         tmp = cpar.cal_img_base_name[i_cam]
-        cal = Calibration().from_file(tmp + ".ori", tmp + ".addpar")
+        cal = Calibration().from_file(process_path(tmp + ".ori"), process_path(tmp + ".addpar"))
         cals.append(cal)
 
     return cpar, spar, vpar, track_par, tpar, cals, epar
