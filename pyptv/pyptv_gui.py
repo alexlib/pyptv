@@ -717,7 +717,7 @@ class TreeMenuHandler(Handler):
                 extern_tracker = "default"
             os.chdir(info.exp1.object.exp_path)  # change back to working path
         if extern_tracker == "default":
-            print("Using default liboptv tracker")
+            print("Using default OpenPTV tracker")
             info.object.tracker = ptv.py_trackcorr_init(info.object)
             info.object.tracker.full_forward()
         else:

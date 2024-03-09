@@ -37,8 +37,8 @@ requirements:
 
 about:
   home: https://github.com/alexlib/pyptv
-  summary: Python GUI for the OpenPTV library `liboptv`
+  summary: GUI for the new OpenPTV library `openptv-python`
   license: MIT
   license_family: MIT
   license_file: LICENSE.txt
-  doc_url: http://openptv-python.readthedocs.io
+  doc_url: http://github.com/openptv/openptv-python
