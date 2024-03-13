@@ -1496,7 +1496,9 @@ def main():
         # exp_path = software_path.parent / "test_cavity"
         # exp_path = Path('/home/user/Downloads/one-dot-example/working_folder')
         exp_path = Path(
-            "/home/user/Downloads/For_Alex_test_34/")
+            #"/home/user/Downloads/For_Alex_test_34/"
+            "/home/user/Downloads/rbc300"
+            )
         # exp_path = Path("/home/user/Downloads/one-dot-example/working_folder")
         print(f"Without input, PyPTV fallbacks to a default {exp_path} \n")
         
