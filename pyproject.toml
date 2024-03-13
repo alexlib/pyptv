@@ -1,0 +1,37 @@
+[tool.poetry]
+name = "pyptv"
+version = "0.2.4"
+description = "PyPTV is a Python GUI for OpenPTV library, liboptv"
+authors = ["Alex Liberzon <alexlib@users.noreply.github.com>"]
+license = "MIT"
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = "^3.10"
+numpy = "<1.24"
+chaco = "^6.0.0"
+enable = "^6.0.0"
+scikit-image = "^0.22.0"
+Pygments = "^2.17.2"
+six = "^1.16.0"
+imagecodecs = "^2024.1.1"
+flowtracks = "^1.0"
+tables = "^3.9.2"
+pyparsing = "^3.1.2"
+tqdm = "^4.66.2"
+pyqt5 = "=5.15.10"   
+pyqt5-qt5 = "=5.15.2"
+optv = {version = "^0.2.8", source = "optv"}
+
+
+[[tool.poetry.source]]
+name = "optv"
+url = "https://pypi.fury.io/pyptv"
+priority = "supplemental"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
+
+[tool.poetry.dev-dependencies]
+pytest = "^7.4.3"
