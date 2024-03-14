@@ -84,7 +84,7 @@ class Clicker(ImageInspectorTool):
             self.data_value = plot.value.data[self.y, self.x]
             self.last_mouse_position = (event.x, event.y)
             self.left_changed = 1 - self.left_changed
-            print(f"left: x={self.x}, y={self.y}, I={self.data_value}, {self.left_changed}")
+            print(f"left normal down: x={self.x}, y={self.y}, I={self.data_value}, {self.left_changed}")
             
         return
             
@@ -97,7 +97,7 @@ class Clicker(ImageInspectorTool):
             self.last_mouse_position = (event.x, event.y)
             self.data_value = plot.value.data[self.y, self.x]
             self.right_changed = 1 - self.right_changed
-            print(f"right: x={self.x}, y={self.y}, I={self.data_value}")
+            print(f"right normal down: x={self.x}, y={self.y}, I={self.data_value}")
             
         return
             
@@ -113,7 +113,7 @@ class CameraWindow(HasTraits):
 
     _plot = Instance(Plot)
     _click_tool = Instance(Clicker)
-    rclicked = Int(0)
+    rclicked = 0
     
 
     cam_color = ""
@@ -174,15 +174,15 @@ class CameraWindow(HasTraits):
         on the screen
         """
         print(
-            f"x={self._click_tool.x} pix,y={self._click_tool.y} pix,I={self._click_tool.data_value}"
+            f"left clicked event: x={self._click_tool.x} pix,y={self._click_tool.y} pix,I={self._click_tool.data_value}"
         )
         
     def right_clicked_event(self):
         """right mouse button click event flag"""
         # # self._click_tool.right_changed = 1
-        # print(
-        #     f"right_clicked, x={self._click_tool.x} pix,y={self._click_tool.y} pix, I={self._click_tool.data_value}, {self.rclicked}"
-        # )
+        print(
+            f"right_clicked_event, x={self._click_tool.x} pix,y={self._click_tool.y} pix, I={self._click_tool.data_value}, {self.rclicked}"
+        )
         self.rclicked = 1
 
         
