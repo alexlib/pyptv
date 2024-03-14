@@ -483,7 +483,7 @@ class DetectionGUI(HasTraits):
         if im.ndim > 2:
             im = color.rgb2gray(im)
                         
-        im = adjust_gamma(im, 0.25)
+        # im = adjust_gamma(im, 0.25)
 
         if self.inverse_flag is True:
             im = 255 - im
