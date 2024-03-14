@@ -88,7 +88,7 @@ class Clicker(ImageInspectorTool):
             self.x, self.y = plot.map_index((event.x, event.y))
             self.last_mouse_position = (event.x, event.y)
             self.data_value = plot.value.data[self.y, self.x]
-            # print(f"right: x={self.x}, y={self.y}, I={self.data_value}")
+            print(f"normal right down: x={self.x}, y={self.y}, I={self.data_value}")
             self.right_changed = 1 - self.right_changed
             
         
@@ -173,9 +173,9 @@ class CameraWindow(HasTraits):
     def right_clicked_event(self):
         """right mouse button click event flag"""
         # # self._click_tool.right_changed = 1
-        # print(
-        #     f"right_clicked, x={self._click_tool.x} pix,y={self._click_tool.y} pix, I={self._click_tool.data_value}, {self.rclicked}"
-        # )
+        print(
+            f"right_clicked, x={self._click_tool.x} pix,y={self._click_tool.y} pix, I={self._click_tool.data_value}, {self.rclicked}"
+        )
         self.rclicked = 1
 
         
