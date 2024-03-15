@@ -127,7 +127,7 @@ def py_pre_processing_c(list_of_images: List[np.ndarray], cpar: ControlPar) -> L
 
 def py_detection_proc_c(list_of_images, cpar, tpar, cals):
     """Detection of targets"""
-    pft = PftVersionPar().from_file("parameters/pft_version.par")
+    pft = PftVersionPar().from_file(Path("parameters/pft_version.par"))
 
     detections, corrected = [], []
     for i_cam, img in enumerate(list_of_images):
@@ -182,18 +182,16 @@ def py_determination_proc_c(n_cams, sorted_pos, sorted_corresp, corrected):
     """Returns 3d positions"""
 
     # Control parameters
-    cpar = ControlPar(n_cams)
-    cpar.read_control_par("parameters/ptv.par")
+    cpar = ControlPar(n_cams).from_file(Path("parameters/ptv.par"))
 
     # Volume parameters
-    vpar = VolumePar()
-    vpar.read_volume_par("parameters/criteria.par")
+    vpar = VolumePar().from_file(Path("parameters/criteria.par"))
 
     cals = []
     for i_cam in range(n_cams):
         cal = Calibration()
-        tmp = cpar.get_cal_img_base_name(i_cam)
-        cal.from_file(tmp + ".ori", tmp + ".addpar")
+        tmp = cpar.cal_img_base_name[i_cam]
+        cal.from_file(Path(tmp + ".ori"), Path(tmp + ".addpar"))
         cals.append(cal)
 
     # Distinction between quad/trip irrelevant here.

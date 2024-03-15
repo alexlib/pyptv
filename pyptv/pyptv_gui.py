@@ -63,8 +63,8 @@ class Clicker(ImageInspectorTool):
     Clicker class handles right mouse click actions from the tree
     and menubar actions
     """
-    left_changed = 1
-    right_changed = 1
+    left_changed = Int(1)
+    right_changed = Int(1)
     x,y = 0,0
     last_mouse_position = (0,0)
     data_value = 0
@@ -113,7 +113,7 @@ class CameraWindow(HasTraits):
 
     _plot = Instance(Plot)
     _click_tool = Instance(Clicker)
-    rclicked = 0
+    rclicked = Int(0)
     
 
     cam_color = ""
@@ -1189,7 +1189,7 @@ class MainGUI(HasTraits):
             ),
             orientation="vertical",
         ),
-        title="pyPTV ver. 0.2.4",
+        title="pyPTV ver. 0.3.0",
         id="main_view",
         width=1.0,
         height=1.0,
@@ -1218,8 +1218,8 @@ class MainGUI(HasTraits):
         ]
         self.software_path = software_path
         self.exp_path = exp_path
-        for i in range(self.n_cams):
-            self.camera_list[i].on_trait_change(self.right_click_process, "rclicked")
+        for cam in self.camera_list:
+            cam.on_trait_change(self.right_click_process, "rclicked")
 
     def right_click_process(self):
         """
@@ -1236,29 +1236,27 @@ class MainGUI(HasTraits):
             
         
         if plot_epipolar:
-
-            i = self.current_camera
             point = np.array(
                 [
-                    self.camera_list[i]._click_tool.x,
-                    self.camera_list[i]._click_tool.y,
+                    self.camera_list[self.current_camera]._click_tool.x,
+                    self.camera_list[self.current_camera]._click_tool.y,
                 ],
                 dtype="float64",
             )
             
             # find closest point in the sorted_pos            
             for pos_type in self.sorted_pos: # quadruplet, triplet, pair
-                distances = np.linalg.norm(pos_type[i] - point, axis=1)
+                distances = np.linalg.norm(pos_type[self.current_camera] - point, axis=1)
                 # next test prevents failure with empty quadruplets or triplets
                 if len(distances) > 0 and np.min(distances) < 5 :
-                    point = pos_type[i][np.argmin(distances)]
+                    point = pos_type[self.current_camera][np.argmin(distances)]
                     
                     
             
             if not np.allclose(point, [0.0, 0.0]):
                 # mark the point with a circle
                 c = str(np.random.rand())[2:]
-                self.camera_list[i].drawcross(
+                self.camera_list[self.current_camera].drawcross(
                     "right_p_x0" + c,
                     "right_p_y0" + c,
                     point[0],
@@ -1270,11 +1268,11 @@ class MainGUI(HasTraits):
 
                 # look for points along epipolars for other cameras
                 for j in range(self.n_cams):
-                    if i == j:
+                    if j == self.current_camera:
                         continue
                     pts = epipolar_curve(
                         point,
-                        self.cals[i],
+                        self.cals[self.current_camera],
                         self.cals[j],
                         num_points,
                         self.cpar,
@@ -1289,10 +1287,10 @@ class MainGUI(HasTraits):
                             pts[0, 1],
                             pts[-1, 0],
                             pts[-1, 1],
-                            self.camera_list[i].cam_color,
+                            self.camera_list[self.current_camera].cam_color,
                         )
                 
-                self.camera_list[i].rclicked = 0
+                self.camera_list[self.current_camera].rclicked = 0
                         
         
 
