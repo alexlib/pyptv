@@ -219,7 +219,7 @@ def py_sequence_loop(exp):
     # sequence loop for all frames
     first_frame = spar.get_first()
     last_frame = spar.get_last()
-    print(f"From {first_frame= } to {last_frame= }")
+    print(f"From first {first_frame} frame to last {last_frame}")
     
     for frame in range(first_frame, last_frame + 1):
         # print(f"processing {frame = }")
