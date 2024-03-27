@@ -234,7 +234,10 @@ def py_sequence_loop(exp):
                 # imname = spar.get_img_base_name(i_cam) + str(frame).encode()
                 
                 # imname = Path(imname.replace('#',f'{frame}'))
-                imname = Path(base_image_name % frame) # works with jumps from 1 to 10 
+                if '#' in base_image_name:
+                    imname = Path(base_image_name.replace('#',str(frame)))
+                else:
+                    imname = Path(base_image_name % frame) # works with jumps from 1 to 10 
                 # print(f'Image name {imname}')
 
                 if not imname.exists():

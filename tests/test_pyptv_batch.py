@@ -1,6 +1,6 @@
-from pyptv import pyptv_batch
+from pyptv.pyptv_batch import main
 
 
 def test_pyptv_batch():
-    # assert cli.cli() == 'CLI template'
-    pyptv_batch.main('./tests/test_cavity', 10000, 10004)
+    """ Test pyptv_batch.py """
+    main('./tests/test_cavity', first=10000, last=10004)
