@@ -1,11 +1,13 @@
+""" This module contains the functions that are used in the pyptv_gui.py"""
 from pathlib import Path
 import numpy as np
+from scipy.optimize import minimize
+
 from optv.calibration import Calibration
 from optv.correspondences import correspondences, MatchedCoords
 from optv.image_processing import preprocess_image
 from optv.orientation import (
     point_positions,
-    external_calibration,
     full_calibration,
 )
 from optv.parameters import (
@@ -16,12 +18,16 @@ from optv.parameters import (
     TargetParams,
 )
 from optv.segmentation import target_recognition
-from optv.tracking_framebuf import CORRES_NONE, read_targets, TargetArray
+from optv.tracking_framebuf import read_targets, TargetArray
 from optv.tracker import Tracker, default_naming
-from optv.epipolar import epipolar_curve
+from optv.transforms import convert_arr_metric_to_pixel as arr_metric_to_pixel
+from optv.imgcoord import image_coordinates
 from skimage.io import imread
 from pyptv import parameters as par
 
+def rgb2gray(img):
+    """ Convert RGB to grayscale """
+    return 0.2125*img[:,:,0] + 0.7154*img[:,:,1] + 0.0721*img[:,:,2]
 
 def negative(img):
     """ Negative 8-bit image """
@@ -423,23 +429,47 @@ def py_get_pix(x, y):
     """
     return x, y
 
+def array_to_calibration(x:np.ndarray, cal:Calibration) -> None:
+    """ Converts array to calibration."""
+    # cal = Calibration()
+    cal.set_pos(x[:3])
+    cal.set_angles(x[3:6])
+    cal.set_primary_point(x[6:9])
+    cal.set_radial_distortion(x[9:12])
+    cal.set_decentering(x[12:14])
+    cal.set_affine_trans(x[14:])
+    return None
 
-def py_calibration(selection):
-    """Calibration
-    def py_calibration(sel):
-    calibration_proc_c(sel)"""
-    if selection == 1:  # read calibration parameters into liboptv
-        pass
+def calibration_to_array(cal) -> np.ndarray:
+    """ Converts calibration to array"""
+    return np.concatenate([
+        cal.get_pos(),
+        cal.get_angles(),
+        cal.get_primary_point(),
+        cal.get_radial_distortion(),
+        cal.get_decentering(),
+        cal.get_affine(),
+    ])
 
-    if selection == 2:  # run detection of targets
-        pass
+def error_function(x, cal, XYZ, xy, cpar):
+    
+    array_to_calibration(x, cal)
+    
+    targets = arr_metric_to_pixel(
+        image_coordinates(XYZ, cal, cpar.get_multimedia_params()),
+    cpar,
+    )
+    err = np.sum(np.abs(xy - targets))
+    # print(err)
+    return err
 
-    if selection == 9:  # initial guess
-        """Reads from a target file the 3D points and projects them on
-        the calibration images
-        It is the same function as show trajectories, just read from a different
-        file
-        """
+def py_calibration(cal, XYZ, xy, cpar, flags):
+    """ Performs calibration of the selected cameras using Scipy"""
+    
+    x0 = calibration_to_array(cal)
+    sol = minimize(error_function, x0, args=(cal, XYZ, xy, cpar), method='Nelder-Mead', tol=1e-5)
+    array_to_calibration(sol.x, cal) # cal is updated in place
+    # return cal
 
 
 def py_multiplanecalibration(exp):
@@ -470,10 +500,10 @@ def py_multiplanecalibration(exp):
             num_detect = len(detected)
 
             if num_known != num_detect:
-                raise ValueError(
-                    "Number of detected points (%d) does not match" +
-                    " number of known points (%d) for %s, %s" %
-                    (num_known, num_detect, file_known, file_detected))
+                msg = f"Number of known points {num_known} does not match"
+                msg += f" number of detected points {num_detect} for {file_known}, {file_detected}"
+                
+                raise ValueError(msg)
 
             if len(all_known) > 0:
                 detected[:, 0] = (all_detected[-1][-1, 0] + 1 +

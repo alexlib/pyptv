@@ -28,7 +28,6 @@ plot_cal_err_histogram() function
 
 import numpy as np
 import matplotlib.pyplot as plt
-from mpl_toolkits.mplot3d import Axes3D
 
 
 
@@ -47,17 +46,16 @@ def read_dt_lsq(file_path):
     ======
     points (list) - list of numpy (3,1) arrays with (x,y,z) coordinates
     """
-    f = open(file_path,'r')
-    N_particles = int(f.readline().strip())
-    points = []
+    with open(file_path,'r', encoding='utf-8') as f:
+        number_particles = int(f.readline().strip())
+        points = []
     
-    for i in range(N_particles):
-        l = f.readline().strip().split()
-        point = np.array([l[1], l[2], l[3]], dtype=float) 
-        points.append(point)
+        for _ in range(number_particles):
+            line = f.readline().strip().split()
+            point = np.array([line[1], line[2], line[3]], dtype=float)
+            points.append(point)
     
-    f.close()
-    
+
     return points
 
 
@@ -76,18 +74,17 @@ def read_calblock(file_path):
     ======
     points (list) - list of numpy (3,1) arrays with (x,y,z) coordinates
     """
-    f = open(file_path,'r')
-    a = f.readlines()
-    f.close()
+    with open(file_path,'r', encoding='utf-8') as f:
+        a = f.readlines()
+    
     points = []
     
-    for i in range(len(a)):
-        l = a[i].strip().split()
+    for row in a:
+        ll = row.strip().split()
         try:
-            point = np.array([l[1], l[2], l[3]], dtype=float) 
-        except:
-            print('last data', l)
-            raise ValueError('bad line in calblock file')
+            point = np.array([ll[1], ll[2], ll[3]], dtype=float)
+        except ValueError as e:
+            print('error', e)
         points.append(point)
         
     return points
@@ -138,7 +135,8 @@ def pair_cal_points(calblock_pnts, dt_lsq_pnts, max_dist = 3.0):
             dist_mat = np.delete(dist_mat, w[1][0], axis=1)
             index_mat = np.delete(index_mat, w[0][0], axis=0)
             index_mat = np.delete(index_mat, w[1][0], axis=1)
-        else: break
+        else: 
+            break
     return pairs_list
     
 
@@ -199,7 +197,7 @@ def plot_cal_err_histogram(pairs_list):
     lbls = [r'x',r'y',r'z']
     for e,lst in enumerate([dx,dy,dz]):
         m,s = np.mean(lst), np.std(lst)
-        h=ax.hist(lst,bins=8,histtype= 'step', lw=3,
+        ax.hist(lst,bins=8,histtype= 'step', lw=3,
                   label=r'$\langle %s \rangle=%0.3f, \sigma_{%s}=%0.3f$'%(lbls[e],m,lbls[e],s))
         #h = np.histogram(lst,bins=10)
         #x,y = (h[1][:-1] + h[1][1:])*0.5 , h[0]

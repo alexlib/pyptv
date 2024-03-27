@@ -131,7 +131,7 @@ def copy_params_dir(src: Path, dest: Path):
     # files = [f for f in src.iterdir() if str(f.parts[-1]).endswith(ext_set)]    
 
     if not dest.is_dir():
-        print(f"Destination folder does not exist, creating it")
+        print("Destination folder does not exist, creating it")
         dest.mkdir(parents=True, exist_ok=True)
 
     print(f"Copying now file by file from {src} to {dest}: \n")
@@ -143,7 +143,7 @@ def copy_params_dir(src: Path, dest: Path):
             dest / f.name,
         )
 
-    print(f"Successfully \n")
+    print("Successfully \n")
 
 
 # Specific parameter classes #######
