@@ -38,9 +38,9 @@ def simple_highpass(img, cpar):
     return preprocess_image(img, 0, cpar, 25)
 
 
-def py_set_img(img, i):
-    """Not used anymore, was transferring images to the C"""
-    pass
+# def py_set_img(img, i):
+#     """Not used anymore, was transferring images to the C"""
+#     pass
 
 
 def py_start_proc_c(n_cams):
@@ -170,7 +170,7 @@ def py_determination_proc_c(n_cams, sorted_pos, sorted_corresp, corrected):
     flat = np.array([
         corrected[i].get_by_pnrs(sorted_corresp[i]) for i in range(len(cals))
     ])
-    pos, rcm = point_positions(flat.transpose(1, 0, 2), cpar, cals, vpar)
+    pos, _ = point_positions(flat.transpose(1, 0, 2), cpar, cals, vpar)
 
     if len(cals) < 4:
         print_corresp = -1 * np.ones((4, sorted_corresp.shape[1]))
@@ -219,7 +219,7 @@ def py_sequence_loop(exp):
     # sequence loop for all frames
     first_frame = spar.get_first()
     last_frame = spar.get_last()
-    print(f" From {first_frame = } to {last_frame = }")
+    print(f"From {first_frame= } to {last_frame= }")
     
     for frame in range(first_frame, last_frame + 1):
         # print(f"processing {frame = }")
