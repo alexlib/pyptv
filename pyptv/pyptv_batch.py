@@ -42,8 +42,8 @@ def run_batch(new_seq_first: int, new_seq_last: int):
     
     cpar, spar, vpar, track_par, tpar, cals, epar = py_start_proc_c(n_cams=n_cams)
     
-    spar.set_first(first)
-    spar.set_last(last)
+    spar.set_first(new_seq_first)
+    spar.set_last(new_seq_last)
     
     exp = {
     'cpar':cpar,
@@ -103,11 +103,11 @@ def main(exp_path, first, last, repetitions=1):
         try:
             print((seq_first, seq_last))
             run_batch(seq_first, seq_last)
-        except Exception:
+        except ValueError:  # Replace SpecificException with the actual exception you want to catch
             print("something wrong with the batch or the folder")
 
     end = time.time()
-    print("time lapsed %f sec" % (end - start))
+    print(f"time lapsed {end-start} sec")
 
 
 if __name__ == "__main__":

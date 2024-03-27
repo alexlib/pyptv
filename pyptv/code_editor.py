@@ -1,6 +1,8 @@
 """
 Editor for editing the cameras ori files
 """
+import os
+
 # Imports:
 from traits.api import (
     HasTraits,
@@ -11,9 +13,8 @@ from traits.api import (
     File,
 )
 
-from traitsui.api import Item, Group, View, Handler, ListEditor
+from traitsui.api import Item, Group, View, ListEditor
 
-from pathlib import Path
 from pyptv import parameters as par
 
 

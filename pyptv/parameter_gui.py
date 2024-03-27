@@ -1,4 +1,3 @@
-import os
 import json
 from pathlib import Path
 
@@ -1118,7 +1117,7 @@ class Calib_Params(HasTraits):
         # read_calibration parameters
         calOriParams = par.CalOriParams(self.n_img, path=self.par_path)
         calOriParams.read()
-        (fixp_name, img_cal_name, img_ori, tiff_flag, pair_flag, chfield) = (
+        (fixp_name, _img_cal_name, _img_ori, tiff_flag, pair_flag, chfield) = (
             calOriParams.fixp_name,
             calOriParams.img_cal_name,
             calOriParams.img_ori,
@@ -1152,10 +1151,10 @@ class Calib_Params(HasTraits):
         detectPlateParams.read()
 
         (
-            gv_th1,
-            gv_th2,
-            gv_th3,
-            gv_th4,
+            _gv_th1,
+            _gv_th2,
+            _gv_th3,
+            _gv_th4,
             tolerable_discontinuity,
             min_npix,
             max_npix,
@@ -1182,7 +1181,7 @@ class Calib_Params(HasTraits):
         )
 
         for i in range(self.n_img):
-            exec("self.grey_value_treshold_{0} = gv_th{0}".format(i + 1))
+            exec("self.grey_value_treshold_{0} = _gv_th{0}".format(i + 1))
 
         self.tolerable_discontinuity = tolerable_discontinuity
         self.min_npix = min_npix
@@ -1345,7 +1344,7 @@ class Experiment(HasTraits):
 
     def syncActiveDir(self):
         default_parameters_path = Path(par.par_dir_prefix).resolve()
-        print(f" Syncing parameters between two folders: \n")
+        print(" Syncing parameters between two folders: \n")
         print(f"{self.active_params.par_path}, {default_parameters_path}")
         par.copy_params_dir(self.active_params.par_path, default_parameters_path)
 
@@ -1385,7 +1384,7 @@ class Experiment(HasTraits):
                 exp_name = str(dir_item.stem).rsplit('parameters',maxsplit=1)[-1]
 
                 print(f"Experiment name is: {exp_name}")
-                print(f" adding Parameter set\n")
+                print(" adding Parameter set\n")
                 self.addParamset(exp_name, dir_item)
 
         if not self.changed_active_params:

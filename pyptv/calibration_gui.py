@@ -12,7 +12,7 @@ from  pathlib import Path
 import numpy as np
 from skimage.io import imread
 from skimage.util import img_as_ubyte
-from skimage.color import rgb2gray
+from pyptv.ptv import rgb2gray
 
 from traits.api import HasTraits, Str, Int, Bool, Instance, Button
 from traitsui.api import View, Item, HGroup, VGroup, ListEditor
@@ -22,8 +22,6 @@ from chaco.api import (
     Plot,
     ArrayPlotData,
     gray,
-    ArrayDataSource,
-    LinearMapper,
 )
 
 # from traitsui.menu import MenuBar, ToolBar, Menu, Action
@@ -33,7 +31,6 @@ from chaco.tools.better_zoom import BetterZoom as SimpleZoom
 # from chaco.tools.simple_zoom import SimpleZoom
 from pyptv.text_box_overlay import TextBoxOverlay
 from pyptv.code_editor import codeEditor
-from pyptv.quiverplot import QuiverPlot
 
 
 
@@ -222,8 +219,8 @@ class PlotWindow(HasTraits):
             x1c, y1c, x2c, y2c, min_length=0
         )
         if len(x1) > 0:
-            xs = ArrayDataSource(x1)
-            ys = ArrayDataSource(y1)
+            # xs = ArrayDataSource(x1)
+            # ys = ArrayDataSource(y1)
 
             # quiverplot = QuiverPlot(
             #     index=xs,
@@ -276,15 +273,17 @@ class PlotWindow(HasTraits):
         return x1f, y1f, x2f, y2f
 
     def handle_mapper(self):
-        for i in range(0, len(self._plot.overlays)):
-            if hasattr(self._plot.overlays[i], "real_position"):
-                coord_x1, coord_y1 = self._plot.map_screen(
-                    [self._plot.overlays[i].real_position]
-                )[0]
-                self._plot.overlays[i].alternate_position = (
-                    coord_x1,
-                    coord_y1,
-                )
+        """ Handles the mapper being updated."""
+        if hasattr(self._plot.overlays, "__iter__"):
+            for overlay in self._plot.overlays:
+                if hasattr(overlay, "real_position"):
+                    coord_x1, coord_y1 = self._plot.map_screen(
+                        [overlay.real_position]
+                    )[0]
+                    overlay.alternate_position = (
+                        coord_x1,
+                        coord_y1,
+                    )
 
     def plot_num_overlay(self, x, y, txt):
         for i in range(len(x)):
@@ -969,15 +968,29 @@ class CalibrationGUI(HasTraits):
                 targs = self.sorted_targs[i_cam]
 
             try:
-                residuals, targ_ix, err_est = full_calibration(
+                residuals, targ_ix, _ = full_calibration(
                     self.cals[i_cam],
                     self.cal_points["pos"],
                     targs,
                     self.cpar,
                     flags,
                 )
-            except BaseException as exc:
-                raise ValueError("full calibration failed\n") from exc
+            except BaseException:
+                # the optv.full_calibration failed, we try scipy
+                print("Before scipy calibration")
+                print(self.cals[i_cam].get_pos())
+                
+                ptv.py_calibration(
+                    self.cals[i_cam],
+                    all_known,
+                    all_detected[:, 1:],
+                    self.cpar,
+                    flags,
+                ) 
+                print("After scipy calibration")
+                print(self.cals[i_cam].get_pos())
+                                               
+                # raise ValueError("full calibration failed\n") from exc
             # save the results
             self._write_ori(i_cam, addpar_flag=True)
 
@@ -985,9 +998,9 @@ class CalibrationGUI(HasTraits):
             # self.reset_plots()
 
             x, y = [], []
-            for r, t in zip(residuals, targ_ix):
-                if t != -999:
-                    pos = targs[t].pos()
+            for t in targs:
+                if t.pnr() != -999:
+                    pos = t.pos()
                     x.append(pos[0])
                     y.append(pos[1])
 
@@ -1060,25 +1073,26 @@ class CalibrationGUI(HasTraits):
 
     def _button_orient_part_fired(self):
 
-        self.backup_ori_files()
-        ptv.py_calibration(10)
-        x1, y1, x2, y2 = [], [], [], []
-        ptv.py_get_from_orient(x1, y1, x2, y2)
+        # self.backup_ori_files()
+        # ptv.py_calibration(10)
+        # x1, y1, x2, y2 = [], [], [], []
+        # # ptv.py_get_from_orient(x1, y1, x2, y2) # not implemented
 
-        self.reset_plots()
-        for i in range(len(self.camera)):
-            self.camera[i]._plot_data.set_data(
-                "imagedata", self.ori_img[i].astype(np.float)
-            )
-            self.camera[i]._img_plot = self.camera[i]._plot.img_plot(
-                "imagedata", colormap=gray
-            )[0]
-            self.camera[i].drawquiver(x1[i], y1[i], x2[i], y2[i], "red")
-            self.camera[i]._plot.index_mapper.range.set_bounds(0, self.h_pixel)
-            self.camera[i]._plot.value_mapper.range.set_bounds(0, self.v_pixel)
-            self.drawcross("orient_x", "orient_y", x1, y1, "orange", 4)
+        # self.reset_plots()
+        # for i in range(len(self.camera)):
+        #     self.camera[i]._plot_data.set_data(
+        #         "imagedata", self.ori_img[i].astype(np.float)
+        #     )
+        #     self.camera[i]._img_plot = self.camera[i]._plot.img_plot(
+        #         "imagedata", colormap=gray
+        #     )[0]
+        #     self.camera[i].drawquiver(x1[i], y1[i], x2[i], y2[i], "red")
+        #     self.camera[i]._plot.index_mapper.range.set_bounds(0, self.h_pixel)
+        #     self.camera[i]._plot.value_mapper.range.set_bounds(0, self.v_pixel)
+        #     self.drawcross("orient_x", "orient_y", x1, y1, "orange", 4)
 
-        self.status_text = "Orientation with particles finished."
+        # self.status_text = "Orientation with particles finished."
+        self.status_text = "Not implemented"
 
     def _button_restore_orient_fired(self):
         print("Restoring ORI files\n")
@@ -1184,7 +1198,7 @@ if __name__ == "__main__":
     import sys
 
     if len(sys.argv) == 1:
-        active_path = Path("../test_cavity/parametersRun1")
+        active_path = Path('/home/user/Downloads/rbc300/parameters')
     else:
         active_path = Path(sys.argv[0])
 

@@ -18,7 +18,7 @@ from traits.api import HasTraits, Instance, Int
 from traitsui.api import Item, View
 
 # Chaco imports
-from chaco.api import add_default_grids, add_default_axes, ArrayPlotData, \
+from chaco.api import ArrayPlotData, \
     Plot, OverlayPlotContainer
 from chaco.tools.api import PanTool, ZoomTool
 
