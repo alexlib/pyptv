@@ -569,7 +569,7 @@ class CalibrationGUI(HasTraits):
         self.cal_images = []
         for i in range(len(self.camera)):
             imname = self.calParams.img_cal_name[i]
-            im = imread(imname)
+            im = imread(imname, as_gray=True)
             # im = ImageData.fromfile(imname).data
             if im.ndim > 2:
                 im = rgb2gray(im[:,:,:3])
@@ -980,10 +980,10 @@ class CalibrationGUI(HasTraits):
                 print("Before scipy calibration")
                 print(self.cals[i_cam].get_pos())
                 
-                ptv.py_calibration(
+                residuals = ptv.py_calibration(
                     self.cals[i_cam],
-                    all_known,
-                    all_detected[:, 1:],
+                    self.cal_points["pos"],
+                    targs,
                     self.cpar,
                     flags,
                 ) 
@@ -1016,8 +1016,8 @@ class CalibrationGUI(HasTraits):
             self.camera[i_cam].drawquiver(
                 x,
                 y,
-                x + scale * residuals[: len(x), 0],
-                y + scale * residuals[: len(x), 1],
+                x + scale * residuals[:len(x), 0],
+                y + scale * residuals[:len(x), 1],
                 "red",
             )
             # self.camera[i]._plot.index_mapper.range.set_bounds(0, self.h_pixel)

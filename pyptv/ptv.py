@@ -470,9 +470,16 @@ def py_calibration(cal, XYZ, xy, cpar, flags):
     """ Performs calibration of the selected cameras using Scipy"""
     
     x0 = calibration_to_array(cal)
-    sol = minimize(error_function, x0, args=(cal, XYZ, xy, cpar), method='Nelder-Mead', tol=1e-5)
+    xy = np.array([_.pos() for _ in xy]) # we get targs not arrays
+    sol = minimize(error_function, x0, args=(cal, XYZ, xy, cpar), method='Nelder-Mead', tol=1e-6)
     array_to_calibration(sol.x, cal) # cal is updated in place
-    # return cal
+        
+    targets = arr_metric_to_pixel(
+        image_coordinates(XYZ, cal, cpar.get_multimedia_params()),
+    cpar,
+    )
+        
+    return targets - xy
 
 
 def py_multiplanecalibration(exp):

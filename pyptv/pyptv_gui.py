@@ -596,7 +596,8 @@ class TreeMenuHandler(Handler):
                     getattr(
                         mainGui.exp1.active_params.m_params,
                         f"Name_{i+1}_Image",
-                    )
+                    ),
+                    as_gray=True,
                 )
                 if im.ndim > 2:
                     im = rgb2gray(im)
@@ -1517,7 +1518,8 @@ def main():
         # exp_path = software_path.parent / "test_cavity"
         # exp_path = Path('/home/user/Downloads/one-dot-example/working_folder')
         # exp_path = Path('/home/user/Downloads/test_crossing_particle')
-        exp_path = Path('/home/user/Downloads/rbc300')
+        # exp_path = Path('/home/user/Downloads/rbc300')
+        exp_path = Path('/home/user/Downloads/For_Alex_test_34/')
         print(f"Without input, PyPTV fallbacks to a default {exp_path} \n")
 
     if not exp_path.is_dir() or not exp_path.exists():
