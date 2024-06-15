@@ -1171,9 +1171,22 @@ class CalibrationGUI(HasTraits):
     #         self.camera[i].update_image(images[i])
 
     def _read_cal_points(self):
+
+        with open(self.calParams.fixp_name, 'r') as file:
+            first_line = file.readline()
+            if ',' in first_line:
+                delimiter=','
+            elif '\t' in first_line:
+                delimiter='\t'
+            elif ' ' in first_line:
+                delimiter=' '
+            else:
+                raise ValueError("Unsupported delimiter")
+
         return np.atleast_1d(
             np.loadtxt(
                 self.calParams.fixp_name,
+                delimiter=delimiter,
                 dtype=[("id", "i4"), ("pos", "3f8")],
                 skiprows=0,
             )
