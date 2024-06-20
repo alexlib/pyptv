@@ -31,11 +31,11 @@ def get_path(filename):
 def get_code(path: Path):
     """ Read the code from the file """
 
-    print(f"Read from {path}: {path.exists()}")
+    # print(f"Read from {path}: {path.exists()}")
     with open(path, "r", encoding="utf-8") as f:    
         retCode = f.read()
 
-    print(retCode)
+    # print(retCode)
 
     return retCode
 
@@ -58,8 +58,8 @@ class codeEditor(HasTraits):
 
     def _save_button_fired(self):
         with open(self.file_Path, "w", encoding="utf-8") as f:
-            print(f"Saving to {self.file_Path}")
-            print(f"Code: {self._Code}")
+            # print(f"Saving to {self.file_Path}")
+            # print(f"Code: {self._Code}")
             f.write(self._Code)
         
         print(f"Saved to {self.file_Path}")

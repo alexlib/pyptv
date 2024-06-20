@@ -878,8 +878,9 @@ class CalibrationGUI(HasTraits):
             op.shear,
         ]
 
+        # set flags for cc, xh, yh only
         flags = []
-        for name, op_name in zip(names, op_names):
+        for name, op_name in zip(names[:3], op_names[:3]):
             if op_name == 1:
                 flags.append(name)
 
@@ -974,29 +975,33 @@ class CalibrationGUI(HasTraits):
             else:
                 targs = self.sorted_targs[i_cam]
 
-            try:
-                residuals, targ_ix, err_est = full_calibration(
-                    self.cals[i_cam],
-                    self.cal_points["pos"],
-                    targs,
-                    self.cpar,
-                    flags,
-                )
-            except BaseException as exc:
-                print(f"Error in full_calibration: {exc} go to scipy")
+            # try:
+            print(f"Calibrate only external and flags: {flags} \n")
+            residuals, targ_ix, err_est = full_calibration(
+                self.cals[i_cam],
+                self.cal_points["pos"],
+                targs,
+                self.cpar,
+                flags,
+            )
+            
+            # let's try only k1
+            if op_names[3]: 
+                print(f"k1 flag is raised,  going to scipy")
 
                 from scipy.optimize import minimize
                 cal = self.cals[i_cam]
-                print("Before: \n")
+                print("start with \n")
                 
-                x0 = np.concatenate([
-                    cal.get_pos(),
-                    cal.get_angles(),
-                    cal.get_primary_point(),
-                    cal.get_radial_distortion(),
-                    cal.get_decentering(),
-                    cal.get_affine(),
-                ])
+                # x0 = np.concatenate([
+                #     cal.get_pos(),
+                #     cal.get_angles(),
+                #     cal.get_primary_point(),
+                #     cal.get_radial_distortion(),
+                #     cal.get_decentering(),
+                #     cal.get_affine(),
+                # ])
+                x0 = cal.get_radial_distortion()[0]
                 print(x0)
                 sol = minimize(self._error_function,
                                x0, 
@@ -1006,12 +1011,19 @@ class CalibrationGUI(HasTraits):
                                      self.cpar
                                      ), 
                                      method='Nelder-Mead', 
-                                     tol=1e-4,
+                                     tol=1e-6,
+                                     options={'disp':True},
                                      )
                 print(f"Difference: {sol.x - x0}")
                 print("Before: \n")
                 print(self.cals[i_cam])
-                self._array_to_calibration(sol.x, self.cals[i_cam])                
+                tmp = cal.get_radial_distortion()
+                tmp[0] = sol.x
+                cal.set_radial_distortion(tmp)
+                print(cal.get_radial_distortion())
+                self.cals[i_cam] = cal
+
+                # self._array_to_calibration(sol.x, self.cals[i_cam])                
                 self._project_cal_points(i_cam)
 
 
@@ -1021,7 +1033,9 @@ class CalibrationGUI(HasTraits):
                                 all_detected, 
                                 self.cpar
                                 )
-                            
+
+                residuals /= 100
+
                 print("\n Calibration using scipy.optimize.minimize \n")
                 targ_ix = np.arange(len(all_detected))
             
@@ -1075,14 +1089,8 @@ class CalibrationGUI(HasTraits):
         return None
 
     def _calibration_to_array(self, cal:Calibration) -> np.ndarray:
-        print(cal.get_pos())
-        print(cal.get_angles())
-        print(cal.get_primary_point())
-        print(cal.get_radial_distortion())
-        print(cal.get_decentering())
-        print(cal.get_affine())
-
-        return np.concatenate([
+        """ Convert calibration object to array """
+        tmp = np.concatenate([
             cal.get_pos(),
             cal.get_angles(),
             cal.get_primary_point(),
@@ -1090,6 +1098,8 @@ class CalibrationGUI(HasTraits):
             cal.get_decentering(),
             cal.get_affine(),
         ])
+        
+        return tmp
 
     def _error_function(self, x, cal, XYZ, xy, cpar):
         """Error function for scipy.optimize.minimize.
@@ -1104,20 +1114,6 @@ class CalibrationGUI(HasTraits):
         Returns:
             float: Error value.
         """
-        # cal.set_pos(x[:3])
-        # cal.set_angles(x[3:6])
-        # cal.set_primary_point(x[6:9])
-        # # cal.set_radial_distortion(x[9:12])
-        # # cal.set_decentering(x[12:14])
-        # # cal.set_affine_distortion(x[14:])
-
-        # targets = convert_arr_metric_to_pixel(
-        #     image_coordinates(XYZ, cal, cpar.get_multimedia_params()),
-        #     cpar
-        # )
-
-        # err = np.sum((xy[:,1:] - targets)**2)
-
         residuals = self._residuals(x, cal, XYZ, xy, cpar)
         err = np.sum(residuals**2)
         
@@ -1134,14 +1130,32 @@ class CalibrationGUI(HasTraits):
             cpar (CPar): Camera parameters.
 
         Returns:
-            float: Error value.
+            residuals: Distortion in pixels
         """
-        cal.set_pos(x[:3])
-        cal.set_angles(x[3:6])
-        cal.set_primary_point(x[6:9])
+        # tmp = x.copy()
+
+        # x = np.concatenate([
+        #     cal.get_pos(),
+        #     cal.get_angles(),
+        #     cal.get_primary_point(),
+        #     cal.get_radial_distortion(),
+        #     cal.get_decentering(),
+        #     cal.get_affine(),
+        # ])
+
+        # change only one thing:
+        # x[3] = tmp[3]
+
+        # cal.set_pos(x[:3])
+        # cal.set_angles(x[3:6])
+        # cal.set_primary_point(x[6:9])
         # cal.set_radial_distortion(x[9:12])
         # cal.set_decentering(x[12:14])
-        # cal.set_affine_distortion(x[14:])
+        # cal.set_affine_trans(x[14:])
+        
+        tmp = cal.get_radial_distortion()
+        tmp[0]  = x
+        cal.set_radial_distortion(tmp)
 
         targets = convert_arr_metric_to_pixel(
             image_coordinates(XYZ, cal, cpar.get_multimedia_params()),
@@ -1344,7 +1358,7 @@ if __name__ == "__main__":
 
     if len(sys.argv) == 1:
         active_path = Path("../test_cavity/parametersRun1")
-        active_path = Path("/home/user/Downloads/rbc300/parametersMultiPlain")
+        active_path = Path("/home/user/Downloads/rbc300/parametersMultiPlane")
     else:
         active_path = Path(sys.argv[0])
 
