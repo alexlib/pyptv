@@ -29,8 +29,9 @@ def get_path(filename):
 
 
 def get_code(path: Path):
+    """ Read the code from the file """
 
-    print(f"{path} exists: {path.exists()}")
+    print(f"Read from {path}: {path.exists()}")
     with open(path, "r", encoding="utf-8") as f:    
         retCode = f.read()
 
@@ -42,10 +43,10 @@ def get_code(path: Path):
 class codeEditor(HasTraits):
     file_Path = Path
     _Code = Code()
-    _Save = Button(label="Save")
+    save_button = Button(label="Save")
     buttons_group = Group(
-        Item(name="file_Path", style="simple", show_label=False, width=0.3),
-        Item(name="_Save", show_label=False),
+        Item(name="file_Path", style="simple", show_label=True, width=0.3),
+        Item(name="save_button", show_label=True),
         orientation="horizontal",
     )
     traits_view = View(
@@ -55,11 +56,14 @@ class codeEditor(HasTraits):
         )
     )
 
-    def _Save_fired(self):
-        f = open(self.file_Path, "w")
-        f.write(self._Code)
-        f.close()
-
+    def _save_button_fired(self):
+        with open(self.file_Path, "w", encoding="utf-8") as f:
+            print(f"Saving to {self.file_Path}")
+            print(f"Code: {self._Code}")
+            f.write(self._Code)
+        
+        print(f"Saved to {self.file_Path}")
+        
     def __init__(self, file_path: Path):
         self.file_Path = file_path
         self._Code = get_code(file_path)

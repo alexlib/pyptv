@@ -983,8 +983,12 @@ class CalibrationGUI(HasTraits):
                     flags,
                 )
             except BaseException as exc:
+                print(f"Error in full_calibration: {exc} go to scipy")
+
                 from scipy.optimize import minimize
                 cal = self.cals[i_cam]
+                print("Before: \n")
+                
                 x0 = np.concatenate([
                     cal.get_pos(),
                     cal.get_angles(),
@@ -1005,6 +1009,8 @@ class CalibrationGUI(HasTraits):
                                      tol=1e-4,
                                      )
                 print(f"Difference: {sol.x - x0}")
+                print("Before: \n")
+                print(self.cals[i_cam])
                 self._array_to_calibration(sol.x, self.cals[i_cam])                
                 self._project_cal_points(i_cam)
 
@@ -1017,6 +1023,7 @@ class CalibrationGUI(HasTraits):
                                 )
                             
                 print("\n Calibration using scipy.optimize.minimize \n")
+                targ_ix = np.arange(len(all_detected))
             
             # save the results from self.cals[i_cam]
             self._write_ori(i_cam, addpar_flag=True)
@@ -1062,9 +1069,9 @@ class CalibrationGUI(HasTraits):
         cal.set_pos(x[:3])
         cal.set_angles(x[3:6])
         cal.set_primary_point(x[6:9])
-        # cal.set_radial_distortion(x[9:12])
-        # cal.set_decentering(x[12:14])
-        # cal.set_affine_distortion(x[14:])
+        cal.set_radial_distortion(x[9:12])
+        cal.set_decentering(x[12:14])
+        cal.    set_affine_trans(x[14:])
         return None
 
     def _calibration_to_array(self, cal:Calibration) -> np.ndarray:
