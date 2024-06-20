@@ -47,6 +47,8 @@ from optv.tracking_framebuf import TargetArray
 
 from pyptv import ptv, parameter_gui, parameters as par
 
+from scipy.optimize import minimize
+
 
 # -------------------------------------------
 class ClickerTool(ImageInspectorTool):
@@ -984,70 +986,41 @@ class CalibrationGUI(HasTraits):
                 self.cpar,
                 flags,
             )
+
+            # calibration the op_names
+            cal = self.cals[i_cam]
+            radial_dist = cal.get_radial_distortion()
             
-            # let's try only k1
-            if op_names[3]: 
-                print(f"k1 flag is raised,  going to scipy")
-
-                from scipy.optimize import minimize
-                cal = self.cals[i_cam]
-                print("start with \n")
-                
-                # x0 = np.concatenate([
-                #     cal.get_pos(),
-                #     cal.get_angles(),
-                #     cal.get_primary_point(),
-                #     cal.get_radial_distortion(),
-                #     cal.get_decentering(),
-                #     cal.get_affine(),
-                # ])
-                x0 = cal.get_radial_distortion()[0]
-                print(x0)
-                sol = minimize(self._error_function,
-                               x0, 
-                               args=(cal, 
-                                     all_known, 
-                                     all_detected, 
-                                     self.cpar
-                                     ), 
-                                     method='Nelder-Mead', 
-                                     tol=1e-6,
-                                     options={'disp':True},
-                                     )
-                print(f"Difference: {sol.x - x0}")
-                print("Before: \n")
-                print(self.cals[i_cam])
-                tmp = cal.get_radial_distortion()
-                tmp[0] = sol.x
-                cal.set_radial_distortion(tmp)
-                print(cal.get_radial_distortion())
-                self.cals[i_cam] = cal
-
-                # self._array_to_calibration(sol.x, self.cals[i_cam])                
-                self._project_cal_points(i_cam)
-
-
-                residuals = self._residuals(sol.x, 
-                                self.cals[i_cam], 
-                                all_known, 
-                                all_detected, 
-                                self.cpar
-                                )
-
-                residuals /= 100
-
-                print("\n Calibration using scipy.optimize.minimize \n")
-                targ_ix = np.arange(len(all_detected))
+            for i, flag in enumerate(op_names):
+                if flag:
+                    # Create the initial guess vector x0 for the current parameter
+                    x0 = [radial_dist[i]]
+                    
+                    def error_wrapper(x):
+                        # Update the radial distortion parameter in the calibration object
+                        updated_radial_dist = radial_dist.copy()
+                        updated_radial_dist[i] = x[0]
+                        cal.set_radial_distortion(updated_radial_dist)
+                        
+                        # Calculate the error
+                        return self._error_function(updated_radial_dist, cal, all_known, all_detected, self.cpar)
+                    
+                    sol = minimize(error_wrapper, x0, method='Nelder-Mead', tol=1e-6, options={'disp': True})
+                    
+                    # Update the calibration object with the optimized parameter
+                    radial_dist[i] = sol.x[0]
+                    cal.set_radial_distortion(radial_dist)
+                    self.cals[i_cam] = cal
             
-            # save the results from self.cals[i_cam]
+            # Continue with the rest of the code to project points, calculate residuals, etc.
+            self._project_cal_points(i_cam)
+            residuals = self._residuals(radial_dist, self.cals[i_cam], all_known, all_detected, self.cpar)
+            residuals /= 100
+            
+            # Save the results and plot
             self._write_ori(i_cam, addpar_flag=True)
 
-            # x, y = [], []
-            # for r, t in zip(residuals, targ_ix):
-            #     if t != -999:
-            #         pos = targs[t].pos()
-            #         x.append(pos[0])
-            #         y.append(pos[1])
+            targ_ix = np.arange(len(all_detected))
 
             x, y = [], []
             for t in targ_ix:
@@ -1071,13 +1044,82 @@ class CalibrationGUI(HasTraits):
                 x + scale * residuals[: len(x), 0],
                 y + scale * residuals[: len(x), 1],
                 "red",
-            )
+            )        
+
+            # # let's try only k1
+            # if op_names[3]: 
+            #     print(f"k1 flag is raised,  going to scipy")
+
+            #     cal = self.cals[i_cam]
+            #     print("start with \n")
+                
+            #     # x0 = np.concatenate([
+            #     #     cal.get_pos(),
+            #     #     cal.get_angles(),
+            #     #     cal.get_primary_point(),
+            #     #     cal.get_radial_distortion(),
+            #     #     cal.get_decentering(),
+            #     #     cal.get_affine(),
+            #     # ])
+            #     x0 = cal.get_radial_distortion()[0]
+            #     print(x0)
+            #     sol = minimize(self._error_function,
+            #                    x0, 
+            #                    args=(cal, 
+            #                          all_known, 
+            #                          all_detected, 
+            #                          self.cpar
+            #                          ), 
+            #                          method='Nelder-Mead', 
+            #                          tol=1e-6,
+            #                          options={'disp':True},
+            #                          )
+            #     print(f"Difference: {sol.x - x0}")
+            #     print("Before: \n")
+            #     print(self.cals[i_cam])
+            #     tmp = cal.get_radial_distortion()
+            #     tmp[0] = sol.x
+            #     cal.set_radial_distortion(tmp)
+            #     print(cal.get_radial_distortion())
+            #     self.cals[i_cam] = cal
+
+            #     # self._array_to_calibration(sol.x, self.cals[i_cam])                
+            #     self._project_cal_points(i_cam)
+
+
+            #     residuals = self._residuals(sol.x, 
+            #                     self.cals[i_cam], 
+            #                     all_known, 
+            #                     all_detected, 
+            #                     self.cpar
+            #                     )
+
+            #     residuals /= 100
+
+            #     print("\n Calibration using scipy.optimize.minimize \n")
+            #     targ_ix = np.arange(len(all_detected))
+            
+            # # save the results from self.cals[i_cam]
+            # self._write_ori(i_cam, addpar_flag=True)
+
+
+            # self.optimize_radial_distortion(i_cam, op_names)
+
+            # x, y = [], []
+            # for r, t in zip(residuals, targ_ix):
+            #     if t != -999:
+            #         pos = targs[t].pos()
+            #         x.append(pos[0])
+            #         y.append(pos[1])
+
+
             # self.camera[i]._plot.index_mapper.range.set_bounds(0, self.h_pixel)
             # self.camera[i]._plot.value_mapper.range.set_bounds(0, self.v_pixel)
 
         self.status_text = "Orientation finished."
 
 # Insert parts for scipy.optimize calibration
+
 # 
     def _array_to_calibration(self, x:np.ndarray, cal:Calibration) -> None:
         cal.set_pos(x[:3])
