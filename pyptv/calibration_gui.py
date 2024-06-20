@@ -977,8 +977,37 @@ class CalibrationGUI(HasTraits):
                     flags,
                 )
             except BaseException as exc:
-                raise ValueError("full calibration failed\n") from exc
-            # save the results
+                from scipy.optimize import minimize
+                cal = self.cals[i_cam]
+                x0 = np.concatenate([
+                    cal.get_pos(),
+                    cal.get_angles(),
+                    cal.get_primary_point(),
+                    cal.get_radial_distortion(),
+                    cal.get_decentering(),
+                    cal.get_affine(),
+                ])
+                print(x0)
+                sol = minimize(self._error_function,
+                               x0, 
+                               args=(cal, 
+                                     all_known, 
+                                     all_detected, 
+                                     self.cpar
+                                     ), 
+                                     method='Nelder-Mead', 
+                                     tol=1e-4,
+                                     )
+                print(f"Difference: {sol.x - x0}")
+                self._array_to_calibration(sol.x, self.cals[i_cam])                
+                self._project_cal_points(i_cam)
+
+                # we need to generate self.cals[i_cam] and residuals
+                # and translate targets to targ_ix
+                # raise ValueError("full calibration failed\n") from exc
+                print("\n Calibration using scipy.optimize.minimize \n")
+            
+            # save the results from self.cals[i_cam]
             self._write_ori(i_cam, addpar_flag=True)
 
             # Plot the output
@@ -1011,6 +1040,65 @@ class CalibrationGUI(HasTraits):
             # self.camera[i]._plot.value_mapper.range.set_bounds(0, self.v_pixel)
 
         self.status_text = "Orientation finished."
+
+# Insert parts for scipy.optimize calibration
+# 
+    def _array_to_calibration(self, x:np.ndarray, cal:Calibration) -> None:
+        cal.set_pos(x[:3])
+        cal.set_angles(x[3:6])
+        cal.set_primary_point(x[6:9])
+        # cal.set_radial_distortion(x[9:12])
+        # cal.set_decentering(x[12:14])
+        # cal.set_affine_distortion(x[14:])
+        return None
+
+    def _calibration_to_array(self, cal:Calibration) -> np.ndarray:
+        print(cal.get_pos())
+        print(cal.get_angles())
+        print(cal.get_primary_point())
+        print(cal.get_radial_distortion())
+        print(cal.get_decentering())
+        print(cal.get_affine())
+
+        return np.concatenate([
+            cal.get_pos(),
+            cal.get_angles(),
+            cal.get_primary_point(),
+            cal.get_radial_distortion(),
+            cal.get_decentering(),
+            cal.get_affine(),
+        ])
+
+    def _error_function(self, x, cal, XYZ, xy, cpar):
+        """Error function for scipy.optimize.minimize.
+
+        Args:
+            x (array-like): Array of parameters.
+            cal (Calibration): Calibration object.
+            XYZ (array-like): 3D coordinates.
+            xy (array-like): 2D image coordinates.
+            cpar (CPar): Camera parameters.
+
+        Returns:
+            float: Error value.
+        """
+        cal.set_pos(x[:3])
+        cal.set_angles(x[3:6])
+        cal.set_primary_point(x[6:9])
+        # cal.set_radial_distortion(x[9:12])
+        # cal.set_decentering(x[12:14])
+        # cal.set_affine_distortion(x[14:])
+
+        targets = convert_arr_metric_to_pixel(
+            image_coordinates(XYZ, cal, cpar.get_multimedia_params()),
+            cpar
+        )
+
+        err = np.sum((xy[:,1:] - targets)**2)
+        # err = np.sum(xy - targets)
+        # print(err)
+        return err
+       
 
     def _write_ori(self, i_cam, addpar_flag=False):
         """Writes ORI and ADDPAR files for a single calibration result
@@ -1174,6 +1262,7 @@ class CalibrationGUI(HasTraits):
 
         with open(self.calParams.fixp_name, 'r') as file:
             first_line = file.readline()
+            print(first_line)
             if ',' in first_line:
                 delimiter=','
             elif '\t' in first_line:
@@ -1198,6 +1287,7 @@ if __name__ == "__main__":
 
     if len(sys.argv) == 1:
         active_path = Path("../test_cavity/parametersRun1")
+        active_path = Path("/home/user/Downloads/rbc300/parametersMultiPlain")
     else:
         active_path = Path(sys.argv[0])
 
