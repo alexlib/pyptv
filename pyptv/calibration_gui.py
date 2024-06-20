@@ -47,6 +47,7 @@ from optv.tracking_framebuf import TargetArray
 
 from pyptv import ptv, parameter_gui, parameters as par
 
+from scipy.optimize import minimize
 
 # -------------------------------------------
 class ClickerTool(ImageInspectorTool):
@@ -976,7 +977,7 @@ class CalibrationGUI(HasTraits):
                 targs = self.sorted_targs[i_cam]
 
             # try:
-            print(f"Calibrate only external and flags: {flags} \n")
+            print(f"First calibrate only external and flags: {flags} \n")
             residuals, targ_ix, err_est = full_calibration(
                 self.cals[i_cam],
                 self.cal_points["pos"],
@@ -985,59 +986,76 @@ class CalibrationGUI(HasTraits):
                 flags,
             )
             
-            # let's try only k1
-            if op_names[3]: 
-                print(f"k1 flag is raised,  going to scipy")
-
-                from scipy.optimize import minimize
-                cal = self.cals[i_cam]
-                print("start with \n")
-                
-                # x0 = np.concatenate([
-                #     cal.get_pos(),
-                #     cal.get_angles(),
-                #     cal.get_primary_point(),
-                #     cal.get_radial_distortion(),
-                #     cal.get_decentering(),
-                #     cal.get_affine(),
-                # ])
-                x0 = cal.get_radial_distortion()[0]
-                print(x0)
-                sol = minimize(self._error_function,
-                               x0, 
-                               args=(cal, 
+            # this chunk optimizes for radial distortion
+            if np.any(op_names[3:6]):
+                sol = minimize(self._residuals_k,
+                               self.cals[i_cam].get_radial_distortion(), 
+                               args=(self.cals[i_cam], 
                                      all_known, 
                                      all_detected, 
                                      self.cpar
                                      ), 
                                      method='Nelder-Mead', 
-                                     tol=1e-6,
+                                     tol=1e-11,
                                      options={'disp':True},
                                      )
-                print(f"Difference: {sol.x - x0}")
-                print("Before: \n")
-                print(self.cals[i_cam])
-                tmp = cal.get_radial_distortion()
-                tmp[0] = sol.x
-                cal.set_radial_distortion(tmp)
-                print(cal.get_radial_distortion())
-                self.cals[i_cam] = cal
+                radial = sol.x 
+                self.cals[i_cam].set_radial_distortion(radial)
+            else:
+                radial = self.cals[i_cam].get_radial_distortion()
+            
+            if np.any(op_names[5:8]):
+                # now decentering
+                sol = minimize(self._residuals_p,
+                               self.cals[i_cam].get_decentering(), 
+                               args=(self.cals[i_cam], 
+                                     all_known, 
+                                     all_detected, 
+                                     self.cpar
+                                     ), 
+                                     method='Nelder-Mead', 
+                                     tol=1e-11,
+                                     options={'disp':True},
+                                     )
+                decentering = sol.x 
+                self.cals[i_cam].set_decentering(decentering)
+            else:
+                decentering = self.cals[i_cam].get_decentering()
+            
+            if np.any(op_names[8:]):
+                # now affine
+                sol = minimize(self._residuals_s,
+                               self.cals[i_cam].get_affine(), 
+                               args=(self.cals[i_cam], 
+                                     all_known, 
+                                     all_detected, 
+                                     self.cpar
+                                     ), 
+                                     method='Nelder-Mead', 
+                                     tol=1e-11,
+                                     options={'disp':True},
+                                     )
+                affine = sol.x 
+                self.cals[i_cam].set_affine_trans(affine)
 
-                # self._array_to_calibration(sol.x, self.cals[i_cam])                
-                self._project_cal_points(i_cam)
+            else:
+                affine = self.cals[i_cam].get_affine()
+            
+        
+            # Now project and estimate full residuals
+            self._project_cal_points(i_cam)
 
+            residuals = self._residuals_combined(
+                            np.r_[radial, decentering, affine],
+                            self.cals[i_cam], 
+                            all_known, 
+                            all_detected, 
+                            self.cpar
+                            )
 
-                residuals = self._residuals(sol.x, 
-                                self.cals[i_cam], 
-                                all_known, 
-                                all_detected, 
-                                self.cpar
-                                )
+            residuals /= 100
 
-                residuals /= 100
-
-                print("\n Calibration using scipy.optimize.minimize \n")
-                targ_ix = np.arange(len(all_detected))
+            targ_ix = np.arange(len(all_detected))
             
             # save the results from self.cals[i_cam]
             self._write_ori(i_cam, addpar_flag=True)
@@ -1077,50 +1095,24 @@ class CalibrationGUI(HasTraits):
 
         self.status_text = "Orientation finished."
 
-# Insert parts for scipy.optimize calibration
-# 
-    def _array_to_calibration(self, x:np.ndarray, cal:Calibration) -> None:
-        cal.set_pos(x[:3])
-        cal.set_angles(x[3:6])
-        cal.set_primary_point(x[6:9])
-        cal.set_radial_distortion(x[9:12])
-        cal.set_decentering(x[12:14])
-        cal.    set_affine_trans(x[14:])
-        return None
+    # def _error_function(self, x, cal, XYZ, xy, cpar):
+    #     """Error function for scipy.optimize.minimize.
 
-    def _calibration_to_array(self, cal:Calibration) -> np.ndarray:
-        """ Convert calibration object to array """
-        tmp = np.concatenate([
-            cal.get_pos(),
-            cal.get_angles(),
-            cal.get_primary_point(),
-            cal.get_radial_distortion(),
-            cal.get_decentering(),
-            cal.get_affine(),
-        ])
-        
-        return tmp
+    #     Args:
+    #         x (array-like): Array of parameters.
+    #         cal (Calibration): Calibration object.
+    #         XYZ (array-like): 3D coordinates.
+    #         xy (array-like): 2D image coordinates.
+    #         cpar (CPar): Camera parameters.
 
-    def _error_function(self, x, cal, XYZ, xy, cpar):
-        """Error function for scipy.optimize.minimize.
-
-        Args:
-            x (array-like): Array of parameters.
-            cal (Calibration): Calibration object.
-            XYZ (array-like): 3D coordinates.
-            xy (array-like): 2D image coordinates.
-            cpar (CPar): Camera parameters.
-
-        Returns:
-            float: Error value.
-        """
-        residuals = self._residuals(x, cal, XYZ, xy, cpar)
-        err = np.sum(residuals**2)
-        
-        return err
+    #     Returns:
+    #         float: Error value.
+    #     """
+    #     residuals = self._residuals_radial(x, cal, XYZ, xy, cpar)
+    #     return np.sum(residuals**2)
     
-    def _residuals(self, x, cal, XYZ, xy, cpar):
-        """Error function for scipy.optimize.minimize.
+    def _residuals_k(self, x, cal, XYZ, xy, cpar):
+        """Residuals due to radial distortion
 
         Args:
             x (array-like): Array of parameters.
@@ -1132,39 +1124,48 @@ class CalibrationGUI(HasTraits):
         Returns:
             residuals: Distortion in pixels
         """
-        # tmp = x.copy()
 
-        # x = np.concatenate([
-        #     cal.get_pos(),
-        #     cal.get_angles(),
-        #     cal.get_primary_point(),
-        #     cal.get_radial_distortion(),
-        #     cal.get_decentering(),
-        #     cal.get_affine(),
-        # ])
+        cal.set_radial_distortion(x)
+        targets = convert_arr_metric_to_pixel(
+            image_coordinates(XYZ, cal, cpar.get_multimedia_params()),
+            cpar
+        )
+        residuals = xy[:,1:] - targets
+        return np.sum(residuals**2)
 
-        # change only one thing:
-        # x[3] = tmp[3]
+    def _residuals_p(self, x, cal, XYZ, xy, cpar):
+        """Residuals due to decentering """
+        cal.set_decentering(x)
+        targets = convert_arr_metric_to_pixel(
+            image_coordinates(XYZ, cal, cpar.get_multimedia_params()),
+            cpar
+        )
+        residuals = xy[:,1:] - targets
+        return np.sum(residuals**2)
+    
+    def _residuals_s(self, x, cal, XYZ, xy, cpar):
+        """Residuals due to decentering """
+        cal.set_affine_trans(x)
+        targets = convert_arr_metric_to_pixel(
+            image_coordinates(XYZ, cal, cpar.get_multimedia_params()),
+            cpar
+        )
+        residuals = xy[:,1:] - targets
+        return np.sum(residuals**2)    
 
-        # cal.set_pos(x[:3])
-        # cal.set_angles(x[3:6])
-        # cal.set_primary_point(x[6:9])
-        # cal.set_radial_distortion(x[9:12])
-        # cal.set_decentering(x[12:14])
-        # cal.set_affine_trans(x[14:])
-        
-        tmp = cal.get_radial_distortion()
-        tmp[0]  = x
-        cal.set_radial_distortion(tmp)
+    def _residuals_combined(self, x, cal, XYZ, xy, cpar):
+        """Combined residuals  """
+
+        cal.set_radial_distortion(x[:3])
+        cal.set_decentering(x[3:5])
+        cal.set_affine_trans(x[5:])
 
         targets = convert_arr_metric_to_pixel(
             image_coordinates(XYZ, cal, cpar.get_multimedia_params()),
             cpar
         )
-
         residuals = xy[:,1:] - targets
-        return residuals
-       
+        return residuals           
 
     def _write_ori(self, i_cam, addpar_flag=False):
         """Writes ORI and ADDPAR files for a single calibration result
