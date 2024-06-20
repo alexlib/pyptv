@@ -32,7 +32,7 @@ from chaco.tools.better_zoom import BetterZoom as SimpleZoom
 
 # from chaco.tools.simple_zoom import SimpleZoom
 from pyptv.text_box_overlay import TextBoxOverlay
-from pyptv.code_editor import codeEditor
+from pyptv.code_editor import oriEditor, addparEditor
 from pyptv.quiverplot import QuiverPlot
 
 
@@ -47,6 +47,7 @@ from optv.tracking_framebuf import TargetArray
 
 from pyptv import ptv, parameter_gui, parameters as par
 
+from scipy.optimize import minimize
 
 # -------------------------------------------
 class ClickerTool(ImageInspectorTool):
@@ -340,6 +341,7 @@ class CalibrationGUI(HasTraits):
     button_checkpoint = Button()
     button_ap_figures = Button()
     button_edit_ori_files = Button()
+    button_edit_addpar_files = Button()
     button_test = Button()
 
     # ---------------------------------------------------
@@ -478,6 +480,11 @@ class CalibrationGUI(HasTraits):
                     Item(
                         name="button_edit_ori_files",
                         label="Edit ori files",
+                        show_label=False,
+                    ),
+                    Item(
+                        name="button_edit_addpar_files",
+                        label="Edit addpar files",
                         show_label=False,
                     ),
                     show_left=False,
@@ -872,8 +879,9 @@ class CalibrationGUI(HasTraits):
             op.shear,
         ]
 
+        # set flags for cc, xh, yh only
         flags = []
-        for name, op_name in zip(names, op_names):
+        for name, op_name in zip(names[:3], op_names[:3]):
             if op_name == 1:
                 flags.append(name)
 
@@ -968,24 +976,99 @@ class CalibrationGUI(HasTraits):
             else:
                 targs = self.sorted_targs[i_cam]
 
-            try:
-                residuals, targ_ix, err_est = full_calibration(
-                    self.cals[i_cam],
-                    self.cal_points["pos"],
-                    targs,
-                    self.cpar,
-                    flags,
-                )
-            except BaseException as exc:
-                raise ValueError("full calibration failed\n") from exc
-            # save the results
+            # try:
+            print(f"First calibrate only external and flags: {flags} \n")
+            residuals, targ_ix, err_est = full_calibration(
+                self.cals[i_cam],
+                self.cal_points["pos"],
+                targs,
+                self.cpar,
+                flags,
+            )
+            
+            # this chunk optimizes for radial distortion
+            if np.any(op_names[3:6]):
+                sol = minimize(self._residuals_k,
+                               self.cals[i_cam].get_radial_distortion(), 
+                               args=(self.cals[i_cam], 
+                                     all_known, 
+                                     all_detected, 
+                                     self.cpar
+                                     ), 
+                                     method='Nelder-Mead', 
+                                     tol=1e-11,
+                                     options={'disp':True},
+                                     )
+                radial = sol.x 
+                self.cals[i_cam].set_radial_distortion(radial)
+            else:
+                radial = self.cals[i_cam].get_radial_distortion()
+            
+            if np.any(op_names[5:8]):
+                # now decentering
+                sol = minimize(self._residuals_p,
+                               self.cals[i_cam].get_decentering(), 
+                               args=(self.cals[i_cam], 
+                                     all_known, 
+                                     all_detected, 
+                                     self.cpar
+                                     ), 
+                                     method='Nelder-Mead', 
+                                     tol=1e-11,
+                                     options={'disp':True},
+                                     )
+                decentering = sol.x 
+                self.cals[i_cam].set_decentering(decentering)
+            else:
+                decentering = self.cals[i_cam].get_decentering()
+            
+            if np.any(op_names[8:]):
+                # now affine
+                sol = minimize(self._residuals_s,
+                               self.cals[i_cam].get_affine(), 
+                               args=(self.cals[i_cam], 
+                                     all_known, 
+                                     all_detected, 
+                                     self.cpar
+                                     ), 
+                                     method='Nelder-Mead', 
+                                     tol=1e-11,
+                                     options={'disp':True},
+                                     )
+                affine = sol.x 
+                self.cals[i_cam].set_affine_trans(affine)
+
+            else:
+                affine = self.cals[i_cam].get_affine()
+            
+        
+            # Now project and estimate full residuals
+            self._project_cal_points(i_cam)
+
+            residuals = self._residuals_combined(
+                            np.r_[radial, decentering, affine],
+                            self.cals[i_cam], 
+                            all_known, 
+                            all_detected, 
+                            self.cpar
+                            )
+
+            residuals /= 100
+
+            targ_ix = np.arange(len(all_detected))
+            
+            # save the results from self.cals[i_cam]
             self._write_ori(i_cam, addpar_flag=True)
 
-            # Plot the output
-            # self.reset_plots()
+            # x, y = [], []
+            # for r, t in zip(residuals, targ_ix):
+            #     if t != -999:
+            #         pos = targs[t].pos()
+            #         x.append(pos[0])
+            #         y.append(pos[1])
 
             x, y = [], []
-            for r, t in zip(residuals, targ_ix):
+            for t in targ_ix:
                 if t != -999:
                     pos = targs[t].pos()
                     x.append(pos[0])
@@ -1011,6 +1094,78 @@ class CalibrationGUI(HasTraits):
             # self.camera[i]._plot.value_mapper.range.set_bounds(0, self.v_pixel)
 
         self.status_text = "Orientation finished."
+
+    # def _error_function(self, x, cal, XYZ, xy, cpar):
+    #     """Error function for scipy.optimize.minimize.
+
+    #     Args:
+    #         x (array-like): Array of parameters.
+    #         cal (Calibration): Calibration object.
+    #         XYZ (array-like): 3D coordinates.
+    #         xy (array-like): 2D image coordinates.
+    #         cpar (CPar): Camera parameters.
+
+    #     Returns:
+    #         float: Error value.
+    #     """
+    #     residuals = self._residuals_radial(x, cal, XYZ, xy, cpar)
+    #     return np.sum(residuals**2)
+    
+    def _residuals_k(self, x, cal, XYZ, xy, cpar):
+        """Residuals due to radial distortion
+
+        Args:
+            x (array-like): Array of parameters.
+            cal (Calibration): Calibration object.
+            XYZ (array-like): 3D coordinates.
+            xy (array-like): 2D image coordinates.
+            cpar (CPar): Camera parameters.
+
+        Returns:
+            residuals: Distortion in pixels
+        """
+
+        cal.set_radial_distortion(x)
+        targets = convert_arr_metric_to_pixel(
+            image_coordinates(XYZ, cal, cpar.get_multimedia_params()),
+            cpar
+        )
+        residuals = xy[:,1:] - targets
+        return np.sum(residuals**2)
+
+    def _residuals_p(self, x, cal, XYZ, xy, cpar):
+        """Residuals due to decentering """
+        cal.set_decentering(x)
+        targets = convert_arr_metric_to_pixel(
+            image_coordinates(XYZ, cal, cpar.get_multimedia_params()),
+            cpar
+        )
+        residuals = xy[:,1:] - targets
+        return np.sum(residuals**2)
+    
+    def _residuals_s(self, x, cal, XYZ, xy, cpar):
+        """Residuals due to decentering """
+        cal.set_affine_trans(x)
+        targets = convert_arr_metric_to_pixel(
+            image_coordinates(XYZ, cal, cpar.get_multimedia_params()),
+            cpar
+        )
+        residuals = xy[:,1:] - targets
+        return np.sum(residuals**2)    
+
+    def _residuals_combined(self, x, cal, XYZ, xy, cpar):
+        """Combined residuals  """
+
+        cal.set_radial_distortion(x[:3])
+        cal.set_decentering(x[3:5])
+        cal.set_affine_trans(x[5:])
+
+        targets = convert_arr_metric_to_pixel(
+            image_coordinates(XYZ, cal, cpar.get_multimedia_params()),
+            cpar
+        )
+        residuals = xy[:,1:] - targets
+        return residuals           
 
     def _write_ori(self, i_cam, addpar_flag=False):
         """Writes ORI and ADDPAR files for a single calibration result
@@ -1116,8 +1271,13 @@ class CalibrationGUI(HasTraits):
             cam._plot.request_redraw()
 
     def _button_edit_ori_files_fired(self):
-        editor = codeEditor(path=self.par_path)
+        editor = oriEditor(path=self.par_path)
         editor.edit_traits(kind="livemodal")
+
+    def _button_edit_addpar_files_fired(self):
+        editor = addparEditor(path=self.par_path)
+        editor.edit_traits(kind="livemodal")
+
 
     def drawcross(self, str_x, str_y, x, y, color1, size1, i_cam=None):
         """
@@ -1174,6 +1334,7 @@ class CalibrationGUI(HasTraits):
 
         with open(self.calParams.fixp_name, 'r') as file:
             first_line = file.readline()
+            print(first_line)
             if ',' in first_line:
                 delimiter=','
             elif '\t' in first_line:
@@ -1198,6 +1359,7 @@ if __name__ == "__main__":
 
     if len(sys.argv) == 1:
         active_path = Path("../test_cavity/parametersRun1")
+        active_path = Path("/home/user/Downloads/rbc300/parametersMultiPlane")
     else:
         active_path = Path(sys.argv[0])
 

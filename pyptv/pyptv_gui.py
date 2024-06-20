@@ -396,7 +396,9 @@ class TreeMenuHandler(Handler):
         paramset = object
         print(f" Copying set of parameters \n")
         print(f"paramset is {paramset.name}")
-        print(f"paramset id is {int(paramset.name.split('Run')[-1])}")
+        if 'Run' in paramset.name:
+            print(f"paramset id is {int(paramset.name.split('Run')[-1])}")
+        # print(f"paramset id is {int(paramset.name.split('Run')[-1])}")
         # print(f"experiment is {experiment}\n")
 
         i = 1
