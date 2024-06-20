@@ -974,6 +974,7 @@ class CalibrationGUI(HasTraits):
                 flags,
             )
             
+<<<<<<< HEAD
             # # this chunk optimizes for radial distortion
             # if np.any(op_names[3:6]):
             #     sol = minimize(self._residuals_k,
@@ -1045,6 +1046,78 @@ class CalibrationGUI(HasTraits):
             # residuals /= 100
 
             # targ_ix = np.arange(len(all_detected))
+=======
+            # this chunk optimizes for radial distortion
+            if np.any(op_names[3:6]):
+                sol = minimize(self._residuals_k,
+                               self.cals[i_cam].get_radial_distortion(), 
+                               args=(self.cals[i_cam], 
+                                     all_known, 
+                                     all_detected, 
+                                     self.cpar
+                                     ), 
+                                     method='Nelder-Mead', 
+                                     tol=1e-11,
+                                     options={'disp':True},
+                                     )
+                radial = sol.x 
+                self.cals[i_cam].set_radial_distortion(radial)
+            else:
+                radial = self.cals[i_cam].get_radial_distortion()
+            
+            if np.any(op_names[5:8]):
+                # now decentering
+                sol = minimize(self._residuals_p,
+                               self.cals[i_cam].get_decentering(), 
+                               args=(self.cals[i_cam], 
+                                     all_known, 
+                                     all_detected, 
+                                     self.cpar
+                                     ), 
+                                     method='Nelder-Mead', 
+                                     tol=1e-11,
+                                     options={'disp':True},
+                                     )
+                decentering = sol.x 
+                self.cals[i_cam].set_decentering(decentering)
+            else:
+                decentering = self.cals[i_cam].get_decentering()
+            
+            if np.any(op_names[8:]):
+                # now affine
+                sol = minimize(self._residuals_s,
+                               self.cals[i_cam].get_affine(), 
+                               args=(self.cals[i_cam], 
+                                     all_known, 
+                                     all_detected, 
+                                     self.cpar
+                                     ), 
+                                     method='Nelder-Mead', 
+                                     tol=1e-11,
+                                     options={'disp':True},
+                                     )
+                affine = sol.x 
+                self.cals[i_cam].set_affine_trans(affine)
+
+            else:
+                affine = self.cals[i_cam].get_affine()
+            
+        
+            # Now project and estimate full residuals
+            self._project_cal_points(i_cam)
+
+            residuals = self._residuals_combined(
+                            np.r_[radial, decentering, affine],
+                            self.cals[i_cam], 
+                            all_known, 
+                            all_detected, 
+                            self.cpar
+                            )
+
+            residuals /= 100
+
+            targ_ix = np.arange(len(all_detected))
+>>>>>>> ead5845... Multiplane calibration with additional parameters (#71)
             
             # save the results from self.cals[i_cam]
             self._write_ori(i_cam, addpar_flag=True)
@@ -1321,6 +1394,7 @@ class CalibrationGUI(HasTraits):
 
     def _read_cal_points(self):
 
+<<<<<<< HEAD
         # with open(self.calParams.fixp_name, 'r') as file:
         #     first_line = file.readline()
         #     print(first_line)
@@ -1335,6 +1409,20 @@ class CalibrationGUI(HasTraits):
             
         #     print(f'Using delimiter: {delimiter} for file {self.calParams.fixp_name}')
             
+=======
+        with open(self.calParams.fixp_name, 'r') as file:
+            first_line = file.readline()
+            print(first_line)
+            if ',' in first_line:
+                delimiter=','
+            elif '\t' in first_line:
+                delimiter='\t'
+            elif ' ' in first_line:
+                delimiter=' '
+            else:
+                raise ValueError("Unsupported delimiter")
+
+>>>>>>> ead5845... Multiplane calibration with additional parameters (#71)
         return np.atleast_1d(
             np.loadtxt(
                 self.calParams.fixp_name,
@@ -1350,6 +1438,7 @@ if __name__ == "__main__":
 
     if len(sys.argv) == 1:
         active_path = Path("../test_cavity/parametersRun1")
+        active_path = Path("/home/user/Downloads/rbc300/parametersMultiPlane")
     else:
         active_path = Path(sys.argv[0])
 
