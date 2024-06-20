@@ -28,41 +28,43 @@ def get_path(filename):
     )
 
 
-def get_code(path):
-    f = open(path, "r")
+def get_code(path: Path):
 
-    retCode = f.read()
-    f.close()
+    print(f"{path} exists: {path.exists()}")
+    with open(path, "r", encoding="utf-8") as f:    
+        retCode = f.read()
+
+    print(retCode)
+
     return retCode
 
 
-class oriEditor(HasTraits):
-    file_Path = File
-    ori_Code = Code()
-    ori_Save = Button(label="Save")
+class codeEditor(HasTraits):
+    file_Path = Path
+    _Code = Code()
+    _Save = Button(label="Save")
     buttons_group = Group(
         Item(name="file_Path", style="simple", show_label=False, width=0.3),
-        Item(name="ori_Save", show_label=False),
+        Item(name="_Save", show_label=False),
         orientation="horizontal",
     )
     traits_view = View(
         Group(
-            Item(name="ori_Code", show_label=False, height=300, width=650),
+            Item(name="_Code", show_label=False, height=300, width=650),
             buttons_group,
         )
     )
 
-    def _ori_Save_fired(self, filename, code):
+    def _Save_fired(self):
         f = open(self.file_Path, "w")
-        f.write(self.ori_Code)
+        f.write(self._Code)
         f.close()
 
-    def __init__(self, file_path):
+    def __init__(self, file_path: Path):
         self.file_Path = file_path
-        self.ori_Code = get_code(file_path)
+        self._Code = get_code(file_path)
 
-
-class codeEditor(HasTraits):
+class oriEditor(HasTraits):
 
     # number of images
     n_img = Int()
@@ -86,6 +88,47 @@ class codeEditor(HasTraits):
         title="Camera's orientation files",
     )
 
+    def __init__(self, path: Path):
+        """ Initialize by reading parameters and filling the editor windows """
+        # load ptv_par
+        ptvParams = par.PtvParams(path=path)
+        ptvParams.read()
+        self.n_img = ptvParams.n_img
+
+        # load cal_ori
+        calOriParams = par.CalOriParams(self.n_img)
+        calOriParams.read()
+
+        for i in range(self.n_img):
+            self.oriEditors.append(
+                codeEditor(Path(calOriParams.img_ori[i]))
+            )
+
+
+class addparEditor(HasTraits):
+
+    # number of images
+    n_img = Int()
+
+    addparEditors = List
+
+    # view
+    traits_view = View(
+        Item(
+            "addparEditors",
+            style="custom",
+            editor=ListEditor(
+                use_notebook=True,
+                deletable=False,
+                dock_style="tab",
+                page_name=".file_Path",
+            ),
+            show_label=False,
+        ),
+        buttons=["Cancel"],
+        title="Camera's additional parameters files",
+    )
+
     def __init__(self, path):
         """ Initialize by reading parameters and filling the editor windows """
         # load ptv_par
@@ -98,6 +141,6 @@ class codeEditor(HasTraits):
         calOriParams.read()
 
         for i in range(self.n_img):
-            self.oriEditors.append(
-                oriEditor(calOriParams.img_ori[i])
+            self.addparEditors.append(
+                codeEditor(Path(calOriParams.img_ori[i].replace('ori', 'addpar')))
             )

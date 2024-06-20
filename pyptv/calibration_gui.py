@@ -32,7 +32,7 @@ from chaco.tools.better_zoom import BetterZoom as SimpleZoom
 
 # from chaco.tools.simple_zoom import SimpleZoom
 from pyptv.text_box_overlay import TextBoxOverlay
-from pyptv.code_editor import codeEditor
+from pyptv.code_editor import oriEditor, addparEditor
 from pyptv.quiverplot import QuiverPlot
 
 
@@ -340,6 +340,7 @@ class CalibrationGUI(HasTraits):
     button_checkpoint = Button()
     button_ap_figures = Button()
     button_edit_ori_files = Button()
+    button_edit_addpar_files = Button()
     button_test = Button()
 
     # ---------------------------------------------------
@@ -478,6 +479,11 @@ class CalibrationGUI(HasTraits):
                     Item(
                         name="button_edit_ori_files",
                         label="Edit ori files",
+                        show_label=False,
+                    ),
+                    Item(
+                        name="button_edit_addpar_files",
+                        label="Edit addpar files",
                         show_label=False,
                     ),
                     show_left=False,
@@ -1002,19 +1008,28 @@ class CalibrationGUI(HasTraits):
                 self._array_to_calibration(sol.x, self.cals[i_cam])                
                 self._project_cal_points(i_cam)
 
-                # we need to generate self.cals[i_cam] and residuals
-                # and translate targets to targ_ix
-                # raise ValueError("full calibration failed\n") from exc
+
+                residuals = self._residuals(sol.x, 
+                                self.cals[i_cam], 
+                                all_known, 
+                                all_detected, 
+                                self.cpar
+                                )
+                            
                 print("\n Calibration using scipy.optimize.minimize \n")
             
             # save the results from self.cals[i_cam]
             self._write_ori(i_cam, addpar_flag=True)
 
-            # Plot the output
-            # self.reset_plots()
+            # x, y = [], []
+            # for r, t in zip(residuals, targ_ix):
+            #     if t != -999:
+            #         pos = targs[t].pos()
+            #         x.append(pos[0])
+            #         y.append(pos[1])
 
             x, y = [], []
-            for r, t in zip(residuals, targ_ix):
+            for t in targ_ix:
                 if t != -999:
                     pos = targs[t].pos()
                     x.append(pos[0])
@@ -1082,6 +1097,38 @@ class CalibrationGUI(HasTraits):
         Returns:
             float: Error value.
         """
+        # cal.set_pos(x[:3])
+        # cal.set_angles(x[3:6])
+        # cal.set_primary_point(x[6:9])
+        # # cal.set_radial_distortion(x[9:12])
+        # # cal.set_decentering(x[12:14])
+        # # cal.set_affine_distortion(x[14:])
+
+        # targets = convert_arr_metric_to_pixel(
+        #     image_coordinates(XYZ, cal, cpar.get_multimedia_params()),
+        #     cpar
+        # )
+
+        # err = np.sum((xy[:,1:] - targets)**2)
+
+        residuals = self._residuals(x, cal, XYZ, xy, cpar)
+        err = np.sum(residuals**2)
+        
+        return err
+    
+    def _residuals(self, x, cal, XYZ, xy, cpar):
+        """Error function for scipy.optimize.minimize.
+
+        Args:
+            x (array-like): Array of parameters.
+            cal (Calibration): Calibration object.
+            XYZ (array-like): 3D coordinates.
+            xy (array-like): 2D image coordinates.
+            cpar (CPar): Camera parameters.
+
+        Returns:
+            float: Error value.
+        """
         cal.set_pos(x[:3])
         cal.set_angles(x[3:6])
         cal.set_primary_point(x[6:9])
@@ -1094,10 +1141,8 @@ class CalibrationGUI(HasTraits):
             cpar
         )
 
-        err = np.sum((xy[:,1:] - targets)**2)
-        # err = np.sum(xy - targets)
-        # print(err)
-        return err
+        residuals = xy[:,1:] - targets
+        return residuals
        
 
     def _write_ori(self, i_cam, addpar_flag=False):
@@ -1204,8 +1249,13 @@ class CalibrationGUI(HasTraits):
             cam._plot.request_redraw()
 
     def _button_edit_ori_files_fired(self):
-        editor = codeEditor(path=self.par_path)
+        editor = oriEditor(path=self.par_path)
         editor.edit_traits(kind="livemodal")
+
+    def _button_edit_addpar_files_fired(self):
+        editor = addparEditor(path=self.par_path)
+        editor.edit_traits(kind="livemodal")
+
 
     def drawcross(self, str_x, str_y, x, y, color1, size1, i_cam=None):
         """

@@ -23,10 +23,13 @@ def g(f):
 
 class Parameters(HasTraits):
     # default path of the directory of the param files
-    default_path = Path("parameters")
+    default_path = Path(par_dir_prefix)
 
     def __init__(self, path: Path=default_path):
         HasTraits.__init__(self)
+        if isinstance(path, str):
+            path = Path(path)
+            
         self.path = path.resolve()
         self.exp_path = self.path.parent 
 
