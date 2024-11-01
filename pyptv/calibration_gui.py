@@ -986,76 +986,77 @@ class CalibrationGUI(HasTraits):
                 flags,
             )
             
-            # this chunk optimizes for radial distortion
-            if np.any(op_names[3:6]):
-                sol = minimize(self._residuals_k,
-                               self.cals[i_cam].get_radial_distortion(), 
-                               args=(self.cals[i_cam], 
-                                     all_known, 
-                                     all_detected, 
-                                     self.cpar
-                                     ), 
-                                     method='Nelder-Mead', 
-                                     tol=1e-11,
-                                     options={'disp':True},
-                                     )
-                radial = sol.x 
-                self.cals[i_cam].set_radial_distortion(radial)
-            else:
-                radial = self.cals[i_cam].get_radial_distortion()
+            # # this chunk optimizes for radial distortion
+            # if np.any(op_names[3:6]):
+            #     sol = minimize(self._residuals_k,
+            #                    self.cals[i_cam].get_radial_distortion(), 
+            #                    args=(self.cals[i_cam], 
+            #                          all_known, 
+            #                          all_detected, 
+            #                          self.cpar
+            #                          ), 
+            #                          method='Nelder-Mead', 
+            #                          tol=1e-11,
+            #                          options={'disp':True},
+            #                          )
+            #     radial = sol.x 
+            #     self.cals[i_cam].set_radial_distortion(radial)
+            # else:
+            #     radial = self.cals[i_cam].get_radial_distortion()
             
-            if np.any(op_names[5:8]):
-                # now decentering
-                sol = minimize(self._residuals_p,
-                               self.cals[i_cam].get_decentering(), 
-                               args=(self.cals[i_cam], 
-                                     all_known, 
-                                     all_detected, 
-                                     self.cpar
-                                     ), 
-                                     method='Nelder-Mead', 
-                                     tol=1e-11,
-                                     options={'disp':True},
-                                     )
-                decentering = sol.x 
-                self.cals[i_cam].set_decentering(decentering)
-            else:
-                decentering = self.cals[i_cam].get_decentering()
+            # if np.any(op_names[5:8]):
+            #     # now decentering
+            #     sol = minimize(self._residuals_p,
+            #                    self.cals[i_cam].get_decentering(), 
+            #                    args=(self.cals[i_cam], 
+            #                          all_known, 
+            #                          all_detected, 
+            #                          self.cpar
+            #                          ), 
+            #                          method='Nelder-Mead', 
+            #                          tol=1e-11,
+            #                          options={'disp':True},
+            #                          )
+            #     decentering = sol.x 
+            #     self.cals[i_cam].set_decentering(decentering)
+            # else:
+            #     decentering = self.cals[i_cam].get_decentering()
             
-            if np.any(op_names[8:]):
-                # now affine
-                sol = minimize(self._residuals_s,
-                               self.cals[i_cam].get_affine(), 
-                               args=(self.cals[i_cam], 
-                                     all_known, 
-                                     all_detected, 
-                                     self.cpar
-                                     ), 
-                                     method='Nelder-Mead', 
-                                     tol=1e-11,
-                                     options={'disp':True},
-                                     )
-                affine = sol.x 
-                self.cals[i_cam].set_affine_trans(affine)
+            # if np.any(op_names[8:]):
+            #     # now affine
+            #     sol = minimize(self._residuals_s,
+            #                    self.cals[i_cam].get_affine(), 
+            #                    args=(self.cals[i_cam], 
+            #                          all_known, 
+            #                          all_detected, 
+            #                          self.cpar
+            #                          ), 
+            #                          method='Nelder-Mead', 
+            #                          tol=1e-11,
+            #                          options={'disp':True},
+            #                          )
+            #     affine = sol.x 
+            #     self.cals[i_cam].set_affine_trans(affine)
 
-            else:
-                affine = self.cals[i_cam].get_affine()
+            # else:
+            #     affine = self.cals[i_cam].get_affine()
             
-        
-            # Now project and estimate full residuals
-            self._project_cal_points(i_cam)
 
-            residuals = self._residuals_combined(
-                            np.r_[radial, decentering, affine],
-                            self.cals[i_cam], 
-                            all_known, 
-                            all_detected, 
-                            self.cpar
-                            )
 
-            residuals /= 100
+            # # Now project and estimate full residuals
+            # self._project_cal_points(i_cam)
 
-            targ_ix = np.arange(len(all_detected))
+            # residuals = self._residuals_combined(
+            #                 np.r_[radial, decentering, affine],
+            #                 self.cals[i_cam], 
+            #                 all_known, 
+            #                 all_detected, 
+            #                 self.cpar
+            #                 )
+
+            # residuals /= 100
+
+            # targ_ix = np.arange(len(all_detected))
             
             # save the results from self.cals[i_cam]
             self._write_ori(i_cam, addpar_flag=True)
