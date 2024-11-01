@@ -707,7 +707,7 @@ class CalibrationGUI(HasTraits):
         for i_cam in range(self.n_cams):
             self._project_cal_points(i_cam)
 
-    def _project_cal_points(self, i_cam, color="yellow"):
+    def _project_cal_points(self, i_cam, color="orange"):
         x, y = [], []
         for row in self.cal_points:
             projected = image_coordinates(
@@ -1332,22 +1332,24 @@ class CalibrationGUI(HasTraits):
 
     def _read_cal_points(self):
 
-        with open(self.calParams.fixp_name, 'r') as file:
-            first_line = file.readline()
-            print(first_line)
-            if ',' in first_line:
-                delimiter=','
-            elif '\t' in first_line:
-                delimiter='\t'
-            elif ' ' in first_line:
-                delimiter=' '
-            else:
-                raise ValueError("Unsupported delimiter")
-
+        # with open(self.calParams.fixp_name, 'r') as file:
+        #     first_line = file.readline()
+        #     print(first_line)
+        #     if ',' in first_line:
+        #         delimiter=','
+        #     elif '\t' in first_line:
+        #         delimiter='\t'
+        #     elif ' ' in first_line:
+        #         delimiter=' '
+        #     else:
+        #         raise ValueError("Unsupported delimiter")
+            
+        #     print(f'Using delimiter: {delimiter} for file {self.calParams.fixp_name}')
+            
         return np.atleast_1d(
             np.loadtxt(
                 self.calParams.fixp_name,
-                delimiter=delimiter,
+                # delimiter='\t',
                 dtype=[("id", "i4"), ("pos", "3f8")],
                 skiprows=0,
             )
