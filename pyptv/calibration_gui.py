@@ -905,7 +905,14 @@ class CalibrationGUI(HasTraits):
 
                     # c = self.calParams.img_ori[i_cam][-9] # Get camera id
                     # not all ends with a number
-                    c = re.findall("\\d+", self.calParams.img_ori[i_cam])[0]
+                    # c = re.findall("\\d+", self.calParams.img_ori[i_cam])[0]
+                    match = re.search(r'cam[_-]?(\d)', self.calParams.img_ori[i_cam])
+                    if match:
+                        c = match.group(1)
+                        print(f'Camera number found: {c} in {self.calParams.img_ori[i_cam]}')
+                    else:
+                        raise ValueError("Camera number not found in {}".format(self.calParams.img_ori[i_cam]))
+
 
                     file_known = (
                         self.MultiParams.plane_name[i] + c + ".tif.fix"
@@ -1361,8 +1368,8 @@ if __name__ == "__main__":
     import sys
 
     if len(sys.argv) == 1:
-        active_path = Path("../test_cavity/parametersRun1")
-        active_path = Path("/home/user/Downloads/rbc300/parametersMultiPlane")
+        # active_path = Path("../test_cavity/parametersRun1")
+        active_path = Path("/home/user/Documents/repos/multiplane_example_2/parametersmultiplane")
     else:
         active_path = Path(sys.argv[0])
 
