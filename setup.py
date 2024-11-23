@@ -13,7 +13,8 @@ requirements = [
     'pandas',
     'tables',
     'pyparsing',
-    'tqdm'
+    'tqdm',
+    'matplotlib'
 ]
 
 setup(

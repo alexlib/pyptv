@@ -396,7 +396,9 @@ class TreeMenuHandler(Handler):
         paramset = object
         print(f" Copying set of parameters \n")
         print(f"paramset is {paramset.name}")
-        print(f"paramset id is {int(paramset.name.split('Run')[-1])}")
+        if 'Run' in paramset.name:
+            print(f"paramset id is {int(paramset.name.split('Run')[-1])}")
+        # print(f"paramset id is {int(paramset.name.split('Run')[-1])}")
         # print(f"experiment is {experiment}\n")
 
         i = 1
@@ -1522,7 +1524,7 @@ def main():
         # exp_path = software_path.parent / "test_cavity"
         # exp_path = Path('/home/user/Downloads/one-dot-example/working_folder')
         # exp_path = Path('/home/user/Downloads/test_crossing_particle')
-        exp_path = Path('/home/user/Downloads/rbc300')
+        exp_path = Path('/home/user/Documents/repos/multiplane_example_2')
         print(f"Without input, PyPTV fallbacks to a default {exp_path} \n")
 
     if not exp_path.is_dir() or not exp_path.exists():
