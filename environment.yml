@@ -71,6 +71,7 @@ dependencies:
       - imageio==2.34.0
       - kiwisolver==1.4.5
       - lazy-loader==0.3
+      - matplotlib==3.9.2
       - msgpack==1.0.8
       - ndindex==1.8
       - networkx==3.2.1
