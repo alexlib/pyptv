@@ -766,28 +766,6 @@ class CalibrationGUI(HasTraits):
         self.status_text = "Sort grid finished."
         self.pass_sortgrid = True
 
-    # def _button_sort_grid_init_fired(self):
-    #     """ TODO: Not implemented yet """
-    #     if self.need_reset:
-    #         self.reset_show_images()
-    #         self.need_reset = 0
-    #
-    #
-    #     ptv.py_calibration(14)
-    #     x = []
-    #     y = []
-    #     x1_cyan = []
-    #     y1_cyan = []
-    #     pnr = []
-    #     ptv.py_get_from_sortgrid(x, y, pnr)
-    #     self.drawcross("sort_x_init", "sort_y_init", x, y, "white", 4)
-    #     ptv.py_get_from_calib(x1_cyan, y1_cyan)
-    #     self.drawcross("init_x", "init_y", x1_cyan, y1_cyan, "cyan", 4)
-    #     for i in range(len(self.camera)):
-    #         self.camera[i]._plot.overlays = []
-    #         self.camera[i].plot_num_overlay(x[i], y[i], pnr[i])
-    #     self.status_text = "Sort grid initial guess finished."
-
     def _button_raw_orient_fired(self):
         """
         update the external calibration with results of raw orientation, i.e.
@@ -1359,7 +1337,6 @@ if __name__ == "__main__":
 
     if len(sys.argv) == 1:
         active_path = Path("../test_cavity/parametersRun1")
-        active_path = Path("/home/user/Downloads/rbc300/parametersMultiPlane")
     else:
         active_path = Path(sys.argv[0])
 
