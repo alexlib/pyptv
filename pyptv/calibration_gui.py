@@ -287,7 +287,7 @@ class PlotWindow(HasTraits):
                     coord_y1,
                 )
 
-    def plot_num_overlay(self, x, y, txt):
+    def plot_num_overlay(self, x, y, txt, text_color="white", border_color="red"):
         for i in range(len(x)):
             coord_x, coord_y = self._plot.map_screen([(x[i], y[i])])[0]
             ovlay = TextBoxOverlay(
@@ -295,8 +295,8 @@ class PlotWindow(HasTraits):
                 text=str(txt[i]),
                 alternate_position=(coord_x, coord_y),
                 real_position=(x[i], y[i]),
-                text_color="white",
-                border_color="red",
+                text_color=text_color,
+                border_color=border_color,
             )
             self._plot.overlays.append(ovlay)
 
@@ -707,8 +707,8 @@ class CalibrationGUI(HasTraits):
         for i_cam in range(self.n_cams):
             self._project_cal_points(i_cam)
 
-    def _project_cal_points(self, i_cam, color="yellow"):
-        x, y = [], []
+    def _project_cal_points(self, i_cam, color="orange"):
+        x, y, pnr = [], [], []
         for row in self.cal_points:
             projected = image_coordinates(
                 np.atleast_2d(row["pos"]),
@@ -719,10 +719,13 @@ class CalibrationGUI(HasTraits):
 
             x.append(pos[0][0])
             y.append(pos[0][1])
+            pnr.append(row["id"])
 
         # x.append(x1)
         # y.append(y1)
         self.drawcross("init_x", "init_y", x, y, color, 3, i_cam=i_cam)
+        self.camera[i_cam].plot_num_overlay(x, y, pnr)
+    
         self.status_text = "Initial guess finished."
 
     def _button_sort_grid_fired(self):
@@ -883,7 +886,14 @@ class CalibrationGUI(HasTraits):
 
                     # c = self.calParams.img_ori[i_cam][-9] # Get camera id
                     # not all ends with a number
-                    c = re.findall("\\d+", self.calParams.img_ori[i_cam])[0]
+                    # c = re.findall("\\d+", self.calParams.img_ori[i_cam])[0]
+                    match = re.search(r'cam[_-]?(\d)', self.calParams.img_ori[i_cam])
+                    if match:
+                        c = match.group(1)
+                        print(f'Camera number found: {c} in {self.calParams.img_ori[i_cam]}')
+                    else:
+                        raise ValueError("Camera number not found in {}".format(self.calParams.img_ori[i_cam]))
+
 
                     file_known = (
                         self.MultiParams.plane_name[i] + c + ".tif.fix"
@@ -964,76 +974,77 @@ class CalibrationGUI(HasTraits):
                 flags,
             )
             
-            # this chunk optimizes for radial distortion
-            if np.any(op_names[3:6]):
-                sol = minimize(self._residuals_k,
-                               self.cals[i_cam].get_radial_distortion(), 
-                               args=(self.cals[i_cam], 
-                                     all_known, 
-                                     all_detected, 
-                                     self.cpar
-                                     ), 
-                                     method='Nelder-Mead', 
-                                     tol=1e-11,
-                                     options={'disp':True},
-                                     )
-                radial = sol.x 
-                self.cals[i_cam].set_radial_distortion(radial)
-            else:
-                radial = self.cals[i_cam].get_radial_distortion()
+            # # this chunk optimizes for radial distortion
+            # if np.any(op_names[3:6]):
+            #     sol = minimize(self._residuals_k,
+            #                    self.cals[i_cam].get_radial_distortion(), 
+            #                    args=(self.cals[i_cam], 
+            #                          all_known, 
+            #                          all_detected, 
+            #                          self.cpar
+            #                          ), 
+            #                          method='Nelder-Mead', 
+            #                          tol=1e-11,
+            #                          options={'disp':True},
+            #                          )
+            #     radial = sol.x 
+            #     self.cals[i_cam].set_radial_distortion(radial)
+            # else:
+            #     radial = self.cals[i_cam].get_radial_distortion()
             
-            if np.any(op_names[5:8]):
-                # now decentering
-                sol = minimize(self._residuals_p,
-                               self.cals[i_cam].get_decentering(), 
-                               args=(self.cals[i_cam], 
-                                     all_known, 
-                                     all_detected, 
-                                     self.cpar
-                                     ), 
-                                     method='Nelder-Mead', 
-                                     tol=1e-11,
-                                     options={'disp':True},
-                                     )
-                decentering = sol.x 
-                self.cals[i_cam].set_decentering(decentering)
-            else:
-                decentering = self.cals[i_cam].get_decentering()
+            # if np.any(op_names[5:8]):
+            #     # now decentering
+            #     sol = minimize(self._residuals_p,
+            #                    self.cals[i_cam].get_decentering(), 
+            #                    args=(self.cals[i_cam], 
+            #                          all_known, 
+            #                          all_detected, 
+            #                          self.cpar
+            #                          ), 
+            #                          method='Nelder-Mead', 
+            #                          tol=1e-11,
+            #                          options={'disp':True},
+            #                          )
+            #     decentering = sol.x 
+            #     self.cals[i_cam].set_decentering(decentering)
+            # else:
+            #     decentering = self.cals[i_cam].get_decentering()
             
-            if np.any(op_names[8:]):
-                # now affine
-                sol = minimize(self._residuals_s,
-                               self.cals[i_cam].get_affine(), 
-                               args=(self.cals[i_cam], 
-                                     all_known, 
-                                     all_detected, 
-                                     self.cpar
-                                     ), 
-                                     method='Nelder-Mead', 
-                                     tol=1e-11,
-                                     options={'disp':True},
-                                     )
-                affine = sol.x 
-                self.cals[i_cam].set_affine_trans(affine)
+            # if np.any(op_names[8:]):
+            #     # now affine
+            #     sol = minimize(self._residuals_s,
+            #                    self.cals[i_cam].get_affine(), 
+            #                    args=(self.cals[i_cam], 
+            #                          all_known, 
+            #                          all_detected, 
+            #                          self.cpar
+            #                          ), 
+            #                          method='Nelder-Mead', 
+            #                          tol=1e-11,
+            #                          options={'disp':True},
+            #                          )
+            #     affine = sol.x 
+            #     self.cals[i_cam].set_affine_trans(affine)
 
-            else:
-                affine = self.cals[i_cam].get_affine()
+            # else:
+            #     affine = self.cals[i_cam].get_affine()
             
-        
-            # Now project and estimate full residuals
-            self._project_cal_points(i_cam)
 
-            residuals = self._residuals_combined(
-                            np.r_[radial, decentering, affine],
-                            self.cals[i_cam], 
-                            all_known, 
-                            all_detected, 
-                            self.cpar
-                            )
 
-            residuals /= 100
+            # # Now project and estimate full residuals
+            # self._project_cal_points(i_cam)
 
-            targ_ix = np.arange(len(all_detected))
+            # residuals = self._residuals_combined(
+            #                 np.r_[radial, decentering, affine],
+            #                 self.cals[i_cam], 
+            #                 all_known, 
+            #                 all_detected, 
+            #                 self.cpar
+            #                 )
+
+            # residuals /= 100
+
+            # targ_ix = np.arange(len(all_detected))
             
             # save the results from self.cals[i_cam]
             self._write_ori(i_cam, addpar_flag=True)
@@ -1310,22 +1321,24 @@ class CalibrationGUI(HasTraits):
 
     def _read_cal_points(self):
 
-        with open(self.calParams.fixp_name, 'r') as file:
-            first_line = file.readline()
-            print(first_line)
-            if ',' in first_line:
-                delimiter=','
-            elif '\t' in first_line:
-                delimiter='\t'
-            elif ' ' in first_line:
-                delimiter=' '
-            else:
-                raise ValueError("Unsupported delimiter")
-
+        # with open(self.calParams.fixp_name, 'r') as file:
+        #     first_line = file.readline()
+        #     print(first_line)
+        #     if ',' in first_line:
+        #         delimiter=','
+        #     elif '\t' in first_line:
+        #         delimiter='\t'
+        #     elif ' ' in first_line:
+        #         delimiter=' '
+        #     else:
+        #         raise ValueError("Unsupported delimiter")
+            
+        #     print(f'Using delimiter: {delimiter} for file {self.calParams.fixp_name}')
+            
         return np.atleast_1d(
             np.loadtxt(
                 self.calParams.fixp_name,
-                delimiter=delimiter,
+                # delimiter='\t',
                 dtype=[("id", "i4"), ("pos", "3f8")],
                 skiprows=0,
             )

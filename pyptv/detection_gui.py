@@ -250,14 +250,14 @@ class PlotWindow(HasTraits):
                 self._plot.overlays[i].alternate_position = (
                     coord_x1, coord_y1)
 
-    def plot_num_overlay(self, x, y, txt):
+    def plot_num_overlay(self, x, y, txt, text_color="white", border_color="red"):
         for i in range(0, len(x)):
             coord_x, coord_y = self._plot.map_screen([(x[i], y[i])])[0]
             ovlay = TextBoxOverlay(component=self._plot,
                                    text=str(txt[i]), alternate_position=(coord_x, coord_y),
                                    real_position=(x[i], y[i]),
-                                   text_color="white",
-                                   border_color="red"
+                                   text_color=text_color,
+                                   border_color=border_color,
                                    )
             self._plot.overlays.append(ovlay)
 
