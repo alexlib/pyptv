@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "pyptv"
-version = "0.2.6"
+version = "0.2.7"
 description = "Python GUI for the OpenPTV library `liboptv`"
 authors = [
     { name = "Alex Liberzon", email = "alex.liberzon@gmail.com" }
@@ -29,7 +29,8 @@ dependencies = [
     "tables",
     "pyparsing",
     "tqdm",
-    "matplotlib"
+    "matplotlib",
+    "scipy"
 ]
 
 [project.urls]
