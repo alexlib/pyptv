@@ -287,7 +287,7 @@ class PlotWindow(HasTraits):
                     coord_y1,
                 )
 
-    def plot_num_overlay(self, x, y, txt):
+    def plot_num_overlay(self, x, y, txt, text_color="white", border_color="red"):
         for i in range(len(x)):
             coord_x, coord_y = self._plot.map_screen([(x[i], y[i])])[0]
             ovlay = TextBoxOverlay(
@@ -295,8 +295,8 @@ class PlotWindow(HasTraits):
                 text=str(txt[i]),
                 alternate_position=(coord_x, coord_y),
                 real_position=(x[i], y[i]),
-                text_color="white",
-                border_color="red",
+                text_color=text_color,
+                border_color=border_color,
             )
             self._plot.overlays.append(ovlay)
 
@@ -708,7 +708,7 @@ class CalibrationGUI(HasTraits):
             self._project_cal_points(i_cam)
 
     def _project_cal_points(self, i_cam, color="orange"):
-        x, y = [], []
+        x, y, pnr = [], [], []
         for row in self.cal_points:
             projected = image_coordinates(
                 np.atleast_2d(row["pos"]),
@@ -719,10 +719,13 @@ class CalibrationGUI(HasTraits):
 
             x.append(pos[0][0])
             y.append(pos[0][1])
+            pnr.append(row["id"])
 
         # x.append(x1)
         # y.append(y1)
         self.drawcross("init_x", "init_y", x, y, color, 3, i_cam=i_cam)
+        self.camera[i_cam].plot_num_overlay(x, y, pnr)
+    
         self.status_text = "Initial guess finished."
 
     def _button_sort_grid_fired(self):
@@ -1368,8 +1371,7 @@ if __name__ == "__main__":
     import sys
 
     if len(sys.argv) == 1:
-        # active_path = Path("../test_cavity/parametersRun1")
-        active_path = Path("/home/user/Documents/repos/multiplane_example_2/parametersmultiplane")
+        active_path = Path("../test_cavity/parametersRun1")
     else:
         active_path = Path(sys.argv[0])
 
