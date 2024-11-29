@@ -24,6 +24,8 @@ from optv.epipolar import epipolar_curve
 from optv.transforms import convert_arr_metric_to_pixel
 
 from skimage.io import imread
+from skimage import img_as_ubyte
+from skimage.color import rgb2gray
 from pyptv import parameters as par
 
 
@@ -239,6 +241,11 @@ def py_sequence_loop(exp):
                     print(f"{imname} does not exist")
                 else:
                     img = imread(imname)
+                    if img.ndim > 2:
+                        img = rgb2gray(img)
+                        
+                    if img.dtype != np.uint8:
+                        img = img_as_ubyte(img)
                 # time.sleep(.1) # I'm not sure we need it here
                 
                 if 'exp1' in exp.__dict__:
