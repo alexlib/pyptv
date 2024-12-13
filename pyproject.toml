@@ -19,7 +19,7 @@ dependencies = [
     "chaco",
     "enable",
     "optv",
-    "PyQt5",
+    "PySide6",
     "scikit-image",
     "Pygments",
     "six",
