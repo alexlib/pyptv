@@ -1,42 +1,71 @@
-from numpy import linspace, meshgrid, exp
+import sys
+import numpy as np
+from PySide6.QtWidgets import QApplication, QMainWindow, QWidget, QVBoxLayout
+from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
+from matplotlib.figure import Figure
 
-from chaco.api import ArrayPlotData, Plot, viridis, gray
-from enable.api import ComponentEditor
-from traits.api import HasTraits, Instance
-from traitsui.api import Item, View
+class ImagePlotWidget(QWidget):
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.initUI()
 
+    def initUI(self):
+        layout = QVBoxLayout()
+        self.canvas = FigureCanvas(Figure())
+        layout.addWidget(self.canvas)
+        self.setLayout(layout)
 
-class ImagePlot(HasTraits):
+        self.ax = self.canvas.figure.subplots()
+        self.canvas.mpl_connect('button_press_event', self.on_click)
+        self.canvas.mpl_connect('scroll_event', self.on_scroll)
 
-    plot = Instance(Plot)
+    def plot_image(self, data, colormap='gray'):
+        self.ax.clear()
+        self.ax.imshow(data, cmap=colormap, origin='upper')
+        self.canvas.draw()
 
-    traits_view = View(
-        Item("plot", editor=ComponentEditor(), show_label=False),
-        width=600,
-        height=600,
-        resizable=True,
-        title="Chaco Plot",
-    )
+    def on_click(self, event):
+        if event.inaxes:
+            x, y = event.xdata, event.ydata
+            if event.button == 1:  # Left click
+                print(f"Left click at: ({x}, {y})")
+                self.ax.plot(x, y, 'ro')  # Draw a red circle
+            elif event.button == 3:  # Right click
+                print(f"Right click at: ({x}, {y})")
+                self.ax.plot(x, y, 'bx')  # Draw a blue "X"
+            self.canvas.draw()
 
+    def on_scroll(self, event):
+        if event.inaxes:
+            scale_factor = 1.1 if event.button == 'up' else 0.9
+            self.ax.set_xlim([event.xdata - (event.xdata - self.ax.get_xlim()[0]) * scale_factor,
+                              event.xdata + (self.ax.get_xlim()[1] - event.xdata) * scale_factor])
+            self.ax.set_ylim([event.ydata - (event.ydata - self.ax.get_ylim()[0]) * scale_factor,
+                              event.ydata + (self.ax.get_ylim()[1] - event.ydata) * scale_factor])
+            self.canvas.draw()
+
+class MainWindow(QMainWindow):
     def __init__(self):
-        # Create the data and the PlotData object.  For a 2D plot, we need to
-        # take the row of X points and Y points and create a grid from them
-        # using meshgrid().
-        x = linspace(0, 10, 50)
-        y = linspace(0, 5, 50)
-        xgrid, ygrid = meshgrid(x, y)
-        z = exp(-(xgrid * xgrid + ygrid * ygrid) / 100)
-        plotdata = ArrayPlotData(imagedata=z)
-        # Create a Plot and associate it with the PlotData
-        plot = Plot(plotdata)
-        # Create an image plot in the Plot
-        plot.img_plot("imagedata", colormap=viridis)
-        self.plot = plot
+        super().__init__()
+        self.initUI()
 
+    def initUI(self):
+        self.setWindowTitle('Image Plot Example')
+        self.setGeometry(100, 100, 600, 600)
 
-# ===============================================================================
-# demo object that is used by the demo.py application.
-# ===============================================================================
-demo = ImagePlot()
-if __name__ == "__main__":
-    demo.configure_traits()
+        self.image_plot_widget = ImagePlotWidget()
+        self.setCentralWidget(self.image_plot_widget)
+
+        # Example data
+        x = np.linspace(-2, 2, 100)
+        y = np.linspace(-2, 2, 100)
+        X, Y = np.meshgrid(x, y)
+        Z = np.exp(-X**2 - Y**2)
+
+        self.image_plot_widget.plot_image(Z, colormap='viridis')
+
+if __name__ == '__main__':
+    app = QApplication(sys.argv)
+    main_window = MainWindow()
+    main_window.show()
+    sys.exit(app.exec())
