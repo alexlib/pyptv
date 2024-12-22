@@ -17,20 +17,21 @@ jobs:
     runs-on: ${{ matrix.os }}
     steps:
       - name: Checkout
-        uses: actions/checkout@v2
+        uses: actions/checkout@v4
       - name: Cache EDM packages
-        uses: actions/cache@v2
+        uses: actions/cache@v4
         with:
           path: ~/.cache
           key: ${{ runner.os }}--${{ hashFiles('requirements.txt') }}
       - name: Setup EDM
-        uses: enthought/setup-edm-action@v1
+        uses: enthought/setup-edm-action@v3
         with:
-          edm-version: 3.1.1
+          edm-version: 3.7.0
       - name: Install Python packages
         run: |
           edm install -y enable
-          edm install -y numpy 
+          edm install -y numpy
+          edm install -y matplotlib
           edm shell
           edm run -- python -m pip install tqdm flake8 pytest pyptv \
           --index-url https://pypi.fury.io/pyptv \

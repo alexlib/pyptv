@@ -1,0 +1,40 @@
+[build-system]
+requires = ["setuptools>=42", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "pyptv"
+version = "0.2.8"
+description = "Python GUI for the OpenPTV library `liboptv`"
+authors = [
+    { name = "Alex Liberzon", email = "alex.liberzon@gmail.com" }
+]
+readme = "README.md"
+requires-python = ">=3.8"
+keywords = ["pyptv"]
+classifiers = [
+    "Programming Language :: Python :: 3"
+]
+dependencies = [
+    "chaco",
+    "enable",
+    "optv",
+    "PySide6",
+    "scikit-image",
+    "Pygments",
+    "six",
+    "imagecodecs",
+    "flowtracks",
+    "pandas",
+    "tables",
+    "pyparsing",
+    "tqdm",
+    "matplotlib",
+    "scipy"
+]
+
+[project.urls]
+"Homepage" = "https://github.com/alexlib/pyptv"
+
+[project.scripts]
+pyptv = "pyptv.pyptv_gui:main"

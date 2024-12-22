@@ -3,6 +3,7 @@ import numpy as np
 from optv.calibration import Calibration
 from optv.correspondences import correspondences, MatchedCoords
 from optv.image_processing import preprocess_image
+from optv.imgcoord import image_coordinates
 from optv.orientation import (
     point_positions,
     external_calibration,
@@ -14,12 +15,17 @@ from optv.parameters import (
     TrackingParams,
     SequenceParams,
     TargetParams,
+    MultimediaParams,
 )
 from optv.segmentation import target_recognition
 from optv.tracking_framebuf import CORRES_NONE, read_targets, TargetArray
 from optv.tracker import Tracker, default_naming
 from optv.epipolar import epipolar_curve
+from optv.transforms import convert_arr_metric_to_pixel
+
 from skimage.io import imread
+from skimage import img_as_ubyte
+from skimage.color import rgb2gray
 from pyptv import parameters as par
 
 
@@ -211,24 +217,35 @@ def py_sequence_loop(exp):
     Existing_Target = np.bool8(pftVersionParams.Existing_Target)
 
     # sequence loop for all frames
-    for frame in range(spar.get_first(), spar.get_last() + 1):
-        print(f"processing {frame} frame")
+    first_frame = spar.get_first()
+    last_frame = spar.get_last()
+    print(f" From {first_frame = } to {last_frame = }")
+    
+    for frame in range(first_frame, last_frame + 1):
+        # print(f"processing {frame = }")
 
         detections = []
         corrected = []
         for i_cam in range(n_cams):
+            base_image_name = spar.get_img_base_name(i_cam).decode()
             if Existing_Target:
                 targs = read_targets(spar.get_img_base_name(i_cam), frame)
             else:
                 # imname = spar.get_img_base_name(i_cam) + str(frame).encode()
-                imname = spar.get_img_base_name(i_cam).decode()
-                imname = Path(imname.replace('#',f'{frame}'))
+                
+                # imname = Path(imname.replace('#',f'{frame}'))
+                imname = Path(base_image_name % frame) # works with jumps from 1 to 10 
                 # print(f'Image name {imname}')
 
                 if not imname.exists():
                     print(f"{imname} does not exist")
-
-                img = imread(imname)
+                else:
+                    img = imread(imname)
+                    if img.ndim > 2:
+                        img = rgb2gray(img)
+                        
+                    if img.dtype != np.uint8:
+                        img = img_as_ubyte(img)
                 # time.sleep(.1) # I'm not sure we need it here
                 
                 if 'exp1' in exp.__dict__:
@@ -239,9 +256,10 @@ def py_sequence_loop(exp):
                     if exp.exp1.active_params.m_params.Subtr_Mask:
                         # print("Subtracting mask")
                         try:
-                            mask_name = exp.exp1.active_params.m_params.Base_Name_Mask.replace('#',str(i_cam+1))
-                            mask = imread(mask_name)
-                            img[mask] = 0
+                            background_name = exp.exp1.active_params.m_params.Base_Name_Mask.replace('#',str(i_cam))
+                            # background_name = exp.exp1.active_params.m_params.Base_Name_Mask % (i_cam + 1)
+                            background = imread(background_name)
+                            img = np.clip(img - background, 0, 255).astype(np.uint8)
 
                         except ValueError:
                             print("failed to read the mask")
@@ -267,7 +285,7 @@ def py_sequence_loop(exp):
         # this is a workaround of the proper way to construct _targets name
         for i_cam in range(n_cams):
             detections[i_cam].write(
-                spar.get_img_base_name(i_cam).decode().replace('#','').encode(),
+                spar.get_img_base_name(i_cam),
                 frame
                 )
 

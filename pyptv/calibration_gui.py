@@ -11,12 +11,13 @@ import re
 from  pathlib import Path
 import numpy as np
 from skimage.io import imread
-from skimage import img_as_ubyte
+from skimage.util import img_as_ubyte
 from skimage.color import rgb2gray
 
 from traits.api import HasTraits, Str, Int, Bool, Instance, Button
 from traitsui.api import View, Item, HGroup, VGroup, ListEditor
 from enable.component_editor import ComponentEditor
+    
 from chaco.api import (
     Plot,
     ArrayPlotData,
@@ -31,9 +32,8 @@ from chaco.tools.better_zoom import BetterZoom as SimpleZoom
 
 # from chaco.tools.simple_zoom import SimpleZoom
 from pyptv.text_box_overlay import TextBoxOverlay
-from pyptv.code_editor import codeEditor
+from pyptv.code_editor import oriEditor, addparEditor
 from pyptv.quiverplot import QuiverPlot
-
 
 
 from optv.imgcoord import image_coordinates
@@ -46,6 +46,10 @@ from optv.tracking_framebuf import TargetArray
 
 from pyptv import ptv, parameter_gui, parameters as par
 
+from scipy.optimize import minimize
+
+# recognized names for the flags:
+NAMES = ["cc", "xh", "yh", "k1", "k2", "k3", "p1", "p2", "scale", "shear"]
 
 # -------------------------------------------
 class ClickerTool(ImageInspectorTool):
@@ -122,6 +126,7 @@ class PlotWindow(HasTraits):
         # -------------------------------------------------------------
 
     def left_clicked_event(self):
+        """ left click event """
         print("left clicked")
         if len(self._x) < 4:
             self._x.append(self._click_tool.x)
@@ -129,10 +134,13 @@ class PlotWindow(HasTraits):
         print(self._x, self._y)
 
         self.drawcross("coord_x", "coord_y", self._x, self._y, "red", 5)
-        self._plot.overlays.clear()
+        
+        if self._plot.overlays is not None:
+            self._plot.overlays.clear() # type: ignore
         self.plot_num_overlay(self._x, self._y, self.man_ori)
 
     def right_clicked_event(self):
+        """ right click event """
         print("right clicked")
         if len(self._x) > 0:
             self._x.pop()
@@ -140,7 +148,8 @@ class PlotWindow(HasTraits):
             print(self._x, self._y)
 
             self.drawcross("coord_x", "coord_y", self._x, self._y, "red", 5)
-            self._plot.overlays.clear()
+            if self._plot.overlays is not None:
+                self._plot.overlays.clear() # type: ignore
             self.plot_num_overlay(self._x, self._y, self.man_ori)
         else:
             if self._right_click_avail:
@@ -154,6 +163,7 @@ class PlotWindow(HasTraits):
                 self.drawcross("x", "y", x[0], y[0], "blue", 4)
 
     def attach_tools(self):
+        """ Attaches the necessary tools to the plot """
         self._click_tool = ClickerTool(self._img_plot)
         self._click_tool.on_trait_change(
             self.left_clicked_event, "left_changed"
@@ -279,7 +289,7 @@ class PlotWindow(HasTraits):
                     coord_y1,
                 )
 
-    def plot_num_overlay(self, x, y, txt):
+    def plot_num_overlay(self, x, y, txt, text_color="white", border_color="red"):
         for i in range(len(x)):
             coord_x, coord_y = self._plot.map_screen([(x[i], y[i])])[0]
             ovlay = TextBoxOverlay(
@@ -287,8 +297,8 @@ class PlotWindow(HasTraits):
                 text=str(txt[i]),
                 alternate_position=(coord_x, coord_y),
                 real_position=(x[i], y[i]),
-                text_color="white",
-                border_color="red",
+                text_color=text_color,
+                border_color=border_color,
             )
             self._plot.overlays.append(ovlay)
 
@@ -333,6 +343,7 @@ class CalibrationGUI(HasTraits):
     button_checkpoint = Button()
     button_ap_figures = Button()
     button_edit_ori_files = Button()
+    button_edit_addpar_files = Button()
     button_test = Button()
 
     # ---------------------------------------------------
@@ -471,6 +482,11 @@ class CalibrationGUI(HasTraits):
                     Item(
                         name="button_edit_ori_files",
                         label="Edit ori files",
+                        show_label=False,
+                    ),
+                    Item(
+                        name="button_edit_addpar_files",
+                        label="Edit addpar files",
                         show_label=False,
                     ),
                     show_left=False,
@@ -621,8 +637,8 @@ class CalibrationGUI(HasTraits):
                 print(f"Camera {i} has 4 points: {self.camera[i]._x}")
 
         if points_set:
-            print(f'Manual orientation file is {man_ori_path}')
-            with open(self.man_ori_path, "w", encoding="utf-8") as f:
+            print(f'Manual orientation file is {self.man_ori_dat_path}')
+            with open(self.man_ori_dat_path, "w", encoding="utf-8") as f:
                 if f is None:
                     self.status_text = "Error saving man_ori.dat."
                 else:
@@ -693,8 +709,8 @@ class CalibrationGUI(HasTraits):
         for i_cam in range(self.n_cams):
             self._project_cal_points(i_cam)
 
-    def _project_cal_points(self, i_cam, color="yellow"):
-        x, y = [], []
+    def _project_cal_points(self, i_cam, color="orange"):
+        x, y, pnr = [], [], []
         for row in self.cal_points:
             projected = image_coordinates(
                 np.atleast_2d(row["pos"]),
@@ -705,10 +721,13 @@ class CalibrationGUI(HasTraits):
 
             x.append(pos[0][0])
             y.append(pos[0][1])
+            pnr.append(row["id"])
 
         # x.append(x1)
         # y.append(y1)
         self.drawcross("init_x", "init_y", x, y, color, 3, i_cam=i_cam)
+        self.camera[i_cam].plot_num_overlay(x, y, pnr)
+    
         self.status_text = "Initial guess finished."
 
     def _button_sort_grid_fired(self):
@@ -751,28 +770,6 @@ class CalibrationGUI(HasTraits):
 
         self.status_text = "Sort grid finished."
         self.pass_sortgrid = True
-
-    # def _button_sort_grid_init_fired(self):
-    #     """ TODO: Not implemented yet """
-    #     if self.need_reset:
-    #         self.reset_show_images()
-    #         self.need_reset = 0
-    #
-    #
-    #     ptv.py_calibration(14)
-    #     x = []
-    #     y = []
-    #     x1_cyan = []
-    #     y1_cyan = []
-    #     pnr = []
-    #     ptv.py_get_from_sortgrid(x, y, pnr)
-    #     self.drawcross("sort_x_init", "sort_y_init", x, y, "white", 4)
-    #     ptv.py_get_from_calib(x1_cyan, y1_cyan)
-    #     self.drawcross("init_x", "init_y", x1_cyan, y1_cyan, "cyan", 4)
-    #     for i in range(len(self.camera)):
-    #         self.camera[i]._plot.overlays = []
-    #         self.camera[i].plot_num_overlay(x[i], y[i], pnr[i])
-    #     self.status_text = "Sort grid initial guess finished."
 
     def _button_raw_orient_fired(self):
         """
@@ -839,36 +836,26 @@ class CalibrationGUI(HasTraits):
         op = par.OrientParams()
         op.read()
 
-        # recognized names for the flags:
-        names = [
-            "cc",
-            "xh",
-            "yh",
-            "k1",
-            "k2",
-            "k3",
-            "p1",
-            "p2",
-            "scale",
-            "shear",
-        ]
-        op_names = [
-            op.cc,
-            op.xh,
-            op.yh,
-            op.k1,
-            op.k2,
-            op.k3,
-            op.p1,
-            op.p2,
-            op.scale,
-            op.shear,
-        ]
+        flags = [name for name in NAMES if getattr(op, name) == 1]
 
-        flags = []
-        for name, op_name in zip(names, op_names):
-            if op_name == 1:
-                flags.append(name)
+        # op_names = [
+        #     op.cc,
+        #     op.xh,
+        #     op.yh,
+        #     op.k1,
+        #     op.k2,
+        #     op.k3,
+        #     op.p1,
+        #     op.p2,
+        #     op.scale,
+        #     op.shear,
+        # ]
+
+        # # set flags for cc, xh, yh only
+        # flags = []
+        # for name, op_name in zip(names[:3], op_names[:3]):
+        #     if op_name == 1:
+        #         flags.append(name)
 
         for i_cam in range(self.n_cams):  # iterate over all cameras
 
@@ -890,7 +877,14 @@ class CalibrationGUI(HasTraits):
 
                     # c = self.calParams.img_ori[i_cam][-9] # Get camera id
                     # not all ends with a number
-                    c = re.findall("\\d+", self.calParams.img_ori[i_cam])[0]
+                    # c = re.findall("\\d+", self.calParams.img_ori[i_cam])[0]
+                    match = re.search(r'cam[_-]?(\d)', self.calParams.img_ori[i_cam])
+                    if match:
+                        c = match.group(1)
+                        print(f'Camera number found: {c} in {self.calParams.img_ori[i_cam]}')
+                    else:
+                        raise ValueError("Camera number not found in {}".format(self.calParams.img_ori[i_cam]))
+
 
                     file_known = (
                         self.MultiParams.plane_name[i] + c + ".tif.fix"
@@ -961,7 +955,10 @@ class CalibrationGUI(HasTraits):
             else:
                 targs = self.sorted_targs[i_cam]
 
+            # end of multiplane calibration loop that combines planes
+
             try:
+                print(f"Calibrating external (6DOF) and flags: {flags} \n")
                 residuals, targ_ix, err_est = full_calibration(
                     self.cals[i_cam],
                     self.cal_points["pos"],
@@ -969,16 +966,96 @@ class CalibrationGUI(HasTraits):
                     self.cpar,
                     flags,
                 )
-            except BaseException as exc:
-                raise ValueError("full calibration failed\n") from exc
-            # save the results
+            except BaseException:
+                print("Error in OPTV full_calibration, attempting Scipy")
+                # raise
+            
+                # this chunk optimizes for radial distortion
+
+                if any(flag in flags for flag in ['k1', 'k2', 'k3']):
+                    sol = minimize(self._residuals_k,
+                                self.cals[i_cam].get_radial_distortion(), 
+                                args=(self.cals[i_cam], 
+                                        self.cal_points["pos"], 
+                                        targs,
+                                        self.cpar
+                                        ), 
+                                        method='Nelder-Mead', 
+                                        tol=1e-11,
+                                        options={'disp':True},
+                                        )
+                    radial = sol.x 
+                    self.cals[i_cam].set_radial_distortion(radial)
+                else:
+                    radial = self.cals[i_cam].get_radial_distortion()
+                
+                if any(flag in flags for flag in ['p1', 'p2']):
+                    # now decentering
+                    sol = minimize(self._residuals_p,
+                                self.cals[i_cam].get_decentering(), 
+                                args=(self.cals[i_cam], 
+                                        self.cal_points["pos"], 
+                                        targs,
+                                        self.cpar
+                                        ), 
+                                        method='Nelder-Mead', 
+                                        tol=1e-11,
+                                        options={'disp':True},
+                                        )
+                    decentering = sol.x 
+                    self.cals[i_cam].set_decentering(decentering)
+                else:
+                    decentering = self.cals[i_cam].get_decentering()
+                
+                if any(flag in flags for flag in ['scale', 'shear']):
+                    # now affine
+                    sol = minimize(self._residuals_s,
+                                self.cals[i_cam].get_affine(), 
+                                args=(self.cals[i_cam], 
+                                        self.cal_points["pos"], 
+                                        targs,
+                                        self.cpar
+                                        ), 
+                                        method='Nelder-Mead', 
+                                        tol=1e-11,
+                                        options={'disp':True},
+                                        )
+                    affine = sol.x 
+                    self.cals[i_cam].set_affine_trans(affine)
+
+                else:
+                    affine = self.cals[i_cam].get_affine()
+                
+
+
+                # Now project and estimate full residuals
+                self._project_cal_points(i_cam)
+
+                residuals = self._residuals_combined(
+                                np.r_[radial, decentering, affine],
+                                self.cals[i_cam], 
+                                self.cal_points["pos"], 
+                                targs,
+                                self.cpar
+                                )
+
+                residuals /= 100
+
+                targ_ix = [t.pnr() for t in targs if t.pnr() != -999]
+                # targ_ix = np.arange(len(all_detected))
+            
+            # save the results from self.cals[i_cam]
             self._write_ori(i_cam, addpar_flag=True)
 
-            # Plot the output
-            # self.reset_plots()
+            # x, y = [], []
+            # for r, t in zip(residuals, targ_ix):
+            #     if t != -999:
+            #         pos = targs[t].pos()
+            #         x.append(pos[0])
+            #         y.append(pos[1])
 
             x, y = [], []
-            for r, t in zip(residuals, targ_ix):
+            for t in targ_ix:
                 if t != -999:
                     pos = targs[t].pos()
                     x.append(pos[0])
@@ -1005,12 +1082,109 @@ class CalibrationGUI(HasTraits):
 
         self.status_text = "Orientation finished."
 
+    # def _error_function(self, x, cal, XYZ, xy, cpar):
+    #     """Error function for scipy.optimize.minimize.
+
+    #     Args:
+    #         x (array-like): Array of parameters.
+    #         cal (Calibration): Calibration object.
+    #         XYZ (array-like): 3D coordinates.
+    #         xy (array-like): 2D image coordinates.
+    #         cpar (CPar): Camera parameters.
+
+    #     Returns:
+    #         float: Error value.
+    #     """
+    #     residuals = self._residuals_radial(x, cal, XYZ, xy, cpar)
+    #     return np.sum(residuals**2)
+    
+    def _residuals_k(self, x, cal, XYZ, xy, cpar):
+        """Residuals due to radial distortion
+
+        Args:
+            x (array-like): Array of parameters.
+            cal (Calibration): Calibration object.
+            XYZ (array-like): 3D coordinates.
+            xy (array-like): 2D image coordinates.
+            cpar (CPar): Camera parameters.
+
+
+args=(self.cals[i_cam], 
+                                        self.cal_points["pos"], 
+                                        targs,
+                                        self.cpar
+                                        )
+
+
+        Returns:
+            residuals: Distortion in pixels
+        """
+
+        cal.set_radial_distortion(x)
+        targets = convert_arr_metric_to_pixel(
+            image_coordinates(XYZ, cal, cpar.get_multimedia_params()),
+            cpar
+        )
+        xyt = np.array([t.pos() if t.pnr() != -999 else [np.nan, np.nan] for t in xy])
+        residuals = np.nan_to_num(xyt - targets)
+        # residuals = xy[:,1:] - targets
+        return np.sum(residuals**2)
+
+    def _residuals_p(self, x, cal, XYZ, xy, cpar):
+        """Residuals due to decentering """
+        cal.set_decentering(x)
+        targets = convert_arr_metric_to_pixel(
+            image_coordinates(XYZ, cal, cpar.get_multimedia_params()),
+            cpar
+        )
+        xyt = np.array([t.pos() if t.pnr() != -999 else [np.nan, np.nan] for t in xy])
+        residuals = np.nan_to_num(xyt - targets)
+        return np.sum(residuals**2)
+    
+    def _residuals_s(self, x, cal, XYZ, xy, cpar):
+        """Residuals due to decentering """
+        cal.set_affine_trans(x)
+        targets = convert_arr_metric_to_pixel(
+            image_coordinates(XYZ, cal, cpar.get_multimedia_params()),
+            cpar
+        )
+        xyt = np.array([t.pos() if t.pnr() != -999 else [np.nan, np.nan] for t in xy])
+        residuals = np.nan_to_num(xyt - targets)
+        return np.sum(residuals**2)    
+
+    def _residuals_combined(self, x, cal, XYZ, xy, cpar):
+        """Combined residuals  """
+
+        cal.set_radial_distortion(x[:3])
+        cal.set_decentering(x[3:5])
+        cal.set_affine_trans(x[5:])
+
+        targets = convert_arr_metric_to_pixel(
+            image_coordinates(XYZ, cal, cpar.get_multimedia_params()),
+            cpar
+        )
+        xyt = np.array([t.pos() if t.pnr() != -999 else [np.nan, np.nan] for t in xy])
+        residuals = np.nan_to_num(xyt - targets)
+        return residuals           
+
     def _write_ori(self, i_cam, addpar_flag=False):
         """Writes ORI and ADDPAR files for a single calibration result
         of i_cam
         addpar_flag is a boolean that allows to keep previous addpar
         otherwise external_calibration overwrites zeros
         """
+        # protect ORI files from NaNs
+        # Check for NaNs in self.cals[i_cam]
+        tmp  = np.array([
+            self.cals[i_cam].get_pos(),
+            self.cals[i_cam].get_angles(),
+            self.cals[i_cam].get_affine(),
+            self.cals[i_cam].get_decentering(),
+            self.cals[i_cam].get_radial_distortion(),
+        ],dtype=object)
+
+        if np.any(np.isnan(np.hstack(tmp))):
+            raise ValueError(f"Calibration parameters for camera {i_cam} contain NaNs. Aborting write operation.")
 
         ori = self.calParams.img_ori[i_cam]
         if addpar_flag:
@@ -1109,8 +1283,13 @@ class CalibrationGUI(HasTraits):
             cam._plot.request_redraw()
 
     def _button_edit_ori_files_fired(self):
-        editor = codeEditor(path=self.par_path)
+        editor = oriEditor(path=self.par_path)
         editor.edit_traits(kind="livemodal")
+
+    def _button_edit_addpar_files_fired(self):
+        editor = addparEditor(path=self.par_path)
+        editor.edit_traits(kind="livemodal")
+
 
     def drawcross(self, str_x, str_y, x, y, color1, size1, i_cam=None):
         """
@@ -1164,9 +1343,25 @@ class CalibrationGUI(HasTraits):
     #         self.camera[i].update_image(images[i])
 
     def _read_cal_points(self):
+
+        # with open(self.calParams.fixp_name, 'r') as file:
+        #     first_line = file.readline()
+        #     print(first_line)
+        #     if ',' in first_line:
+        #         delimiter=','
+        #     elif '\t' in first_line:
+        #         delimiter='\t'
+        #     elif ' ' in first_line:
+        #         delimiter=' '
+        #     else:
+        #         raise ValueError("Unsupported delimiter")
+            
+        #     print(f'Using delimiter: {delimiter} for file {self.calParams.fixp_name}')
+            
         return np.atleast_1d(
             np.loadtxt(
                 self.calParams.fixp_name,
+                # delimiter='\t',
                 dtype=[("id", "i4"), ("pos", "3f8")],
                 skiprows=0,
             )

@@ -23,10 +23,13 @@ def g(f):
 
 class Parameters(HasTraits):
     # default path of the directory of the param files
-    default_path = Path("parameters")
+    default_path = Path(par_dir_prefix)
 
     def __init__(self, path: Path=default_path):
         HasTraits.__init__(self)
+        if isinstance(path, str):
+            path = Path(path)
+            
         self.path = path.resolve()
         self.exp_path = self.path.parent 
 
@@ -1488,8 +1491,8 @@ class MultiPlaneParams(Parameters):
                 self.n_planes = int(g(f))
                 for i in range(self.n_planes):
                     self.plane_name.append(g(f))
-                    if not self.plane_name[i].is_file():
-                        print(f"Plane {self.plane_name[i]} is missing.")
+                    # if not self.plane_name[i].is_file():
+                    #     print(f"Plane {self.plane_name[i]} is missing.")
 
         except BaseException:
             error(None, "%s not found" % self.filepath())
