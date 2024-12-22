@@ -28,7 +28,7 @@ def search_and_update_versions(directory, old_version, new_version):
     changed_files = []
     for root, _, files in os.walk(directory):
         for file in files:
-            if file.endswith('.py') or file.endswith('.yaml'):
+            if file.endswith('.py') or file.endswith('.yaml') or file.endswith('.toml'):
                 file_path = Path(root) / file
                 if update_version_in_file(file_path, old_version, new_version):
                     changed_files.append(file_path)
