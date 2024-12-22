@@ -3,7 +3,7 @@ import os
 from pathlib import Path
 
 # Define the current version
-CURRENT_VERSION = "0.2.8"
+CURRENT_VERSION = "0.2.9"
 
 def bump_version(version):
     """Increment the last integer of the version string by 1."""
