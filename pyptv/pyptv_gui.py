@@ -1164,6 +1164,11 @@ class MainGUI(HasTraits):
     # tr_thread = Instance(TrackThread)
     selected = Any
 
+    def read_version():
+        with open("pyptv/__version__.py") as f:
+            exec(f.read())
+            return locals()["__version__"]
+
     # Defines GUI view --------------------------
     view = View(
         Group(
@@ -1192,7 +1197,8 @@ class MainGUI(HasTraits):
             ),
             orientation="vertical",
         ),
-        title="pyPTV ver. 0.2.9",
+        
+        title="pyPTV"  + read_version(),
         id="main_view",
         width=1.0,
         height=1.0,
