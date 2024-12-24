@@ -13,7 +13,9 @@ readme = "README.md"
 requires-python = ">=3.8"
 keywords = ["pyptv"]
 classifiers = [
-    "Programming Language :: Python :: 3"
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent"
 ]
 dependencies = [
     "chaco",
@@ -38,3 +40,13 @@ dependencies = [
 
 [project.scripts]
 pyptv = "pyptv.pyptv_gui:main"
+
+[tool.black]
+line-length = 88
+target-version = ['py37']
+include = '\.pyi?$'
+extend-exclude = '''
+# A regex preceded with ^/ will apply only to files and directories
+# in the root of the project.
+^/foo.py  # exclude a file named foo.py in the root of the project (in addition to the defaults)
+'''
