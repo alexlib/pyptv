@@ -27,6 +27,8 @@ from skimage.io import imread
 from skimage import img_as_ubyte
 from skimage.color import rgb2gray
 from pyptv import parameters as par
+import glob
+from scipy.optimize import minimize
 
 
 def negative(img):
@@ -452,6 +454,57 @@ def py_calibration(selection):
         It is the same function as show trajectories, just read from a different
         file
         """
+        
+    if selection == 10:
+        """Run the calibration"""
+        pass
+
+        def read_rt_is_files(path):
+            """Reads all rt_is.* files from the specified path and returns a list of 3D points."""
+            rt_is_files = glob.glob(str(path / "res" / "rt_is.*"))
+            points = []
+            for file in rt_is_files:
+                with open(file, "r") as f:
+                    num_points = int(f.readline().strip())
+                    for _ in range(num_points):
+                        data = f.readline().strip().split()
+                        points.append([float(data[1]), float(data[2]), float(data[3])])
+            return np.array(points)
+
+        def reprojection_error(params, points_3d, detected_points, cpar, cal):
+            """Calculates the reprojection error for the given parameters."""
+            cal.update_params(params)
+            projected_points = image_coordinates(points_3d, cal, cpar)
+            error = np.linalg.norm(projected_points - detected_points, axis=1)
+            return np.sum(error)
+
+        def optimize_calibration(points_3d, detected_points, cpar, cal):
+            """Optimizes the calibration parameters to minimize the reprojection error."""
+            initial_params = cal.get_params()
+            result = minimize(reprojection_error, initial_params, args=(points_3d, detected_points, cpar, cal))
+            cal.update_params(result.x)
+            return cal
+
+        def py_calibration_with_particles(exp):
+            """Calibration using particles."""
+            points_3d = read_rt_is_files(Path(exp.working_folder))
+            
+            for i_cam in range(exp.n_cams):
+                detected_points = []
+                for frame in range(exp.spar.get_first(), exp.spar.get_last() + 1):
+                    target_file = Path(exp.working_folder) / f"cam{i_cam+1}_{frame}_targets"
+                    if target_file.exists():
+                        with open(target_file, "r") as f:
+                            num_points = int(f.readline().strip())
+                            for _ in range(num_points):
+                                data = f.readline().strip().split()
+                                detected_points.append([float(data[1]), float(data[2])])
+                detected_points = np.array(detected_points)
+                exp.cals[i_cam] = optimize_calibration(points_3d, detected_points, exp.cpar, exp.cals[i_cam])
+            
+            print("Calibration with particles completed.")
+
+    return("py_calibration with options is not implemented yet")
 
 
 def py_multiplanecalibration(exp):
