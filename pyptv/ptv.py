@@ -1,5 +1,6 @@
 from pathlib import Path
 import numpy as np
+from typing import List
 from optv.calibration import Calibration
 from optv.correspondences import correspondences, MatchedCoords
 from optv.image_processing import preprocess_image
@@ -18,7 +19,7 @@ from optv.parameters import (
     MultimediaParams,
 )
 from optv.segmentation import target_recognition
-from optv.tracking_framebuf import CORRES_NONE, read_targets, TargetArray
+from optv.tracking_framebuf import CORRES_NONE, TargetArray, Target
 from optv.tracker import Tracker, default_naming
 from optv.epipolar import epipolar_curve
 from optv.transforms import convert_arr_metric_to_pixel
@@ -107,7 +108,7 @@ def py_detection_proc_c(list_of_images, cpar, tpar, cals):
     detections, corrected = [], []
     for i_cam, img in enumerate(list_of_images):
         if Existing_Target:
-            targs = read_targets(cpar.get_img_base_name(i_cam), 0)
+            targs = read_targets(f'cam_{i_cam:d}.{0:d}')
         else:
             targs = target_recognition(img, tpar, i_cam, cpar)
 
@@ -139,9 +140,13 @@ def py_correspondences_proc_c(exp):
 
     # Save targets only after they've been modified:
     for i_cam in range(exp.n_cams):
-        base_name = exp.spar.get_img_base_name(i_cam).decode()
-        filename = base_name.split('%')[0] + base_name.split('d')[-1]
-        exp.detections[i_cam].write(filename.encode(), frame)
+        # base_name = exp.spar.get_img_base_name(i_cam).decode()
+        # filename = base_name.split('%')[0] + base_name.split('d')[-1]
+        # filename = base_name % frame + '_targets'
+        # write_targets(exp.detections[i_cam], filename, frame)
+        # exp.detections[i_cam].write(filename.encode(), frame)
+        # base_name = 'cam_%d.' % (i_cam)
+        write_targets(exp.detections[i_cam], f'cam_{i_cam:d}.{frame:d}')
 
     print("Frame " + str(frame) + " had " +
           repr([s.shape[1] for s in sorted_pos]) + " correspondences.")
@@ -233,7 +238,7 @@ def py_sequence_loop(exp):
         for i_cam in range(n_cams):
             base_image_name = spar.get_img_base_name(i_cam).decode()
             if Existing_Target:
-                targs = read_targets(spar.get_img_base_name(i_cam), frame)
+                targs = read_targets(f'cam_{i_cam:d}.{frame:d}')
             else:
                 # imname = spar.get_img_base_name(i_cam) + str(frame).encode()
                 
@@ -288,9 +293,8 @@ def py_sequence_loop(exp):
         # Save targets only after they've been modified:
         # this is a workaround of the proper way to construct _targets name
         for i_cam in range(n_cams):
-            base_name = spar.get_img_base_name(i_cam).decode()
-            filename = base_name.split('%')[0] + base_name.split('d')[-1]
-            detections[i_cam].write(filename.encode(), frame)
+            # base_name = spar.get_img_base_name(i_cam).decode()
+            write_targets(detections[i_cam], f'cam_{i_cam:d}.{frame:d}')
 
         print("Frame " + str(frame) + " had " +
               repr([s.shape[1] for s in sorted_pos]) + " correspondences.")
@@ -329,6 +333,15 @@ def py_sequence_loop(exp):
 
 def py_trackcorr_init(exp):
     """Reads all the necessary stuff into Tracker"""
+    # Update name in sequence_par because we use now this 
+    # complex %d construction. 
+    for i_cam in range(exp.n_cams):
+        # print(f" renaming {i_cam = }")
+        # print(exp.spar.get_img_base_name(i_cam).decode())
+        # base_name = exp.spar.get_img_base_name(i_cam).decode()
+        # filename = base_name.split('%')[0] + base_name.split('d')[-1]        
+        exp.spar.set_img_base_name(i_cam, 'cam_%d.' % (i_cam))
+
     tracker = Tracker(exp.cpar, exp.vpar, exp.track_par, exp.spar, exp.cals,
                       default_naming)
     return tracker
@@ -605,3 +618,87 @@ def py_multiplanecalibration(exp):
         exp._write_ori(i_cam,
                        addpar_flag=True)  # addpar_flag to save addpar file
         print("End multiplane")
+
+
+def read_targets(fname: str) -> TargetArray:
+    """Read targets from a file."""
+    # buffer = TargetArray()
+    # buffer = []
+
+    # # if file_base has an extension, remove it
+    # file_base = file_base.split(".")[0]
+
+    # if frame_num > 0:
+    #     # filename = f"{file_base}{frame_num:04d}_targets"
+    #     fname = file_base % frame_num + '_targets'
+    # else:
+    #     fname = f"{file_base}_targets"
+
+    filename = Path(fname + "_targets")
+    print(f" filename: {filename}")
+
+    try:
+        with open(filename, "r", encoding="utf-8") as file:
+            num_targets = int(file.readline().strip())
+            targs = TargetArray(num_targets)
+
+            for tix in range(num_targets):
+                line = file.readline().strip().split()
+
+                if len(line) != 8:
+                    raise ValueError(f"Bad format for file: {filename}")
+                
+                targ = targs[tix]
+                targ.set_pnr(int(line[0]))
+                targ.set_pos([float(line[1]), float(line[2])])
+                targ.set_pixel_counts(int(line[3]), int(line[4]), int(line[5]))
+                targ.set_sum_grey_value(int(line[6]))                
+                targ.set_tnr(int(line[7]))
+
+
+    except IOError as err:
+        print(f"Can't open ascii file: {filename}")
+        raise err
+    
+    # print(f" read {len(buffer)} targets from {filename}")
+    return targs
+
+
+def write_targets(
+    targets: TargetArray, file_name: str) -> bool:
+    """Write targets to a file."""
+    success = False
+
+    # fix old-type names, that are like cam1.# or just cam1.
+    # if '#' in file_base:
+    #     file_base = file_base.replace('#', '%05d')
+    # if "%" not in file_base:
+    #     file_base = file_base + "%05d"
+
+    # if frame_num == 0:
+    #     frame_num = 123456789
+
+    # file_name =  file_base % frame_num + "_targets"
+    file_name = file_name + "_targets"
+    print("Writing targets to file: ", file_name)
+
+    num_targets = len(targets)
+
+    try:
+        # Convert targets to a 2D numpy array
+        target_arr = np.array(
+            [([t.pnr(), *t.pos(), *t.count_pixels(), t.sum_grey_value(), t.tnr()]) for t in targets]
+        )
+        # Save the target array to file using savetxt
+        np.savetxt(
+            file_name,
+            target_arr,
+            fmt="%4d %9.4f %9.4f %5d %5d %5d %5d %5d",
+            header=f"{num_targets}",
+            comments="",
+        )
+        success = True
+    except IOError:
+        print(f"Can't open ascii file: {file_name}")
+
+    return success
