@@ -328,6 +328,13 @@ def py_sequence_loop(exp):
 
 def py_trackcorr_init(exp):
     """Reads all the necessary stuff into Tracker"""
+    # Update name in sequence_par because we use now this 
+    # complex %d construction. 
+    for i_cam in range(exp.n_cams):
+        base_name = exp.spar.get_img_base_name(i_cam).decode()
+        filename = base_name.split('%')[0] + base_name.split('d')[-1]
+        exp.spar.set_img_base_name(i_cam, filename)
+
     tracker = Tracker(exp.cpar, exp.vpar, exp.track_par, exp.spar, exp.cals,
                       default_naming)
     return tracker
