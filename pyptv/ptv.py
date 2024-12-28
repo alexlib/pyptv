@@ -585,10 +585,11 @@ def read_targets(file_base: str, frame_num: int) -> TargetArray:
                 
                 targ = targs[tix]
                 targ.set_pnr(int(line[0]))
-                targ.set_tnr(int(line[7]))
                 targ.set_pos([float(line[1]), float(line[2])])
                 targ.set_pixel_counts(int(line[3]), int(line[4]), int(line[5]))
                 targ.set_sum_grey_value(int(line[6]))                
+                targ.set_tnr(int(line[7]))
+
 
     except IOError as err:
         print(f"Can't open ascii file: {filename}")
