@@ -793,7 +793,8 @@ class TreeMenuHandler(Handler):
             for i_seq in range(seq_first, seq_last + 1):  # loop over sequences
                 intx_green, inty_green = [], []
                 intx_blue, inty_blue = [], []
-                targets = optv.tracking_framebuf.read_targets(base_names[i_img], i_seq)
+                 
+                targets = ptv.read_targets(base_names[i_img], i_seq)
 
                 for t in targets:
                     if t.tnr() > -1:
