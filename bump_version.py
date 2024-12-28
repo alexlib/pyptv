@@ -25,7 +25,7 @@ def update_version(version_file, new_version):
     with open(version_file, 'r') as file:
         content = file.read()
 
-    updated_content = re.sub(r'__version__\s*=\s*".*"', f'version = "{new_version}"', content)
+    updated_content = re.sub(r'__version__\s*=\s*".*"', f'__version__ = "{new_version}"', content)
 
     with open(version_file, 'w') as file:
         file.write(updated_content)
