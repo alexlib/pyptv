@@ -794,7 +794,7 @@ class TreeMenuHandler(Handler):
                 intx_green, inty_green = [], []
                 intx_blue, inty_blue = [], []
                  
-                targets = ptv.read_targets(base_names[i_img], i_seq)
+                targets = ptv.read_targets(f'cam_{i_img:d}.{i_seq:d}')
 
                 for t in targets:
                     if t.tnr() > -1:
