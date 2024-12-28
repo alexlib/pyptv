@@ -469,20 +469,28 @@ def py_calibration(selection):
         """
         
     if selection == 10:
-        """Run the calibration"""
+        """Run the calibration with particles """
         pass
 
-        def read_rt_is_files(path):
-            """Reads all rt_is.* files from the specified path and returns a list of 3D points."""
+        def read_rt_is_files_with_targets(path, n_cams):
+            """Reads all rt_is.* files from the specified path and returns a list of 3D points and their corresponding targets."""
             rt_is_files = glob.glob(str(path / "res" / "rt_is.*"))
             points = []
+            targets = [[] for _ in range(n_cams)]
+            
             for file in rt_is_files:
                 with open(file, "r") as f:
                     num_points = int(f.readline().strip())
                     for _ in range(num_points):
                         data = f.readline().strip().split()
                         points.append([float(data[1]), float(data[2]), float(data[3])])
-            return np.array(points)
+                        for i_cam in range(n_cams):
+                            target_file = Path(path) / f"cam_{i_cam:d}.{int(data[4 + i_cam]):d}_targets"
+                            if target_file.exists():
+                                targets[i_cam].append(read_targets(str(target_file)))
+                            else:
+                                targets[i_cam].append(None)
+            return np.array(points), targets
 
         def reprojection_error(params, points_3d, detected_points, cpar, cal):
             """Calculates the reprojection error for the given parameters."""
