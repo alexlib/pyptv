@@ -52,6 +52,7 @@ from pyptv.directory_editor import DirectoryEditorDialog
 from pyptv.parameter_gui import Experiment, Paramset
 from pyptv.quiverplot import QuiverPlot
 from pyptv.detection_gui import DetectionGUI
+from pyptv import __version__
 import optv.orientation
 
 
@@ -1165,11 +1166,6 @@ class MainGUI(HasTraits):
     # tr_thread = Instance(TrackThread)
     selected = Any
 
-    def read_version():
-        with open("pyptv/__version__.py") as f:
-            exec(f.read())
-            return locals()["__version__"]
-
     # Defines GUI view --------------------------
     view = View(
         Group(
@@ -1199,7 +1195,7 @@ class MainGUI(HasTraits):
             orientation="vertical",
         ),
         
-        title="pyPTV"  + read_version(),
+        title="pyPTV"  + __version__,
         id="main_view",
         width=1.0,
         height=1.0,
