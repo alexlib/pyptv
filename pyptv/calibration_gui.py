@@ -838,25 +838,6 @@ class CalibrationGUI(HasTraits):
 
         flags = [name for name in NAMES if getattr(op, name) == 1]
 
-        # op_names = [
-        #     op.cc,
-        #     op.xh,
-        #     op.yh,
-        #     op.k1,
-        #     op.k2,
-        #     op.k3,
-        #     op.p1,
-        #     op.p2,
-        #     op.scale,
-        #     op.shear,
-        # ]
-
-        # # set flags for cc, xh, yh only
-        # flags = []
-        # for name, op_name in zip(names[:3], op_names[:3]):
-        #     if op_name == 1:
-        #         flags.append(name)
-
         for i_cam in range(self.n_cams):  # iterate over all cameras
 
             if self.epar.Combine_Flag:
