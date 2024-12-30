@@ -775,6 +775,9 @@ class TreeMenuHandler(Handler):
             prm.Basename_4_Seq,
         ]
 
+        print("Inside detect_part_track")
+        print(base_names)
+
         # load first image from sequence
         info.object.load_set_seq_image(seq_first)
         info.object.overlay_set_images(seq_first, seq_last)
@@ -795,7 +798,9 @@ class TreeMenuHandler(Handler):
                 intx_green, inty_green = [], []
                 intx_blue, inty_blue = [], []
                  
-                targets = ptv.read_targets(f'cam_{i_img:d}.{i_seq:d}')
+                # read targets from the current sequence    
+                # file_name = ptv.replace_format_specifiers(base_names[i_img])
+                targets = ptv.read_targets(base_names[i_img], i_seq)
 
                 for t in targets:
                     if t.tnr() > -1:
@@ -1432,7 +1437,7 @@ class MainGUI(HasTraits):
                     "self.base_name.append"
                     + f"(self.exp1.active_params.m_params.Basename_{i+1}_Seq)"
                 )
-                # print(f" base name in GUI is {self.base_name[i]}")
+                print(f" base name in GUI is {self.base_name[i]}")
 
         # i = seq
         # seq_ch = f"{seq:04d}"
@@ -1464,7 +1469,9 @@ class MainGUI(HasTraits):
             display_only (bool, optional): _description_. Defaults to False.
         """
         
+
         for cam_id in range(len(self.camera_list)):
+            print("Inside overlay: ", self.base_name[cam_id])
             
             temp_img = []
             for seq in range(seq_first, seq_last):

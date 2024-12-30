@@ -1,6 +1,7 @@
 from pathlib import Path
 import numpy as np
 from typing import List
+import re
 from optv.calibration import Calibration
 from optv.correspondences import correspondences, MatchedCoords
 from optv.image_processing import preprocess_image
@@ -79,6 +80,8 @@ def py_start_proc_c(n_cams):
         cal.from_file(tmp + b".ori", tmp + b".addpar")
         cals.append(cal)
 
+
+
     return cpar, spar, vpar, track_par, tpar, cals, epar
 
 
@@ -106,7 +109,8 @@ def py_detection_proc_c(list_of_images, cpar, tpar, cals):
     detections, corrected = [], []
     for i_cam, img in enumerate(list_of_images):
         if Existing_Target:
-            targs = read_targets(f'cam_{i_cam:d}.{0:d}')
+            raise NotImplementedError("Existing targets are not implemented")
+            # targs = read_targets('not implemented')
         else:
             targs = target_recognition(img, tpar, i_cam, cpar)
 
@@ -138,13 +142,15 @@ def py_correspondences_proc_c(exp):
 
     # Save targets only after they've been modified:
     for i_cam in range(exp.n_cams):
-        # base_name = exp.spar.get_img_base_name(i_cam).decode()
+        base_name = exp.spar.get_img_base_name(i_cam).decode()
         # filename = base_name.split('%')[0] + base_name.split('d')[-1]
         # filename = base_name % frame + '_targets'
         # write_targets(exp.detections[i_cam], filename, frame)
         # exp.detections[i_cam].write(filename.encode(), frame)
         # base_name = 'cam_%d.' % (i_cam)
-        write_targets(exp.detections[i_cam], f'cam_{i_cam:d}.{frame:d}')
+        # base_name = replace_format_specifiers(base_name) # %d to %04d
+        write_targets(exp.detections[i_cam], base_name, frame)
+
 
     print("Frame " + str(frame) + " had " +
           repr([s.shape[1] for s in sorted_pos]) + " correspondences.")
@@ -210,6 +216,9 @@ def py_sequence_loop(exp):
     the data in the cam#.XXX_targets (rewritten) and rt_is.XXX files. Basically
     it is to run the batch as in pyptv_batch.py without tracking
     """
+
+    # Sequence parameters    
+
     n_cams, cpar, spar, vpar, tpar, cals = (
         exp.n_cams,
         exp.cpar,
@@ -218,6 +227,18 @@ def py_sequence_loop(exp):
         exp.tpar,
         exp.cals,
     )
+
+    # because we renamed for tracking it's possible we corrupted
+    # the original names, so we need to read them again
+    # seqpar = par.SequenceParams(n_cams, path=Path("parameters"))
+    # seqpar.read()
+    # for i_cam in range(exp.n_cams):
+    #     spar.set_img_base_name(i_cam, seqpar.base_name[i_cam])
+
+        # Sequence parameters
+    spar = SequenceParams(num_cams=n_cams)
+    spar.read_sequence_par(b"parameters/sequence.par", n_cams)
+
 
     pftVersionParams = par.PftVersionParams(path=Path("parameters"))
     pftVersionParams.read()
@@ -236,7 +257,7 @@ def py_sequence_loop(exp):
         for i_cam in range(n_cams):
             base_image_name = spar.get_img_base_name(i_cam).decode()
             if Existing_Target:
-                targs = read_targets(f'cam_{i_cam:d}.{frame:d}')
+                targs = read_targets(replace_format_specifiers(base_image_name) % frame)
             else:
                 # imname = spar.get_img_base_name(i_cam) + str(frame).encode()
                 
@@ -263,8 +284,8 @@ def py_sequence_loop(exp):
                     if exp.exp1.active_params.m_params.Subtr_Mask:
                         # print("Subtracting mask")
                         try:
-                            background_name = exp.exp1.active_params.m_params.Base_Name_Mask.replace('#',str(i_cam))
-                            # background_name = exp.exp1.active_params.m_params.Base_Name_Mask % (i_cam + 1)
+                            # background_name = exp.exp1.active_params.m_params.Base_Name_Mask.replace('#',str(i_cam))
+                            background_name = exp.exp1.active_params.m_params.Base_Name_Mask % (i_cam + 1)
                             background = imread(background_name)
                             img = np.clip(img - background, 0, 255).astype(np.uint8)
 
@@ -291,8 +312,9 @@ def py_sequence_loop(exp):
         # Save targets only after they've been modified:
         # this is a workaround of the proper way to construct _targets name
         for i_cam in range(n_cams):
-            # base_name = spar.get_img_base_name(i_cam).decode()
-            write_targets(detections[i_cam], f'cam_{i_cam:d}.{frame:d}')
+            base_name = spar.get_img_base_name(i_cam).decode()
+            base_name = replace_format_specifiers(base_name) # %d to %04d
+            write_targets(detections[i_cam], base_name, frame)
 
         print("Frame " + str(frame) + " had " +
               repr([s.shape[1] for s in sorted_pos]) + " correspondences.")
@@ -333,15 +355,23 @@ def py_trackcorr_init(exp):
     """Reads all the necessary stuff into Tracker"""
     # Update name in sequence_par because we use now this 
     # complex %d construction. 
+    print("\n renaming for liboptv: \n")
     for i_cam in range(exp.n_cams):
-        # print(f" renaming {i_cam = }")
-        # print(exp.spar.get_img_base_name(i_cam).decode())
+        orig_filename = exp.spar.get_img_base_name(i_cam).decode()
+        new_filename = replace_format_specifiers(orig_filename)
+        print(orig_filename, new_filename)
+
         # base_name = exp.spar.get_img_base_name(i_cam).decode()
         # filename = base_name.split('%')[0] + base_name.split('d')[-1]        
-        exp.spar.set_img_base_name(i_cam, 'cam_%d.' % (i_cam))
+        exp.spar.set_img_base_name(i_cam, new_filename)
 
     tracker = Tracker(exp.cpar, exp.vpar, exp.track_par, exp.spar, exp.cals,
                       default_naming)
+    
+    # print(f" renaming back from liboptv: \n")
+    # for i_cam in range(exp.n_cams):
+    #     exp.spar.set_img_base_name(i_cam, orig_filename)
+    
     return tracker
 
 
@@ -567,7 +597,7 @@ def py_multiplanecalibration(exp):
         print("End multiplane")
 
 
-def read_targets(fname: str) -> TargetArray:
+def read_targets(file_base: str, frame: int) -> TargetArray:
     """Read targets from a file."""
     # buffer = TargetArray()
     # buffer = []
@@ -575,14 +605,12 @@ def read_targets(fname: str) -> TargetArray:
     # # if file_base has an extension, remove it
     # file_base = file_base.split(".")[0]
 
-    # if frame_num > 0:
-    #     # filename = f"{file_base}{frame_num:04d}_targets"
-    #     fname = file_base % frame_num + '_targets'
-    # else:
-    #     fname = f"{file_base}_targets"
+    if frame == 0:
+        frame = 123456789
 
-    filename = Path(fname + "_targets")
-    print(f" filename: {filename}")
+    file_base = replace_format_specifiers(file_base) # remove %d
+    filename =  Path(f'{file_base}{frame:04d}_targets')
+    # print(f" filename: {filename}")
 
     try:
         with open(filename, "r", encoding="utf-8") as file:
@@ -604,7 +632,7 @@ def read_targets(fname: str) -> TargetArray:
 
 
     except IOError as err:
-        print(f"Can't open ascii file: {filename}")
+        print(f"Can't open targets file: {filename}")
         raise err
     
     # print(f" read {len(buffer)} targets from {filename}")
@@ -612,7 +640,7 @@ def read_targets(fname: str) -> TargetArray:
 
 
 def write_targets(
-    targets: TargetArray, file_name: str) -> bool:
+    targets: TargetArray, file_base: str, frame: int) -> bool:
     """Write targets to a file."""
     success = False
 
@@ -622,11 +650,11 @@ def write_targets(
     # if "%" not in file_base:
     #     file_base = file_base + "%05d"
 
-    # if frame_num == 0:
-    #     frame_num = 123456789
+    if frame == 0:
+        frame = 123456789
 
-    # file_name =  file_base % frame_num + "_targets"
-    file_name = file_name + "_targets"
+    file_base = replace_format_specifiers(file_base) # remove %d
+    file_name =  f'{file_base}{frame:04d}_targets'
     print("Writing targets to file: ", file_name)
 
     num_targets = len(targets)
@@ -646,6 +674,55 @@ def write_targets(
         )
         success = True
     except IOError:
-        print(f"Can't open ascii file: {file_name}")
+        print(f"Can't open targets file: {file_name}")
 
     return success
+
+
+
+# def replace_format_specifiers(text):
+#     """Replace all integer format specifiers with '%04d'."""
+#     # Regular expression to match integer format specifiers
+#     pattern = re.compile(r'%\d*d')
+#     # Replace all matches with '%04d'
+#     # updated_text = pattern.sub('%04d', text)
+#     updated_text = pattern.sub('', text)
+#     return updated_text
+
+# filepath: /home/user/Documents/repos/pyptv/pyptv/ptv.py
+def replace_format_specifiers(text):
+    """Replace all integer format specifiers with a '.' and remove everything after."""
+    # Regular expression to match integer format specifiers
+    pattern = re.compile(r'%\d*d.*')
+    # Replace all matches with '.'
+    updated_text = pattern.sub('.', text)
+    # if double period
+    pattern = re.compile(r'\.\.')
+    # Replace the first period in any double period sequence with a single period
+    updated_text = pattern.sub('.', updated_text)
+    return updated_text
+
+def extract_camera_number(filename):
+# List of filenames
+# filenames = [
+#     "cam1.10000", 
+#     "cam_1.1000", 
+#     "/Camera1/000001.tif", 
+#     "/Cam_1/100000.png",
+#     "image2000.123456", 
+#     "/device_33/000001.jpg",
+#     "sensor50.5000"
+# ]
+
+    # Regular expression to match common prefixes and extract the camera number
+    camera_pattern = r"(?i)(?:cam|camera|image|vid|sensor|device)_?(\d+)"
+
+    # for filename in filenames:
+    match = re.search(camera_pattern, filename)
+    if match:
+        camera_number = match.group(1)
+        print(f"Camera number found in '{filename}': {camera_number}")
+    else:
+        raise ValueError(f"No camera number found in '{filename}'")
+
+    return camera_number
