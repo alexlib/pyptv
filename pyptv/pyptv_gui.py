@@ -775,8 +775,6 @@ class TreeMenuHandler(Handler):
             prm.Basename_4_Seq,
         ]
 
-        print("Inside detect_part_track")
-        print(base_names)
 
         # load first image from sequence
         info.object.load_set_seq_image(seq_first)
@@ -1430,14 +1428,11 @@ class MainGUI(HasTraits):
             display_only (bool, optional): _description_. Defaults to False.
         """
         n_cams = len(self.camera_list)
-        if not hasattr(self, "base_name"):
-            self.base_name = []
-            for i in range(n_cams):
-                exec(
-                    "self.base_name.append"
-                    + f"(self.exp1.active_params.m_params.Basename_{i+1}_Seq)"
-                )
-                print(f" base name in GUI is {self.base_name[i]}")
+        # if not hasattr(self, "base_name"):
+        self.base_name = [
+            getattr(self.exp1.active_params.m_params, f"Basename_{i+1}_Seq")
+            for i in range(n_cams)
+        ]
 
         # i = seq
         # seq_ch = f"{seq:04d}"
@@ -1471,7 +1466,7 @@ class MainGUI(HasTraits):
         
 
         for cam_id in range(len(self.camera_list)):
-            print("Inside overlay: ", self.base_name[cam_id])
+            # print("Inside overlay: ", self.base_name[cam_id])
             
             temp_img = []
             for seq in range(seq_first, seq_last):
