@@ -257,7 +257,7 @@ def py_sequence_loop(exp):
         for i_cam in range(n_cams):
             base_image_name = spar.get_img_base_name(i_cam).decode()
             if Existing_Target:
-                targs = read_targets(replace_format_specifiers(base_image_name) % frame)
+                targs = read_targets(base_image_name % frame)
             else:
                 # imname = spar.get_img_base_name(i_cam) + str(frame).encode()
                 
@@ -313,7 +313,7 @@ def py_sequence_loop(exp):
         # this is a workaround of the proper way to construct _targets name
         for i_cam in range(n_cams):
             base_name = spar.get_img_base_name(i_cam).decode()
-            base_name = replace_format_specifiers(base_name) # %d to %04d
+            # base_name = replace_format_specifiers(base_name) # %d to %04d
             write_targets(detections[i_cam], base_name, frame)
 
         print("Frame " + str(frame) + " had " +
@@ -358,12 +358,12 @@ def py_trackcorr_init(exp):
     print("\n renaming for liboptv: \n")
     for i_cam in range(exp.n_cams):
         orig_filename = exp.spar.get_img_base_name(i_cam).decode()
-        new_filename = replace_format_specifiers(orig_filename)
-        print(orig_filename, new_filename)
+        # new_filename = replace_format_specifiers(orig_filename)
+        # print(orig_filename, orig_filename)
 
         # base_name = exp.spar.get_img_base_name(i_cam).decode()
         # filename = base_name.split('%')[0] + base_name.split('d')[-1]        
-        exp.spar.set_img_base_name(i_cam, new_filename)
+        exp.spar.set_img_base_name(i_cam, orig_filename)
 
     tracker = Tracker(exp.cpar, exp.vpar, exp.track_par, exp.spar, exp.cals,
                       default_naming)
@@ -608,7 +608,7 @@ def read_targets(file_base: str, frame: int) -> TargetArray:
     if frame == 0:
         frame = 123456789
 
-    file_base = replace_format_specifiers(file_base) # remove %d
+    # file_base = replace_format_specifiers(file_base) # remove %d
     filename =  Path(f'{file_base}{frame:04d}_targets')
     # print(f" filename: {filename}")
 
@@ -653,7 +653,7 @@ def write_targets(
     if frame == 0:
         frame = 123456789
 
-    file_base = replace_format_specifiers(file_base) # remove %d
+    # file_base = replace_format_specifiers(file_base) # remove %d
     file_name =  f'{file_base}{frame:04d}_targets'
     print("Writing targets to file: ", file_name)
 
@@ -677,52 +677,3 @@ def write_targets(
         print(f"Can't open targets file: {file_name}")
 
     return success
-
-
-
-# def replace_format_specifiers(text):
-#     """Replace all integer format specifiers with '%04d'."""
-#     # Regular expression to match integer format specifiers
-#     pattern = re.compile(r'%\d*d')
-#     # Replace all matches with '%04d'
-#     # updated_text = pattern.sub('%04d', text)
-#     updated_text = pattern.sub('', text)
-#     return updated_text
-
-# filepath: /home/user/Documents/repos/pyptv/pyptv/ptv.py
-def replace_format_specifiers(text):
-    """Replace all integer format specifiers with a '.' and remove everything after."""
-    # Regular expression to match integer format specifiers
-    pattern = re.compile(r'%\d*d.*')
-    # Replace all matches with '.'
-    updated_text = pattern.sub('.', text)
-    # if double period
-    pattern = re.compile(r'\.\.')
-    # Replace the first period in any double period sequence with a single period
-    updated_text = pattern.sub('.', updated_text)
-    return updated_text
-
-def extract_camera_number(filename):
-# List of filenames
-# filenames = [
-#     "cam1.10000", 
-#     "cam_1.1000", 
-#     "/Camera1/000001.tif", 
-#     "/Cam_1/100000.png",
-#     "image2000.123456", 
-#     "/device_33/000001.jpg",
-#     "sensor50.5000"
-# ]
-
-    # Regular expression to match common prefixes and extract the camera number
-    camera_pattern = r"(?i)(?:cam|camera|image|vid|sensor|device)_?(\d+)"
-
-    # for filename in filenames:
-    match = re.search(camera_pattern, filename)
-    if match:
-        camera_number = match.group(1)
-        print(f"Camera number found in '{filename}': {camera_number}")
-    else:
-        raise ValueError(f"No camera number found in '{filename}'")
-
-    return camera_number
