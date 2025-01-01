@@ -1,14 +1,14 @@
 from pathlib import Path
+import importlib
+import os, sys
 import numpy as np
 from typing import List
 import re
 from optv.calibration import Calibration
 from optv.correspondences import correspondences, MatchedCoords
 from optv.image_processing import preprocess_image
-from optv.imgcoord import image_coordinates
 from optv.orientation import (
     point_positions,
-    external_calibration,
     full_calibration,
 )
 from optv.parameters import (
@@ -17,18 +17,16 @@ from optv.parameters import (
     TrackingParams,
     SequenceParams,
     TargetParams,
-    MultimediaParams,
 )
 from optv.segmentation import target_recognition
-from optv.tracking_framebuf import CORRES_NONE, TargetArray, Target
+from optv.tracking_framebuf import TargetArray
 from optv.tracker import Tracker, default_naming
-from optv.epipolar import epipolar_curve
-from optv.transforms import convert_arr_metric_to_pixel
 
 from skimage.io import imread
 from skimage import img_as_ubyte
 from skimage.color import rgb2gray
 from pyptv import parameters as par
+from pyptv import ptv as ptv
 
 
 def negative(img):
@@ -209,6 +207,61 @@ def py_determination_proc_c(n_cams, sorted_pos, sorted_corresp, corrected):
 
     # rt_is.close()
 
+def run_plugin(exp):
+    """Reads and runs the plugins"""
+
+
+    # plugin_dir = 'plugins'
+    plugin_dir = os.path.join(os.getcwd(), 'plugins')
+    # Add the plugins directory to sys.path so that Python can find the modules
+    sys.path.append(plugin_dir)
+    # plugin = importlib.import_module(f"{exp.plugins.sequence_alg}")  
+
+
+    # Iterate over the files in the 'plugins' directory
+    for filename in os.listdir(plugin_dir):
+        if filename.endswith('.py') and filename != '__init__.py':
+            # Get the plugin name without the '.py' extension
+            plugin_name = filename[:-3]
+            
+            if plugin_name == exp.plugins.sequence_alg:
+            # Dynamically import the plugin
+                try:
+                    plugin = importlib.import_module(f"{plugin_name}")
+                except ImportError:
+                    print(f"Error loading {plugin_name}. Falling back to default sequence algorithm")
+                    return None
+            
+                # Now you can use the plugin (e.g., assume each plugin has a `run()` function)
+                if hasattr(plugin, 'Sequence'):
+                    # plugin.run()  # Call the `run` function of the plugin
+
+                    print(f"Sequence by using {exp.plugins.sequence_alg}")
+                    try: 
+                        sequence = plugin.Sequence(ptv=ptv, exp = exp)
+                        sequence.do_sequence()
+                        
+                    except:
+                        print(f"Sequence by using {plugin_name} has failed.")
+
+
+            #     seq = importlib.import_module(str(extern_sequence))
+            # except ImportError:
+            #     print(
+            #         "Error loading or running "
+            #         + extern_sequence
+            #         + ". Falling back to default sequence algorithm"
+            #     )
+
+            # print("Sequence by using " + extern_sequence)
+            # sequence = seq.Sequence(
+            #     ptv=ptv,
+            #     exp1=info.object.exp1,
+            #     camera_list=info.object.camera_list,
+            # )
+            # sequence.do_sequence()
+            # print("Sequence by using "+extern_sequence+" has failed."
+
 
 
 def py_sequence_loop(exp):
@@ -228,16 +281,9 @@ def py_sequence_loop(exp):
         exp.cals,
     )
 
-    # because we renamed for tracking it's possible we corrupted
-    # the original names, so we need to read them again
-    # seqpar = par.SequenceParams(n_cams, path=Path("parameters"))
-    # seqpar.read()
-    # for i_cam in range(exp.n_cams):
-    #     spar.set_img_base_name(i_cam, seqpar.base_name[i_cam])
-
-        # Sequence parameters
-    spar = SequenceParams(num_cams=n_cams)
-    spar.read_sequence_par(b"parameters/sequence.par", n_cams)
+    # # Sequence parameters
+    # spar = SequenceParams(num_cams=n_cams)
+    # spar.read_sequence_par(b"parameters/sequence.par", n_cams)
 
 
     pftVersionParams = par.PftVersionParams(path=Path("parameters"))

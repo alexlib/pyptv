@@ -423,22 +423,24 @@ class TreeMenuHandler(Handler):
     def rename_set_params(self, editor, object):
         """rename_set_params renames the node name on the tree and also
         the folder of parameters"""
-        experiment = editor.get_parent(object)
-        paramset = object
-        # rename
-        # import pdb; pdb.set_trace()
-        editor._menu_rename_node()
-        new_name = object.name
-        new_dir_path = par.par_dir_prefix + new_name
-        os.mkdir(new_dir_path)
-        par.copy_params_dir(paramset.par_path, new_dir_path)
-        [
-            os.remove(os.path.join(paramset.par_path, f))
-            for f in os.listdir(paramset.par_path)
-        ]
-        os.rmdir(paramset.par_path)
-        experiment.removeParamset(paramset)
-        experiment.addParamset(new_name, new_dir_path)
+        # experiment = editor.get_parent(object)
+        # paramset = object
+        # # rename
+        # # import pdb; pdb.set_trace()
+        # editor._menu_rename_node(object)
+        # new_name = object.name
+        # new_dir_path = par.par_dir_prefix + new_name
+        # os.mkdir(new_dir_path)
+        # par.copy_params_dir(paramset.par_path, new_dir_path)
+        # [
+        #     os.remove(os.path.join(paramset.par_path, f))
+        #     for f in os.listdir(paramset.par_path)
+        # ]
+        # os.rmdir(paramset.par_path)
+        # experiment.removeParamset(paramset)
+        # experiment.addParamset(new_name, new_dir_path)
+        print("Warning: This method is not implemented.")
+        print("Please open a folder, copy/paste the parameters directory, and rename it manually.")
 
     def delete_set_params(self, editor, object):
         """delete_set_params deletes the node and the folder of parameters"""
@@ -676,28 +678,7 @@ class TreeMenuHandler(Handler):
 
         extern_sequence = info.object.plugins.sequence_alg
         if extern_sequence != "default":
-            try:
-                # change to pyptv folder, look for tracking module
-                sys.path.append(info.exp1.object.software_path)
-                # import chosen tracker from software dir
-
-                seq = importlib.import_module(extern_sequence)
-            except ImportError:
-                print(
-                    "Error loading or running "
-                    + extern_sequence
-                    + ". Falling back to default sequence algorithm"
-                )
-
-            print("Sequence by using " + extern_sequence)
-            sequence = seq.Sequence(
-                ptv=ptv,
-                exp1=info.object.exp1,
-                camera_list=info.object.camera_list,
-            )
-            sequence.do_sequence()
-            # print("Sequence by using "+extern_sequence+" has failed."
-
+            ptv.run_plugin(info.object)
         else:
             ptv.py_sequence_loop(info.object)
 
