@@ -52,7 +52,7 @@ Ask for help on our mailing list:
 
 Plugins is a system of extensions to PyPTV without the need to change the GUI
 
-1. copy the `external_sequence_list.txt` and `external_tracker_list.txt` to the working folder
+1. copy the `sequence_plugins.txt` and `tracking_plugins.txt` to the working folder
 2. copy the `plugins/` directory to the working folder
 3. modify the code so it performs instead of the default sequence or default tracker
 4. Open the GUI and Plugins -> Choose , then run the rest: Init -> Sequence 

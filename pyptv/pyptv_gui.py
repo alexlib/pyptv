@@ -1111,26 +1111,18 @@ class Plugins(HasTraits):
 
     def read(self):
         # reading external tracking
-        if os.path.exists(
-            os.path.join(os.path.abspath(os.curdir), "external_tracker_list.txt")
-        ):
-            with open(
-                os.path.join(os.path.abspath(os.curdir), "external_tracker_list.txt"),
-                "r",
-            ) as f:
+        tracking_plugins = os.path.join(os.path.abspath(os.curdir), "tracking_plugins.txt")
+        sequence_plugins = os.path.join(os.path.abspath(os.curdir), "sequence_plugins.txt")
+        if os.path.exists(tracking_plugins):
+            with open(tracking_plugins,"r", encoding="utf8") as f:
                 trackers = f.read().split("\n")
                 trackers.insert(0, "default")
                 self.track_list = trackers
         else:
             self.track_list = ["default"]
         # reading external sequence
-        if os.path.exists(
-            os.path.join(os.path.abspath(os.curdir), "external_sequence_list.txt")
-        ):
-            with open(
-                os.path.join(os.path.abspath(os.curdir), "external_sequence_list.txt"),
-                "r",
-            ) as f:
+        if os.path.exists( sequence_plugins ):
+            with open( sequence_plugins, "r", encoding="utf8" ) as f: 
                 seq = f.read().split("\n")
                 seq.insert(0, "default")
                 self.seq_list = seq
