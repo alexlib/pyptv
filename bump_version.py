@@ -41,6 +41,8 @@ def increment_version(version, part='minor'):
     elif part == 'minor':
         minor += 1
         patch = 0
+    elif part == 'patch':
+        patch += 1
     else:
         raise ValueError("Invalid part specified. Use 'major' or 'minor'.")
     
@@ -56,7 +58,7 @@ if __name__ == '__main__':
     print(f"Current version is {current_version}")
 
     # Example usage
-    new_version = increment_version(current_version, 'minor')
+    new_version = increment_version(current_version, 'patch')
     print(f"New version is {new_version}")
 
     # Update the version in pyproject.toml
