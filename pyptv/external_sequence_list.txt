@@ -1,3 +1,3 @@
-plugins/ext_sequence_denis
-plugins/ext_sequence_rembg
+ext_sequence_rembg
+ext_sequence_contour
 
