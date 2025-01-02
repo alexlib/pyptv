@@ -54,6 +54,7 @@ from pyptv.quiverplot import QuiverPlot
 from pyptv.detection_gui import DetectionGUI
 from pyptv import __version__
 import optv.orientation
+import optv.epipolar
 
 
 class Clicker(ImageInspectorTool):
