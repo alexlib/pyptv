@@ -213,8 +213,10 @@ def run_plugin(exp):
 
     # plugin_dir = 'plugins'
     plugin_dir = os.path.join(os.getcwd(), 'plugins')
+    print(f"Plugin directory: {plugin_dir}")
     # Add the plugins directory to sys.path so that Python can find the modules
     sys.path.append(plugin_dir)
+    # print(f"sys.path: {sys.path}")
     # plugin = importlib.import_module(f"{exp.plugins.sequence_alg}")  
 
 
