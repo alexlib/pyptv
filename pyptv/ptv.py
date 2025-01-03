@@ -216,7 +216,7 @@ def run_plugin(exp):
     print(f"Plugin directory: {plugin_dir}")
     # Add the plugins directory to sys.path so that Python can find the modules
     sys.path.append(plugin_dir)
-    # print(f"sys.path: {sys.path}")
+    print(f"sys.path: {sys.path}")
     # plugin = importlib.import_module(f"{exp.plugins.sequence_alg}")  
 
 
@@ -229,9 +229,10 @@ def run_plugin(exp):
             if plugin_name == exp.plugins.sequence_alg:
             # Dynamically import the plugin
                 try:
-                    plugin = importlib.import_module(f"{plugin_name}")
+                    print(f"Loading plugin: {plugin_name}")
+                    plugin = importlib.import_module(plugin_name)
                 except ImportError:
-                    print(f"Error loading {plugin_name}. Falling back to default sequence algorithm")
+                    print(f"Error loading {plugin_name}. Check missing packages or syntax errors.")
                     return None
             
                 # Now you can use the plugin (e.g., assume each plugin has a `run()` function)
