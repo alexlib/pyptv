@@ -1,8 +1,6 @@
 import random
-
 import numpy as np
-from skimage.io import imread
-
+from pyptv import ptv
 
 class Sequence:
     """Sequence class defines external tracking addon for pyptv
@@ -56,7 +54,7 @@ class Sequence:
                 img_name = base_name[j] + seq_ch
                 # print("Setting image: ", img_name)
                 try:
-                    temp_img = imread(img_name).astype(np.ubyte)
+                    temp_img = ptv._imread(img_name)
                 except BaseException:
                     print("Error reading file")
 

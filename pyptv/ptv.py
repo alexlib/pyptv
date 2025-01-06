@@ -25,10 +25,23 @@ from optv.tracker import Tracker, default_naming
 from optv.epipolar import epipolar_curve
 from optv.transforms import convert_arr_metric_to_pixel
 
-from skimage.io import imread
+from imageio.v3 import imread
 from skimage import img_as_ubyte
 from skimage.color import rgb2gray
 from pyptv import parameters as par
+
+
+
+def _imread(imname: Path|str) -> np.ndarray:
+    """ use imageio.v3 imread once for all the possible cases """
+    img = imread(imname)
+    if img.ndim > 2:
+        img = rgb2gray(img[:,:,:3])
+        
+    if img.dtype != np.uint8:
+        img = img_as_ubyte(img)
+    
+    return img
 
 
 def negative(img):
@@ -268,12 +281,8 @@ def py_sequence_loop(exp):
                 if not imname.exists():
                     print(f"{imname} does not exist")
                 else:
-                    img = imread(imname)
-                    if img.ndim > 2:
-                        img = rgb2gray(img)
-                        
-                    if img.dtype != np.uint8:
-                        img = img_as_ubyte(img)
+                    img = _imread(imname)
+
                 # time.sleep(.1) # I'm not sure we need it here
                 
                 if 'exp1' in exp.__dict__:

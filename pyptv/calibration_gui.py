@@ -10,7 +10,6 @@ import shutil
 import re
 from  pathlib import Path
 import numpy as np
-from skimage.io import imread
 from skimage.util import img_as_ubyte
 from skimage.color import rgb2gray
 
@@ -579,12 +578,8 @@ class CalibrationGUI(HasTraits):
         self.cal_images = []
         for i in range(len(self.camera)):
             imname = self.calParams.img_cal_name[i]
-            im = imread(imname)
-            # im = ImageData.fromfile(imname).data
-            if im.ndim > 2:
-                im = rgb2gray(im[:,:,:3])
-
-            self.cal_images.append(img_as_ubyte(im))
+            im = ptv._imread(imname)
+            self.cal_images.append(im)
 
         self.reset_show_images()
 

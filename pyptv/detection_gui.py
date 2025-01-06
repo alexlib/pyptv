@@ -19,7 +19,6 @@ from chaco.api import Plot, ArrayPlotData, gray, \
 from chaco.tools.image_inspector_tool import ImageInspectorTool
 from chaco.tools.better_zoom import BetterZoom as SimpleZoom
 
-from skimage.io import imread
 from skimage import img_as_ubyte
 from skimage.color import rgb2gray
 
@@ -468,7 +467,7 @@ class DetectionGUI(HasTraits):
         # print(f'image name is {self.image_name}')# and \
             #its string is {self.image_name.decode("utf-8")}')
 
-        im = imread(self.image_name)
+        im = ptv._imread(self.image_name)
         # print(f'image size is {im.shape}')
         if im.ndim > 2:
             im = rgb2gray(im)

@@ -43,7 +43,6 @@ from chaco.tools.image_inspector_tool import ImageInspectorTool
 from enable.component_editor import ComponentEditor
 from skimage.util import img_as_ubyte
 from skimage.color import rgb2gray
-from skimage.io import imread
 
 from pyptv import parameters as par
 from pyptv import ptv
@@ -498,7 +497,7 @@ class TreeMenuHandler(Handler):
                             "#", str(i)
                         )
                     )
-                    background = imread(background_name)
+                    background = ptv._imread(background_name)
                     # im[mask] = 0
                     info.object.orig_image[i] = np.clip(info.object.orig_image[i] - background, 0, 255).astype(np.uint8)
                     
@@ -604,14 +603,14 @@ class TreeMenuHandler(Handler):
 
         for i in range(len(mainGui.camera_list)):
             try:
-                im = imread(
+                im = ptv._imread(
                     getattr(
                         mainGui.exp1.active_params.m_params,
                         f"Name_{i+1}_Image",
                     )
                 )
                 if im.ndim > 2:
-                    im = rgb2gray(im)
+                    im = rgb2gray(im[:,:,:3])
 
                 mainGui.orig_image[i] = img_as_ubyte(im)
             except IOError:
@@ -1470,7 +1469,7 @@ class MainGUI(HasTraits):
             
             temp_img = []
             for seq in range(seq_first, seq_last):
-                temp_img.append(img_as_ubyte(imread(self.base_name[cam_id] % seq)))
+                temp_img.append(ptv._imread(self.base_name[cam_id] % seq))
         
             temp_img = np.array(temp_img)
             temp_img = np.max(temp_img, axis=0)
@@ -1487,12 +1486,12 @@ class MainGUI(HasTraits):
         """
         # print(f"Setting image: {img_name}")
         try:
-            temp_img = img_as_ubyte(imread(img_name))
+            temp_img = ptv._imread(img_name)
         except IOError:
             print("Error reading file, setting zero image")
             h_img = self.exp1.active_params.m_params.imx
             v_img = self.exp1.active_params.m_params.imy
-            temp_img = img_as_ubyte(np.zeros((h_img, v_img)))
+            temp_img = np.zeros((h_img, v_img), dtype=np.uint8)
         # if not display_only:
         #     ptv.py_set_img(temp_img, j)
         if len(temp_img) > 0:
@@ -1530,7 +1529,7 @@ def main():
         # exp_path = Path('/home/user/Downloads/one-dot-example/working_folder')
         # exp_path = Path('/home/user/Downloads/test_crossing_particle')
         # exp_path = Path('../test_cavity')
-        exp_path = Path('/media/user/ExtremePro/omer/star_exp')
+        exp_path = Path('E:/Omer/star_exp')
         print(f"Without input, PyPTV fallbacks to a default {exp_path} \n")
 
     if not exp_path.is_dir() or not exp_path.exists():

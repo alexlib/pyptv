@@ -29,7 +29,7 @@ for cam_num in range(4):
 
     image_array = []
     for i, file in enumerate(filelist[:N]):
-        image_array.append(skio.imread(file))
+        image_array.append(ptv._imread(file))
         
     image_array = np.array(image_array)
     
