@@ -65,3 +65,10 @@ Note, the specific branch `plugin_remback` requires installation of the `pip ins
 
 
 1. how to bump the version: ```python bump_version.py --patch```
+2. how to build and publish: 
+      pip install build
+      python -m build
+      pip install dist/pyptv-0.3.2-py3-none-any.whl
+      pip install twine
+      python -m twine upload dist/*
+      
