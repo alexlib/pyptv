@@ -60,3 +60,8 @@ Plugins is a system of extensions to PyPTV without the need to change the GUI
 
 Note, the specific branch `plugin_remback` requires installation of the `pip install rembg[cpu]` or `pip install rembg[gpu]`
 
+
+### Developers:
+
+
+1. how to bump the version: ```python bump_version.py --patch```
