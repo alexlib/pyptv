@@ -1408,10 +1408,6 @@ class MainGUI(HasTraits):
             for i in range(n_cams)
         ]
 
-        # i = seq
-        # seq_ch = f"{seq:04d}"
-        # seq_ch = f"{seq:d}"
-        
 
         if update_all is False:
             j = self.current_camera
@@ -1437,17 +1433,31 @@ class MainGUI(HasTraits):
             update_all (bool, optional): _description_. Defaults to True.
             display_only (bool, optional): _description_. Defaults to False.
         """
+
+
+        n_cams = len(self.camera_list)
+        if not hasattr(self, "base_name"):
+            self.base_name = [
+                getattr(self.exp1.active_params.m_params, f"Basename_{i+1}_Seq")
+                for i in range(len(self.camera_list))
+            ]
+     
+
+        for cam_id in range(n_cams):
+            if os.path.exists(self.base_name[cam_id] % seq_first):
+                temp_img = []
+                for seq in range(seq_first, seq_last):
+                    _ = imread(self.base_name[cam_id] % seq)
+                    temp_img.append(img_as_ubyte(_))
+
+                temp_img = np.array(temp_img)
+                temp_img = np.max(temp_img, axis=0)
+            else:
+                h_img = self.exp1.active_params.m_params.imx
+                v_img = self.exp1.active_params.m_params.imy
+                temp_img = img_as_ubyte(np.zeros((h_img, v_img)))
         
 
-        for cam_id in range(len(self.camera_list)):
-            # print("Inside overlay: ", self.base_name[cam_id])
-            
-            temp_img = []
-            for seq in range(seq_first, seq_last):
-                temp_img.append(img_as_ubyte(imread(self.base_name[cam_id] % seq)))
-        
-            temp_img = np.array(temp_img)
-            temp_img = np.max(temp_img, axis=0)
             self.camera_list[cam_id].update_image(temp_img)
                     
 
@@ -1467,6 +1477,7 @@ class MainGUI(HasTraits):
             h_img = self.exp1.active_params.m_params.imx
             v_img = self.exp1.active_params.m_params.imy
             temp_img = img_as_ubyte(np.zeros((h_img, v_img)))
+
         # if not display_only:
         #     ptv.py_set_img(temp_img, j)
         if len(temp_img) > 0:
@@ -1504,7 +1515,8 @@ def main():
         # exp_path = Path('/home/user/Downloads/one-dot-example/working_folder')
         # exp_path = Path('/home/user/Downloads/test_crossing_particle')
         # exp_path = Path('../test_cavity')
-        exp_path = Path('/media/user/ExtremePro/omer/star_exp')
+        # exp_path = Path('/media/user/ExtremePro/omer/star_exp')
+        exp_path = Path('/home/user/Documents/repos/blob_pyptv_folder')
         print(f"Without input, PyPTV fallbacks to a default {exp_path} \n")
 
     if not exp_path.is_dir() or not exp_path.exists():

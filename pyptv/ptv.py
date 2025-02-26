@@ -27,6 +27,7 @@ from skimage import img_as_ubyte
 from skimage.color import rgb2gray
 from pyptv import parameters as par
 from pyptv import ptv as ptv
+import re
 
 
 def negative(img):
@@ -141,12 +142,6 @@ def py_correspondences_proc_c(exp):
     # Save targets only after they've been modified:
     for i_cam in range(exp.n_cams):
         base_name = exp.spar.get_img_base_name(i_cam).decode()
-        # filename = base_name.split('%')[0] + base_name.split('d')[-1]
-        # filename = base_name % frame + '_targets'
-        # write_targets(exp.detections[i_cam], filename, frame)
-        # exp.detections[i_cam].write(filename.encode(), frame)
-        # base_name = 'cam_%d.' % (i_cam)
-        # base_name = replace_format_specifiers(base_name) # %d to %04d
         write_targets(exp.detections[i_cam], base_name, frame)
 
 
@@ -306,7 +301,7 @@ def py_sequence_loop(exp):
         for i_cam in range(n_cams):
             base_image_name = spar.get_img_base_name(i_cam).decode()
             if Existing_Target:
-                targs = read_targets(base_image_name % frame)
+                targs = read_targets(base_image_name, frame)
             else:
                 # imname = spar.get_img_base_name(i_cam) + str(frame).encode()
                 
@@ -407,12 +402,18 @@ def py_trackcorr_init(exp):
     print("\n renaming for liboptv: \n")
     for i_cam in range(exp.n_cams):
         orig_filename = exp.spar.get_img_base_name(i_cam).decode()
+        print(f' from {orig_filename}')
+        orig_filename = os.path.splitext(orig_filename)[0] + '.'
+        short_name = re.sub(r'%\d*d', '', orig_filename)
+        print(f' to {short_name}')
+
         # new_filename = replace_format_specifiers(orig_filename)
         # print(orig_filename, orig_filename)
 
         # base_name = exp.spar.get_img_base_name(i_cam).decode()
         # filename = base_name.split('%')[0] + base_name.split('d')[-1]        
-        exp.spar.set_img_base_name(i_cam, orig_filename)
+        # exp.spar.set_img_base_name(i_cam, orig_filename)
+        exp.spar.set_img_base_name(i_cam, short_name)
 
     tracker = Tracker(exp.cpar, exp.vpar, exp.track_par, exp.spar, exp.cals,
                       default_naming)
@@ -658,8 +659,12 @@ def read_targets(file_base: str, frame: int) -> TargetArray:
         frame = 123456789
 
     # file_base = replace_format_specifiers(file_base) # remove %d
-    filename =  Path(f'{file_base}{frame:04d}_targets')
-    # print(f" filename: {filename}")
+    if re.search(r"%\d*d", file_base):
+        filename = Path(f'{file_base % frame}_targets')
+    else:
+        filename =  Path(f'{file_base}{frame:04d}_targets')
+
+    print(f" filename: {filename}")
 
     try:
         with open(filename, "r", encoding="utf-8") as file:
@@ -703,8 +708,12 @@ def write_targets(
         frame = 123456789
 
     # file_base = replace_format_specifiers(file_base) # remove %d
-    file_name =  f'{file_base}{frame:04d}_targets'
-    print("Writing targets to file: ", file_name)
+    if re.search(r"%\d*d", file_base):
+        filename = Path(f'{file_base % frame}_targets')
+    else:
+        filename =  Path(f'{file_base}{frame:04d}_targets')
+
+    print("Writing targets to file: ", filename)
 
     num_targets = len(targets)
 
@@ -715,7 +724,7 @@ def write_targets(
         )
         # Save the target array to file using savetxt
         np.savetxt(
-            file_name,
+            filename,
             target_arr,
             fmt="%4d %9.4f %9.4f %5d %5d %5d %5d %5d",
             header=f"{num_targets}",
@@ -723,6 +732,6 @@ def write_targets(
         )
         success = True
     except IOError:
-        print(f"Can't open targets file: {file_name}")
+        print(f"Can't open targets file: {filename}")
 
     return success
