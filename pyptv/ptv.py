@@ -185,8 +185,8 @@ def py_determination_proc_c(n_cams, sorted_pos, sorted_corresp, corrected):
         print_corresp = sorted_corresp
 
     # Save rt_is in a temporary file
-    fname = b"".join([default_naming["corres"],
-                      b".123456789"])  # hard-coded frame number
+    fname = (default_naming["corres"].decode()+'.123456789').encode()
+
     print(f'Prepared {fname} to write positions\n')
 
     try:
@@ -385,7 +385,8 @@ def py_sequence_loop(exp):
 
         # Save rt_is
         rt_is_filename = default_naming["corres"].decode()
-        rt_is_filename = rt_is_filename + f'.{frame}'
+        # rt_is_filename = f'{rt_is_filename}.{frame:04d}'
+        rt_is_filename = f'{rt_is_filename}.{frame}'
         with open(rt_is_filename, "w", encoding="utf8") as rt_is:
             rt_is.write(str(pos.shape[0]) + "\n")
             for pix, pt in enumerate(pos):
@@ -397,30 +398,19 @@ def py_sequence_loop(exp):
 
 def py_trackcorr_init(exp):
     """Reads all the necessary stuff into Tracker"""
-    # Update name in sequence_par because we use now this 
-    # complex %d construction. 
-    print("\n renaming for liboptv: \n")
-    for i_cam in range(exp.n_cams):
-        orig_filename = exp.spar.get_img_base_name(i_cam).decode()
-        print(f' from {orig_filename}')
-        orig_filename = os.path.splitext(orig_filename)[0] + '.'
-        short_name = re.sub(r'%\d*d', '', orig_filename)
-        print(f' to {short_name}')
-
-        # new_filename = replace_format_specifiers(orig_filename)
-        # print(orig_filename, orig_filename)
-
-        # base_name = exp.spar.get_img_base_name(i_cam).decode()
-        # filename = base_name.split('%')[0] + base_name.split('d')[-1]        
-        # exp.spar.set_img_base_name(i_cam, orig_filename)
-        exp.spar.set_img_base_name(i_cam, short_name)
+    
+    for cam_id in range(exp.cpar.get_num_cams()):
+        img_base_name = exp.spar.get_img_base_name(cam_id).decode()
+        # print(img_base_name)
+        short_name = img_base_name.split('%')[0]
+        # print(short_name)
+        print(f' Renaming {img_base_name} to {short_name} before C library tracker')
+        exp.spar.set_img_base_name(cam_id, short_name)
+        
 
     tracker = Tracker(exp.cpar, exp.vpar, exp.track_par, exp.spar, exp.cals,
                       default_naming)
-    
-    # print(f" renaming back from liboptv: \n")
-    # for i_cam in range(exp.n_cams):
-    #     exp.spar.set_img_base_name(i_cam, orig_filename)
+
     
     return tracker
 
@@ -647,7 +637,7 @@ def py_multiplanecalibration(exp):
         print("End multiplane")
 
 
-def read_targets(file_base: str, frame: int) -> TargetArray:
+def read_targets(file_base: str, frame: int=123456789) -> TargetArray:
     """Read targets from a file."""
     # buffer = TargetArray()
     # buffer = []
@@ -655,12 +645,10 @@ def read_targets(file_base: str, frame: int) -> TargetArray:
     # # if file_base has an extension, remove it
     # file_base = file_base.split(".")[0]
 
-    if frame == 0:
-        frame = 123456789
-
     # file_base = replace_format_specifiers(file_base) # remove %d
     if re.search(r"%\d*d", file_base):
-        filename = Path(f'{file_base % frame}_targets')
+        _ = re.sub(r"%\d*d", "%04d", file_base)
+        filename = Path(f'{_ % frame}_targets')
     else:
         filename =  Path(f'{file_base}{frame:04d}_targets')
 
@@ -694,7 +682,7 @@ def read_targets(file_base: str, frame: int) -> TargetArray:
 
 
 def write_targets(
-    targets: TargetArray, file_base: str, frame: int) -> bool:
+    targets: TargetArray, file_base: str, frame: int=123456789) -> bool:
     """Write targets to a file."""
     success = False
 
@@ -704,12 +692,10 @@ def write_targets(
     # if "%" not in file_base:
     #     file_base = file_base + "%05d"
 
-    if frame == 0:
-        frame = 123456789
-
     # file_base = replace_format_specifiers(file_base) # remove %d
     if re.search(r"%\d*d", file_base):
-        filename = Path(f'{file_base % frame}_targets')
+        _ = re.sub(r"%\d*d", "%04d", file_base)
+        filename = Path(f'{_ % frame}_targets')
     else:
         filename =  Path(f'{file_base}{frame:04d}_targets')
 
