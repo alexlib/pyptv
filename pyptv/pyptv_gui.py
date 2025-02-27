@@ -556,7 +556,7 @@ class TreeMenuHandler(Handler):
         pairs, and unused arrays
         """
 
-        # if info.object.n_cams  > 1: # single camera is not checked
+        
         print("correspondence proc started")
         (
             info.object.sorted_pos,
@@ -621,7 +621,7 @@ class TreeMenuHandler(Handler):
                 print("Error reading image, setting zero image")
                 h_img = mainGui.exp1.active_params.m_params.imx
                 v_img = mainGui.exp1.active_params.m_params.imy
-                temp_img = img_as_ubyte(np.zeros((h_img, v_img)))
+                temp_img = img_as_ubyte(np.zeros((v_img, h_img)))
                 # print(f"setting images of size {temp_img.shape}")
                 exec(f"mainGui.orig_image[{i}] = temp_img")
 
@@ -1455,7 +1455,7 @@ class MainGUI(HasTraits):
             else:
                 h_img = self.exp1.active_params.m_params.imx
                 v_img = self.exp1.active_params.m_params.imy
-                temp_img = img_as_ubyte(np.zeros((h_img, v_img)))
+                temp_img = img_as_ubyte(np.zeros((v_img, h_img)))
         
 
             self.camera_list[cam_id].update_image(temp_img)
@@ -1476,7 +1476,7 @@ class MainGUI(HasTraits):
             print("Error reading file, setting zero image")
             h_img = self.exp1.active_params.m_params.imx
             v_img = self.exp1.active_params.m_params.imy
-            temp_img = img_as_ubyte(np.zeros((h_img, v_img)))
+            temp_img = img_as_ubyte(np.zeros((v_img, h_img)))
 
         # if not display_only:
         #     ptv.py_set_img(temp_img, j)
@@ -1514,9 +1514,9 @@ def main():
         # exp_path = software_path.parent / "test_cavity"
         # exp_path = Path('/home/user/Downloads/one-dot-example/working_folder')
         # exp_path = Path('/home/user/Downloads/test_crossing_particle')
-        exp_path = Path('/home/user/Documents/repos/test_cavity')
+        # exp_path = Path('/home/user/Documents/repos/test_cavity')
         # exp_path = Path('/media/user/ExtremePro/omer/star_exp')
-        # exp_path = Path('/home/user/Documents/repos/blob_pyptv_folder')
+        exp_path = Path('/home/user/Documents/repos/blob_pyptv_folder')
         print(f"Without input, PyPTV fallbacks to a default {exp_path} \n")
 
     if not exp_path.is_dir() or not exp_path.exists():
