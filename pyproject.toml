@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "pyptv"
-version = "0.3.2"
+version = "0.3.3"
 description = "Python GUI for the OpenPTV library `liboptv`"
 authors = [
     { name = "Alex Liberzon", email = "alex.liberzon@gmail.com" }
