@@ -3,6 +3,7 @@ Python GUI for the OpenPTV library `liboptv`
 
 [![Python package](https://github.com/alexlib/pyptv/actions/workflows/python-package.yml/badge.svg)](https://github.com/alexlib/pyptv/actions/workflows/python-package.yml)
 [![DOI](https://zenodo.org/badge/121291437.svg)](https://zenodo.org/badge/latestdoi/121291437)
+[![PyPI version](https://badge.fury.io/py/pyptv.svg)](https://badge.fury.io/py/pyptv)
 
 
 
