@@ -403,6 +403,8 @@ def py_trackcorr_init(exp):
         img_base_name = exp.spar.get_img_base_name(cam_id).decode()
         # print(img_base_name)
         short_name = img_base_name.split('%')[0]
+        if short_name[-1] == '_':
+            short_name = short_name[:-1]+'.'
         # print(short_name)
         print(f' Renaming {img_base_name} to {short_name} before C library tracker')
         exp.spar.set_img_base_name(cam_id, short_name)
@@ -693,11 +695,13 @@ def write_targets(
     #     file_base = file_base + "%05d"
 
     # file_base = replace_format_specifiers(file_base) # remove %d
+    file_base = os.path.splitext(file_base)[0]
+    file_base = re.sub(r"_%\d*d", "", file_base)
     if re.search(r"%\d*d", file_base):
         _ = re.sub(r"%\d*d", "%04d", file_base)
         filename = Path(f'{_ % frame}_targets')
     else:
-        filename =  Path(f'{file_base}{frame:04d}_targets')
+        filename =  Path(f'{file_base}.{frame:04d}_targets')
 
     print("Writing targets to file: ", filename)
 
