@@ -648,11 +648,7 @@ def read_targets(file_base: str, frame: int=123456789) -> TargetArray:
     # file_base = file_base.split(".")[0]
 
     # file_base = replace_format_specifiers(file_base) # remove %d
-    if re.search(r"%\d*d", file_base):
-        _ = re.sub(r"%\d*d", "%04d", file_base)
-        filename = Path(f'{_ % frame}_targets')
-    else:
-        filename =  Path(f'{file_base}{frame:04d}_targets')
+    filename = file_base_to_filename(file_base, frame)
 
     print(f" filename: {filename}")
 
@@ -695,13 +691,7 @@ def write_targets(
     #     file_base = file_base + "%05d"
 
     # file_base = replace_format_specifiers(file_base) # remove %d
-    file_base = os.path.splitext(file_base)[0]
-    file_base = re.sub(r"_%\d*d", "", file_base)
-    if re.search(r"%\d*d", file_base):
-        _ = re.sub(r"%\d*d", "%04d", file_base)
-        filename = Path(f'{_ % frame}_targets')
-    else:
-        filename =  Path(f'{file_base}.{frame:04d}_targets')
+    filename = file_base_to_filename(file_base, frame)
 
     print("Writing targets to file: ", filename)
 
@@ -725,3 +715,15 @@ def write_targets(
         print(f"Can't open targets file: {filename}")
 
     return success
+
+def file_base_to_filename(file_base, frame):
+    """ Convert file base name to a filename """
+    file_base = os.path.splitext(file_base)[0]
+    file_base = re.sub(r"_%\d*d", "", file_base)
+    if re.search(r"%\d*d", file_base):
+        _ = re.sub(r"%\d*d", "%04d", file_base)
+        filename = Path(f'{_ % frame}_targets')
+    else:
+        filename =  Path(f'{file_base}.{frame:04d}_targets')
+
+    return filename
