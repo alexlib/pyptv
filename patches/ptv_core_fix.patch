@@ -1,0 +1,54 @@
+diff --git a/pyptv/ui/main_window.py b/pyptv/ui/main_window.py
+index 1722ca0..6ee7532 100644
+--- a/pyptv/ui/main_window.py
++++ b/pyptv/ui/main_window.py
+@@ -259,10 +259,16 @@ class MainWindow(QMainWindow):
+     def initialize_experiment(self):
+         """Initialize the experiment."""
+         try:
+-            from pyptv.ui.ptv_core import PTVCore
++            # Direct import to avoid getting the bridge class
++            import importlib.util
++            import sys
++            
++            spec = importlib.util.spec_from_file_location("ptv_core_module", 
++                      Path(__file__).parent.parent / "ui" / "ptv_core.py")
++            ptv_core_module = importlib.util.module_from_spec(spec)
++            spec.loader.exec_module(ptv_core_module)
++            PTVCore = ptv_core_module.PTVCore
+             
+-            # Create PTV core if not already created
+-            if not hasattr(self, 'ptv_core'):
+                 self.ptv_core = PTVCore(self.exp_path, self.software_path)
+             
+             # Initialize progress message
+diff --git a/pyptv/ui/ptv_core.py b/pyptv/ui/ptv_core.py
+index b0ba13f..81f2a8a 100644
+--- a/pyptv/ui/ptv_core.py
++++ b/pyptv/ui/ptv_core.py
+@@ -47,6 +47,7 @@ class PTVCore:
+         self.exp_path = Path(exp_path) if exp_path else Path.cwd()
+         self.software_path = Path(software_path) if software_path else Path.cwd()
+         
++        print(f"Using direct PTVCore implementation with experiment path: {self.exp_path}")
+         # Initialize parameter manager
+         params_dir = self.exp_path / "parameters"
+         self.param_manager = ParameterManager(params_dir)
+@@ -104,6 +105,8 @@ class PTVCore:
+         if self.exp_path.exists():
+             os.chdir(self.exp_path)
+         
++        print(f"PTVCore: initializing from {os.getcwd()}")
++        
+         # Load parameters from YAML
+         try:
+             self.load_yaml_parameters()
+@@ -123,6 +126,8 @@ class PTVCore:
+                     img_path = getattr(seq_params, image_attr)
+                     ref_images.append(img_path)
+                 else:
++                    # Log the missing attribute
++                    print(f"Missing {image_attr} in sequence parameters")
+                     ref_images.append(None)
+             
+             # Initialize images array
