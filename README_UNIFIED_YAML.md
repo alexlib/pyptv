@@ -11,6 +11,31 @@ The unified YAML parameter system offers several advantages:
 3. **Easier Configuration**: Edit one file instead of navigating through multiple parameter files.
 4. **Better Version Control**: Changes to parameters are tracked in a single file, making diffs clearer.
 
+## Setup and Installation
+
+### Using the Virtual Environment
+
+To ensure all dependencies are properly installed, we provide a setup script that creates a virtual environment with Python 3.11 and installs all necessary packages:
+
+```bash
+# Create and setup the virtual environment
+./setup_environment.sh [venv_path]
+
+# Run the pipeline using the virtual environment
+./run_venv_pipeline.sh [experiment_path] [venv_path]
+```
+
+Example:
+```bash
+# Create a virtual environment in ./venv
+./setup_environment.sh venv
+
+# Run the pipeline on test_cavity data using the virtual environment
+./run_venv_pipeline.sh tests/test_cavity venv
+```
+
+This setup ensures compatibility with optv and other dependencies, providing the best experience when running the full pipeline.
+
 ## File Structure
 
 The unified YAML parameter file (`pyptv_config.yaml`) is structured as follows:
@@ -77,6 +102,8 @@ ptv_params = param_manager.load_param(PtvParams)
 
 ### Using the Full Pipeline
 
+#### Standard Pipeline
+
 The full pipeline script automatically uses the unified YAML file:
 
 ```bash
@@ -88,6 +115,26 @@ Or directly:
 ```bash
 python run_full_pipeline.py /path/to/experiment
 ```
+
+#### Simplified Pipeline (No optv dependency)
+
+If you don't have the optv module properly installed, you can use the simplified pipeline:
+
+```bash
+./run_simple_pipeline.sh /path/to/experiment
+```
+
+This runs a simulated version of the pipeline that demonstrates the workflow using the unified YAML parameters.
+
+## Pipeline Scripts
+
+The repository includes several scripts for running the pipeline:
+
+1. **run_pipeline.sh**: Main pipeline script that uses the unified YAML parameters
+2. **run_simple_pipeline.sh**: Simplified pipeline that works without optv module
+3. **run_venv_pipeline.sh**: Runs the pipeline using the virtual environment
+4. **run_legacy_pipeline.sh**: Attempts to run the legacy pipeline for comparison
+5. **setup_environment.sh**: Creates a virtual environment with all dependencies
 
 ## Parameter Definitions
 
