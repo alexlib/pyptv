@@ -190,17 +190,56 @@ class PTVCore:
             return []
         
     def load_yaml_parameters(self):
-        """Load parameters from YAML files."""
+        """Load parameters from unified YAML file."""
+        # Create parameter manager with unified YAML enabled
+        params_dir = self.exp_path / "parameters"
+        self.param_manager = ParameterManager(params_dir, unified=True)
+        
         # Load all parameter types
         self.yaml_params = self.param_manager.load_all()
         
         # Validate required parameters
-        required_param_types = ["PtvParams", "TrackingParams", "SequenceParams", "CriteriaParams"]
+        required_param_types = ["PtvParams", "TrackingParams", "SequenceParams", "CriteriaParams", "TargetParams"]
         for param_type in required_param_types:
             if param_type not in self.yaml_params:
-                raise ValueError(f"Required parameter type {param_type} not found")
+                print(f"Warning: Required parameter type {param_type} not found in unified file")
+                print(f"Attempting to load from individual file...")
+                
+                # Try to find the parameter class
+                for cls_name, cls in self.param_manager.parameters.items():
+                    if cls_name == param_type:
+                        # Load the parameter and add it to yaml_params
+                        self.yaml_params[param_type] = cls.load(params_dir)
+                        break
+                
+                # Check if we found the parameter
+                if param_type not in self.yaml_params:
+                    raise ValueError(f"Required parameter type {param_type} not found")
+        
+        # Save all parameters to the unified YAML file
+        # This ensures any parameters loaded from individual files are merged into the unified file
+        self.param_manager.save_all(self.yaml_params)
         
         return self.yaml_params
+        
+    def update_yaml_parameter(self, param_type, updated_param):
+        """
+        Update a specific parameter in the unified YAML file.
+        
+        Args:
+            param_type: Parameter type name (e.g., "PtvParams")
+            updated_param: Updated parameter object
+        """
+        if self.param_manager and hasattr(self.param_manager, 'update_param'):
+            # Get the parameter class
+            for cls_name, cls in self.param_manager.parameters.items():
+                if cls_name == param_type:
+                    # Update the parameter in the unified YAML file
+                    self.param_manager.update_param(cls, updated_param)
+                    
+                    # Update in memory as well
+                    self.yaml_params[param_type] = updated_param
+                    break
     
     def apply_highpass(self):
         """Apply highpass filter to the images."""

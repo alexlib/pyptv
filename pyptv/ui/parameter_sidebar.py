@@ -449,10 +449,21 @@ class ParameterSet:
             # Check for YAML parameters first
             yaml_files = list(self.path.glob("*.yaml"))
             if yaml_files:
-                # Use the YAML parameter system
-                from pyptv.yaml_parameters import ParameterManager
-                param_mgr = ParameterManager(self.path)
+                # Use the unified YAML parameter system
+                from pyptv.yaml_parameters import ParameterManager, UNIFIED_YAML_FILENAME
+                # Check for unified YAML file first
+                unified_yaml_path = self.path / UNIFIED_YAML_FILENAME
+                if unified_yaml_path.exists():
+                    print(f"Loading parameters from unified YAML file: {unified_yaml_path}")
+                else:
+                    print(f"Converting individual YAML files to unified format")
+                
+                # Use parameter manager with unified YAML enabled
+                param_mgr = ParameterManager(self.path, unified=True)
                 params = param_mgr.load_all()
+                
+                # Ensure all parameters are saved to unified YAML file
+                param_mgr.save_all(params)
                 
                 # Get PTV params
                 if "PtvParams" in params:

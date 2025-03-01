@@ -3,6 +3,9 @@
 This module provides a new parameter handling system based on YAML files
 rather than the legacy ASCII parameter files. It maintains compatibility
 with the old system while providing a more flexible and maintainable approach.
+
+This module now supports a unified YAML file approach, where all parameters
+are stored in a single multi-level YAML file rather than multiple separate files.
 """
 
 import os
@@ -12,8 +15,9 @@ from typing import Dict, List, Any, Optional, Union, TypeVar, Generic, Type
 import json
 from dataclasses import dataclass, field, asdict, is_dataclass
 
-# Default locations
+# Default locations and filenames
 DEFAULT_PARAMS_DIR = "parameters"
+UNIFIED_YAML_FILENAME = "pyptv_config.yaml"
 
 # Type variable for generic parameter classes
 T = TypeVar('T')
@@ -494,22 +498,30 @@ class CriteriaParams(ParameterBase):
 
 
 class ParameterManager:
-    """Manager for all parameter types."""
+    """Manager for all parameter types.
     
-    def __init__(self, path: Union[str, Path] = DEFAULT_PARAMS_DIR):
+    Supports both:
+    1. Individual YAML files for each parameter type (legacy)
+    2. Unified YAML file with all parameters in a single file (modern)
+    """
+    
+    def __init__(self, path: Union[str, Path] = DEFAULT_PARAMS_DIR, unified: bool = True):
         """Initialize parameter manager.
         
         Args:
             path: Path to parameter directory
+            unified: Whether to use unified YAML file (True) or separate files (False)
         """
         self.path = ensure_path(path)
         self.parameters = {}
+        self.unified = unified
         
         # Register parameter classes
         self._register_parameter_class(PtvParams)
         self._register_parameter_class(TrackingParams)
         self._register_parameter_class(SequenceParams)
         self._register_parameter_class(CriteriaParams)
+        self._register_parameter_class(TargetParams)
     
     def _register_parameter_class(self, param_class: Type[ParameterBase]) -> None:
         """Register a parameter class.
@@ -519,14 +531,57 @@ class ParameterManager:
         """
         self.parameters[param_class.__name__] = param_class
     
+    def get_unified_yaml_path(self) -> Path:
+        """Get the path to the unified YAML file.
+        
+        Returns:
+            Path to unified YAML file
+        """
+        return self.path / UNIFIED_YAML_FILENAME
+    
     def load_all(self) -> Dict[str, ParameterBase]:
         """Load all parameters.
+        
+        If unified is True, loads from a single YAML file.
+        Otherwise, loads from individual YAML files.
         
         Returns:
             Dictionary of parameter objects
         """
         loaded_params = {}
         
+        if self.unified:
+            # Load from unified YAML file
+            try:
+                unified_path = self.get_unified_yaml_path()
+                if unified_path.exists():
+                    # Load unified YAML file
+                    with open(unified_path, 'r') as f:
+                        yaml_data = yaml.safe_load(f)
+                    
+                    # Create parameter objects from unified data
+                    for name, param_class in self.parameters.items():
+                        if name in yaml_data:
+                            # Create parameter object with path
+                            param = param_class(path=self.path)
+                            
+                            # Update parameter from YAML data
+                            param_data = yaml_data[name]
+                            for key, value in param_data.items():
+                                if hasattr(param, key):
+                                    setattr(param, key, value)
+                            
+                            loaded_params[name] = param
+                        else:
+                            # Fallback to individual file if section missing
+                            loaded_params[name] = param_class.load(self.path)
+                    
+                    return loaded_params
+            except Exception as e:
+                print(f"Error loading unified YAML file: {e}")
+                print("Falling back to individual files")
+        
+        # Fallback to individual files method
         for name, param_class in self.parameters.items():
             loaded_params[name] = param_class.load(self.path)
         
@@ -535,14 +590,42 @@ class ParameterManager:
     def save_all(self, params: Dict[str, ParameterBase]) -> None:
         """Save all parameters.
         
+        If unified is True, saves to a single YAML file.
+        Otherwise, saves to individual YAML files.
+        
         Args:
             params: Dictionary of parameter objects
         """
-        for param in params.values():
-            param.save()
+        if self.unified:
+            # Save to unified YAML file
+            unified_data = {}
+            
+            # Create data dictionary
+            for name, param in params.items():
+                # Convert parameter to dictionary
+                param_dict = {}
+                for key, value in asdict(param).items():
+                    # Skip the path field
+                    if key != 'path':
+                        param_dict[key] = value
+                
+                unified_data[name] = param_dict
+            
+            # Ensure directory exists
+            self.path.mkdir(parents=True, exist_ok=True)
+            
+            # Write to unified YAML file
+            with open(self.get_unified_yaml_path(), 'w') as f:
+                yaml.dump(unified_data, f, default_flow_style=False, sort_keys=False)
+        else:
+            # Save to individual files
+            for param in params.values():
+                param.save()
     
     def save_all_legacy(self, params: Dict[str, ParameterBase]) -> None:
         """Save all parameters in legacy format.
+        
+        Always saves to individual legacy (.par) files regardless of the unified setting.
         
         Args:
             params: Dictionary of parameter objects
@@ -553,10 +636,90 @@ class ParameterManager:
     def load_param(self, param_class: Type[T]) -> T:
         """Load a specific parameter class.
         
+        If unified is True, loads from the unified YAML file.
+        Otherwise, loads from individual YAML file.
+        
         Args:
             param_class: Parameter class to load
             
         Returns:
             Parameter object
         """
+        if self.unified:
+            # Try to load from unified YAML file
+            try:
+                unified_path = self.get_unified_yaml_path()
+                if unified_path.exists():
+                    # Load unified YAML file
+                    with open(unified_path, 'r') as f:
+                        yaml_data = yaml.safe_load(f)
+                    
+                    # Get parameter class name
+                    class_name = param_class.__name__
+                    
+                    if class_name in yaml_data:
+                        # Create parameter object with path
+                        param = param_class(path=self.path)
+                        
+                        # Update parameter from YAML data
+                        param_data = yaml_data[class_name]
+                        for key, value in param_data.items():
+                            if hasattr(param, key):
+                                setattr(param, key, value)
+                        
+                        return param
+            except Exception as e:
+                print(f"Error loading parameter from unified YAML: {e}")
+                print("Falling back to individual file")
+        
+        # Fallback to individual file
         return param_class.load(self.path)
+    
+    def update_param(self, param_class: Type[T], param: T) -> None:
+        """Update a specific parameter in the unified YAML file.
+        
+        If unified is True, updates just that section in the unified YAML file.
+        Otherwise, saves to individual YAML file.
+        
+        Args:
+            param_class: Parameter class
+            param: Parameter object with updated values
+        """
+        if self.unified:
+            # Update in unified YAML file
+            try:
+                unified_path = self.get_unified_yaml_path()
+                yaml_data = {}
+                
+                # Load existing data if file exists
+                if unified_path.exists():
+                    with open(unified_path, 'r') as f:
+                        yaml_data = yaml.safe_load(f) or {}
+                
+                # Get parameter class name
+                class_name = param_class.__name__
+                
+                # Convert parameter to dictionary
+                param_dict = {}
+                for key, value in asdict(param).items():
+                    # Skip the path field
+                    if key != 'path':
+                        param_dict[key] = value
+                
+                # Update parameter section
+                yaml_data[class_name] = param_dict
+                
+                # Ensure directory exists
+                self.path.mkdir(parents=True, exist_ok=True)
+                
+                # Write back to unified YAML file
+                with open(unified_path, 'w') as f:
+                    yaml.dump(yaml_data, f, default_flow_style=False, sort_keys=False)
+                    
+            except Exception as e:
+                print(f"Error updating parameter in unified YAML: {e}")
+                print("Falling back to individual file")
+                param.save()
+        else:
+            # Save to individual file
+            param.save()

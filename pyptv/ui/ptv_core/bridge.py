@@ -33,8 +33,8 @@ class PTVCoreBridge:
         self.exp_path = Path(exp_path)
         self.software_path = Path(software_path) if software_path else None
         
-        # YAML parameters
-        self.param_manager = ParameterManager(self.exp_path / "parameters")
+        # YAML parameters with unified YAML enabled
+        self.param_manager = ParameterManager(self.exp_path / "parameters", unified=True)
         self.yaml_params = None
         
         # Number of cameras and initialization state

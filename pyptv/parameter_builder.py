@@ -276,9 +276,9 @@ def create_all_params_from_yaml(exp_path):
     Returns:
         Tuple of parameter objects (cpar, spar, vpar, track_par, tpar, cals, epar)
     """
-    # Load YAML parameters
+    # Load YAML parameters from unified YAML file
     params_dir = Path(exp_path) / "parameters"
-    param_manager = ParameterManager(params_dir)
+    param_manager = ParameterManager(params_dir, unified=True)
     yaml_params = param_manager.load_all()
     
     # Create parameter objects

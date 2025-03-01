@@ -218,8 +218,20 @@ class ParameterDialog(QDialog):
                 value = self.get_widget_value(widget)
                 setattr(self.parameter, name, value)
         
-        # Save to file
-        self.parameter.save()
+        # If a main window with PTVCore is available, use its update mechanism
+        main_window = self.parent()
+        while main_window and not hasattr(main_window, 'ptv_core'):
+            main_window = main_window.parent()
+        
+        if main_window and hasattr(main_window, 'ptv_core') and hasattr(main_window.ptv_core, 'update_yaml_parameter'):
+            # Get parameter type name
+            param_type = self.parameter.__class__.__name__
+            # Update parameter in unified YAML file
+            main_window.ptv_core.update_yaml_parameter(param_type, self.parameter)
+            print(f"Updated {param_type} in unified YAML file")
+        else:
+            # Fall back to direct file saving
+            self.parameter.save()
         
         # Also save legacy version
         try:
