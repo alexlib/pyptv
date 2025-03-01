@@ -1,9 +1,9 @@
 #!/bin/bash
-# Run the complete PyPTV pipeline on a dataset
+# Run the simplified PyPTV pipeline on a dataset
 #
-# Usage: ./run_pipeline.sh [experiment_path]
+# Usage: ./run_simple_pipeline.sh [experiment_path]
 #
-# Example: ./run_pipeline.sh tests/test_cavity
+# Example: ./run_simple_pipeline.sh tests/test_cavity
 #
 
 set -e  # Exit on error
@@ -31,10 +31,15 @@ fi
 # Create results directory if it doesn't exist
 mkdir -p "$EXPERIMENT_PATH/res"
 
-echo "Running PyPTV pipeline on experiment: $EXPERIMENT_PATH"
+echo "Running simplified PyPTV pipeline on experiment: $EXPERIMENT_PATH"
 
 # Run the Python script
-python run_full_pipeline.py "$EXPERIMENT_PATH"
+python run_full_pipeline_simple.py "$EXPERIMENT_PATH"
 
 echo "Pipeline completed successfully!"
 echo "Results are available in: $EXPERIMENT_PATH/res"
+
+# Show some results
+echo ""
+echo "Generated files:"
+ls -la "$EXPERIMENT_PATH/res"

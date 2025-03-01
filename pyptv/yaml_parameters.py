@@ -295,16 +295,10 @@ class TrackingParams(ParameterBase):
 class SequenceParams(ParameterBase):
     """Sequence parameters (sequence.par/sequence.yaml)."""
     
-    Seq_First: int = 10000  # First frame in sequence
-    Seq_Last: int = 10004   # Last frame in sequence
-    Basename_1_Seq: str = "img/cam1."  # Base name for cam 1
-    Basename_2_Seq: str = "img/cam2."  # Base name for cam 2
-    Basename_3_Seq: str = "img/cam3."  # Base name for cam 3
-    Basename_4_Seq: str = "img/cam4."  # Base name for cam 4
-    Name_1_Image: str = "img/cam1.10002"  # Reference image for cam 1
-    Name_2_Image: str = "img/cam2.10002"  # Reference image for cam 2
-    Name_3_Image: str = "img/cam3.10002"  # Reference image for cam 3
-    Name_4_Image: str = "img/cam4.10002"  # Reference image for cam 4
+    first: int = 10001  # First frame in sequence
+    last: int = 10004   # Last frame in sequence
+    n_img: int = 4      # Number of cameras
+    base_name: List[str] = field(default_factory=lambda: ["img/cam1.", "img/cam2.", "img/cam3.", "img/cam4."])  # Base names for sequence
     Zmin_lay: float = -10.0  # Min Z coordinate
     Zmax_lay: float = 10.0   # Max Z coordinate
     Ymin_lay: float = -10.0  # Min Y coordinate
@@ -443,6 +437,10 @@ class CriteriaParams(ParameterBase):
     Xmin_lay: float = -10.0  # Min X coordinate
     Xmax_lay: float = 10.0   # Max X coordinate
     cn: float = 0.0          # Convergence limit
+    cnx: float = 0.0         # Convergence limit in x
+    cny: float = 0.0         # Convergence limit in y 
+    csumg: float = 0.0       # Convergence limit sum of gray values
+    corrmin: float = 0.0     # Minimum correlation coefficient
     eps0: float = 0.1        # Convergence criteria slope
     
     @property
@@ -495,6 +493,89 @@ class CriteriaParams(ParameterBase):
                 
         except Exception as e:
             print(f"Error saving legacy criteria parameters: {e}")
+
+
+@dataclass
+class TargetParams(ParameterBase):
+    """Target recognition parameters (targ_rec.par/targ_rec.yaml)."""
+    
+    n_img: int = 4          # Number of cameras
+    gvth_1: int = 10        # Gray value threshold for camera 1
+    gvth_2: int = 10        # Gray value threshold for camera 2
+    gvth_3: int = 10        # Gray value threshold for camera 3
+    gvth_4: int = 10        # Gray value threshold for camera 4
+    discont: int = 100      # Allowed discontinuity
+    nnmin: int = 4          # Minimum number of pixels
+    nnmax: int = 500        # Maximum number of pixels
+    nxmin: int = 2          # Minimum size in x
+    nxmax: int = 100        # Maximum size in x
+    nymin: int = 2          # Minimum size in y
+    nymax: int = 100        # Maximum size in y
+    sumg_min: int = 150     # Minimum sum of gray values
+    cr_sz: int = 2          # Cross size
+    
+    @property
+    def filename(self) -> str:
+        return "targ_rec.yaml"
+    
+    def load_legacy(self) -> None:
+        """Load from legacy targ_rec.par format."""
+        try:
+            with open(self.legacy_filepath, "r") as f:
+                lines = [line.strip() for line in f.readlines()]
+                
+                idx = 0
+                self.n_img = int(lines[idx])
+                idx += 1
+                
+                # Gray value thresholds for each camera
+                for i in range(self.n_img):
+                    setattr(self, f"gvth_{i+1}", int(lines[idx]))
+                    idx += 1
+                
+                self.discont = int(lines[idx])
+                idx += 1
+                self.nnmin = int(lines[idx])
+                idx += 1
+                self.nnmax = int(lines[idx])
+                idx += 1
+                self.nxmin = int(lines[idx])
+                idx += 1
+                self.nxmax = int(lines[idx])
+                idx += 1
+                self.nymin = int(lines[idx])
+                idx += 1
+                self.nymax = int(lines[idx])
+                idx += 1
+                self.sumg_min = int(lines[idx])
+                idx += 1
+                self.cr_sz = int(lines[idx])
+                
+        except Exception as e:
+            print(f"Error loading legacy target parameters: {e}")
+    
+    def save_legacy(self) -> None:
+        """Save to legacy targ_rec.par format."""
+        try:
+            with open(self.legacy_filepath, "w") as f:
+                f.write(f"{self.n_img}\n")
+                
+                # Gray value thresholds for each camera
+                for i in range(self.n_img):
+                    f.write(f"{getattr(self, f'gvth_{i+1}')}\n")
+                
+                f.write(f"{self.discont}\n")
+                f.write(f"{self.nnmin}\n")
+                f.write(f"{self.nnmax}\n")
+                f.write(f"{self.nxmin}\n")
+                f.write(f"{self.nxmax}\n")
+                f.write(f"{self.nymin}\n")
+                f.write(f"{self.nymax}\n")
+                f.write(f"{self.sumg_min}\n")
+                f.write(f"{self.cr_sz}\n")
+                
+        except Exception as e:
+            print(f"Error saving legacy target parameters: {e}")
 
 
 class ParameterManager:
