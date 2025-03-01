@@ -100,6 +100,25 @@ class PTVCoreBridge:
                 self.n_cams = ptv_params.n_img
             else:
                 raise ValueError("Could not find PTV parameters in YAML.")
+            
+            # Create parameter objects using the parameter builder
+            try:
+                import optv
+                from pyptv import ptv
+                print(f"Creating parameter objects from YAML for {self.n_cams} cameras")
+                (
+                    self.cpar,
+                    self.spar,
+                    self.vpar,
+                    self.track_par,
+                    self.tpar,
+                    self.cals,
+                    self.epar,
+                ) = ptv.py_start_proc_c(self.n_cams, exp_path=self.exp_path)
+                print("Successfully created parameter objects")
+            except Exception as param_error:
+                print(f"Warning: Could not create parameter objects: {param_error}")
+                print("Continuing with basic bridge functionality")
                 
             # Initialize the PTV system
             print(f"Initializing with {self.n_cams} cameras")

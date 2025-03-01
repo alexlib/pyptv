@@ -157,8 +157,9 @@ class PTVCore:
                     print(f"Error loading image {i+1}: {e}")
                     self.orig_images[i] = np.zeros((imy, imx), dtype=np.uint8)
             
-            # Initialize PTV parameters through the existing code
+            # Initialize PTV parameters through the existing code, now using YAML
             try:
+                print(f"Creating parameters from YAML parameters for {self.n_cams} cameras")
                 (
                     self.cpar,
                     self.spar,
@@ -167,7 +168,8 @@ class PTVCore:
                     self.tpar,
                     self.cals,
                     self.epar,
-                ) = ptv.py_start_proc_c(self.n_cams)
+                ) = ptv.py_start_proc_c(self.n_cams, exp_path=self.exp_path)
+                print("Successfully created parameter objects from YAML parameters")
             except Exception as init_error:
                 print(f"Error initializing core PTV: {init_error}")
                 # Check if experiment attribute exists before creating
