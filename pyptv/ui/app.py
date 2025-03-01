@@ -23,7 +23,7 @@ def main():
     app.setApplicationVersion(__version__)
     
     # Parse command line args
-    exp_path = None
+    exp_path = './tests/test_cavity'
     if len(sys.argv) > 1 and not sys.argv[1].startswith('-'):
         path = Path(sys.argv[1])
         if path.exists() and path.is_dir():

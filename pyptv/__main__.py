@@ -38,7 +38,7 @@ def main():
             print(f"Error: {exp_path} is not a valid directory")
             return
     else:
-        exp_path = Path.cwd()
+        exp_path = Path.cwd() / 'tests' / 'test_cavity'
     
     print(f"Starting PyPTV with experiment path: {exp_path}")
     
