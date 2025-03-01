@@ -10,14 +10,21 @@ see http://www.openptv.net for more details.
 
 """
 
-from traits.etsconfig.api import ETSConfig
-ETSConfig.toolkit = 'qt4'
-
 import os
 from pathlib import Path, PurePath
 import sys
 import time
 import importlib
+import argparse
+
+# Check for modern UI flag
+if '--modern' in sys.argv:
+    from pyptv.ui.app import main
+    sys.exit(main())
+
+# Legacy UI with Traits/TraitsUI
+from traits.etsconfig.api import ETSConfig
+ETSConfig.toolkit = 'qt4'
 
 import numpy as np
 import optv

@@ -6,7 +6,7 @@ from matplotlib.figure import Figure
 from matplotlib.patches import Circle
 import matplotlib.pyplot as plt
 
-from PySide6.QtCore import Signal, Qt
+from PySide6.QtCore import Signal, Qt, QSize
 from PySide6.QtWidgets import (
     QWidget,
     QVBoxLayout,
@@ -175,7 +175,7 @@ class CameraView(QWidget):
         
         # Add toolbar for camera-specific actions
         self.toolbar = QToolBar()
-        self.toolbar.setIconSize(Qt.QSize(16, 16))
+        self.toolbar.setIconSize(QSize(16, 16))
         layout.addWidget(self.toolbar)
         
         # Add matplotlib canvas

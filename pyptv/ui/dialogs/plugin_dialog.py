@@ -140,7 +140,7 @@ class PluginManagerDialog(QDialog):
         """Initialize the sequence plugin tab."""
         # Create toolbar
         toolbar = QToolBar()
-        toolbar.setIconSize(Qt.QSize(16, 16))
+        toolbar.setIconSize(QSize(16, 16))
         
         self.add_sequence_action = QAction("Add Plugin", self)
         self.add_sequence_action.triggered.connect(self.add_sequence_plugin)
@@ -177,7 +177,7 @@ class PluginManagerDialog(QDialog):
         """Initialize the tracking plugin tab."""
         # Create toolbar
         toolbar = QToolBar()
-        toolbar.setIconSize(Qt.QSize(16, 16))
+        toolbar.setIconSize(QSize(16, 16))
         
         self.add_tracking_action = QAction("Add Plugin", self)
         self.add_tracking_action.triggered.connect(self.add_tracking_plugin)

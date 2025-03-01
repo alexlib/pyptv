@@ -5,7 +5,7 @@ import sys
 import numpy as np
 from pathlib import Path
 
-from PySide6.QtCore import Qt, Signal, Slot, QTimer
+from PySide6.QtCore import Qt, Signal, Slot, QTimer, QSize
 from PySide6.QtGui import QIcon, QAction
 from PySide6.QtWidgets import (
     QApplication,
@@ -59,7 +59,7 @@ class TrackingDialog(QDialog):
         
         # Create toolbar
         self.toolbar = QToolBar()
-        self.toolbar.setIconSize(Qt.QSize(24, 24))
+        self.toolbar.setIconSize(QSize(24, 24))
         
         # Add toolbar actions
         self.action_prepare = QAction("Prepare Sequence", self)

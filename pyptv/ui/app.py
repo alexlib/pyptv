@@ -12,6 +12,10 @@ from pyptv.ui.main_window import MainWindow
 
 def main():
     """Main function to start the application."""
+    # Clean sys.argv of flags that have been handled in pyptv_gui.py
+    if '--modern' in sys.argv:
+        sys.argv.remove('--modern')
+        
     app = QApplication(sys.argv)
     
     # Set application metadata
@@ -20,7 +24,7 @@ def main():
     
     # Parse command line args
     exp_path = None
-    if len(sys.argv) > 1:
+    if len(sys.argv) > 1 and not sys.argv[1].startswith('-'):
         path = Path(sys.argv[1])
         if path.exists() and path.is_dir():
             exp_path = path
@@ -29,7 +33,7 @@ def main():
     window = MainWindow(exp_path=exp_path)
     window.show()
     
-    sys.exit(app.exec())
+    return app.exec()
 
 
 if __name__ == "__main__":
