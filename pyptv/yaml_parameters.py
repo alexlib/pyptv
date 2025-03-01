@@ -80,7 +80,9 @@ class ParameterBase:
             Initialized parameter object
         """
         path = ensure_path(path)
-        filepath = path.joinpath(cls.filename.__get__(None, cls))
+        # Create temporary instance to get filename
+        temp_instance = cls(path=path)
+        filepath = path.joinpath(temp_instance.filename)
         
         # Create instance with default values
         instance = cls(path=path)

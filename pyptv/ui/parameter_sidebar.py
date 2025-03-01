@@ -21,7 +21,13 @@ from PySide6.QtWidgets import (
     QDialog,
     QFileDialog,
     QMessageBox,
-    QSplitter
+    QSplitter,
+    QSpinBox,
+    QCheckBox,
+    QLineEdit,
+    QTextEdit,
+    QDoubleSpinBox,
+    QComboBox
 )
 
 
