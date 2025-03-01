@@ -327,9 +327,26 @@ class MainWindow(QMainWindow):
     @Slot()
     def configure_plugins(self):
         """Configure plugins."""
-        QMessageBox.information(
-            self, "Plugins", "Plugin configuration will be implemented here."
-        )
+        try:
+            from pyptv.ui.dialogs.plugin_dialog import PluginManagerDialog
+            from pyptv.ui.ptv_core import PTVCore
+            
+            # Create PTV core if not already created
+            if not hasattr(self, 'ptv_core'):
+                self.ptv_core = PTVCore(self.exp_path, self.software_path)
+                
+                # Make sure it's initialized
+                if not self.ptv_core.initialized:
+                    self.ptv_core.initialize()
+            
+            # Create and show the plugin manager dialog
+            dialog = PluginManagerDialog(self.ptv_core, self)
+            dialog.exec_()
+            
+        except Exception as e:
+            QMessageBox.critical(
+                self, "Plugin Manager Error", f"Error opening plugin manager: {e}"
+            )
 
     @Slot()
     def show_about(self):
