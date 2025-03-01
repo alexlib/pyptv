@@ -4,13 +4,14 @@ from pathlib import Path
 import os
 import json
 
-from PySide6.QtCore import Qt, Signal, Slot
+from PySide6.QtCore import Qt, Signal, Slot, QSize
 from PySide6.QtGui import QIcon, QAction
 from PySide6.QtWidgets import (
     QApplication,
     QWidget,
     QVBoxLayout,
     QHBoxLayout,
+    QFormLayout,
     QTreeWidget,
     QTreeWidgetItem,
     QLabel,
@@ -484,7 +485,7 @@ class ParameterSidebar(QWidget):
         
         # Create toolbar
         self.toolbar = QToolBar()
-        self.toolbar.setIconSize(Qt.QSize(16, 16))
+        self.toolbar.setIconSize(QSize(16, 16))
         
         self.add_action = QAction("Add", self)
         self.add_action.triggered.connect(self._add_parameter_set)
