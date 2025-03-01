@@ -9,11 +9,8 @@ import importlib
 from pathlib import Path
 import numpy as np
 
-# Configure NumPy
-try:
-    np.set_printoptions(precision=4, suppress=True)
-except Exception as e:
-    print(f"Warning: Could not configure NumPy in bridge: {e}")
+# NumPy is configured once at import time
+np.set_printoptions(precision=4, suppress=True)
 
 # Import modules
 import optv
@@ -92,13 +89,6 @@ class PTVCoreBridge:
         Returns:
             List of initial images (numpy arrays)
         """
-        # NumPy configuration safety check
-        try:
-            np.set_printoptions(precision=4, suppress=True)
-            print("NumPy configuration successful in bridge")
-        except Exception as e:
-            print(f"Warning: NumPy configuration issue in bridge: {e}")
-            
         # Load parameters using YAML system
         try:
             self.yaml_params = self.param_manager.load_all()

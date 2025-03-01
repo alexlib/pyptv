@@ -14,11 +14,8 @@ from skimage.io import imread
 from skimage.util import img_as_ubyte
 from skimage.color import rgb2gray
 
-# Configure NumPy
-try:
-    np.set_printoptions(precision=4, suppress=True)
-except Exception as e:
-    print(f"Warning: Could not configure NumPy: {e}")
+# NumPy is configured once at import time
+np.set_printoptions(precision=4, suppress=True)
 
 # Import existing PTV code
 from pyptv import ptv
@@ -111,13 +108,6 @@ class PTVCore:
         
         print(f"PTVCore: initializing from {os.getcwd()}")
         
-        # NumPy configuration safety check
-        try:
-            np.set_printoptions(precision=4, suppress=True)
-            print("NumPy configuration successful")
-        except Exception as e:
-            print(f"Warning: NumPy configuration issue: {e}")
-            
         # Load parameters from YAML
         try:
             self.load_yaml_parameters()
