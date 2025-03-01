@@ -285,10 +285,24 @@ class MainWindow(QMainWindow):
             
             # Initialize PTV system using YAML parameters
             try:
+                # Configure NumPy first to prevent the ndarray.__repr__ error
+                import numpy as np
+                try:
+                    np.set_printoptions(precision=4, suppress=True, threshold=50)
+                except Exception as np_error:
+                    print(f"WARNING: NumPy configuration failed: {np_error}")
+                
+                # Initialize the PTV system
                 images = self.ptv_core.initialize()
             except Exception as init_error:
                 progress_msg.close()
-                raise init_error
+                QMessageBox.critical(
+                    self, 
+                    "Error", 
+                    f"Error initializing experiment: {str(init_error)}\n\nPlease check the console for details."
+                )
+                print(f"Initialization error details: {init_error}")
+                return
             
             # Close progress message
             progress_msg.close()
@@ -310,8 +324,14 @@ class MainWindow(QMainWindow):
             )
             
         except Exception as e:
+            import traceback
+            error_trace = traceback.format_exc()
+            print(f"ERROR: Initialization exception: {e}")
+            print(f"Traceback: {error_trace}")
+            
             QMessageBox.critical(
-                self, "Initialization Error", f"Error initializing experiment: {e}"
+                self, "Initialization Error", 
+                f"Error initializing experiment: {e}\n\nPlease check the console for more details."
             )
 
     @Slot()
