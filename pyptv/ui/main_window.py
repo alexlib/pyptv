@@ -37,7 +37,10 @@ class MainWindow(QMainWindow):
         
         # Store paths
         self.exp_path = Path(exp_path) if exp_path else Path.cwd()
-        self.software_path = Path(software_path) if software_path else Path.cwd()
+        self.software_path = Path(software_path) if software_path else Path(__file__).parent.parent.parent
+        
+        print(f"Experiment path: {self.exp_path}")
+        print(f"Software path: {self.software_path}")
         
         # Set window properties
         self.setWindowTitle(f"PyPTV {__version__}")
@@ -221,26 +224,81 @@ class MainWindow(QMainWindow):
     @Slot()
     def initialize_experiment(self):
         """Initialize the experiment."""
-        # TODO: Implement initialization
-        # For now, just create camera views as a placeholder
-        self.initialize_camera_views(4)
-        QMessageBox.information(
-            self, "Initialization", "Experiment initialized (placeholder)"
-        )
+        try:
+            from pyptv.ui.ptv_core import PTVCore
+            
+            # Create PTV core if not already created
+            if not hasattr(self, 'ptv_core'):
+                self.ptv_core = PTVCore(self.exp_path, self.software_path)
+            
+            # Initialize PTV system
+            images = self.ptv_core.initialize()
+            
+            # Create camera views based on number of cameras
+            self.initialize_camera_views(self.ptv_core.n_cams)
+            
+            # Display initial images
+            for i, camera_view in enumerate(self.camera_views):
+                if i < len(images):
+                    camera_view.set_image(images[i])
+            
+            QMessageBox.information(
+                self, "Initialization", 
+                f"Experiment initialized with {self.ptv_core.n_cams} cameras"
+            )
+            
+        except Exception as e:
+            QMessageBox.critical(
+                self, "Initialization Error", f"Error initializing experiment: {e}"
+            )
 
     @Slot()
     def open_calibration(self):
         """Open the calibration dialog."""
-        QMessageBox.information(
-            self, "Calibration", "Calibration dialog will be implemented here."
-        )
+        try:
+            from pyptv.ui.dialogs.calibration_dialog import CalibrationDialog
+            from pyptv.ui.ptv_core import PTVCore
+            
+            # Create PTV core if not already created
+            if not hasattr(self, 'ptv_core'):
+                self.ptv_core = PTVCore(self.exp_path, self.software_path)
+                
+                # Make sure it's initialized
+                if not self.ptv_core.initialized:
+                    self.ptv_core.initialize()
+            
+            # Create and show the calibration dialog
+            dialog = CalibrationDialog(self.ptv_core, self)
+            dialog.exec_()
+            
+        except Exception as e:
+            QMessageBox.critical(
+                self, "Calibration Error", f"Error opening calibration dialog: {e}"
+            )
 
     @Slot()
     def open_detection(self):
         """Open the detection dialog."""
-        QMessageBox.information(
-            self, "Detection", "Detection dialog will be implemented here."
-        )
+        try:
+            from pyptv.ui.dialogs.detection_dialog import DetectionDialog
+            from pyptv.ui.ptv_core import PTVCore
+            
+            # Create PTV core if not already created
+            if not hasattr(self, 'ptv_core'):
+                self.ptv_core = PTVCore(self.exp_path, self.software_path)
+                
+                # Make sure it's initialized
+                if not self.ptv_core.initialized:
+                    self.ptv_core.initialize()
+            
+            # Create and show the detection dialog
+            dialog = DetectionDialog(self.ptv_core, self)
+            dialog.exec_()
+            
+        except Exception as e:
+            QMessageBox.critical(
+                self, "Detection Error", f"Error opening detection dialog: {e}"
+            )
 
     @Slot()
     def open_tracking(self):
@@ -272,37 +330,235 @@ class MainWindow(QMainWindow):
     @Slot()
     def apply_highpass(self):
         """Apply highpass filter to images."""
-        QMessageBox.information(
-            self, "Highpass Filter", "Highpass filter will be implemented here."
-        )
+        try:
+            # Check if PTV core exists and is initialized
+            if not hasattr(self, 'ptv_core') or not self.ptv_core.initialized:
+                QMessageBox.warning(
+                    self, "Highpass Filter", 
+                    "Please initialize the experiment first."
+                )
+                return
+                
+            # Apply highpass filter
+            filtered_images = self.ptv_core.apply_highpass()
+            
+            # Update camera views
+            for i, camera_view in enumerate(self.camera_views):
+                if i < len(filtered_images):
+                    camera_view.set_image(filtered_images[i])
+            
+            QMessageBox.information(
+                self, "Highpass Filter", "Highpass filter applied successfully."
+            )
+            
+        except Exception as e:
+            QMessageBox.critical(
+                self, "Highpass Filter", f"Error applying highpass filter: {e}"
+            )
 
     @Slot()
     def detect_particles(self):
         """Detect particles in images."""
-        QMessageBox.information(
-            self, "Particle Detection", "Particle detection will be implemented here."
-        )
+        try:
+            # Check if PTV core exists and is initialized
+            if not hasattr(self, 'ptv_core') or not self.ptv_core.initialized:
+                QMessageBox.warning(
+                    self, "Detect Particles", 
+                    "Please initialize the experiment first."
+                )
+                return
+                
+            # Detect particles
+            x_coords, y_coords = self.ptv_core.detect_particles()
+            
+            # Clear existing overlays in camera views
+            for view in self.camera_views:
+                view.clear_overlays()
+            
+            # Add detected points to camera views
+            for i, view in enumerate(self.camera_views):
+                if i < len(x_coords):
+                    view.add_points(x_coords[i], y_coords[i], color='blue', size=5)
+            
+            QMessageBox.information(
+                self, "Detect Particles", 
+                f"Detected particles in {len(x_coords)} cameras."
+            )
+            
+        except Exception as e:
+            QMessageBox.critical(
+                self, "Detect Particles", f"Error detecting particles: {e}"
+            )
 
     @Slot()
     def find_correspondences(self):
         """Find correspondences between camera views."""
-        QMessageBox.information(
-            self, "Find Correspondences", "Correspondence finding will be implemented here."
-        )
+        try:
+            # Check if PTV core exists and is initialized
+            if not hasattr(self, 'ptv_core') or not self.ptv_core.initialized:
+                QMessageBox.warning(
+                    self, "Find Correspondences", 
+                    "Please initialize the experiment first."
+                )
+                return
+                
+            # Find correspondences
+            correspondence_results = self.ptv_core.find_correspondences()
+            
+            if not correspondence_results:
+                QMessageBox.information(
+                    self, "Find Correspondences", 
+                    "No correspondences found."
+                )
+                return
+                
+            # Clear existing overlays in camera views
+            for view in self.camera_views:
+                view.clear_overlays()
+            
+            # Add correspondence points to camera views
+            for result in correspondence_results:
+                for i, view in enumerate(self.camera_views):
+                    if i < len(result["x"]):
+                        view.add_points(
+                            result["x"][i], 
+                            result["y"][i], 
+                            color=result["color"], 
+                            size=5
+                        )
+            
+            num_quads = sum(len(x) for x in correspondence_results[0]["x"]) if len(correspondence_results) > 0 else 0
+            num_triplets = sum(len(x) for x in correspondence_results[1]["x"]) if len(correspondence_results) > 1 else 0
+            num_pairs = sum(len(x) for x in correspondence_results[2]["x"]) if len(correspondence_results) > 2 else 0
+            
+            QMessageBox.information(
+                self, "Find Correspondences", 
+                f"Found correspondences:\n"
+                f"Quadruplets: {num_quads}\n"
+                f"Triplets: {num_triplets}\n"
+                f"Pairs: {num_pairs}"
+            )
+            
+        except Exception as e:
+            QMessageBox.critical(
+                self, "Find Correspondences", f"Error finding correspondences: {e}"
+            )
 
     @Slot()
     def track_sequence(self):
         """Track particles through a sequence."""
-        QMessageBox.information(
-            self, "Track Sequence", "Sequence tracking will be implemented here."
-        )
+        try:
+            # Check if PTV core exists and is initialized
+            if not hasattr(self, 'ptv_core') or not self.ptv_core.initialized:
+                QMessageBox.warning(
+                    self, "Track Sequence", 
+                    "Please initialize the experiment first."
+                )
+                return
+            
+            # Get frame range
+            start_frame = self.ptv_core.experiment.active_params.m_params.Seq_First
+            end_frame = self.ptv_core.experiment.active_params.m_params.Seq_Last
+            
+            # Confirm before proceeding
+            result = QMessageBox.question(
+                self, 
+                "Track Sequence", 
+                f"This will track particles from frame {start_frame} to {end_frame}.\n\n"
+                f"This operation may take some time. Continue?",
+                QMessageBox.Yes | QMessageBox.No,
+                QMessageBox.No
+            )
+            
+            if result == QMessageBox.No:
+                return
+                
+            # Run tracking
+            success = self.ptv_core.track_particles()
+            
+            if success:
+                QMessageBox.information(
+                    self, "Track Sequence", 
+                    f"Successfully tracked particles from frame {start_frame} to {end_frame}."
+                )
+            else:
+                QMessageBox.warning(
+                    self, "Track Sequence", 
+                    "Tracking completed but with potential issues."
+                )
+                
+        except Exception as e:
+            QMessageBox.critical(
+                self, "Track Sequence", f"Error tracking sequence: {e}"
+            )
 
     @Slot()
     def show_trajectories(self):
         """Show particle trajectories."""
-        QMessageBox.information(
-            self, "Show Trajectories", "Trajectory visualization will be implemented here."
-        )
+        try:
+            # Check if PTV core exists and is initialized
+            if not hasattr(self, 'ptv_core') or not self.ptv_core.initialized:
+                QMessageBox.warning(
+                    self, "Show Trajectories", 
+                    "Please initialize the experiment first."
+                )
+                return
+                
+            # Get trajectories
+            trajectory_data = self.ptv_core.get_trajectories()
+            
+            if not trajectory_data:
+                QMessageBox.information(
+                    self, "Show Trajectories", 
+                    "No trajectories found. Please run tracking first."
+                )
+                return
+                
+            # Clear existing overlays in camera views
+            for view in self.camera_views:
+                view.clear_overlays()
+            
+            # Add trajectory points to camera views
+            for i, view in enumerate(self.camera_views):
+                if i < len(trajectory_data):
+                    # Add heads (start points)
+                    view.add_points(
+                        trajectory_data[i]["heads"]["x"], 
+                        trajectory_data[i]["heads"]["y"], 
+                        color=trajectory_data[i]["heads"]["color"], 
+                        size=7,
+                        marker='o'
+                    )
+                    
+                    # Add tails (middle points)
+                    view.add_points(
+                        trajectory_data[i]["tails"]["x"], 
+                        trajectory_data[i]["tails"]["y"], 
+                        color=trajectory_data[i]["tails"]["color"], 
+                        size=3
+                    )
+                    
+                    # Add ends (final points)
+                    view.add_points(
+                        trajectory_data[i]["ends"]["x"], 
+                        trajectory_data[i]["ends"]["y"], 
+                        color=trajectory_data[i]["ends"]["color"], 
+                        size=7,
+                        marker='o'
+                    )
+            
+            # Count trajectories
+            num_trajectories = len(trajectory_data[0]["heads"]["x"]) if trajectory_data and len(trajectory_data) > 0 else 0
+            
+            QMessageBox.information(
+                self, "Show Trajectories", 
+                f"Displaying {num_trajectories} trajectories."
+            )
+            
+        except Exception as e:
+            QMessageBox.critical(
+                self, "Show Trajectories", f"Error showing trajectories: {e}"
+            )
 
 
 def main():
