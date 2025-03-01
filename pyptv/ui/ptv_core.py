@@ -15,12 +15,11 @@ from skimage.util import img_as_ubyte
 from skimage.color import rgb2gray
 
 # Import existing PTV code
-from pyptv import parameters as par
 from pyptv import ptv
 import optv.orientation
 import optv.epipolar
 
-# Import new YAML parameter system
+# Import YAML parameter system
 from pyptv.yaml_parameters import (
     ParameterManager,
     PtvParams,
@@ -47,12 +46,6 @@ class PTVCore:
         # Set paths
         self.exp_path = Path(exp_path) if exp_path else Path.cwd()
         self.software_path = Path(software_path) if software_path else Path.cwd()
-        
-        # Initialize experiment
-        self.experiment = par.Experiment()
-        if self.exp_path.exists():
-            os.chdir(self.exp_path)
-            self.experiment.populate_runs(self.exp_path)
         
         # Initialize parameter manager
         params_dir = self.exp_path / "parameters"
@@ -102,95 +95,75 @@ class PTVCore:
         else:
             self.plugins["tracking"] = ["default"]
     
-    def initialize(self, use_yaml=True):
-        """Initialize the PTV system with the active parameters.
-        
-        Args:
-            use_yaml: Whether to use YAML parameters (if available)
+    def initialize(self):
+        """Initialize the PTV system using YAML parameters.
         """
-        if not self.experiment.active_params:
-            raise ValueError("No active parameter set")
+        # Change to experiment directory
+        if self.exp_path.exists():
+            os.chdir(self.exp_path)
         
-        # Synchronize active parameters
-        self.experiment.syncActiveDir()
-        
-        # Load parameters - try YAML first if requested, fall back to legacy
-        if use_yaml:
-            try:
-                self.load_yaml_parameters()
-                print("Using YAML parameters")
-                
-                # Get number of cameras from YAML params
-                self.n_cams = self.yaml_params.get("PtvParams").n_img
-                
-                # Get image dimensions
-                imx = self.yaml_params.get("PtvParams").imx
-                imy = self.yaml_params.get("PtvParams").imy
-                
-                # Get reference images from sequence params
-                ref_images = [
-                    self.yaml_params.get("SequenceParams").Name_1_Image,
-                    self.yaml_params.get("SequenceParams").Name_2_Image,
-                    self.yaml_params.get("SequenceParams").Name_3_Image,
-                    self.yaml_params.get("SequenceParams").Name_4_Image,
-                ]
-                
-            except Exception as e:
-                print(f"Failed to load YAML parameters: {e}, falling back to legacy parameters")
-                use_yaml = False
-        
-        if not use_yaml:
-            # Get number of cameras from legacy params
-            self.n_cams = self.experiment.active_params.m_params.Num_Cam
+        # Load parameters from YAML
+        try:
+            self.load_yaml_parameters()
+            print("Using YAML parameters")
+            
+            # Get number of cameras from YAML params
+            self.n_cams = self.yaml_params.get("PtvParams").n_img
             
             # Get image dimensions
-            imx = self.experiment.active_params.m_params.imx
-            imy = self.experiment.active_params.m_params.imy
+            imx = self.yaml_params.get("PtvParams").imx
+            imy = self.yaml_params.get("PtvParams").imy
             
-            # Get reference images array
-            ref_images = []
+            # Get reference images from sequence params
+            seq_params = self.yaml_params.get("SequenceParams")
+            ref_images = [
+                seq_params.Name_1_Image,
+                seq_params.Name_2_Image,
+                seq_params.Name_3_Image,
+                seq_params.Name_4_Image,
+            ]
+        
+            # Initialize images array
+            self.orig_images = [None] * self.n_cams
+            
+            # Load initial images
             for i in range(self.n_cams):
-                ref_images.append(getattr(
-                    self.experiment.active_params.m_params,
-                    f"Name_{i+1}_Image",
-                ))
-        
-        # Initialize images array
-        self.orig_images = [None] * self.n_cams
-        
-        # Load initial images
-        for i in range(self.n_cams):
-            try:
-                if i < len(ref_images):
-                    img_path = ref_images[i]
-                    img = imread(img_path)
-                    if img.ndim > 2:
-                        img = rgb2gray(img)
-                    self.orig_images[i] = img_as_ubyte(img)
-                else:
-                    raise ValueError(f"Reference image for camera {i+1} not found")
-            except Exception as e:
-                print(f"Error loading image {i+1}: {e}")
-                self.orig_images[i] = np.zeros((imy, imx), dtype=np.uint8)
-        
-        # Initialize PTV parameters through the existing code (still using legacy interface)
-        (
-            self.cpar,
-            self.spar,
-            self.vpar,
-            self.track_par,
-            self.tpar,
-            self.cals,
-            self.epar,
-        ) = ptv.py_start_proc_c(self.n_cams)
-        
-        # Mark as initialized
-        self.initialized = True
-        
-        return self.orig_images
+                try:
+                    if i < len(ref_images):
+                        img_path = ref_images[i]
+                        img = imread(img_path)
+                        if img.ndim > 2:
+                            img = rgb2gray(img)
+                        self.orig_images[i] = img_as_ubyte(img)
+                    else:
+                        raise ValueError(f"Reference image for camera {i+1} not found")
+                except Exception as e:
+                    print(f"Error loading image {i+1}: {e}")
+                    self.orig_images[i] = np.zeros((imy, imx), dtype=np.uint8)
+            
+            # Initialize PTV parameters through the existing code
+            (
+                self.cpar,
+                self.spar,
+                self.vpar,
+                self.track_par,
+                self.tpar,
+                self.cals,
+                self.epar,
+            ) = ptv.py_start_proc_c(self.n_cams)
+            
+            # Mark as initialized
+            self.initialized = True
+            
+            return self.orig_images
+            
+        except Exception as e:
+            print(f"Failed to initialize: {e}")
+            self.initialized = False
+            return []
         
     def load_yaml_parameters(self):
-        """Load parameters from YAML files (if available)."""
+        """Load parameters from YAML files."""
         # Load all parameter types
         self.yaml_params = self.param_manager.load_all()
         

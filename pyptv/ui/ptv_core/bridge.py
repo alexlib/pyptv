@@ -1,6 +1,6 @@
 """
 Bridge module that connects the new PySide6 UI to the existing core functionality.
-This allows gradual migration from Traits/Chaco to PySide6/Matplotlib.
+This allows gradual migration to PySide6/Matplotlib.
 """
 
 import os
@@ -9,18 +9,14 @@ import importlib
 from pathlib import Path
 import numpy as np
 
-# Import legacy modules
+# Import modules
 import optv
-from pyptv.parameter_gui import (
-    Experiment,
-    Paramset
-)
 from pyptv.yaml_parameters import ParameterManager
 
 class PTVCoreBridge:
     """
     A bridge class that interfaces between the new UI and the existing PTVCore functionality.
-    This allows gradual migration from Traits/Chaco to PySide6/Matplotlib.
+    This serves as a transition layer to integrate modern UI with existing functionality.
     """
     
     def __init__(self, exp_path, software_path=None):
@@ -34,10 +30,7 @@ class PTVCoreBridge:
         self.exp_path = Path(exp_path)
         self.software_path = Path(software_path) if software_path else None
         
-        # Legacy experiment parameters
-        self.experiment = None
-        
-        # YAML parameters (new format)
+        # YAML parameters
         self.param_manager = ParameterManager(self.exp_path / "parameters")
         self.yaml_params = None
         
@@ -86,44 +79,37 @@ class PTVCoreBridge:
         except Exception as e:
             print(f"Error loading tracking plugins: {e}")
             
-    def initialize(self, use_yaml=True):
+    def initialize(self):
         """
-        Initialize the PTV system.
+        Initialize the PTV system using YAML parameters.
         
-        Args:
-            use_yaml: Whether to use YAML parameters if available
-            
         Returns:
             List of initial images (numpy arrays)
         """
-        # Load parameters
-        if use_yaml:
-            try:
-                self.yaml_params = self.param_manager.load_all()
-                print("Loaded YAML parameters")
-            except Exception as e:
-                print(f"Error loading YAML parameters: {e}")
-                self.yaml_params = None
-                
-        # Fall back to legacy parameters if YAML not available or requested
-        if not self.yaml_params or not use_yaml:
-            self.experiment = Experiment(self.exp_path)
-            self.n_cams = self.experiment.active_params.m_params.Num_Cam
-        else:
-            # Use YAML parameters
+        # Load parameters using YAML system
+        try:
+            self.yaml_params = self.param_manager.load_all()
+            print("Loaded YAML parameters")
+            
+            # Get number of cameras from YAML params
             ptv_params = self.yaml_params.get("PtvParams")
             if ptv_params:
                 self.n_cams = ptv_params.n_img
             else:
                 raise ValueError("Could not find PTV parameters in YAML.")
                 
-        # Initialize the PTV system
-        print(f"Initializing with {self.n_cams} cameras")
-        self.initialized = True
-        
-        # Load initial images
-        images = self._load_images()
-        return images
+            # Initialize the PTV system
+            print(f"Initializing with {self.n_cams} cameras")
+            self.initialized = True
+            
+            # Load initial images
+            images = self._load_images()
+            return images
+            
+        except Exception as e:
+            print(f"Error initializing: {e}")
+            self.initialized = False
+            return []
         
     def _load_images(self):
         """

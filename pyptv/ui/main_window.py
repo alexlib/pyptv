@@ -250,8 +250,8 @@ class MainWindow(QMainWindow):
             if not hasattr(self, 'ptv_core'):
                 self.ptv_core = PTVCore(self.exp_path, self.software_path)
             
-            # Initialize PTV system using YAML parameters if available
-            images = self.ptv_core.initialize(use_yaml=True)
+            # Initialize PTV system using YAML parameters
+            images = self.ptv_core.initialize()
             
             # Create camera views based on number of cameras
             self.initialize_camera_views(self.ptv_core.n_cams)
@@ -282,9 +282,9 @@ class MainWindow(QMainWindow):
             if not hasattr(self, 'ptv_core'):
                 self.ptv_core = PTVCore(self.exp_path, self.software_path)
                 
-                # Make sure it's initialized with YAML parameters if available
+                # Make sure it's initialized with YAML parameters
                 if not self.ptv_core.initialized:
-                    self.ptv_core.initialize(use_yaml=True)
+                    self.ptv_core.initialize()
             
             # Create and show the calibration dialog
             dialog = CalibrationDialog(self.ptv_core, self)
@@ -306,9 +306,9 @@ class MainWindow(QMainWindow):
             if not hasattr(self, 'ptv_core'):
                 self.ptv_core = PTVCore(self.exp_path, self.software_path)
                 
-                # Make sure it's initialized with YAML parameters if available
+                # Make sure it's initialized with YAML parameters
                 if not self.ptv_core.initialized:
-                    self.ptv_core.initialize(use_yaml=True)
+                    self.ptv_core.initialize()
             
             # Create and show the detection dialog
             dialog = DetectionDialog(self.ptv_core, self)
@@ -330,9 +330,9 @@ class MainWindow(QMainWindow):
             if not hasattr(self, 'ptv_core'):
                 self.ptv_core = PTVCore(self.exp_path, self.software_path)
                 
-                # Make sure it's initialized with YAML parameters if available
+                # Make sure it's initialized with YAML parameters
                 if not self.ptv_core.initialized:
-                    self.ptv_core.initialize(use_yaml=True)
+                    self.ptv_core.initialize()
             
             # Create and show the tracking dialog
             dialog = TrackingDialog(self.ptv_core, self)
@@ -379,9 +379,9 @@ class MainWindow(QMainWindow):
             if not hasattr(self, 'ptv_core'):
                 self.ptv_core = PTVCore(self.exp_path, self.software_path)
                 
-                # Make sure it's initialized with YAML parameters if available
+                # Make sure it's initialized with YAML parameters
                 if not self.ptv_core.initialized:
-                    self.ptv_core.initialize(use_yaml=True)
+                    self.ptv_core.initialize()
             
             # Create and show the visualization dialog
             dialog = VisualizationDialog(self.ptv_core, self)
@@ -403,9 +403,9 @@ class MainWindow(QMainWindow):
             if not hasattr(self, 'ptv_core'):
                 self.ptv_core = PTVCore(self.exp_path, self.software_path)
                 
-                # Make sure it's initialized with YAML parameters if available
+                # Make sure it's initialized with YAML parameters
                 if not self.ptv_core.initialized:
-                    self.ptv_core.initialize(use_yaml=True)
+                    self.ptv_core.initialize()
             
             # Create and show the plugin manager dialog
             dialog = PluginManagerDialog(self.ptv_core, self)

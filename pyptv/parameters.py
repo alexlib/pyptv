@@ -4,9 +4,17 @@ from __future__ import absolute_import
 from pathlib import Path
 import shutil
 from tqdm import tqdm
-from traits.api import HasTraits, Str, Float, Int, List, Bool
-
 import yaml
+
+# Import the modern parameter system
+from pyptv.yaml_parameters import (
+    ParameterBase, 
+    ParameterManager, 
+    PtvParams as YamlPtvParams,
+    TrackingParams as YamlTrackingParams,
+    SequenceParams as YamlSequenceParams,
+    CriteriaParams as YamlCriteriaParams
+)
 
 # Temporary path for parameters (active run will be copied here)
 par_dir_prefix = str("parameters")
@@ -18,15 +26,12 @@ def g(f):
     return f.readline().strip()
 
 
-# Base class for all parameters classes
-
-
-class Parameters(HasTraits):
+# Compatibility layer for legacy Parameters classes
+class Parameters:
     # default path of the directory of the param files
     default_path = Path(par_dir_prefix)
 
-    def __init__(self, path: Path=default_path):
-        HasTraits.__init__(self)
+    def __init__(self, path=default_path):
         if isinstance(path, str):
             path = Path(path)
             
@@ -62,7 +67,7 @@ class Parameters(HasTraits):
     def from_yaml(self):
         yaml_file = self.filepath().replace(".par", ".yaml")
         with open(yaml_file) as f:
-            yaml_args = yaml.load(f)
+            yaml_args = yaml.safe_load(f)
 
         for k, v in yaml_args.items():
             if isinstance(v, list) and len(v) > 1:  # multi line
@@ -179,82 +184,104 @@ class PtvParams(Parameters):
     9.4     thickness of glass [mm]
     """
 
-    #     n_img = Int
-    #     img_name = List
-    #     img_cal = List
-    #     hp_flag = Bool
-    #     allcam_flag = Bool
-    #     tiff_flag = Bool
-    #     imx = Int
-    #     imy = Int
-    #     pix_x = Float
-    #     pix_y = Float
-    #     chfield = Int
-    #     mmp_n1 = Float
-    #     mmp_n2 = Float
-    #     mmp_n3 = Float
-    #     mmp_d = Float
-
     def __init__(
         self,
-        n_img=Int,
-        img_name=List,
-        img_cal=List,
-        hp_flag=Bool,
-        allcam_flag=Bool,
-        tiff_flag=Bool,
-        imx=Int,
-        imy=Int,
-        pix_x=Float,
-        pix_y=Float,
-        chfield=Int,
-        mmp_n1=Float,
-        mmp_n2=Float,
-        mmp_n3=Float,
-        mmp_d=Float,
+        n_img=4,
+        img_name=None,
+        img_cal=None,
+        hp_flag=True,
+        allcam_flag=False,
+        tiff_flag=True,
+        imx=1280,
+        imy=1024,
+        pix_x=0.012,
+        pix_y=0.012,
+        chfield=0,
+        mmp_n1=1.0,
+        mmp_n2=1.33,
+        mmp_n3=1.46,
+        mmp_d=6.0,
         path=Parameters.default_path,
     ):
         Parameters.__init__(self, path)
-        (
-            self.n_img,
-            self.img_name,
-            self.img_cal,
-            self.hp_flag,
-            self.allcam_flag,
-            self.tiff_flag,
-            self.imx,
-            self.imy,
-            self.pix_x,
-            self.pix_y,
-            self.chfield,
-            self.mmp_n1,
-            self.mmp_n2,
-            self.mmp_n3,
-            self.mmp_d,
-        ) = (
-            n_img,
-            img_name,
-            img_cal,
-            hp_flag,
-            allcam_flag,
-            tiff_flag,
-            imx,
-            imy,
-            pix_x,
-            pix_y,
-            chfield,
-            mmp_n1,
-            mmp_n2,
-            mmp_n3,
-            mmp_d,
-        )
+        
+        # Initialize attributes
+        self.n_img = n_img
+        self.img_name = img_name if img_name is not None else [None] * max_cam
+        self.img_cal = img_cal if img_cal is not None else [None] * max_cam
+        self.hp_flag = hp_flag
+        self.allcam_flag = allcam_flag
+        self.tiff_flag = tiff_flag
+        self.imx = imx
+        self.imy = imy
+        self.pix_x = pix_x
+        self.pix_y = pix_y
+        self.chfield = chfield
+        self.mmp_n1 = mmp_n1
+        self.mmp_n2 = mmp_n2
+        self.mmp_n3 = mmp_n3
+        self.mmp_d = mmp_d
+        
+        # Create a corresponding YAML params object
+        self._yaml_params = None
+
+    def _get_yaml_params(self):
+        """Get or create the corresponding YAML parameters object"""
+        if self._yaml_params is None:
+            self._yaml_params = YamlPtvParams(
+                path=self.path,
+                n_img=self.n_img,
+                img_name=self.img_name,
+                img_cal=self.img_cal,
+                hp_flag=self.hp_flag,
+                allcam_flag=self.allcam_flag,
+                tiff_flag=self.tiff_flag,
+                imx=self.imx,
+                imy=self.imy,
+                pix_x=self.pix_x,
+                pix_y=self.pix_y,
+                chfield=self.chfield,
+                mmp_n1=self.mmp_n1,
+                mmp_n2=self.mmp_n2,
+                mmp_n3=self.mmp_n3,
+                mmp_d=self.mmp_d
+            )
+        return self._yaml_params
+    
+    def _update_from_yaml(self, yaml_params):
+        """Update this object from YAML parameters object"""
+        self.n_img = yaml_params.n_img
+        self.img_name = yaml_params.img_name
+        self.img_cal = yaml_params.img_cal
+        self.hp_flag = yaml_params.hp_flag
+        self.allcam_flag = yaml_params.allcam_flag
+        self.tiff_flag = yaml_params.tiff_flag
+        self.imx = yaml_params.imx
+        self.imy = yaml_params.imy
+        self.pix_x = yaml_params.pix_x
+        self.pix_y = yaml_params.pix_y
+        self.chfield = yaml_params.chfield
+        self.mmp_n1 = yaml_params.mmp_n1
+        self.mmp_n2 = yaml_params.mmp_n2
+        self.mmp_n3 = yaml_params.mmp_n3
+        self.mmp_d = yaml_params.mmp_d
 
     def filename(self):
         return "ptv.par"
 
     def read(self):
+        # Try to read from YAML first
+        yaml_params = YamlPtvParams.load(self.path)
+        if yaml_params is not None:
+            self._yaml_params = yaml_params
+            self._update_from_yaml(yaml_params)
+            return
+        
+        # Fall back to legacy format if YAML not available
         if not self.filepath().exists():
             warning(f"{self.filepath()} does not exist ")
+            return
+            
         try:
             with open(self.filepath(), "r", encoding="utf8") as f:
                 self.n_img = int(g(f))
@@ -286,8 +313,16 @@ class PtvParams(Parameters):
         for i in range(self.n_img):
             self.istherefile(self.img_name[i])
             self.istherefile(self.img_cal[i])
+            
+        # Create YAML parameters after reading the legacy file
+        self._get_yaml_params()
 
     def write(self):
+        # Write to YAML format
+        yaml_params = self._get_yaml_params()
+        yaml_params.save()
+        
+        # Also write to legacy format for backward compatibility
         try:
             with open(self.filepath(), "w") as f:
                 f.write("%d\n" % self.n_img)
