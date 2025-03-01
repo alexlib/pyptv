@@ -303,9 +303,26 @@ class MainWindow(QMainWindow):
     @Slot()
     def open_tracking(self):
         """Open the tracking dialog."""
-        QMessageBox.information(
-            self, "Tracking", "Tracking dialog will be implemented here."
-        )
+        try:
+            from pyptv.ui.dialogs.tracking_dialog import TrackingDialog
+            from pyptv.ui.ptv_core import PTVCore
+            
+            # Create PTV core if not already created
+            if not hasattr(self, 'ptv_core'):
+                self.ptv_core = PTVCore(self.exp_path, self.software_path)
+                
+                # Make sure it's initialized
+                if not self.ptv_core.initialized:
+                    self.ptv_core.initialize()
+            
+            # Create and show the tracking dialog
+            dialog = TrackingDialog(self.ptv_core, self)
+            dialog.exec_()
+            
+        except Exception as e:
+            QMessageBox.critical(
+                self, "Tracking Error", f"Error opening tracking dialog: {e}"
+            )
 
     @Slot()
     def configure_plugins(self):
