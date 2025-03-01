@@ -7,6 +7,7 @@ It reuses the existing functionality while adapting it to the new interface.
 import os
 import sys
 import time
+import importlib
 from pathlib import Path
 import numpy as np
 from skimage.io import imread
@@ -18,6 +19,15 @@ from pyptv import parameters as par
 from pyptv import ptv
 import optv.orientation
 import optv.epipolar
+
+# Import new YAML parameter system
+from pyptv.yaml_parameters import (
+    ParameterManager,
+    PtvParams,
+    TrackingParams,
+    SequenceParams,
+    CriteriaParams
+)
 
 
 class PTVCore:
@@ -43,6 +53,11 @@ class PTVCore:
         if self.exp_path.exists():
             os.chdir(self.exp_path)
             self.experiment.populate_runs(self.exp_path)
+        
+        # Initialize parameter manager
+        params_dir = self.exp_path / "parameters"
+        self.param_manager = ParameterManager(params_dir)
+        self.yaml_params = None
         
         # Initialize plugin system
         self.plugins = {}
@@ -87,16 +102,58 @@ class PTVCore:
         else:
             self.plugins["tracking"] = ["default"]
     
-    def initialize(self):
-        """Initialize the PTV system with the active parameters."""
+    def initialize(self, use_yaml=True):
+        """Initialize the PTV system with the active parameters.
+        
+        Args:
+            use_yaml: Whether to use YAML parameters (if available)
+        """
         if not self.experiment.active_params:
             raise ValueError("No active parameter set")
         
         # Synchronize active parameters
         self.experiment.syncActiveDir()
         
-        # Get number of cameras
-        self.n_cams = self.experiment.active_params.m_params.Num_Cam
+        # Load parameters - try YAML first if requested, fall back to legacy
+        if use_yaml:
+            try:
+                self.load_yaml_parameters()
+                print("Using YAML parameters")
+                
+                # Get number of cameras from YAML params
+                self.n_cams = self.yaml_params.get("PtvParams").n_img
+                
+                # Get image dimensions
+                imx = self.yaml_params.get("PtvParams").imx
+                imy = self.yaml_params.get("PtvParams").imy
+                
+                # Get reference images from sequence params
+                ref_images = [
+                    self.yaml_params.get("SequenceParams").Name_1_Image,
+                    self.yaml_params.get("SequenceParams").Name_2_Image,
+                    self.yaml_params.get("SequenceParams").Name_3_Image,
+                    self.yaml_params.get("SequenceParams").Name_4_Image,
+                ]
+                
+            except Exception as e:
+                print(f"Failed to load YAML parameters: {e}, falling back to legacy parameters")
+                use_yaml = False
+        
+        if not use_yaml:
+            # Get number of cameras from legacy params
+            self.n_cams = self.experiment.active_params.m_params.Num_Cam
+            
+            # Get image dimensions
+            imx = self.experiment.active_params.m_params.imx
+            imy = self.experiment.active_params.m_params.imy
+            
+            # Get reference images array
+            ref_images = []
+            for i in range(self.n_cams):
+                ref_images.append(getattr(
+                    self.experiment.active_params.m_params,
+                    f"Name_{i+1}_Image",
+                ))
         
         # Initialize images array
         self.orig_images = [None] * self.n_cams
@@ -104,21 +161,19 @@ class PTVCore:
         # Load initial images
         for i in range(self.n_cams):
             try:
-                img_path = getattr(
-                    self.experiment.active_params.m_params,
-                    f"Name_{i+1}_Image",
-                )
-                img = imread(img_path)
-                if img.ndim > 2:
-                    img = rgb2gray(img)
-                self.orig_images[i] = img_as_ubyte(img)
+                if i < len(ref_images):
+                    img_path = ref_images[i]
+                    img = imread(img_path)
+                    if img.ndim > 2:
+                        img = rgb2gray(img)
+                    self.orig_images[i] = img_as_ubyte(img)
+                else:
+                    raise ValueError(f"Reference image for camera {i+1} not found")
             except Exception as e:
                 print(f"Error loading image {i+1}: {e}")
-                h_img = self.experiment.active_params.m_params.imx
-                v_img = self.experiment.active_params.m_params.imy
-                self.orig_images[i] = np.zeros((v_img, h_img), dtype=np.uint8)
+                self.orig_images[i] = np.zeros((imy, imx), dtype=np.uint8)
         
-        # Initialize PTV parameters through the existing code
+        # Initialize PTV parameters through the existing code (still using legacy interface)
         (
             self.cpar,
             self.spar,
@@ -133,26 +188,47 @@ class PTVCore:
         self.initialized = True
         
         return self.orig_images
+        
+    def load_yaml_parameters(self):
+        """Load parameters from YAML files (if available)."""
+        # Load all parameter types
+        self.yaml_params = self.param_manager.load_all()
+        
+        # Validate required parameters
+        required_param_types = ["PtvParams", "TrackingParams", "SequenceParams", "CriteriaParams"]
+        for param_type in required_param_types:
+            if param_type not in self.yaml_params:
+                raise ValueError(f"Required parameter type {param_type} not found")
+        
+        return self.yaml_params
     
     def apply_highpass(self):
         """Apply highpass filter to the images."""
         if not self.initialized:
             raise ValueError("PTV system not initialized")
         
+        # Check if we're using YAML parameters
+        if self.yaml_params:
+            seq_params = self.yaml_params.get("SequenceParams")
+            inverse = seq_params.Inverse
+            subtr_mask = seq_params.Subtr_Mask
+            base_name_mask = seq_params.Base_Name_Mask
+        else:
+            # Use legacy parameters
+            inverse = self.experiment.active_params.m_params.Inverse
+            subtr_mask = self.experiment.active_params.m_params.Subtr_Mask
+            base_name_mask = self.experiment.active_params.m_params.Base_Name_Mask
+        
         # Apply inverse if needed
-        if self.experiment.active_params.m_params.Inverse:
+        if inverse:
             for i, im in enumerate(self.orig_images):
                 self.orig_images[i] = 255 - im
         
         # Apply mask subtraction if needed
-        if self.experiment.active_params.m_params.Subtr_Mask:
+        if subtr_mask:
             try:
                 for i, im in enumerate(self.orig_images):
-                    background_name = (
-                        self.experiment.active_params.m_params.Base_Name_Mask.replace(
-                            "#", str(i)
-                        )
-                    )
+                    background_name = base_name_mask.replace("#", str(i))
                     background = imread(background_name)
                     self.orig_images[i] = np.clip(
                         self.orig_images[i] - background, 0, 255
@@ -160,10 +236,15 @@ class PTVCore:
             except Exception as e:
                 raise ValueError(f"Failed subtracting mask: {e}")
         
-        # Apply highpass filter
-        self.orig_images = ptv.py_pre_processing_c(
-            self.orig_images, self.cpar
-        )
+        # Apply highpass filter - check if highpass is enabled
+        if self.yaml_params and self.yaml_params.get("PtvParams").hp_flag:
+            self.orig_images = ptv.py_pre_processing_c(
+                self.orig_images, self.cpar
+            )
+        elif not self.yaml_params and self.experiment.active_params.m_params.Hp_flag:
+            self.orig_images = ptv.py_pre_processing_c(
+                self.orig_images, self.cpar
+            )
         
         return self.orig_images
     
@@ -245,15 +326,46 @@ class PTVCore:
         return True
     
     def run_sequence(self, start_frame=None, end_frame=None):
-        """Run sequence processing on a range of frames."""
+        """Run sequence processing on a range of frames.
+        
+        Args:
+            start_frame: First frame to process (or None for default)
+            end_frame: Last frame to process (or None for default)
+            
+        Returns:
+            Boolean indicating success
+        """
         if not self.initialized:
             raise ValueError("PTV system not initialized")
         
-        # Get frame range
-        if start_frame is None:
-            start_frame = self.experiment.active_params.m_params.Seq_First
-        if end_frame is None:
-            end_frame = self.experiment.active_params.m_params.Seq_Last
+        # Get frame range from YAML if available
+        if self.yaml_params:
+            seq_params = self.yaml_params.get("SequenceParams")
+            if start_frame is None:
+                start_frame = seq_params.Seq_First
+            if end_frame is None:
+                end_frame = seq_params.Seq_Last
+                
+            # Update sequence parameters in memory
+            self.spar.first = seq_params.Seq_First
+            self.spar.last = seq_params.Seq_Last
+            
+            # Update the processing volume parameters
+            criteria_params = self.yaml_params.get("CriteriaParams")
+            self.vpar.X_lay[0] = criteria_params.X_lay
+            self.vpar.Zmin_lay[0] = criteria_params.Zmin_lay
+            self.vpar.Zmax_lay[0] = criteria_params.Zmax_lay
+            self.vpar.Ymin_lay[0] = criteria_params.Ymin_lay
+            self.vpar.Ymax_lay[0] = criteria_params.Ymax_lay
+            self.vpar.Xmin_lay[0] = criteria_params.Xmin_lay
+            self.vpar.Xmax_lay[0] = criteria_params.Xmax_lay
+            
+        else:
+            # Use legacy parameters
+            if start_frame is None:
+                start_frame = self.experiment.active_params.m_params.Seq_First
+            if end_frame is None:
+                end_frame = self.experiment.active_params.m_params.Seq_Last
         
         # Check if a plugin is selected
         sequence_alg = self.plugins.get("sequence_alg", "default")
@@ -268,9 +380,31 @@ class PTVCore:
         return True
     
     def track_particles(self, backward=False):
-        """Track particles across frames."""
+        """Track particles across frames.
+        
+        Args:
+            backward: Whether to track backward in time
+            
+        Returns:
+            Boolean indicating success
+        """
         if not self.initialized:
             raise ValueError("PTV system not initialized")
+        
+        # Set up tracking parameters from YAML if available
+        if self.yaml_params:
+            track_params = self.yaml_params.get("TrackingParams")
+            
+            # Update tracking parameters in memory
+            self.track_par.dvxmin = track_params.dvxmin
+            self.track_par.dvxmax = track_params.dvxmax
+            self.track_par.dvymin = track_params.dvymin
+            self.track_par.dvymax = track_params.dvymax
+            self.track_par.dvzmin = track_params.dvzmin
+            self.track_par.dvzmax = track_params.dvzmax
+            self.track_par.angle = track_params.angle
+            self.track_par.dacc = track_params.dacc
+            self.track_par.add_particle = 1 if track_params.flagNewParticles else 0
         
         # Check if a plugin is selected
         track_alg = self.plugins.get("track_alg", "default")
@@ -305,15 +439,31 @@ class PTVCore:
         return True
     
     def get_trajectories(self, start_frame=None, end_frame=None):
-        """Get trajectories for visualization."""
+        """Get trajectories for visualization.
+        
+        Args:
+            start_frame: First frame to include (or None for default)
+            end_frame: Last frame to include (or None for default)
+            
+        Returns:
+            List of camera projections of trajectories
+        """
         if not self.initialized:
             raise ValueError("PTV system not initialized")
         
-        # Get frame range
-        if start_frame is None:
-            start_frame = self.experiment.active_params.m_params.Seq_First
-        if end_frame is None:
-            end_frame = self.experiment.active_params.m_params.Seq_Last
+        # Get frame range from YAML if available
+        if self.yaml_params:
+            seq_params = self.yaml_params.get("SequenceParams")
+            if start_frame is None:
+                start_frame = seq_params.Seq_First
+            if end_frame is None:
+                end_frame = seq_params.Seq_Last
+        else:
+            # Use legacy parameters
+            if start_frame is None:
+                start_frame = self.experiment.active_params.m_params.Seq_First
+            if end_frame is None:
+                end_frame = self.experiment.active_params.m_params.Seq_Last
         
         # Use flowtracks to load trajectories
         try:

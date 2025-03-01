@@ -118,12 +118,26 @@ class MainWindow(QMainWindow):
         tracking_action.triggered.connect(self.open_tracking)
         workflow_menu.addAction(tracking_action)
         
+        # Parameters menu
+        params_menu = self.menuBar().addMenu("&Parameters")
+        
+        edit_params_action = QAction("&Edit Parameters...", self)
+        edit_params_action.triggered.connect(self.edit_parameters)
+        params_menu.addAction(edit_params_action)
+        
         # Plugins menu
         plugins_menu = self.menuBar().addMenu("&Plugins")
         
         config_plugins_action = QAction("&Configure Plugins...", self)
         config_plugins_action.triggered.connect(self.configure_plugins)
         plugins_menu.addAction(config_plugins_action)
+        
+        # Visualization menu
+        visualization_menu = self.menuBar().addMenu("&Visualization")
+        
+        trajectories_action = QAction("&3D Trajectories...", self)
+        trajectories_action.triggered.connect(self.open_3d_visualization)
+        visualization_menu.addAction(trajectories_action)
         
         # Help menu
         help_menu = self.menuBar().addMenu("&Help")
@@ -167,6 +181,11 @@ class MainWindow(QMainWindow):
         show_trajectories_action = QAction("Show Trajectories", self)
         show_trajectories_action.triggered.connect(self.show_trajectories)
         self.toolbar.addAction(show_trajectories_action)
+        
+        # 3D visualization action
+        visualization_action = QAction("3D Visualization", self)
+        visualization_action.triggered.connect(self.open_3d_visualization)
+        self.toolbar.addAction(visualization_action)
 
     def initialize_camera_views(self, num_cameras):
         """Initialize camera views based on current experiment.
@@ -231,8 +250,8 @@ class MainWindow(QMainWindow):
             if not hasattr(self, 'ptv_core'):
                 self.ptv_core = PTVCore(self.exp_path, self.software_path)
             
-            # Initialize PTV system
-            images = self.ptv_core.initialize()
+            # Initialize PTV system using YAML parameters if available
+            images = self.ptv_core.initialize(use_yaml=True)
             
             # Create camera views based on number of cameras
             self.initialize_camera_views(self.ptv_core.n_cams)
@@ -263,9 +282,9 @@ class MainWindow(QMainWindow):
             if not hasattr(self, 'ptv_core'):
                 self.ptv_core = PTVCore(self.exp_path, self.software_path)
                 
-                # Make sure it's initialized
+                # Make sure it's initialized with YAML parameters if available
                 if not self.ptv_core.initialized:
-                    self.ptv_core.initialize()
+                    self.ptv_core.initialize(use_yaml=True)
             
             # Create and show the calibration dialog
             dialog = CalibrationDialog(self.ptv_core, self)
@@ -287,9 +306,9 @@ class MainWindow(QMainWindow):
             if not hasattr(self, 'ptv_core'):
                 self.ptv_core = PTVCore(self.exp_path, self.software_path)
                 
-                # Make sure it's initialized
+                # Make sure it's initialized with YAML parameters if available
                 if not self.ptv_core.initialized:
-                    self.ptv_core.initialize()
+                    self.ptv_core.initialize(use_yaml=True)
             
             # Create and show the detection dialog
             dialog = DetectionDialog(self.ptv_core, self)
@@ -311,9 +330,9 @@ class MainWindow(QMainWindow):
             if not hasattr(self, 'ptv_core'):
                 self.ptv_core = PTVCore(self.exp_path, self.software_path)
                 
-                # Make sure it's initialized
+                # Make sure it's initialized with YAML parameters if available
                 if not self.ptv_core.initialized:
-                    self.ptv_core.initialize()
+                    self.ptv_core.initialize(use_yaml=True)
             
             # Create and show the tracking dialog
             dialog = TrackingDialog(self.ptv_core, self)
@@ -322,6 +341,55 @@ class MainWindow(QMainWindow):
         except Exception as e:
             QMessageBox.critical(
                 self, "Tracking Error", f"Error opening tracking dialog: {e}"
+            )
+            
+    @Slot()
+    def edit_parameters(self):
+        """Open the parameter editor dialog."""
+        try:
+            from pyptv.ui.parameter_dialog import show_parameter_dialog
+            
+            # Get the parameters directory
+            params_dir = self.exp_path / "parameters"
+            
+            # Show the parameter dialog
+            show_parameter_dialog(params_dir, self)
+            
+            # Refresh PTV core if it exists
+            if hasattr(self, 'ptv_core') and self.ptv_core.initialized:
+                QMessageBox.information(
+                    self,
+                    "Parameters Updated",
+                    "Parameters have been updated. You may need to reinitialize the experiment for changes to take effect."
+                )
+            
+        except Exception as e:
+            QMessageBox.critical(
+                self, "Parameter Editor Error", f"Error opening parameter editor: {e}"
+            )
+    
+    @Slot()
+    def open_3d_visualization(self):
+        """Open the 3D visualization dialog."""
+        try:
+            from pyptv.ui.dialogs.visualization_dialog import VisualizationDialog
+            from pyptv.ui.ptv_core import PTVCore
+            
+            # Create PTV core if not already created
+            if not hasattr(self, 'ptv_core'):
+                self.ptv_core = PTVCore(self.exp_path, self.software_path)
+                
+                # Make sure it's initialized with YAML parameters if available
+                if not self.ptv_core.initialized:
+                    self.ptv_core.initialize(use_yaml=True)
+            
+            # Create and show the visualization dialog
+            dialog = VisualizationDialog(self.ptv_core, self)
+            dialog.exec_()
+            
+        except Exception as e:
+            QMessageBox.critical(
+                self, "Visualization Error", f"Error opening visualization dialog: {e}"
             )
 
     @Slot()
@@ -335,9 +403,9 @@ class MainWindow(QMainWindow):
             if not hasattr(self, 'ptv_core'):
                 self.ptv_core = PTVCore(self.exp_path, self.software_path)
                 
-                # Make sure it's initialized
+                # Make sure it's initialized with YAML parameters if available
                 if not self.ptv_core.initialized:
-                    self.ptv_core.initialize()
+                    self.ptv_core.initialize(use_yaml=True)
             
             # Create and show the plugin manager dialog
             dialog = PluginManagerDialog(self.ptv_core, self)
@@ -490,9 +558,14 @@ class MainWindow(QMainWindow):
                 )
                 return
             
-            # Get frame range
-            start_frame = self.ptv_core.experiment.active_params.m_params.Seq_First
-            end_frame = self.ptv_core.experiment.active_params.m_params.Seq_Last
+            # Get frame range from YAML parameters if available, otherwise from legacy parameters
+            if hasattr(self.ptv_core, 'yaml_params') and self.ptv_core.yaml_params:
+                seq_params = self.ptv_core.yaml_params.get("SequenceParams")
+                start_frame = seq_params.Seq_First
+                end_frame = seq_params.Seq_Last
+            else:
+                start_frame = self.ptv_core.experiment.active_params.m_params.Seq_First
+                end_frame = self.ptv_core.experiment.active_params.m_params.Seq_Last
             
             # Confirm before proceeding
             result = QMessageBox.question(
