@@ -1,0 +1,91 @@
+PtvParams:
+  n_img: 4
+  img_name:
+  - img/cam1.10002
+  - img/cam2.10002
+  - img/cam3.10002
+  - img/cam4.10002
+  img_cal:
+  - cal/cam1.tif
+  - cal/cam2.tif
+  - cal/cam3.tif
+  - cal/cam4.tif
+  hp_flag: true
+  allcam_flag: false
+  tiff_flag: true
+  imx: 1280
+  imy: 1024
+  pix_x: 0.012
+  pix_y: 0.012
+  chfield: 0
+  mmp_n1: 1.0
+  mmp_n2: 1.33
+  mmp_n3: 1.46
+  mmp_d: 6.0
+TrackingParams:
+  dvxmin: -2.5
+  dvxmax: 2.5
+  dvymin: -2.5
+  dvymax: 2.5
+  dvzmin: -2.5
+  dvzmax: 2.5
+  angle: 100.0
+  dacc: 0.8
+  flagNewParticles: true
+SequenceParams:
+  first: 10001
+  last: 10004
+  n_img: 4
+  base_name:
+  - img/cam1.
+  - img/cam2.
+  - img/cam3.
+  - img/cam4.
+  Zmin_lay: -10.0
+  Zmax_lay: 10.0
+  Ymin_lay: -10.0
+  Ymax_lay: 10.0
+  Xmin_lay: -10.0
+  Xmax_lay: 10.0
+  Cam_1_Reference: img/cam1.10002
+  Cam_2_Reference: img/cam2.10002
+  Cam_3_Reference: img/cam3.10002
+  Cam_4_Reference: img/cam4.10002
+  Inverse: false
+  Subtr_Mask: false
+  Base_Name_Mask: ''
+CriteriaParams:
+  X_lay:
+  - -40
+  - 40
+  Zmin_lay:
+  - -20
+  - -20
+  Zmax_lay:
+  - 25
+  - 25
+  Ymin_lay: -10.0
+  Ymax_lay: 10.0
+  Xmin_lay: -10.0
+  Xmax_lay: 10.0
+  cn: 0.02
+  cnx: 0.02
+  cny: 0.02
+  csumg: 0.02
+  corrmin: 33.0
+  eps0: 0.2
+TargetParams:
+  n_img: 4
+  gvth_1: 10
+  gvth_2: 10
+  gvth_3: 10
+  gvth_4: 10
+  discont: 100
+  nnmin: 4
+  nnmax: 500
+  nxmin: 2
+  nxmax: 100
+  nymin: 2
+  nymax: 100
+  sumg_min: 150
+  cr_sz: 2

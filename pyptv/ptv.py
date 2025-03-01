@@ -44,9 +44,34 @@ def py_set_img(img, i):
     pass
 
 
-def py_start_proc_c(n_cams):
-    """Read parameters"""
-
+def py_start_proc_c(n_cams, exp_path=None):
+    """
+    Create parameter objects for the PTV system.
+    
+    This function creates all the necessary parameter objects using either:
+    1. The new parameter builder (from YAML) if exp_path is provided
+    2. The legacy parameter reading approach if exp_path is None
+    
+    Args:
+        n_cams: Number of cameras
+        exp_path: Path to experiment directory (optional)
+        
+    Returns:
+        Tuple of parameter objects (cpar, spar, vpar, track_par, tpar, cals, epar)
+    """
+    # If exp_path is provided, use the new parameter builder
+    if exp_path:
+        try:
+            # Import parameter builder
+            from pyptv.parameter_builder import create_all_params_from_yaml
+            
+            # Create parameters from YAML
+            return create_all_params_from_yaml(exp_path)
+        except Exception as e:
+            print(f"Error creating parameters from YAML: {e}")
+            print("Falling back to legacy parameter reading")
+    
+    # Legacy parameter reading from files
     # Control parameters
     cpar = ControlParams(n_cams)
     cpar.read_control_par(b"parameters/ptv.par")
@@ -78,8 +103,6 @@ def py_start_proc_c(n_cams):
         tmp = cpar.get_cal_img_base_name(i_cam)
         cal.from_file(tmp + b".ori", tmp + b".addpar")
         cals.append(cal)
-
-
 
     return cpar, spar, vpar, track_par, tpar, cals, epar
 
