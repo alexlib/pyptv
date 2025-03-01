@@ -259,11 +259,18 @@ class MainWindow(QMainWindow):
     def initialize_experiment(self):
         """Initialize the experiment."""
         try:
-            from pyptv.ui.ptv_core import PTVCore
+            # Direct import to avoid getting the bridge class
+            import importlib.util
+            import sys
+            
+            spec = importlib.util.spec_from_file_location("ptv_core_module", 
+                      Path(__file__).parent.parent / "ui" / "ptv_core.py")
+            ptv_core_module = importlib.util.module_from_spec(spec)
+            spec.loader.exec_module(ptv_core_module)
+            PTVCore = ptv_core_module.PTVCore
             
             # Create PTV core if not already created
-            if not hasattr(self, 'ptv_core'):
-                self.ptv_core = PTVCore(self.exp_path, self.software_path)
+            self.ptv_core = PTVCore(self.exp_path, self.software_path)
             
             # Initialize progress message
             progress_msg = QMessageBox(self)

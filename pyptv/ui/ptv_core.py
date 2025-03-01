@@ -47,6 +47,7 @@ class PTVCore:
         self.exp_path = Path(exp_path) if exp_path else Path.cwd()
         self.software_path = Path(software_path) if software_path else Path.cwd()
         
+        print(f"Using direct PTVCore implementation with experiment path: {self.exp_path}")
         # Initialize parameter manager
         params_dir = self.exp_path / "parameters"
         self.param_manager = ParameterManager(params_dir)
@@ -102,6 +103,8 @@ class PTVCore:
         if self.exp_path.exists():
             os.chdir(self.exp_path)
         
+        print(f"PTVCore: initializing from {os.getcwd()}")
+        
         # Load parameters from YAML
         try:
             self.load_yaml_parameters()
@@ -125,6 +128,8 @@ class PTVCore:
                     img_path = getattr(seq_params, image_attr)
                     ref_images.append(img_path)
                 else:
+                    # Log the missing attribute
+                    print(f"Missing {image_attr} in sequence parameters")
                     ref_images.append(None)
             
             # Initialize images array
