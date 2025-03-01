@@ -20,6 +20,14 @@ Both PyPTV and the OpenPTV library are in the development phase and continuously
 
 <http://openptv-python.readthedocs.io>
 
+### New UI Documentation
+
+The modern UI includes several improvements to make PyPTV more user-friendly and powerful:
+
+- **[User Guide](docs/user_guide.md)**: Complete guide to the new interface features
+- **[Example Workflows](docs/example_workflows.md)**: Step-by-step tutorials for common tasks
+- **[Migration Guide](docs/migration_guide.md)**: Instructions for transitioning from the legacy interface
+
 ## Installation instructions
 
 Short version:
@@ -30,8 +38,6 @@ Short version:
 
 Detailed instructions for various platforms are in our documentation: 
 https://openptv-python.readthedocs.io/en/latest/installation_instruction.html
-
-
 
 
 
