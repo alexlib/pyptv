@@ -235,9 +235,24 @@ class MainWindow(QMainWindow):
         
         if directory:
             self.exp_path = Path(directory)
-            # TODO: Load experiment parameters
+            
+            # Check for parameters directory
+            params_dir = self.exp_path / "parameters"
+            if not params_dir.is_dir():
+                result = QMessageBox.question(
+                    self,
+                    "Parameters Missing",
+                    f"No parameters directory found at {params_dir}.\nDo you want to initialize the experiment anyway?",
+                    QMessageBox.Yes | QMessageBox.No,
+                    QMessageBox.No
+                )
+                
+                if result == QMessageBox.No:
+                    return
+            
+            # Initialize experiment if user confirms
             QMessageBox.information(
-                self, "Experiment Loaded", f"Loaded experiment from: {self.exp_path}"
+                self, "Experiment Loaded", f"Loaded experiment from: {self.exp_path}\nPress 'Initialize' to load parameters and images."
             )
 
     @Slot()
@@ -250,8 +265,26 @@ class MainWindow(QMainWindow):
             if not hasattr(self, 'ptv_core'):
                 self.ptv_core = PTVCore(self.exp_path, self.software_path)
             
+            # Initialize progress message
+            progress_msg = QMessageBox(self)
+            progress_msg.setIcon(QMessageBox.Information)
+            progress_msg.setWindowTitle("Initialization")
+            progress_msg.setText("Initializing experiment...\nThis may take a moment.")
+            progress_msg.setStandardButtons(QMessageBox.NoButton)
+            progress_msg.show()
+            
+            # Process events to make sure the message is displayed
+            QApplication.processEvents()
+            
             # Initialize PTV system using YAML parameters
-            images = self.ptv_core.initialize()
+            try:
+                images = self.ptv_core.initialize()
+            except Exception as init_error:
+                progress_msg.close()
+                raise init_error
+            
+            # Close progress message
+            progress_msg.close()
             
             # Create camera views based on number of cameras
             self.initialize_camera_views(self.ptv_core.n_cams)
@@ -260,6 +293,9 @@ class MainWindow(QMainWindow):
             for i, camera_view in enumerate(self.camera_views):
                 if i < len(images):
                     camera_view.set_image(images[i])
+                else:
+                    # Create blank image if we don't have enough images
+                    camera_view.set_image(None)
             
             QMessageBox.information(
                 self, "Initialization", 

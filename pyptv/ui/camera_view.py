@@ -209,12 +209,36 @@ class CameraView(QWidget):
         Args:
             image_data: Numpy array containing image data
         """
-        self.image_data = image_data
-        self.canvas.display_image(image_data)
-        
-        # Update information
-        h, w = image_data.shape[:2]
-        self.info_label.setText(f"{w}x{h}")
+        if image_data is None:
+            # Create an empty image if None is provided
+            image_data = np.zeros((480, 640), dtype=np.uint8)
+            self.status_bar.setText("No image data provided")
+            
+        try:
+            # Ensure image is a proper 2D array
+            if not isinstance(image_data, np.ndarray):
+                self.status_bar.setText("Invalid image format")
+                image_data = np.zeros((480, 640), dtype=np.uint8)
+            elif len(image_data.shape) > 2 and image_data.shape[2] > 1:
+                # Convert color image to grayscale if needed
+                from skimage.color import rgb2gray
+                from skimage.util import img_as_ubyte
+                image_data = img_as_ubyte(rgb2gray(image_data))
+                self.status_bar.setText("Converted color image to grayscale")
+            
+            self.image_data = image_data
+            self.canvas.display_image(image_data)
+            
+            # Update information
+            h, w = image_data.shape[:2]
+            self.info_label.setText(f"{w}x{h}")
+            
+        except Exception as e:
+            self.status_bar.setText(f"Error displaying image: {e}")
+            # Use placeholder if there's an error
+            self.image_data = np.zeros((480, 640), dtype=np.uint8)
+            self.canvas.display_image(self.image_data)
+            self.info_label.setText("640x480")
     
     def _on_canvas_clicked(self, x, y, button):
         """Handle canvas click events.

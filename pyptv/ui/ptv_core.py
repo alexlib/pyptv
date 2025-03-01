@@ -116,27 +116,35 @@ class PTVCore:
             
             # Get reference images from sequence params
             seq_params = self.yaml_params.get("SequenceParams")
-            ref_images = [
-                seq_params.Name_1_Image,
-                seq_params.Name_2_Image,
-                seq_params.Name_3_Image,
-                seq_params.Name_4_Image,
-            ]
-        
+            ref_images = []
+            
+            # Safely get image paths for each camera
+            for i in range(1, self.n_cams + 1):
+                image_attr = f"Name_{i}_Image"
+                if hasattr(seq_params, image_attr):
+                    img_path = getattr(seq_params, image_attr)
+                    ref_images.append(img_path)
+                else:
+                    ref_images.append(None)
+            
             # Initialize images array
             self.orig_images = [None] * self.n_cams
             
             # Load initial images
             for i in range(self.n_cams):
                 try:
-                    if i < len(ref_images):
+                    if i < len(ref_images) and ref_images[i]:
                         img_path = ref_images[i]
+                        if not os.path.exists(img_path):
+                            raise FileNotFoundError(f"Image file {img_path} not found")
+                            
                         img = imread(img_path)
                         if img.ndim > 2:
                             img = rgb2gray(img)
                         self.orig_images[i] = img_as_ubyte(img)
                     else:
-                        raise ValueError(f"Reference image for camera {i+1} not found")
+                        print(f"Warning: Reference image for camera {i+1} not found, using blank image")
+                        self.orig_images[i] = np.zeros((imy, imx), dtype=np.uint8)
                 except Exception as e:
                     print(f"Error loading image {i+1}: {e}")
                     self.orig_images[i] = np.zeros((imy, imx), dtype=np.uint8)
@@ -368,48 +376,72 @@ class PTVCore:
         if self.yaml_params:
             track_params = self.yaml_params.get("TrackingParams")
             
-            # Update tracking parameters in memory
-            self.track_par.dvxmin = track_params.dvxmin
-            self.track_par.dvxmax = track_params.dvxmax
-            self.track_par.dvymin = track_params.dvymin
-            self.track_par.dvymax = track_params.dvymax
-            self.track_par.dvzmin = track_params.dvzmin
-            self.track_par.dvzmax = track_params.dvzmax
-            self.track_par.angle = track_params.angle
-            self.track_par.dacc = track_params.dacc
-            self.track_par.add_particle = 1 if track_params.flagNewParticles else 0
+            if track_params:
+                # Update tracking parameters in memory
+                try:
+                    self.track_par.dvxmin = track_params.dvxmin
+                    self.track_par.dvxmax = track_params.dvxmax
+                    self.track_par.dvymin = track_params.dvymin
+                    self.track_par.dvymax = track_params.dvymax
+                    self.track_par.dvzmin = track_params.dvzmin
+                    self.track_par.dvzmax = track_params.dvzmax
+                    self.track_par.angle = track_params.angle
+                    self.track_par.dacc = track_params.dacc
+                    self.track_par.add_particle = 1 if track_params.flagNewParticles else 0
+                except Exception as e:
+                    print(f"Error updating tracking parameters: {e}")
         
         # Check if a plugin is selected
         track_alg = self.plugins.get("track_alg", "default")
         
-        if track_alg != "default":
-            # Run external plugin
-            try:
-                os.chdir(self.experiment.software_path)
-                track = importlib.import_module(track_alg)
-            except Exception:
-                print(f"Error loading {track_alg}. Falling back to default tracker")
-                track_alg = "default"
-            os.chdir(self.experiment.exp_path)  # change back to working path
-        
-        if track_alg == "default":
-            # Run default tracker
-            if not hasattr(self, "tracker"):
-                self.tracker = ptv.py_trackcorr_init(self)
+        try:
+            if track_alg != "default":
+                # Run external plugin
+                try:
+                    # Handle both legacy and modern code paths
+                    if hasattr(self, 'experiment') and hasattr(self.experiment, 'software_path'):
+                        os.chdir(self.experiment.software_path)
+                    else:
+                        os.chdir(self.software_path)
+                        
+                    track = importlib.import_module(track_alg)
+                except Exception as e:
+                    print(f"Error loading {track_alg}: {e}. Falling back to default tracker")
+                    track_alg = "default"
+                
+                # Change back to working path
+                if hasattr(self, 'experiment') and hasattr(self.experiment, 'exp_path'):
+                    os.chdir(self.experiment.exp_path)
+                else:
+                    os.chdir(self.exp_path)
             
-            if backward:
-                self.tracker.full_backward()
+            if track_alg == "default":
+                # Run default tracker
+                if not hasattr(self, "tracker"):
+                    self.tracker = ptv.py_trackcorr_init(self)
+                
+                if backward:
+                    self.tracker.full_backward()
+                else:
+                    self.tracker.full_forward()
             else:
-                self.tracker.full_forward()
-        else:
-            # Run plugin tracker
-            tracker = track.Tracking(ptv=ptv, exp1=self.experiment)
-            if backward:
-                tracker.do_back_tracking()
-            else:
-                tracker.do_tracking()
-        
-        return True
+                # Run plugin tracker
+                if hasattr(self, 'experiment'):
+                    tracker = track.Tracking(ptv=ptv, exp1=self.experiment)
+                else:
+                    # Modern version passes self instead of experiment
+                    tracker = track.Tracking(ptv=ptv, exp1=self)
+                    
+                if backward:
+                    tracker.do_back_tracking()
+                else:
+                    tracker.do_tracking()
+            
+            return True
+            
+        except Exception as e:
+            print(f"Error in tracking: {e}")
+            return False
     
     def get_trajectories(self, start_frame=None, end_frame=None):
         """Get trajectories for visualization.

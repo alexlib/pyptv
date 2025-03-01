@@ -440,8 +440,62 @@ class ParameterSet:
     
     def _load_parameters(self):
         """Load parameters from files."""
-        # TODO: Implement actual parameter loading
-        # For now, we'll just use placeholders
+        if not self.path.exists():
+            print(f"Warning: Parameter path {self.path} does not exist")
+            self._create_default_params()
+            return
+        
+        try:
+            # Check for YAML parameters first
+            yaml_files = list(self.path.glob("*.yaml"))
+            if yaml_files:
+                # Use the YAML parameter system
+                from pyptv.yaml_parameters import ParameterManager
+                param_mgr = ParameterManager(self.path)
+                params = param_mgr.load_all()
+                
+                # Get PTV params
+                if "PtvParams" in params:
+                    ptv_params = params["PtvParams"]
+                    self.main_params = {
+                        "Num_Cam": ptv_params.n_img,
+                        "imx": ptv_params.imx,
+                        "imy": ptv_params.imy,
+                        "hp_flag": ptv_params.hp_flag
+                    }
+                
+                # Get tracking params
+                if "TrackingParams" in params:
+                    track_params = params["TrackingParams"]
+                    self.tracking_params = {
+                        "dvxmin": track_params.dvxmin,
+                        "dvxmax": track_params.dvxmax,
+                        "dvymin": track_params.dvymin,
+                        "dvymax": track_params.dvymax,
+                        "dvzmin": track_params.dvzmin,
+                        "dvzmax": track_params.dvzmax,
+                        "angle": track_params.angle,
+                        "flagNewParticles": track_params.flagNewParticles
+                    }
+                
+                # Get sequence params
+                if "SequenceParams" in params:
+                    seq_params = params["SequenceParams"]
+                    self.sequence_params = {
+                        "Seq_First": seq_params.Seq_First,
+                        "Seq_Last": seq_params.Seq_Last
+                    }
+                
+                # Additional parameters as needed
+            else:
+                # Fall back to default placeholder values
+                self._create_default_params()
+        except Exception as e:
+            print(f"Error loading parameters: {e}")
+            self._create_default_params()
+    
+    def _create_default_params(self):
+        """Create default parameter placeholders."""
         self.main_params = {
             "Num_Cam": 4,
             "imx": 1280,
@@ -456,6 +510,11 @@ class ParameterSet:
         
         self.tracking_params = {
             "tracking": "sample"
+        }
+        
+        self.sequence_params = {
+            "Seq_First": 10000,
+            "Seq_Last": 10004
         }
 
 
