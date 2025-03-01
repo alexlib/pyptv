@@ -259,15 +259,34 @@ class MainWindow(QMainWindow):
     def initialize_experiment(self):
         """Initialize the experiment."""
         try:
-            # Direct import to avoid getting the bridge class
-            import importlib.util
-            import sys
+            # Configure NumPy first to avoid __repr__ error
+            import numpy as np
+            try:
+                # Try setting these options which might be causing the ndarray.__repr__ error
+                np.set_printoptions(precision=4, suppress=True, threshold=50)
+                # Monkey patch the ndarray.__repr__ to avoid the error
+                if hasattr(np.ndarray, '__repr__'):
+                    # Create a simple repr function
+                    def simple_repr(self):
+                        return f"<ndarray: shape={self.shape}, dtype={self.dtype}>"
+                    # Replace the problematic repr
+                    np.ndarray.__repr__ = simple_repr
+                print("NumPy configuration complete")
+            except Exception as np_error:
+                print(f"WARNING: NumPy configuration failed: {np_error}")
             
-            spec = importlib.util.spec_from_file_location("ptv_core_module", 
-                      Path(__file__).parent.parent / "ui" / "ptv_core.py")
-            ptv_core_module = importlib.util.module_from_spec(spec)
-            spec.loader.exec_module(ptv_core_module)
-            PTVCore = ptv_core_module.PTVCore
+            # The direct import approach has issues with the ndarray.__repr__ error
+            # So we'll use the bridge directly
+            try:
+                # First attempt: try the bridge directly
+                from pyptv.ui.ptv_core.bridge import PTVCoreBridge as PTVCore
+                print("Using PTVCoreBridge directly")
+            except Exception as import_error:
+                print(f"Error importing PTVCoreBridge, falling back to standard import: {import_error}")
+                
+                # Second attempt: if that fails, use the standard import
+                from pyptv.ui.ptv_core import PTVCore
+                print("Using standard PTVCore import")
             
             # Create PTV core if not already created
             self.ptv_core = PTVCore(self.exp_path, self.software_path)
