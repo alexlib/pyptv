@@ -150,15 +150,24 @@ class PTVCore:
                     self.orig_images[i] = np.zeros((imy, imx), dtype=np.uint8)
             
             # Initialize PTV parameters through the existing code
-            (
-                self.cpar,
-                self.spar,
-                self.vpar,
-                self.track_par,
-                self.tpar,
-                self.cals,
-                self.epar,
-            ) = ptv.py_start_proc_c(self.n_cams)
+            try:
+                (
+                    self.cpar,
+                    self.spar,
+                    self.vpar,
+                    self.track_par,
+                    self.tpar,
+                    self.cals,
+                    self.epar,
+                ) = ptv.py_start_proc_c(self.n_cams)
+            except Exception as init_error:
+                print(f"Error initializing core PTV: {init_error}")
+                # Check if experiment attribute exists before creating
+                if not hasattr(self, 'experiment'):
+                    from pyptv import Experiment
+                    self.experiment = Experiment(self.n_cams)
+                    self.experiment.initialize(self.exp_path, self.software_path)
+                raise init_error
             
             # Mark as initialized
             self.initialized = True
@@ -639,25 +648,44 @@ class PTVCore:
             raise ValueError("PTV system not initialized")
         
         # Get base names for sequence images
-        base_names = [
-            getattr(self.experiment.active_params.m_params, f"Basename_{i+1}_Seq")
-            for i in range(self.n_cams)
-        ]
+        if self.yaml_params:
+            # Use YAML parameters
+            seq_params = self.yaml_params.get("SequenceParams")
+            base_names = []
+            for i in range(self.n_cams):
+                basename_attr = f"Name_{i+1}_Seq"
+                if hasattr(seq_params, basename_attr):
+                    base_names.append(getattr(seq_params, basename_attr))
+                else:
+                    base_names.append(None)
+        else:
+            # Use legacy parameters
+            base_names = [
+                getattr(self.experiment.active_params.m_params, f"Basename_{i+1}_Seq")
+                for i in range(self.n_cams)
+            ]
         
         if camera_id is not None:
             # Load image for a specific camera
             if 0 <= camera_id < self.n_cams:
                 try:
-                    img_path = base_names[camera_id] % frame_num
-                    img = imread(img_path)
-                    if img.ndim > 2:
-                        img = rgb2gray(img)
-                    return img_as_ubyte(img)
+                    if base_names[camera_id]:
+                        img_path = base_names[camera_id] % frame_num
+                        img = imread(img_path)
+                        if img.ndim > 2:
+                            img = rgb2gray(img)
+                        return img_as_ubyte(img)
+                    else:
+                        raise ValueError(f"Base name for camera {camera_id} is not set")
                 except Exception as e:
                     print(f"Error loading image {camera_id} for frame {frame_num}: {e}")
                     # Return empty image with the correct dimensions
-                    h_img = self.experiment.active_params.m_params.imx
-                    v_img = self.experiment.active_params.m_params.imy
+                    if self.yaml_params:
+                        h_img = self.yaml_params.get("PtvParams").imx
+                        v_img = self.yaml_params.get("PtvParams").imy
+                    else:
+                        h_img = self.experiment.active_params.m_params.imx
+                        v_img = self.experiment.active_params.m_params.imy
                     return np.zeros((v_img, h_img), dtype=np.uint8)
             else:
                 raise ValueError(f"Invalid camera ID: {camera_id}")
@@ -666,16 +694,23 @@ class PTVCore:
             images = []
             for i, base_name in enumerate(base_names):
                 try:
-                    img_path = base_name % frame_num
-                    img = imread(img_path)
-                    if img.ndim > 2:
-                        img = rgb2gray(img)
-                    images.append(img_as_ubyte(img))
+                    if base_name:
+                        img_path = base_name % frame_num
+                        img = imread(img_path)
+                        if img.ndim > 2:
+                            img = rgb2gray(img)
+                        images.append(img_as_ubyte(img))
+                    else:
+                        raise ValueError(f"Base name for camera {i} is not set")
                 except Exception as e:
                     print(f"Error loading image {i} for frame {frame_num}: {e}")
                     # Add empty image with the correct dimensions
-                    h_img = self.experiment.active_params.m_params.imx
-                    v_img = self.experiment.active_params.m_params.imy
+                    if self.yaml_params:
+                        h_img = self.yaml_params.get("PtvParams").imx
+                        v_img = self.yaml_params.get("PtvParams").imy
+                    else:
+                        h_img = self.experiment.active_params.m_params.imx
+                        v_img = self.experiment.active_params.m_params.imy
                     images.append(np.zeros((v_img, h_img), dtype=np.uint8))
             
             return images
