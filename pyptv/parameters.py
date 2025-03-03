@@ -87,13 +87,13 @@ def warning(msg):
     print(f"Warning message: {msg}")
 
 
-# Reads a parameters directory and returns a dictionary with all parameter
-# objects
 def readParamsDir(par_path):
-    # get n_img from ptv.par
+    """ Reads a parameters directory and returns a dictionary with all parameter objects"""
+
     ptvParams = PtvParams(path=par_path)
     ptvParams.read()
     n_img = ptvParams.n_img
+
     n_pts = Int(4)
 
     ret = {
@@ -457,7 +457,6 @@ class SequenceParams(Parameters):
             with open(self.filepath(), "r") as f:
                 self.base_name = []
                 for i in range(self.n_img):
-                    # for i in range(max_cam):
                     self.base_name.append(g(f))
 
                 self.first = int(g(f))

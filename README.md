@@ -3,6 +3,8 @@ Python GUI for the OpenPTV library `liboptv`
 
 [![Python package](https://github.com/alexlib/pyptv/actions/workflows/python-package.yml/badge.svg)](https://github.com/alexlib/pyptv/actions/workflows/python-package.yml)
 [![DOI](https://zenodo.org/badge/121291437.svg)](https://zenodo.org/badge/latestdoi/121291437)
+![PyPI - Version](https://img.shields.io/pypi/v/pyptv)
+
 
 
 
@@ -47,4 +49,28 @@ Ask for help on our mailing list:
 	openptv@googlegroups.com
 
 
+
+## Working with plugins
+
+Plugins is a system of extensions to PyPTV without the need to change the GUI
+
+1. copy the `sequence_plugins.txt` and `tracking_plugins.txt` to the working folder
+2. copy the `plugins/` directory to the working folder
+3. modify the code so it performs instead of the default sequence or default tracker
+4. Open the GUI and Plugins -> Choose , then run the rest: Init -> Sequence 
+
+
+Note, the specific branch `plugin_remback` requires installation of the `pip install rembg[cpu]` or `pip install rembg[gpu]`
+
+
+### Developers:
+
+
+1. how to bump the version: ```python bump_version.py --patch```
+2. how to build and publish: 
+      pip install build
+      python -m build
+      pip install dist/pyptv-0.3.2-py3-none-any.whl
+      pip install twine
+      python -m twine upload dist/*
 

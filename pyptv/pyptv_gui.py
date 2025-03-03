@@ -52,7 +52,9 @@ from pyptv.directory_editor import DirectoryEditorDialog
 from pyptv.parameter_gui import Experiment, Paramset
 from pyptv.quiverplot import QuiverPlot
 from pyptv.detection_gui import DetectionGUI
+from pyptv import __version__
 import optv.orientation
+import optv.epipolar
 
 
 class Clicker(ImageInspectorTool):
@@ -422,22 +424,24 @@ class TreeMenuHandler(Handler):
     def rename_set_params(self, editor, object):
         """rename_set_params renames the node name on the tree and also
         the folder of parameters"""
-        experiment = editor.get_parent(object)
-        paramset = object
-        # rename
-        # import pdb; pdb.set_trace()
-        editor._menu_rename_node()
-        new_name = object.name
-        new_dir_path = par.par_dir_prefix + new_name
-        os.mkdir(new_dir_path)
-        par.copy_params_dir(paramset.par_path, new_dir_path)
-        [
-            os.remove(os.path.join(paramset.par_path, f))
-            for f in os.listdir(paramset.par_path)
-        ]
-        os.rmdir(paramset.par_path)
-        experiment.removeParamset(paramset)
-        experiment.addParamset(new_name, new_dir_path)
+        # experiment = editor.get_parent(object)
+        # paramset = object
+        # # rename
+        # # import pdb; pdb.set_trace()
+        # editor._menu_rename_node(object)
+        # new_name = object.name
+        # new_dir_path = par.par_dir_prefix + new_name
+        # os.mkdir(new_dir_path)
+        # par.copy_params_dir(paramset.par_path, new_dir_path)
+        # [
+        #     os.remove(os.path.join(paramset.par_path, f))
+        #     for f in os.listdir(paramset.par_path)
+        # ]
+        # os.rmdir(paramset.par_path)
+        # experiment.removeParamset(paramset)
+        # experiment.addParamset(new_name, new_dir_path)
+        print("Warning: This method is not implemented.")
+        print("Please open a folder, copy/paste the parameters directory, and rename it manually.")
 
     def delete_set_params(self, editor, object):
         """delete_set_params deletes the node and the folder of parameters"""
@@ -552,7 +556,7 @@ class TreeMenuHandler(Handler):
         pairs, and unused arrays
         """
 
-        # if info.object.n_cams  > 1: # single camera is not checked
+        
         print("correspondence proc started")
         (
             info.object.sorted_pos,
@@ -617,7 +621,7 @@ class TreeMenuHandler(Handler):
                 print("Error reading image, setting zero image")
                 h_img = mainGui.exp1.active_params.m_params.imx
                 v_img = mainGui.exp1.active_params.m_params.imy
-                temp_img = img_as_ubyte(np.zeros((h_img, v_img)))
+                temp_img = img_as_ubyte(np.zeros((v_img, h_img)))
                 # print(f"setting images of size {temp_img.shape}")
                 exec(f"mainGui.orig_image[{i}] = temp_img")
 
@@ -675,28 +679,7 @@ class TreeMenuHandler(Handler):
 
         extern_sequence = info.object.plugins.sequence_alg
         if extern_sequence != "default":
-            try:
-                # change to pyptv folder, look for tracking module
-                sys.path.append(info.exp1.object.software_path)
-                # import chosen tracker from software dir
-
-                seq = importlib.import_module(extern_sequence)
-            except ImportError:
-                print(
-                    "Error loading or running "
-                    + extern_sequence
-                    + ". Falling back to default sequence algorithm"
-                )
-
-            print("Sequence by using " + extern_sequence)
-            sequence = seq.Sequence(
-                ptv=ptv,
-                exp1=info.object.exp1,
-                camera_list=info.object.camera_list,
-            )
-            sequence.do_sequence()
-            # print("Sequence by using "+extern_sequence+" has failed."
-
+            ptv.run_plugin(info.object)
         else:
             ptv.py_sequence_loop(info.object)
 
@@ -774,6 +757,7 @@ class TreeMenuHandler(Handler):
             prm.Basename_4_Seq,
         ]
 
+
         # load first image from sequence
         info.object.load_set_seq_image(seq_first)
         info.object.overlay_set_images(seq_first, seq_last)
@@ -794,7 +778,9 @@ class TreeMenuHandler(Handler):
                 intx_green, inty_green = [], []
                 intx_blue, inty_blue = [], []
                  
-                targets = ptv.read_targets(f'cam_{i_img:d}.{i_seq:d}')
+                # read targets from the current sequence    
+                # file_name = ptv.replace_format_specifiers(base_names[i_img])
+                targets = ptv.read_targets(base_names[i_img], i_seq)
 
                 for t in targets:
                     if t.tnr() > -1:
@@ -1126,26 +1112,18 @@ class Plugins(HasTraits):
 
     def read(self):
         # reading external tracking
-        if os.path.exists(
-            os.path.join(os.path.abspath(os.curdir), "external_tracker_list.txt")
-        ):
-            with open(
-                os.path.join(os.path.abspath(os.curdir), "external_tracker_list.txt"),
-                "r",
-            ) as f:
+        tracking_plugins = os.path.join(os.path.abspath(os.curdir), "tracking_plugins.txt")
+        sequence_plugins = os.path.join(os.path.abspath(os.curdir), "sequence_plugins.txt")
+        if os.path.exists(tracking_plugins):
+            with open(tracking_plugins,"r", encoding="utf8") as f:
                 trackers = f.read().split("\n")
                 trackers.insert(0, "default")
                 self.track_list = trackers
         else:
             self.track_list = ["default"]
         # reading external sequence
-        if os.path.exists(
-            os.path.join(os.path.abspath(os.curdir), "external_sequence_list.txt")
-        ):
-            with open(
-                os.path.join(os.path.abspath(os.curdir), "external_sequence_list.txt"),
-                "r",
-            ) as f:
+        if os.path.exists( sequence_plugins ):
+            with open( sequence_plugins, "r", encoding="utf8" ) as f: 
                 seq = f.read().split("\n")
                 seq.insert(0, "default")
                 self.seq_list = seq
@@ -1164,11 +1142,6 @@ class MainGUI(HasTraits):
     update_thread_plot = Bool(False)
     # tr_thread = Instance(TrackThread)
     selected = Any
-
-    def read_version():
-        with open("pyptv/__version__.py") as f:
-            exec(f.read())
-            return locals()["__version__"]
 
     # Defines GUI view --------------------------
     view = View(
@@ -1199,7 +1172,7 @@ class MainGUI(HasTraits):
             orientation="vertical",
         ),
         
-        title="pyPTV"  + read_version(),
+        title="pyPTV"  + __version__,
         id="main_view",
         width=1.0,
         height=1.0,
@@ -1429,19 +1402,12 @@ class MainGUI(HasTraits):
             display_only (bool, optional): _description_. Defaults to False.
         """
         n_cams = len(self.camera_list)
-        if not hasattr(self, "base_name"):
-            self.base_name = []
-            for i in range(n_cams):
-                exec(
-                    "self.base_name.append"
-                    + f"(self.exp1.active_params.m_params.Basename_{i+1}_Seq)"
-                )
-                # print(f" base name in GUI is {self.base_name[i]}")
+        # if not hasattr(self, "base_name"):
+        self.base_name = [
+            getattr(self.exp1.active_params.m_params, f"Basename_{i+1}_Seq")
+            for i in range(n_cams)
+        ]
 
-        # i = seq
-        # seq_ch = f"{seq:04d}"
-        # seq_ch = f"{seq:d}"
-        
 
         if update_all is False:
             j = self.current_camera
@@ -1467,15 +1433,31 @@ class MainGUI(HasTraits):
             update_all (bool, optional): _description_. Defaults to True.
             display_only (bool, optional): _description_. Defaults to False.
         """
+
+
+        n_cams = len(self.camera_list)
+        if not hasattr(self, "base_name"):
+            self.base_name = [
+                getattr(self.exp1.active_params.m_params, f"Basename_{i+1}_Seq")
+                for i in range(len(self.camera_list))
+            ]
+     
+
+        for cam_id in range(n_cams):
+            if os.path.exists(self.base_name[cam_id] % seq_first):
+                temp_img = []
+                for seq in range(seq_first, seq_last):
+                    _ = imread(self.base_name[cam_id] % seq)
+                    temp_img.append(img_as_ubyte(_))
+
+                temp_img = np.array(temp_img)
+                temp_img = np.max(temp_img, axis=0)
+            else:
+                h_img = self.exp1.active_params.m_params.imx
+                v_img = self.exp1.active_params.m_params.imy
+                temp_img = img_as_ubyte(np.zeros((v_img, h_img)))
         
-        for cam_id in range(len(self.camera_list)):
-            
-            temp_img = []
-            for seq in range(seq_first, seq_last):
-                temp_img.append(img_as_ubyte(imread(self.base_name[cam_id] % seq)))
-        
-            temp_img = np.array(temp_img)
-            temp_img = np.max(temp_img, axis=0)
+
             self.camera_list[cam_id].update_image(temp_img)
                     
 
@@ -1494,7 +1476,8 @@ class MainGUI(HasTraits):
             print("Error reading file, setting zero image")
             h_img = self.exp1.active_params.m_params.imx
             v_img = self.exp1.active_params.m_params.imy
-            temp_img = img_as_ubyte(np.zeros((h_img, v_img)))
+            temp_img = img_as_ubyte(np.zeros((v_img, h_img)))
+
         # if not display_only:
         #     ptv.py_set_img(temp_img, j)
         if len(temp_img) > 0:
@@ -1531,7 +1514,9 @@ def main():
         # exp_path = software_path.parent / "test_cavity"
         # exp_path = Path('/home/user/Downloads/one-dot-example/working_folder')
         # exp_path = Path('/home/user/Downloads/test_crossing_particle')
-        exp_path = Path('../test_cavity')
+        exp_path = Path('/home/user/Documents/repos/test_cavity')
+        # exp_path = Path('/media/user/ExtremePro/omer/star_exp')
+        # exp_path = Path('/home/user/Documents/repos/blob_pyptv_folder')
         print(f"Without input, PyPTV fallbacks to a default {exp_path} \n")
 
     if not exp_path.is_dir() or not exp_path.exists():

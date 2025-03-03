@@ -1,13 +1,14 @@
 from pathlib import Path
+import importlib
+import os, sys
 import numpy as np
 from typing import List
+import re
 from optv.calibration import Calibration
 from optv.correspondences import correspondences, MatchedCoords
 from optv.image_processing import preprocess_image
-from optv.imgcoord import image_coordinates
 from optv.orientation import (
     point_positions,
-    external_calibration,
     full_calibration,
 )
 from optv.parameters import (
@@ -16,13 +17,10 @@ from optv.parameters import (
     TrackingParams,
     SequenceParams,
     TargetParams,
-    MultimediaParams,
 )
 from optv.segmentation import target_recognition
-from optv.tracking_framebuf import CORRES_NONE, TargetArray, Target
+from optv.tracking_framebuf import TargetArray
 from optv.tracker import Tracker, default_naming
-from optv.epipolar import epipolar_curve
-from optv.transforms import convert_arr_metric_to_pixel
 
 from skimage.io import imread
 from skimage import img_as_ubyte
@@ -30,6 +28,8 @@ from skimage.color import rgb2gray
 from pyptv import parameters as par
 import glob
 from scipy.optimize import minimize
+from pyptv import ptv as ptv
+import re
 
 
 def negative(img):
@@ -81,6 +81,8 @@ def py_start_proc_c(n_cams):
         cal.from_file(tmp + b".ori", tmp + b".addpar")
         cals.append(cal)
 
+
+
     return cpar, spar, vpar, track_par, tpar, cals, epar
 
 
@@ -108,7 +110,8 @@ def py_detection_proc_c(list_of_images, cpar, tpar, cals):
     detections, corrected = [], []
     for i_cam, img in enumerate(list_of_images):
         if Existing_Target:
-            targs = read_targets(f'cam_{i_cam:d}.{0:d}')
+            raise NotImplementedError("Existing targets are not implemented")
+            # targs = read_targets('not implemented')
         else:
             targs = target_recognition(img, tpar, i_cam, cpar)
 
@@ -140,13 +143,9 @@ def py_correspondences_proc_c(exp):
 
     # Save targets only after they've been modified:
     for i_cam in range(exp.n_cams):
-        # base_name = exp.spar.get_img_base_name(i_cam).decode()
-        # filename = base_name.split('%')[0] + base_name.split('d')[-1]
-        # filename = base_name % frame + '_targets'
-        # write_targets(exp.detections[i_cam], filename, frame)
-        # exp.detections[i_cam].write(filename.encode(), frame)
-        # base_name = 'cam_%d.' % (i_cam)
-        write_targets(exp.detections[i_cam], f'cam_{i_cam:d}.{frame:d}')
+        base_name = exp.spar.get_img_base_name(i_cam).decode()
+        write_targets(exp.detections[i_cam], base_name, frame)
+
 
     print("Frame " + str(frame) + " had " +
           repr([s.shape[1] for s in sorted_pos]) + " correspondences.")
@@ -188,8 +187,8 @@ def py_determination_proc_c(n_cams, sorted_pos, sorted_corresp, corrected):
         print_corresp = sorted_corresp
 
     # Save rt_is in a temporary file
-    fname = b"".join([default_naming["corres"],
-                      b".123456789"])  # hard-coded frame number
+    fname = (default_naming["corres"].decode()+'.123456789').encode()
+
     print(f'Prepared {fname} to write positions\n')
 
     try:
@@ -205,6 +204,64 @@ def py_determination_proc_c(n_cams, sorted_pos, sorted_corresp, corrected):
 
     # rt_is.close()
 
+def run_plugin(exp):
+    """Reads and runs the plugins"""
+
+
+    # plugin_dir = 'plugins'
+    plugin_dir = os.path.join(os.getcwd(), 'plugins')
+    print(f"Plugin directory: {plugin_dir}")
+    # Add the plugins directory to sys.path so that Python can find the modules
+    sys.path.append(plugin_dir)
+    print(f"sys.path: {sys.path}")
+    # plugin = importlib.import_module(f"{exp.plugins.sequence_alg}")  
+
+
+    # Iterate over the files in the 'plugins' directory
+    for filename in os.listdir(plugin_dir):
+        if filename.endswith('.py') and filename != '__init__.py':
+            # Get the plugin name without the '.py' extension
+            plugin_name = filename[:-3]
+            
+            if plugin_name == exp.plugins.sequence_alg:
+            # Dynamically import the plugin
+                try:
+                    print(f"Loading plugin: {plugin_name}")
+                    plugin = importlib.import_module(plugin_name)
+                except ImportError:
+                    print(f"Error loading {plugin_name}. Check missing packages or syntax errors.")
+                    return None
+            
+                # Now you can use the plugin (e.g., assume each plugin has a `run()` function)
+                if hasattr(plugin, 'Sequence'):
+                    # plugin.run()  # Call the `run` function of the plugin
+
+                    print(f"Sequence by using {exp.plugins.sequence_alg}")
+                    try: 
+                        sequence = plugin.Sequence(ptv=ptv, exp = exp)
+                        sequence.do_sequence()
+                        
+                    except:
+                        print(f"Sequence by using {plugin_name} has failed.")
+
+
+            #     seq = importlib.import_module(str(extern_sequence))
+            # except ImportError:
+            #     print(
+            #         "Error loading or running "
+            #         + extern_sequence
+            #         + ". Falling back to default sequence algorithm"
+            #     )
+
+            # print("Sequence by using " + extern_sequence)
+            # sequence = seq.Sequence(
+            #     ptv=ptv,
+            #     exp1=info.object.exp1,
+            #     camera_list=info.object.camera_list,
+            # )
+            # sequence.do_sequence()
+            # print("Sequence by using "+extern_sequence+" has failed."
+
 
 
 def py_sequence_loop(exp):
@@ -212,6 +269,9 @@ def py_sequence_loop(exp):
     the data in the cam#.XXX_targets (rewritten) and rt_is.XXX files. Basically
     it is to run the batch as in pyptv_batch.py without tracking
     """
+
+    # Sequence parameters    
+
     n_cams, cpar, spar, vpar, tpar, cals = (
         exp.n_cams,
         exp.cpar,
@@ -220,6 +280,11 @@ def py_sequence_loop(exp):
         exp.tpar,
         exp.cals,
     )
+
+    # # Sequence parameters
+    # spar = SequenceParams(num_cams=n_cams)
+    # spar.read_sequence_par(b"parameters/sequence.par", n_cams)
+
 
     pftVersionParams = par.PftVersionParams(path=Path("parameters"))
     pftVersionParams.read()
@@ -238,7 +303,7 @@ def py_sequence_loop(exp):
         for i_cam in range(n_cams):
             base_image_name = spar.get_img_base_name(i_cam).decode()
             if Existing_Target:
-                targs = read_targets(f'cam_{i_cam:d}.{frame:d}')
+                targs = read_targets(base_image_name, frame)
             else:
                 # imname = spar.get_img_base_name(i_cam) + str(frame).encode()
                 
@@ -265,8 +330,8 @@ def py_sequence_loop(exp):
                     if exp.exp1.active_params.m_params.Subtr_Mask:
                         # print("Subtracting mask")
                         try:
-                            background_name = exp.exp1.active_params.m_params.Base_Name_Mask.replace('#',str(i_cam))
-                            # background_name = exp.exp1.active_params.m_params.Base_Name_Mask % (i_cam + 1)
+                            # background_name = exp.exp1.active_params.m_params.Base_Name_Mask.replace('#',str(i_cam))
+                            background_name = exp.exp1.active_params.m_params.Base_Name_Mask % (i_cam + 1)
                             background = imread(background_name)
                             img = np.clip(img - background, 0, 255).astype(np.uint8)
 
@@ -293,8 +358,9 @@ def py_sequence_loop(exp):
         # Save targets only after they've been modified:
         # this is a workaround of the proper way to construct _targets name
         for i_cam in range(n_cams):
-            # base_name = spar.get_img_base_name(i_cam).decode()
-            write_targets(detections[i_cam], f'cam_{i_cam:d}.{frame:d}')
+            base_name = spar.get_img_base_name(i_cam).decode()
+            # base_name = replace_format_specifiers(base_name) # %d to %04d
+            write_targets(detections[i_cam], base_name, frame)
 
         print("Frame " + str(frame) + " had " +
               repr([s.shape[1] for s in sorted_pos]) + " correspondences.")
@@ -321,7 +387,8 @@ def py_sequence_loop(exp):
 
         # Save rt_is
         rt_is_filename = default_naming["corres"].decode()
-        rt_is_filename = rt_is_filename + f'.{frame}'
+        # rt_is_filename = f'{rt_is_filename}.{frame:04d}'
+        rt_is_filename = f'{rt_is_filename}.{frame}'
         with open(rt_is_filename, "w", encoding="utf8") as rt_is:
             rt_is.write(str(pos.shape[0]) + "\n")
             for pix, pt in enumerate(pos):
@@ -333,17 +400,22 @@ def py_sequence_loop(exp):
 
 def py_trackcorr_init(exp):
     """Reads all the necessary stuff into Tracker"""
-    # Update name in sequence_par because we use now this 
-    # complex %d construction. 
-    for i_cam in range(exp.n_cams):
-        # print(f" renaming {i_cam = }")
-        # print(exp.spar.get_img_base_name(i_cam).decode())
-        # base_name = exp.spar.get_img_base_name(i_cam).decode()
-        # filename = base_name.split('%')[0] + base_name.split('d')[-1]        
-        exp.spar.set_img_base_name(i_cam, 'cam_%d.' % (i_cam))
+    
+    for cam_id in range(exp.cpar.get_num_cams()):
+        img_base_name = exp.spar.get_img_base_name(cam_id).decode()
+        # print(img_base_name)
+        short_name = img_base_name.split('%')[0]
+        if short_name[-1] == '_':
+            short_name = short_name[:-1]+'.'
+        # print(short_name)
+        print(f' Renaming {img_base_name} to {short_name} before C library tracker')
+        exp.spar.set_img_base_name(cam_id, short_name)
+        
 
     tracker = Tracker(exp.cpar, exp.vpar, exp.track_par, exp.spar, exp.cals,
                       default_naming)
+
+    
     return tracker
 
 
@@ -628,7 +700,7 @@ def py_multiplanecalibration(exp):
         print("End multiplane")
 
 
-def read_targets(fname: str) -> TargetArray:
+def read_targets(file_base: str, frame: int=123456789) -> TargetArray:
     """Read targets from a file."""
     # buffer = TargetArray()
     # buffer = []
@@ -636,13 +708,9 @@ def read_targets(fname: str) -> TargetArray:
     # # if file_base has an extension, remove it
     # file_base = file_base.split(".")[0]
 
-    # if frame_num > 0:
-    #     # filename = f"{file_base}{frame_num:04d}_targets"
-    #     fname = file_base % frame_num + '_targets'
-    # else:
-    #     fname = f"{file_base}_targets"
+    # file_base = replace_format_specifiers(file_base) # remove %d
+    filename = file_base_to_filename(file_base, frame)
 
-    filename = Path(fname + "_targets")
     print(f" filename: {filename}")
 
     try:
@@ -665,7 +733,7 @@ def read_targets(fname: str) -> TargetArray:
 
 
     except IOError as err:
-        print(f"Can't open ascii file: {filename}")
+        print(f"Can't open targets file: {filename}")
         raise err
     
     # print(f" read {len(buffer)} targets from {filename}")
@@ -673,7 +741,7 @@ def read_targets(fname: str) -> TargetArray:
 
 
 def write_targets(
-    targets: TargetArray, file_name: str) -> bool:
+    targets: TargetArray, file_base: str, frame: int=123456789) -> bool:
     """Write targets to a file."""
     success = False
 
@@ -683,12 +751,10 @@ def write_targets(
     # if "%" not in file_base:
     #     file_base = file_base + "%05d"
 
-    # if frame_num == 0:
-    #     frame_num = 123456789
+    # file_base = replace_format_specifiers(file_base) # remove %d
+    filename = file_base_to_filename(file_base, frame)
 
-    # file_name =  file_base % frame_num + "_targets"
-    file_name = file_name + "_targets"
-    print("Writing targets to file: ", file_name)
+    print("Writing targets to file: ", filename)
 
     num_targets = len(targets)
 
@@ -699,7 +765,7 @@ def write_targets(
         )
         # Save the target array to file using savetxt
         np.savetxt(
-            file_name,
+            filename,
             target_arr,
             fmt="%4d %9.4f %9.4f %5d %5d %5d %5d %5d",
             header=f"{num_targets}",
@@ -707,6 +773,18 @@ def write_targets(
         )
         success = True
     except IOError:
-        print(f"Can't open ascii file: {file_name}")
+        print(f"Can't open targets file: {filename}")
 
     return success
+
+def file_base_to_filename(file_base, frame):
+    """ Convert file base name to a filename """
+    file_base = os.path.splitext(file_base)[0]
+    file_base = re.sub(r"_%\d*d", "", file_base)
+    if re.search(r"%\d*d", file_base):
+        _ = re.sub(r"%\d*d", "%04d", file_base)
+        filename = Path(f'{_ % frame}_targets')
+    else:
+        filename =  Path(f'{file_base}.{frame:04d}_targets')
+
+    return filename
