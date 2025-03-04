@@ -22,7 +22,6 @@ from optv.segmentation import target_recognition
 from optv.tracking_framebuf import TargetArray
 from optv.tracker import Tracker, default_naming
 from optv.imgcoord import image_coordinates
-from optv.tracking_framebuf import read_rt_is_files
 
 from skimage.io import imread
 from skimage import img_as_ubyte
@@ -32,6 +31,7 @@ import glob
 from scipy.optimize import minimize
 from pyptv import ptv as ptv
 import re
+
 
 
 def negative(img):
@@ -525,7 +525,7 @@ def py_get_pix(x, y):
     return x, y
 
 
-def py_calibration(selection):
+def py_calibration(selection, exp):
     """Calibration
     def py_calibration(sel):
     calibration_proc_c(sel)"""
@@ -544,7 +544,6 @@ def py_calibration(selection):
         
     if selection == 10:
         """Run the calibration with particles """
-        pass
 
         def read_rt_is_files_with_targets(path, n_cams):
             """Reads all rt_is.* files from the specified path and returns a list of 3D points and their corresponding targets."""
@@ -554,12 +553,13 @@ def py_calibration(selection):
             
             for file in rt_is_files:
                 with open(file, "r") as f:
+                    frame_num = int(os.path.splitext(file)[1][1:])
                     num_points = int(f.readline().strip())
                     for _ in range(num_points):
                         data = f.readline().strip().split()
                         points.append([float(data[1]), float(data[2]), float(data[3])])
                         for i_cam in range(n_cams):
-                            target_file = Path(path) / f"cam_{i_cam:d}.{int(data[4 + i_cam]):d}_targets"
+                            target_file = Path(path) / f"cam_{i_cam:d}.{frame_num:04d}_targets"
                             if target_file.exists():
                                 targets[i_cam].append(read_targets(str(target_file)))
                             else:
@@ -582,24 +582,15 @@ def py_calibration(selection):
 
         def py_calibration_with_particles(exp):
             """Calibration using particles."""
-            points_3d = read_rt_is_files(Path(exp.working_folder))
-            
+            points_3d, detected_points = read_rt_is_files_with_targets(Path(exp.working_folder), exp.n_cams)
             for i_cam in range(exp.n_cams):
-                detected_points = []
-                for frame in range(exp.spar.get_first(), exp.spar.get_last() + 1):
-                    target_file = Path(exp.working_folder) / f"cam{i_cam+1}_{frame}_targets"
-                    if target_file.exists():
-                        with open(target_file, "r") as f:
-                            num_points = int(f.readline().strip())
-                            for _ in range(num_points):
-                                data = f.readline().strip().split()
-                                detected_points.append([float(data[1]), float(data[2])])
-                detected_points = np.array(detected_points)
                 exp.cals[i_cam] = optimize_calibration(points_3d, detected_points, exp.cpar, exp.cals[i_cam])
             
             print("Calibration with particles completed.")
 
-    return("py_calibration with options is not implemented yet")
+
+        py_calibration_with_particles(exp)
+
 
 
 def py_multiplanecalibration(exp):
@@ -790,3 +781,40 @@ def file_base_to_filename(file_base, frame):
         filename =  Path(f'{file_base}.{frame:04d}_targets')
 
     return filename
+
+
+def read_rt_is_file(filename) -> List[List[float]]:
+    """Read data from an rt_is file and return the parsed values."""
+    try:
+        with open(filename, "r", encoding="utf-8") as file:
+            # Read the number of rows
+            num_rows = int(file.readline().strip())
+            if num_rows == 0:
+                raise ValueError("Failed to read the number of rows")
+
+            data = []
+            for _ in range(num_rows):
+                line = file.readline().strip()
+                if not line:
+                    break
+
+                values = line.split()
+                if len(values) != 8:
+                    raise ValueError("Incorrect number of values in line")
+
+                row_number = int(values[0])
+                x = float(values[1])
+                y = float(values[2])
+                z = float(values[3])
+                p1 = int(values[4])
+                p2 = int(values[5])
+                p3 = int(values[6])
+                p4 = int(values[7])
+
+                data.append([x, y, z, p1, p2, p3, p4])
+
+            return data
+
+    except IOError as e:
+        print(f"Can't open ascii file: {filename}")
+        raise e

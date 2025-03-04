@@ -1209,7 +1209,7 @@ args=(self.cals[i_cam],
     def _button_orient_part_fired(self):
 
         self.backup_ori_files()
-        ptv.py_calibration(10)
+        ptv.py_calibration(10, self)
         x1, y1, x2, y2 = [], [], [], []
         ptv.py_get_from_orient(x1, y1, x2, y2)
 
