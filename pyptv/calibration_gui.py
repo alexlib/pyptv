@@ -950,77 +950,15 @@ class CalibrationGUI(HasTraits):
             except BaseException:
                 print("Error in OPTV full_calibration, attempting Scipy")
                 # raise
-            
-                # this chunk optimizes for radial distortion
-
-                if any(flag in flags for flag in ['k1', 'k2', 'k3']):
-                    sol = minimize(self._residuals_k,
-                                self.cals[i_cam].get_radial_distortion(), 
-                                args=(self.cals[i_cam], 
-                                        self.cal_points["pos"], 
-                                        targs,
-                                        self.cpar
-                                        ), 
-                                        method='Nelder-Mead', 
-                                        tol=1e-11,
-                                        options={'disp':True},
-                                        )
-                    radial = sol.x 
-                    self.cals[i_cam].set_radial_distortion(radial)
-                else:
-                    radial = self.cals[i_cam].get_radial_distortion()
-                
-                if any(flag in flags for flag in ['p1', 'p2']):
-                    # now decentering
-                    sol = minimize(self._residuals_p,
-                                self.cals[i_cam].get_decentering(), 
-                                args=(self.cals[i_cam], 
-                                        self.cal_points["pos"], 
-                                        targs,
-                                        self.cpar
-                                        ), 
-                                        method='Nelder-Mead', 
-                                        tol=1e-11,
-                                        options={'disp':True},
-                                        )
-                    decentering = sol.x 
-                    self.cals[i_cam].set_decentering(decentering)
-                else:
-                    decentering = self.cals[i_cam].get_decentering()
-                
-                if any(flag in flags for flag in ['scale', 'shear']):
-                    # now affine
-                    sol = minimize(self._residuals_s,
-                                self.cals[i_cam].get_affine(), 
-                                args=(self.cals[i_cam], 
-                                        self.cal_points["pos"], 
-                                        targs,
-                                        self.cpar
-                                        ), 
-                                        method='Nelder-Mead', 
-                                        tol=1e-11,
-                                        options={'disp':True},
-                                        )
-                    affine = sol.x 
-                    self.cals[i_cam].set_affine_trans(affine)
-
-                else:
-                    affine = self.cals[i_cam].get_affine()
-                
-
-
                 # Now project and estimate full residuals
                 self._project_cal_points(i_cam)
-
-                residuals = self._residuals_combined(
-                                np.r_[radial, decentering, affine],
-                                self.cals[i_cam], 
-                                self.cal_points["pos"], 
+                
+                residuals = ptv.full_scipy_calibration(
+                                self.cals[i_cam],
+                                self.cal_points["pos"],
                                 targs,
-                                self.cpar
-                                )
-
-                residuals /= 100
+                                self.cpar,
+                                flags=flags)
 
                 targ_ix = [t.pnr() for t in targs if t.pnr() != -999]
                 # targ_ix = np.arange(len(all_detected))
