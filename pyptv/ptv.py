@@ -823,3 +823,155 @@ def read_rt_is_file(filename) -> List[List[float]]:
     except IOError as e:
         print(f"Can't open ascii file: {filename}")
         raise e
+    
+
+def full_scipy_calibration(cal: Calibration, 
+                           XYZ: np.ndarray, 
+                           targs: TargetArray, 
+                           cpar: ControlParams, 
+                           flags=[]
+                           ):
+    
+    """ Full calibration using scipy.optimize """
+    from scipy.optimize import minimize
+    from optv.transforms import convert_arr_metric_to_pixel
+    from optv.imgcoord import image_coordinates
+
+    def _residuals_k(x, cal, XYZ, xy, cpar):
+        """Residuals due to radial distortion
+
+        Args:
+            x (array-like): Array of parameters.
+            cal (Calibration): Calibration object.
+            XYZ (array-like): 3D coordinates.
+            xy (array-like): 2D image coordinates.
+            cpar (CPar): Camera parameters.
+
+
+            args=(calibs[i_cam], 
+                self.cal_points["pos"], 
+                targs,
+                self.cpar
+                )
+
+
+        Returns:
+            residuals: Distortion in pixels
+        """
+
+        cal.set_radial_distortion(x)
+        targets = convert_arr_metric_to_pixel(
+            image_coordinates(XYZ, cal, cpar.get_multimedia_params()),
+            cpar
+        )
+        xyt = np.array([t.pos() if t.pnr() != -999 else [np.nan, np.nan] for t in xy])
+        residuals = np.nan_to_num(xyt - targets)
+        # residuals = xy[:,1:] - targets
+        return np.sum(residuals**2)
+
+    def _residuals_p(x, cal, XYZ, xy, cpar):
+        """Residuals due to decentering """
+        cal.set_decentering(x)
+        targets = convert_arr_metric_to_pixel(
+            image_coordinates(XYZ, cal, cpar.get_multimedia_params()),
+            cpar
+        )
+        xyt = np.array([t.pos() if t.pnr() != -999 else [np.nan, np.nan] for t in xy])
+        residuals = np.nan_to_num(xyt - targets)
+        return np.sum(residuals**2)
+
+    def _residuals_s(x, cal, XYZ, xy, cpar):
+        """Residuals due to decentering """
+        cal.set_affine_trans(x)
+        targets = convert_arr_metric_to_pixel(
+            image_coordinates(XYZ, cal, cpar.get_multimedia_params()),
+            cpar
+        )
+        xyt = np.array([t.pos() if t.pnr() != -999 else [np.nan, np.nan] for t in xy])
+        residuals = np.nan_to_num(xyt - targets)
+        return np.sum(residuals**2)    
+
+    def _residuals_combined(x, cal, XYZ, xy, cpar):
+        """Combined residuals  """
+
+        cal.set_radial_distortion(x[:3])
+        cal.set_decentering(x[3:5])
+        cal.set_affine_trans(x[5:])
+
+        targets = convert_arr_metric_to_pixel(
+            image_coordinates(XYZ, cal, cpar.get_multimedia_params()),
+            cpar
+        )
+        xyt = np.array([t.pos() if t.pnr() != -999 else [np.nan, np.nan] for t in xy])
+        residuals = np.nan_to_num(xyt - targets)
+        return residuals
+    
+
+    # Main loop
+
+    if any(flag in flags for flag in ['k1', 'k2', 'k3']):
+        sol = minimize(_residuals_k,
+                    cal.get_radial_distortion(), 
+                    args=(cal, 
+                            XYZ, 
+                            targs,
+                            cpar
+                            ), 
+                            method='Nelder-Mead', 
+                            tol=1e-11,
+                            options={'disp':True},
+                            )
+        radial = sol.x 
+        cal.set_radial_distortion(radial)
+    else:
+        radial = cal.get_radial_distortion()
+
+    if any(flag in flags for flag in ['p1', 'p2']):
+        # now decentering
+        sol = minimize(_residuals_p,
+                    cal.get_decentering(), 
+                    args=(cal, 
+                            XYZ, 
+                            targs,
+                            cpar
+                            ), 
+                            method='Nelder-Mead', 
+                            tol=1e-11,
+                            options={'disp':True},
+                            )
+        decentering = sol.x 
+        cal.set_decentering(decentering)
+    else:
+        decentering = cal.get_decentering()
+
+    if any(flag in flags for flag in ['scale', 'shear']):
+        # now affine
+        sol = minimize(_residuals_s,
+                    cal.get_affine(), 
+                    args=(cal, 
+                            XYZ, 
+                            targs,
+                            cpar
+                            ), 
+                            method='Nelder-Mead', 
+                            tol=1e-11,
+                            options={'disp':True},
+                            )
+        affine = sol.x 
+        cal.set_affine_trans(affine)
+
+    else:
+        affine = cal.get_affine()
+
+
+    residuals = _residuals_combined(
+                    np.r_[radial, decentering, affine],
+                    cal, 
+                    XYZ, 
+                    targs,
+                    cpar
+                    )
+
+    residuals /= 100
+
+    return residuals 
