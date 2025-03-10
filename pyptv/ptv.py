@@ -49,7 +49,12 @@ def py_set_img(img, i):
 
 
 def py_start_proc_c(n_cams):
-    """Read parameters"""
+    """ Read parameters
+    
+    Usage: 
+    cpar, spar, vpar, track_par, tpar, cals, epar = py_start_proc_c(n_cams)
+
+    """
 
     # Control parameters
     cpar = ControlParams(n_cams)
