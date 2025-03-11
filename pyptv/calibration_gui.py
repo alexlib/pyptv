@@ -1155,12 +1155,7 @@ args=(self.cals[i_cam],
             targs = targs_all[i_cam]
             residuals = residuals_all[i_cam]
 
-            x, y = [], []
-            for t in targ_ix:
-                if t != -999:
-                    pos = targs[t].pos()
-                    x.append(pos[0])
-                    y.append(pos[1])
+            x, y = zip(*[targs[t].pos() for t in targ_ix if t != -999])
 
             self.camera[i_cam]._plot.overlays.clear()
             self.drawcross(
@@ -1170,8 +1165,8 @@ args=(self.cals[i_cam],
             self.camera[i_cam].drawquiver(
                 x,
                 y,
-                x + SCALE * residuals[: len(x), 0],
-                y + SCALE * residuals[: len(x), 1],
+                x + 50 * residuals[: len(x), 0],
+                y + 50 * residuals[: len(x), 1],
                 "red",
             )
         

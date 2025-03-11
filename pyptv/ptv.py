@@ -626,8 +626,9 @@ def py_calibration(selection, exp):
             targ_ix_all.append(targ_ix)
             residuals_all.append(residuals)
 
-            print("End calibration with particles")
-            return targs_all, targ_ix_all, residuals_all
+            
+        print("End calibration with particles")
+        return targs_all, targ_ix_all, residuals_all
         
 
 
