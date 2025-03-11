@@ -32,6 +32,7 @@ from scipy.optimize import minimize
 from pyptv import ptv as ptv
 import re
 
+NAMES = ["cc", "xh", "yh", "k1", "k2", "k3", "p1", "p2", "scale", "shear"]
 
 
 def negative(img):
@@ -549,52 +550,87 @@ def py_calibration(selection, exp):
         
     if selection == 10:
         """Run the calibration with particles """
+        from optv.tracking_framebuf import Frame
+        from pyptv.parameters import OrientParams
 
-        def read_rt_is_files_with_targets(path, n_cams):
-            """Reads all rt_is.* files from the specified path and returns a list of 3D points and their corresponding targets."""
-            rt_is_files = glob.glob(str(path / "res" / "rt_is.*"))
-            points = []
-            targets = [[] for _ in range(n_cams)]
+        num_cams = exp.cpar.get_num_cams()
+
+        cpar, spar, vpar, track_par, tpar, calibs, epar = py_start_proc_c(num_cams)
+        targ_files = [spar.get_img_base_name(c).decode().split('%d')[0].encode() for c in \
+    range(num_cams)]
+        # recognized names for the flags:
+        
+        op = OrientParams()
+        op.read()
+
+        flags = [name for name in NAMES if getattr(op, name) == 1]
+        # Iterate over frames, loading the big lists of 3D positions and 
+        # respective detections.
+        all_known = []
+        all_detected = [[] for c in range(cpar.get_num_cams())]
+
+        for frm_num in range(spar.get_first(), spar.get_last() + 1): # all frames for now, think of skipping some
+            frame = Frame(cpar.get_num_cams(), 
+                corres_file_base = ('res/rt_is').encode(), 
+                linkage_file_base= ('res/ptv_is').encode(),
+                target_file_base = targ_files, 
+                frame_num = frm_num)
+                
+            all_known.append(frame.positions())
+            for cam in range(cpar.get_num_cams()):
+                all_detected[cam].append(frame.target_positions_for_camera(cam))
+
+        # Make into the format needed for full_calibration.
+        all_known = np.vstack(all_known)
+
+        # Calibrate each camera accordingly.
+        targ_ix_all = []
+        residuals_all = []
+        targs_all = []
+        for cam in range(num_cams):
+            detects = np.vstack(all_detected[cam])
+            assert detects.shape[0] == all_known.shape[0]
             
-            for file in rt_is_files:
-                with open(file, "r") as f:
-                    frame_num = int(os.path.splitext(file)[1][1:])
-                    num_points = int(f.readline().strip())
-                    for _ in range(num_points):
-                        data = f.readline().strip().split()
-                        points.append([float(data[1]), float(data[2]), float(data[3])])
-                        for i_cam in range(n_cams):
-                            target_file = Path(path) / f"cam_{i_cam:d}.{frame_num:04d}_targets"
-                            if target_file.exists():
-                                targets[i_cam].append(read_targets(str(target_file)))
-                            else:
-                                targets[i_cam].append(None)
-            return np.array(points), targets
-
-        def reprojection_error(params, points_3d, detected_points, cpar, cal):
-            """Calculates the reprojection error for the given parameters."""
-            cal.update_params(params)
-            projected_points = image_coordinates(points_3d, cal, cpar)
-            error = np.linalg.norm(projected_points - detected_points, axis=1)
-            return np.sum(error)
-
-        def optimize_calibration(points_3d, detected_points, cpar, cal):
-            """Optimizes the calibration parameters to minimize the reprojection error."""
-            initial_params = cal.get_params()
-            result = minimize(reprojection_error, initial_params, args=(points_3d, detected_points, cpar, cal))
-            cal.update_params(result.x)
-            return cal
-
-        def py_calibration_with_particles(exp):
-            """Calibration using particles."""
-            points_3d, detected_points = read_rt_is_files_with_targets(Path(exp.working_folder), exp.n_cams)
-            for i_cam in range(exp.n_cams):
-                exp.cals[i_cam] = optimize_calibration(points_3d, detected_points, exp.cpar, exp.cals[i_cam])
+            have_targets = ~np.isnan(detects[:,0])
+            used_detects = detects[have_targets,:]
+            used_known = all_known[have_targets,:]
             
-            print("Calibration with particles completed.")
+            targs = TargetArray(len(used_detects))
+            
+            for tix in range(len(used_detects)):
+                targ = targs[tix]
+                targ.set_pnr(tix)
+                targ.set_pos(used_detects[tix])
+            
 
 
-        py_calibration_with_particles(exp)
+            residuals = full_scipy_calibration(
+                calibs[cam],
+                used_known,
+                targs,
+                cpar,
+                flags=flags
+            )
+            print(f"After scipy full calibration, {np.sum(residuals**2)}")
+            
+            print(("Camera %d" % (cam + 1)))
+            print((calibs[cam].get_pos()))
+            print((calibs[cam].get_angles()))
+
+            # Save the results
+            exp._write_ori(cam, addpar_flag=True)  # addpar_flag to save addpar file
+
+            targ_ix = [t.pnr() for t in targs if t.pnr() != -999]
+
+            targs_all.append(targs)
+            targ_ix_all.append(targ_ix)
+            residuals_all.append(residuals)
+
+            print("End calibration with particles")
+            return targs_all, targ_ix_all, residuals_all
+        
+
+
 
 
 
@@ -656,37 +692,7 @@ def py_multiplanecalibration(exp):
 
         op = par.OrientParams()
         op.read()
-
-        # recognized names for the flags:
-        names = [
-            "cc",
-            "xh",
-            "yh",
-            "k1",
-            "k2",
-            "k3",
-            "p1",
-            "p2",
-            "scale",
-            "shear",
-        ]
-        op_names = [
-            op.cc,
-            op.xh,
-            op.yh,
-            op.k1,
-            op.k2,
-            op.k3,
-            op.p1,
-            op.p2,
-            op.scale,
-            op.shear,
-        ]
-
-        flags = []
-        for name, op_name in zip(names, op_names):
-            if op_name == 1:
-                flags.append(name)
+        flags = [name for name in NAMES if getattr(op, name) == 1]
 
         # Run the multiplane calibration
         residuals, targ_ix, err_est = full_calibration(exp.cals[0], all_known,

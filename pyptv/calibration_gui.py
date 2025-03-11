@@ -50,6 +50,7 @@ from scipy.optimize import minimize
 
 # recognized names for the flags:
 NAMES = ["cc", "xh", "yh", "k1", "k2", "k3", "p1", "p2", "scale", "shear"]
+SCALE = 5000
 
 # -------------------------------------------
 class ClickerTool(ImageInspectorTool):
@@ -824,8 +825,6 @@ class CalibrationGUI(HasTraits):
         fine tuning of ORI and ADDPAR
 
         """
-        scale = 5000
-
         if self.need_reset:
             self.reset_show_images()
             self.need_reset = 0
@@ -992,8 +991,8 @@ class CalibrationGUI(HasTraits):
             self.camera[i_cam].drawquiver(
                 x,
                 y,
-                x + scale * residuals[: len(x), 0],
-                y + scale * residuals[: len(x), 1],
+                x + SCALE * residuals[: len(x), 0],
+                y + SCALE * residuals[: len(x), 1],
                 "red",
             )
             # self.camera[i]._plot.index_mapper.range.set_bounds(0, self.h_pixel)
@@ -1145,24 +1144,37 @@ args=(self.cals[i_cam],
         np.savetxt(txt_matched, known, fmt="%10.5f")
 
     def _button_orient_part_fired(self):
+        """ Orientation with particles """
 
         self.backup_ori_files()
-        ptv.py_calibration(10, self)
-        x1, y1, x2, y2 = [], [], [], []
-        ptv.py_get_from_orient(x1, y1, x2, y2)
+        targs_all, targ_ix_all, residuals_all = ptv.py_calibration(10, self)
 
-        self.reset_plots()
-        for i in range(len(self.camera)):
-            self.camera[i]._plot_data.set_data(
-                "imagedata", self.ori_img[i].astype(np.float)
+        for i_cam in range(self.n_cams):
+
+            targ_ix = targ_ix_all[i_cam]
+            targs = targs_all[i_cam]
+            residuals = residuals_all[i_cam]
+
+            x, y = [], []
+            for t in targ_ix:
+                if t != -999:
+                    pos = targs[t].pos()
+                    x.append(pos[0])
+                    y.append(pos[1])
+
+            self.camera[i_cam]._plot.overlays.clear()
+            self.drawcross(
+                "orient_x", "orient_y", x, y, "orange", 5, i_cam=i_cam
             )
-            self.camera[i]._img_plot = self.camera[i]._plot.img_plot(
-                "imagedata", colormap=gray
-            )[0]
-            self.camera[i].drawquiver(x1[i], y1[i], x2[i], y2[i], "red")
-            self.camera[i]._plot.index_mapper.range.set_bounds(0, self.h_pixel)
-            self.camera[i]._plot.value_mapper.range.set_bounds(0, self.v_pixel)
-            self.drawcross("orient_x", "orient_y", x1, y1, "orange", 4)
+            
+            self.camera[i_cam].drawquiver(
+                x,
+                y,
+                x + SCALE * residuals[: len(x), 0],
+                y + SCALE * residuals[: len(x), 1],
+                "red",
+            )
+        
 
         self.status_text = "Orientation with particles finished."
 
