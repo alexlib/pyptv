@@ -21,7 +21,6 @@ from optv.parameters import (
 from optv.segmentation import target_recognition
 from optv.tracking_framebuf import TargetArray
 from optv.tracker import Tracker, default_naming
-from optv.imgcoord import image_coordinates
 
 from skimage.io import imread
 from skimage import img_as_ubyte
@@ -164,31 +163,18 @@ def py_correspondences_proc_c(exp):
 def py_determination_proc_c(n_cams, sorted_pos, sorted_corresp, corrected):
     """Returns 3d positions"""
 
-    # Control parameters
-    cpar = ControlParams(n_cams)
-    cpar.read_control_par(b"parameters/ptv.par")
-
-    # Volume parameters
-    vpar = VolumeParams()
-    vpar.read_volume_par(b"parameters/criteria.par")
-
-    cals = []
-    for i_cam in range(n_cams):
-        cal = Calibration()
-        tmp = cpar.get_cal_img_base_name(i_cam)
-        cal.from_file(tmp + b".ori", tmp + b".addpar")
-        cals.append(cal)
+    cpar, spar, vpar, track_par, tpar, cals, epar = py_start_proc_c(n_cams)
 
     # Distinction between quad/trip irrelevant here.
     sorted_pos = np.concatenate(sorted_pos, axis=1)
     sorted_corresp = np.concatenate(sorted_corresp, axis=1)
 
     flat = np.array([
-        corrected[i].get_by_pnrs(sorted_corresp[i]) for i in range(len(cals))
+        corrected[i].get_by_pnrs(sorted_corresp[i]) for i in range(n_cams)
     ])
     pos, rcm = point_positions(flat.transpose(1, 0, 2), cpar, cals, vpar)
 
-    if len(cals) < 4:
+    if n_cams < 4:
         print_corresp = -1 * np.ones((4, sorted_corresp.shape[1]))
         print_corresp[:len(cals), :] = sorted_corresp
     else:
@@ -636,75 +622,77 @@ def py_calibration(selection, exp):
         
 
 
-def py_multiplanecalibration(exp):
-    """Performs multiplane calibration, in which for all cameras the pre-processed plane in multiplane.par al combined.
-    Overwrites the ori and addpar files of the cameras specified in cal_ori.par of the multiplane parameter folder
-    """
+# def py_multiplanecalibration(exp):
+#     """Performs multiplane calibration, in which for all cameras the pre-processed plane in multiplane.par al combined.
+#     Overwrites the ori and addpar files of the cameras specified in cal_ori.par of the multiplane parameter folder
+#     """
 
-    for i_cam in range(exp.n_cams):  # iterate over all cameras
-        all_known = []
-        all_detected = []
-        for i in range(exp.MultiParams.n_planes):  # combine all single planes
+#     for i_cam in range(exp.n_cams):  # iterate over all cameras
+#         all_known = []
+#         all_detected = []
+#         for i in range(exp.MultiParams.n_planes):  # combine all single planes
 
-            c = exp.calParams.img_ori[i_cam][-9]  # Get camera id
+#             c = exp.calParams.img_ori[i_cam][-9]  # Get camera id
 
-            file_known = exp.MultiParams.plane_name[i] + str(c) + ".tif.fix"
-            file_detected = exp.MultiParams.plane_name[i] + str(c) + ".tif.crd"
+#             file_known = exp.MultiParams.plane_name[i] + str(c) + ".tif.fix"
+#             file_detected = exp.MultiParams.plane_name[i] + str(c) + ".tif.crd"
 
-            # Load calibration point information from plane i
-            known = np.loadtxt(file_known)
-            detected = np.loadtxt(file_detected)
+#             # Load calibration point information from plane i
+#             known = np.loadtxt(file_known)
+#             detected = np.loadtxt(file_detected)
 
-            if np.any(detected == -999):
-                raise ValueError(
-                    ("Using undetected points in {} will cause " +
-                     "silliness. Quitting.").format(file_detected))
+#             if np.any(detected == -999):
+#                 raise ValueError(
+#                     ("Using undetected points in {} will cause " +
+#                      "silliness. Quitting.").format(file_detected))
 
-            num_known = len(known)
-            num_detect = len(detected)
+#             num_known = len(known)
+#             num_detect = len(detected)
 
-            if num_known != num_detect:
-                raise ValueError(
-                    "Number of detected points (%d) does not match" +
-                    " number of known points (%d) for %s, %s" %
-                    (num_known, num_detect, file_known, file_detected))
+#             if num_known != num_detect:
+#                 raise ValueError(
+#                     "Number of detected points (%d) does not match" +
+#                     " number of known points (%d) for %s, %s" %
+#                     (num_known, num_detect, file_known, file_detected))
 
-            if len(all_known) > 0:
-                detected[:, 0] = (all_detected[-1][-1, 0] + 1 +
-                                  np.arange(len(detected)))
+#             if len(all_known) > 0:
+#                 detected[:, 0] = (all_detected[-1][-1, 0] + 1 +
+#                                   np.arange(len(detected)))
 
-            # Append to list of total known and detected points
-            all_known.append(known)
-            all_detected.append(detected)
+#             # Append to list of total known and detected points
+#             all_known.append(known)
+#             all_detected.append(detected)
 
-        # Make into the format needed for full_calibration.
-        all_known = np.vstack(all_known)[:, 1:]
-        all_detected = np.vstack(all_detected)
+#         # Make into the format needed for full_calibration.
+#         all_known = np.vstack(all_known)[:, 1:]
+#         all_detected = np.vstack(all_detected)
 
-        targs = TargetArray(len(all_detected))
-        for tix in range(len(all_detected)):
-            targ = targs[tix]
-            det = all_detected[tix]
+#         targs = TargetArray(len(all_detected))
+#         for tix in range(len(all_detected)):
+#             targ = targs[tix]
+#             det = all_detected[tix]
 
-            targ.set_pnr(tix)
-            targ.set_pos(det[1:])
+#             targ.set_pnr(tix)
+#             targ.set_pos(det[1:])
 
-        # backup the ORI/ADDPAR files first
-        exp.backup_ori_files()
+#         # backup the ORI/ADDPAR files first
+#         exp.backup_ori_files()
 
-        op = par.OrientParams()
-        op.read()
-        flags = [name for name in NAMES if getattr(op, name) == 1]
+#         op = par.OrientParams()
+#         op.read()
+#         flags = [name for name in NAMES if getattr(op, name) == 1]
 
-        # Run the multiplane calibration
-        residuals, targ_ix, err_est = full_calibration(exp.cals[i_cam], all_known,
-                                                       targs, exp.cpar, flags)
+#         # Run the multiplane calibration
+#         residuals, targ_ix, err_est = full_calibration(exp.cals[i_cam], all_known,
+#                                                        targs, exp.cpar, flags)
 
-        # Save the results
+#         # Save the results
+#         ori = exp.calParams.img_ori[i_cam]
+#         addpar = ori + ".addpar"
+#         ori = ori + ".ori"
         
-        
-        exp.cals[i_cam].write(ori.encode(), addpar.encode())
-        print("End multiplane")
+#         exp.cals[i_cam].write(ori.encode(), addpar.encode())
+#         print("End multiplane")
 
 
 def read_targets(file_base: str, frame: int=123456789) -> TargetArray:
