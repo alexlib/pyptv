@@ -759,7 +759,7 @@ def write_targets(
     # file_base = replace_format_specifiers(file_base) # remove %d
     filename = file_base_to_filename(file_base, frame)
 
-    print("Writing targets to file: ", filename)
+    # print("Writing targets to file: ", filename)
 
     num_targets = len(targets)
 
