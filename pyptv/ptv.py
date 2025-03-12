@@ -618,7 +618,11 @@ def py_calibration(selection, exp):
             print((calibs[cam].get_angles()))
 
             # Save the results
-            exp._write_ori(cam, addpar_flag=True)  # addpar_flag to save addpar file
+            ori_filename = cpar.get_cal_img_base_name(cam)
+            addpar_filename = ori_filename + b".addpar"
+            ori_filename = ori_filename + b".ori"
+            calibs[cam].write(ori_filename, addpar_filename)
+            # exp._write_ori(cam, addpar_flag=True)  # addpar_flag to save addpar file
 
             targ_ix = [t.pnr() for t in targs if t.pnr() != -999]
 
@@ -630,9 +634,6 @@ def py_calibration(selection, exp):
         print("End calibration with particles")
         return targs_all, targ_ix_all, residuals_all
         
-
-
-
 
 
 def py_multiplanecalibration(exp):
@@ -696,12 +697,13 @@ def py_multiplanecalibration(exp):
         flags = [name for name in NAMES if getattr(op, name) == 1]
 
         # Run the multiplane calibration
-        residuals, targ_ix, err_est = full_calibration(exp.cals[0], all_known,
+        residuals, targ_ix, err_est = full_calibration(exp.cals[i_cam], all_known,
                                                        targs, exp.cpar, flags)
 
         # Save the results
-        exp._write_ori(i_cam,
-                       addpar_flag=True)  # addpar_flag to save addpar file
+        
+        
+        exp.cals[i_cam].write(ori.encode(), addpar.encode())
         print("End multiplane")
 
 
