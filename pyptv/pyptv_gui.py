@@ -1189,6 +1189,7 @@ class MainGUI(HasTraits):
     # ---------------------------------------------------
     def __init__(self, exp_path: Path, software_path: Path):
         super(MainGUI, self).__init__()
+       
         colors = ["yellow", "green", "red", "blue"]
         self.exp1 = Experiment()
         self.exp1.populate_runs(exp_path)

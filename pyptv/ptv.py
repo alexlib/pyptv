@@ -47,6 +47,17 @@ def py_set_img(img, i):
     """Not used anymore, was transferring images to the C"""
     pass
 
+def _read_calibrations(cpar: ControlParams, n_cams: int):
+    # Calibration parameters
+    cals = []
+    for i_cam in range(n_cams):
+        cal = Calibration()
+        tmp = cpar.get_cal_img_base_name(i_cam)
+        cal.from_file(tmp + b".ori", tmp + b".addpar")
+        cals.append(cal)
+
+    return cals
+
 
 def py_start_proc_c(n_cams):
     """ Read parameters
@@ -80,15 +91,7 @@ def py_start_proc_c(n_cams):
     epar = par.ExamineParams()
     epar.read()
 
-    # Calibration parameters
-    cals = []
-    for i_cam in range(n_cams):
-        cal = Calibration()
-        tmp = cpar.get_cal_img_base_name(i_cam)
-        cal.from_file(tmp + b".ori", tmp + b".addpar")
-        cals.append(cal)
-
-
+    cals = _read_calibrations(cpar, n_cams)
 
     return cpar, spar, vpar, track_par, tpar, cals, epar
 
@@ -537,33 +540,38 @@ def py_calibration(selection, exp):
     if selection == 10:
         """Run the calibration with particles """
         from optv.tracking_framebuf import Frame
-        from pyptv.parameters import OrientParams
+        from pyptv.parameters import OrientParams, ShakingParams
 
         num_cams = exp.cpar.get_num_cams()
 
-        cpar, spar, vpar, track_par, tpar, calibs, epar = py_start_proc_c(num_cams)
-        targ_files = [spar.get_img_base_name(c).decode().split('%d')[0].encode() for c in \
+        # cpar, spar, vpar, track_par, tpar, calibs, epar = py_start_proc_c(num_cams)
+        calibs = _read_calibrations(exp.cpar, num_cams)
+
+        targ_files = [exp.spar.get_img_base_name(c).decode().split('%d')[0].encode() for c in \
     range(num_cams)]
         # recognized names for the flags:
         
         op = OrientParams()
         op.read()
 
+        sp = ShakingParams()
+        sp.read()
+
         flags = [name for name in NAMES if getattr(op, name) == 1]
         # Iterate over frames, loading the big lists of 3D positions and 
         # respective detections.
         all_known = []
-        all_detected = [[] for c in range(cpar.get_num_cams())]
+        all_detected = [[] for c in range(num_cams)]
 
-        for frm_num in range(spar.get_first(), spar.get_last() + 1): # all frames for now, think of skipping some
-            frame = Frame(cpar.get_num_cams(), 
+        for frm_num in range(sp.shaking_first_frame, sp.shaking_last_frame + 1): 
+            frame = Frame(exp.cpar.get_num_cams(), 
                 corres_file_base = ('res/rt_is').encode(), 
                 linkage_file_base= ('res/ptv_is').encode(),
                 target_file_base = targ_files, 
                 frame_num = frm_num)
                 
             all_known.append(frame.positions())
-            for cam in range(cpar.get_num_cams()):
+            for cam in range(num_cams):
                 all_detected[cam].append(frame.target_positions_for_camera(cam))
 
         # Make into the format needed for full_calibration.
@@ -594,7 +602,7 @@ def py_calibration(selection, exp):
                 calibs[cam],
                 used_known,
                 targs,
-                cpar,
+                exp.cpar,
                 flags=flags
             )
             print(f"After scipy full calibration, {np.sum(residuals**2)}")
@@ -604,7 +612,7 @@ def py_calibration(selection, exp):
             print((calibs[cam].get_angles()))
 
             # Save the results
-            ori_filename = cpar.get_cal_img_base_name(cam)
+            ori_filename = exp.cpar.get_cal_img_base_name(cam)
             addpar_filename = ori_filename + b".addpar"
             ori_filename = ori_filename + b".ori"
             calibs[cam].write(ori_filename, addpar_filename)

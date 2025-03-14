@@ -303,7 +303,7 @@ class PlotWindow(HasTraits):
             )
             self._plot.overlays.append(ovlay)
 
-    def update_image(self, image, is_float):
+    def update_image(self, image, is_float=False):
         if is_float:
             self._plot_data.set_data("imagedata", image.astype(float))
         else:
@@ -320,8 +320,8 @@ class PlotWindow(HasTraits):
 
 class CalibrationGUI(HasTraits):
     status_text = Str("")
-    ori_img_name = []
-    ori_img = []
+    ori_cam_name = []
+    ori_cam = []
     pass_init = Bool(False)
     pass_sortgrid = Bool(False)
     pass_raw_orient = Bool(False)
@@ -338,7 +338,7 @@ class CalibrationGUI(HasTraits):
     button_raw_orient = Button()
     button_fine_orient = Button()
     button_orient_part = Button()
-    button_orient_shaking = Button()
+    # button_orient_shaking = Button()
     button_orient_dumbbell = Button()
     button_restore_orient = Button()
     button_checkpoint = Button()
@@ -379,6 +379,9 @@ class CalibrationGUI(HasTraits):
         with open(self.par_path / "ptv.par", "r") as f:
             self.n_cams = int(f.readline())
 
+        self.calParams = par.CalOriParams(self.n_cams, path=self.par_path)
+        self.calParams.read()
+
         self.camera = [PlotWindow() for i in range(self.n_cams)]
         for i in range(self.n_cams):
             self.camera[i].name = "Camera" + str(i + 1)
@@ -394,7 +397,7 @@ class CalibrationGUI(HasTraits):
                 VGroup(
                     Item(
                         name="button_showimg",
-                        label="Load/Show Images",
+                        label="Load images/parameters",
                         show_label=False,
                     ),
                     Item(
@@ -443,12 +446,6 @@ class CalibrationGUI(HasTraits):
                         enabled_when="pass_raw_orient",
                     ),
                     Item(
-                        name="button_orient_part",
-                        label="Orientation with particles",
-                        show_label=False,
-                        enabled_when="pass_init",
-                    ),
-                    Item(
                         name="button_orient_dumbbell",
                         label="Orientation from dumbbell",
                         show_label=False,
@@ -460,18 +457,18 @@ class CalibrationGUI(HasTraits):
                         show_label=False,
                         enabled_when="pass_init",
                     ),
-                    Item(
-                        name="button_checkpoint",
-                        label="Checkpoints",
-                        show_label=False,
-                        enabled_when="pass_init_disabled",
-                    ),
-                    Item(
-                        name="button_ap_figures",
-                        label="Ap figures",
-                        show_label=False,
-                        enabled_when="pass_init_disabled",
-                    ),
+                    # Item(
+                    #     name="button_checkpoint",
+                    #     label="Checkpoints",
+                    #     show_label=False,
+                    #     enabled_when="pass_init_disabled",
+                    # ),
+                    # Item(
+                    #     name="button_ap_figures",
+                    #     label="Ap figures",
+                    #     show_label=False,
+                    #     enabled_when="pass_init_disabled",
+                    # ),
                     show_left=False,
                 ),
                 VGroup(
@@ -490,6 +487,17 @@ class CalibrationGUI(HasTraits):
                         label="Edit addpar files",
                         show_label=False,
                     ),
+                    Item(
+                        name='_',
+                        label = '',
+                        show_label=False,
+                    ),
+                    Item(
+                        name="button_orient_part",
+                        label="Orientation with particles",
+                        show_label=False,
+                        enabled_when="pass_init",
+                    ),                    
                     show_left=False,
                 ),
             ),
@@ -519,8 +527,10 @@ class CalibrationGUI(HasTraits):
     def _button_edit_cal_parameters_fired(self):
         cp = parameter_gui.Calib_Params(par_path=self.par_path)
         cp.edit_traits(kind="modal")
+
         # at the end of a modification, copy the parameters
         par.copy_params_dir(self.par_path, self.active_path)
+        # and read again from the disk
         (
             self.cpar,
             self.spar,
@@ -537,16 +547,17 @@ class CalibrationGUI(HasTraits):
 
         # Initialize what is needed, copy necessary things
 
+        # copy parameters from active to default folder parameters/
+        par.copy_params_dir(self.active_path, self.par_path)
+
         print("\n Copying man_ori.dat \n")
         if os.path.isfile(os.path.join(self.par_path, "man_ori.dat")):
+            print("Warning - copying man_ori.dat from the /parameters\n")
             shutil.copyfile(
                 os.path.join(self.par_path, "man_ori.dat"),
                 os.path.join(self.working_folder, "man_ori.dat"),
             )
             print("\n Copied man_ori.dat \n")
-
-        # copy parameters from active to default folder parameters/
-        par.copy_params_dir(self.active_path, self.par_path)
 
         # read from parameters
         (
@@ -559,15 +570,13 @@ class CalibrationGUI(HasTraits):
             self.epar,
         ) = ptv.py_start_proc_c(self.n_cams)
 
+        print("reset grey scale thresholds for calibration:\n")
         self.tpar.read(b"parameters/detect_plate.par")
-
         print(self.tpar.get_grey_thresholds())
 
-        self.calParams = par.CalOriParams(self.n_cams, self.par_path)
-        self.calParams.read()
 
         if self.epar.Combine_Flag is True:
-            print("Combine Flag")
+            print("Combine Flag is On")
             self.MultiParams = par.MultiPlaneParams()
             self.MultiParams.read()
             for i in range(self.MultiParams.n_planes):
@@ -579,7 +588,7 @@ class CalibrationGUI(HasTraits):
         # read calibration images
         self.cal_images = []
         for i in range(len(self.camera)):
-            imname = self.calParams.img_cal_name[i]
+            imname = self.cpar.get_cal_img_base_name(i).decode()
             im = imread(imname)
             # im = ImageData.fromfile(imname).data
             if im.ndim > 2:
@@ -985,7 +994,7 @@ class CalibrationGUI(HasTraits):
             )
 
             # self.camera[i]._plot_data.set_data(
-            #     'imagedata', self.ori_img[i].astype(np.float))
+            #     'imagedata', self.ori_cam[i].astype(np.float))
             # self.camera[i]._img_plot = self.camera[
             #     i]._plot.img_plot('imagedata', colormap=gray)[0]
             self.camera[i_cam].drawquiver(
@@ -1149,6 +1158,19 @@ args=(self.cals[i_cam],
         self.backup_ori_files()
         targs_all, targ_ix_all, residuals_all = ptv.py_calibration(10, self)
 
+
+        # Graphics:
+        # parameters:
+
+        from parameters import ShakingParams
+        sp = ShakingParams()
+        sp.read()
+        seq_first = sp.shaking_first_frame
+        seq_last = sp.shaking_last_frame
+
+        base_names = [self.spar.get_img_base_name(i).decode() for i in range(self.n_cams)]
+
+
         for i_cam in range(self.n_cams):
 
             targ_ix = targ_ix_all[i_cam]
@@ -1157,7 +1179,30 @@ args=(self.cals[i_cam],
 
             x, y = zip(*[targs[t].pos() for t in targ_ix if t != -999])
 
+            # Remove points where either x or y is zero
+            x, y = zip(*[(xi, yi) for xi, yi in zip(x, y) if xi != 0 and yi != 0])
+
+            
+            # clear previous crosses
             self.camera[i_cam]._plot.overlays.clear()
+            
+            # create overlay images for each camera
+            if os.path.exists(base_names[i_cam] % seq_first):
+
+                # read images and create overlay
+                for i_seq in range(seq_first, seq_last + 1):  # loop over sequences                    
+                        temp_img = []
+                        for seq in range(seq_first, seq_last):
+                            _ = imread(base_names[i_cam] % seq)
+                            temp_img.append(img_as_ubyte(_))
+
+                        temp_img = np.array(temp_img)
+                        temp_img = np.max(temp_img, axis=0)
+
+                
+                self.camera[i_cam].update_image(temp_img)
+                
+                
             self.drawcross(
                 "orient_x", "orient_y", x, y, "orange", 5, i_cam=i_cam
             )
@@ -1165,8 +1210,8 @@ args=(self.cals[i_cam],
             self.camera[i_cam].drawquiver(
                 x,
                 y,
-                x + 50 * residuals[: len(x), 0],
-                y + 50 * residuals[: len(x), 1],
+                x + 5*residuals[: len(x), 0],
+                y + 5*residuals[: len(x), 1],
                 "red",
             )
         
@@ -1191,7 +1236,6 @@ args=(self.cals[i_cam],
         for i, cam in enumerate(self.camera):
             cam._plot.delplot(*list(cam._plot.plots.keys())[0:])
             cam._plot.overlays = []
-            # self.camera[i]._plot_data.set_data('imagedata',self.ori_img[i].astype(np.byte))
             cam._plot_data.set_data(
                 "imagedata", self.cal_images[i].astype(np.uint8)
             )
@@ -1201,12 +1245,10 @@ args=(self.cals[i_cam],
             cam._y = []
             cam._img_plot.tools = []
             
-            # for j in range(len(cam._quiverplots)):
-            #     cam._plot.remove(cam._quiverplots[j])
-            # cam._quiverplots = []
             
             cam.attach_tools()
             cam._plot.request_redraw()
+           
 
     def _button_edit_ori_files_fired(self):
         editor = oriEditor(path=self.par_path)
@@ -1253,8 +1295,7 @@ args=(self.cals[i_cam],
 
     def protect_ori_files(self):
         # backup ORI/ADDPAR files to the backup_cal directory
-        calOriParams = par.CalOriParams(self.n_cams, path=self.par_path)
-        calOriParams.read()
+
         for f in calOriParams.img_ori[: self.n_cams]:
             with open(f, "r") as d:
                 d.read().split()
@@ -1264,26 +1305,11 @@ args=(self.cals[i_cam],
                     print("protected ORI file %s " % f)
                     shutil.copyfile(f + ".bck", f)
 
-    # def update_plots(self, images):
-    #     for i in range(len(images)):
-    #         self.camera[i].update_image(images[i])
 
     def _read_cal_points(self):
 
-        # with open(self.calParams.fixp_name, 'r') as file:
-        #     first_line = file.readline()
-        #     print(first_line)
-        #     if ',' in first_line:
-        #         delimiter=','
-        #     elif '\t' in first_line:
-        #         delimiter='\t'
-        #     elif ' ' in first_line:
-        #         delimiter=' '
-        #     else:
-        #         raise ValueError("Unsupported delimiter")
-            
-        #     print(f'Using delimiter: {delimiter} for file {self.calParams.fixp_name}')
-            
+
+
         return np.atleast_1d(
             np.loadtxt(
                 self.calParams.fixp_name,
@@ -1298,7 +1324,7 @@ if __name__ == "__main__":
     import sys
 
     if len(sys.argv) == 1:
-        active_path = Path("../test_cavity/parametersRun1")
+        active_path = Path("../test_cavity/parametersRun3")
     else:
         active_path = Path(sys.argv[0])
 
