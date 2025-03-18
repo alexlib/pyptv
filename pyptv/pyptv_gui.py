@@ -513,6 +513,7 @@ class TreeMenuHandler(Handler):
                             "#", str(i)
                         )
                     )
+                    print(f'Subtracting {background_name}')
                     background = imread(background_name)
                     # im[mask] = 0
                     info.object.orig_image[i] = np.clip(info.object.orig_image[i] - background, 0, 255).astype(np.uint8)
