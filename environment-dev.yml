@@ -1,16 +1,17 @@
-name: pyptv
+name: pyptv-dev
 channels:
   - defaults
   - conda-forge
 dependencies:
-  - python>=3.10
-  - numpy
-  - optv>=0.3.0
+  - python==3.11
+  - numpy>=1.24.0
   - pip
   - pytest
   - pip:
-      - chaco
-      - enable
+      - "enable>=5.3.1"
+      - "chaco>=5.1.1"
+      - "traits>=6.4.1"
+      - "traitsui>=7.4.3"
       - PySide6
       - scikit-image
       - imagecodecs
@@ -20,3 +21,4 @@ dependencies:
       - tqdm
       - matplotlib
       - scipy
+      # Remove -e . from here as we'll install it after optv

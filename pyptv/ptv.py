@@ -49,23 +49,23 @@ def py_start_proc_c(n_cams):
 
     # Control parameters
     cpar = ControlParams(n_cams)
-    cpar.read_control_par(b"parameters/ptv.par")
+    cpar.read_control_par("parameters/ptv.par")
 
     # Sequence parameters
     spar = SequenceParams(num_cams=n_cams)
-    spar.read_sequence_par(b"parameters/sequence.par", n_cams)
+    spar.read_sequence_par("parameters/sequence.par", n_cams)
 
     # Volume parameters
     vpar = VolumeParams()
-    vpar.read_volume_par(b"parameters/criteria.par")
+    vpar.read_volume_par("parameters/criteria.par")
 
     # Tracking parameters
     track_par = TrackingParams()
-    track_par.read_track_par(b"parameters/track.par")
+    track_par.read_track_par("parameters/track.par")
 
     # Target parameters
     tpar = TargetParams(n_cams)
-    tpar.read(b"parameters/targ_rec.par")
+    tpar.read("parameters/targ_rec.par")
 
     # Examine parameters, multiplane (single plane vs combined calibration)
     epar = par.ExamineParams()
@@ -76,7 +76,7 @@ def py_start_proc_c(n_cams):
     for i_cam in range(n_cams):
         cal = Calibration()
         tmp = cpar.get_cal_img_base_name(i_cam)
-        cal.from_file(tmp + b".ori", tmp + b".addpar")
+        cal.from_file(tmp + ".ori", tmp + ".addpar")
         cals.append(cal)
 
 
@@ -141,7 +141,7 @@ def py_correspondences_proc_c(exp):
 
     # Save targets only after they've been modified:
     for i_cam in range(exp.n_cams):
-        base_name = exp.spar.get_img_base_name(i_cam).decode()
+        base_name = exp.spar.get_img_base_name(i_cam)
         write_targets(exp.detections[i_cam], base_name, frame)
 
 
@@ -156,17 +156,17 @@ def py_determination_proc_c(n_cams, sorted_pos, sorted_corresp, corrected):
 
     # Control parameters
     cpar = ControlParams(n_cams)
-    cpar.read_control_par(b"parameters/ptv.par")
+    cpar.read_control_par("parameters/ptv.par")
 
     # Volume parameters
     vpar = VolumeParams()
-    vpar.read_volume_par(b"parameters/criteria.par")
+    vpar.read_volume_par("parameters/criteria.par")
 
     cals = []
     for i_cam in range(n_cams):
         cal = Calibration()
         tmp = cpar.get_cal_img_base_name(i_cam)
-        cal.from_file(tmp + b".ori", tmp + b".addpar")
+        cal.from_file(tmp + ".ori", tmp + ".addpar")
         cals.append(cal)
 
     # Distinction between quad/trip irrelevant here.
@@ -185,7 +185,7 @@ def py_determination_proc_c(n_cams, sorted_pos, sorted_corresp, corrected):
         print_corresp = sorted_corresp
 
     # Save rt_is in a temporary file
-    fname = (default_naming["corres"].decode()+'.123456789').encode()
+    fname = (default_naming["corres"]+'.123456789')
 
     print(f'Prepared {fname} to write positions\n')
 
@@ -281,7 +281,7 @@ def py_sequence_loop(exp):
 
     # # Sequence parameters
     # spar = SequenceParams(num_cams=n_cams)
-    # spar.read_sequence_par(b"parameters/sequence.par", n_cams)
+    # spar.read_sequence_par("parameters/sequence.par", n_cams)
 
 
     pftVersionParams = par.PftVersionParams(path=Path("parameters"))
@@ -299,11 +299,11 @@ def py_sequence_loop(exp):
         detections = []
         corrected = []
         for i_cam in range(n_cams):
-            base_image_name = spar.get_img_base_name(i_cam).decode()
+            base_image_name = spar.get_img_base_name(i_cam)
             if Existing_Target:
                 targs = read_targets(base_image_name, frame)
             else:
-                # imname = spar.get_img_base_name(i_cam) + str(frame).encode()
+                # imname = spar.get_img_base_name(i_cam) + str(frame)
                 
                 # imname = Path(imname.replace('#',f'{frame}'))
                 imname = Path(base_image_name % frame) # works with jumps from 1 to 10 
@@ -356,7 +356,7 @@ def py_sequence_loop(exp):
         # Save targets only after they've been modified:
         # this is a workaround of the proper way to construct _targets name
         for i_cam in range(n_cams):
-            base_name = spar.get_img_base_name(i_cam).decode()
+            base_name = spar.get_img_base_name(i_cam)
             # base_name = replace_format_specifiers(base_name) # %d to %04d
             write_targets(detections[i_cam], base_name, frame)
 
@@ -384,7 +384,7 @@ def py_sequence_loop(exp):
             print_corresp = sorted_corresp
 
         # Save rt_is
-        rt_is_filename = default_naming["corres"].decode()
+        rt_is_filename = default_naming["corres"]
         # rt_is_filename = f'{rt_is_filename}.{frame:04d}'
         rt_is_filename = f'{rt_is_filename}.{frame}'
         with open(rt_is_filename, "w", encoding="utf8") as rt_is:
@@ -400,7 +400,7 @@ def py_trackcorr_init(exp):
     """Reads all the necessary stuff into Tracker"""
     
     for cam_id in range(exp.cpar.get_num_cams()):
-        img_base_name = exp.spar.get_img_base_name(cam_id).decode()
+        img_base_name = exp.spar.get_img_base_name(cam_id)
         # print(img_base_name)
         short_name = img_base_name.split('%')[0]
         if short_name[-1] == '_':

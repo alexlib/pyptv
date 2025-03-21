@@ -558,7 +558,7 @@ class CalibrationGUI(HasTraits):
             self.epar,
         ) = ptv.py_start_proc_c(self.n_cams)
 
-        self.tpar.read(b"parameters/detect_plate.par")
+        self.tpar.read("parameters/detect_plate.par")
 
         print(self.tpar.get_grey_thresholds())
 
@@ -703,7 +703,7 @@ class CalibrationGUI(HasTraits):
         for i_cam in range(self.n_cams):
             cal = Calibration()
             tmp = self.cpar.get_cal_img_base_name(i_cam)
-            cal.from_file(tmp + b".ori", tmp + b".addpar")
+            cal.from_file(tmp + ".ori", tmp + ".addpar")
             self.cals.append(cal)
 
         for i_cam in range(self.n_cams):
