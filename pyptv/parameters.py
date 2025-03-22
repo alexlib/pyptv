@@ -94,14 +94,14 @@ def readParamsDir(par_path):
     ptvParams.read()
     n_img = ptvParams.n_img
 
-    n_pts = Int(4)
+    # n_pts = Int(4)
 
     ret = {
         CalOriParams: CalOriParams(n_img, path=par_path),
         SequenceParams: SequenceParams(n_img, path=par_path),
         CriteriaParams: CriteriaParams(path=par_path),
         TargRecParams: TargRecParams(n_img, path=par_path),
-        ManOriParams: ManOriParams(n_img, n_pts, path=par_path),
+        ManOriParams: ManOriParams(n_img, [], path=par_path),
         DetectPlateParams: DetectPlateParams(path=par_path),
         OrientParams: OrientParams(path=par_path),
         TrackingParams: TrackingParams(path=par_path),

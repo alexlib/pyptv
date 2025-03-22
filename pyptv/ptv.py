@@ -26,8 +26,12 @@ from skimage.io import imread
 from skimage import img_as_ubyte
 from skimage.color import rgb2gray
 from pyptv import parameters as par
+import glob
+from scipy.optimize import minimize
 from pyptv import ptv as ptv
 import re
+
+NAMES = ["cc", "xh", "yh", "k1", "k2", "k3", "p1", "p2", "scale", "shear"]
 
 
 def negative(img):
@@ -43,43 +47,51 @@ def py_set_img(img, i):
     """Not used anymore, was transferring images to the C"""
     pass
 
-
-def py_start_proc_c(n_cams):
-    """Read parameters"""
-
-    # Control parameters
-    cpar = ControlParams(n_cams)
-    cpar.read_control_par("parameters/ptv.par")
-
-    # Sequence parameters
-    spar = SequenceParams(num_cams=n_cams)
-    spar.read_sequence_par("parameters/sequence.par", n_cams)
-
-    # Volume parameters
-    vpar = VolumeParams()
-    vpar.read_volume_par("parameters/criteria.par")
-
-    # Tracking parameters
-    track_par = TrackingParams()
-    track_par.read_track_par("parameters/track.par")
-
-    # Target parameters
-    tpar = TargetParams(n_cams)
-    tpar.read("parameters/targ_rec.par")
-
-    # Examine parameters, multiplane (single plane vs combined calibration)
-    epar = par.ExamineParams()
-    epar.read()
-
+def _read_calibrations(cpar: ControlParams, n_cams: int):
     # Calibration parameters
     cals = []
     for i_cam in range(n_cams):
         cal = Calibration()
         tmp = cpar.get_cal_img_base_name(i_cam)
-        cal.from_file(tmp + ".ori", tmp + ".addpar")
+        cal.from_file(tmp + b".ori", tmp + b".addpar")
         cals.append(cal)
 
+    return cals
 
+
+def py_start_proc_c(n_cams):
+    """ Read parameters
+    
+    Usage: 
+    cpar, spar, vpar, track_par, tpar, cals, epar = py_start_proc_c(n_cams)
+
+    """
+
+    # Control parameters
+    cpar = ControlParams(n_cams)
+    cpar.read_control_par(b"parameters/ptv.par")
+
+    # Sequence parameters
+    spar = SequenceParams(num_cams=n_cams)
+    spar.read_sequence_par(b"parameters/sequence.par", n_cams)
+
+    # Volume parameters
+    vpar = VolumeParams()
+    vpar.read_volume_par(b"parameters/criteria.par")
+
+    # Tracking parameters
+    track_par = TrackingParams()
+    track_par.read_track_par(b"parameters/track.par")
+
+    # Target parameters
+    tpar = TargetParams(n_cams)
+    tpar.read(b"parameters/targ_rec.par")
+
+    # Examine parameters, multiplane (single plane vs combined calibration)
+    epar = par.ExamineParams()
+    epar.read()
+
+    cals = _read_calibrations(cpar, n_cams)
 
     return cpar, spar, vpar, track_par, tpar, cals, epar
 
@@ -141,7 +153,7 @@ def py_correspondences_proc_c(exp):
 
     # Save targets only after they've been modified:
     for i_cam in range(exp.n_cams):
-        base_name = exp.spar.get_img_base_name(i_cam)
+        base_name = exp.spar.get_img_base_name(i_cam).decode()
         write_targets(exp.detections[i_cam], base_name, frame)
 
 
@@ -154,38 +166,25 @@ def py_correspondences_proc_c(exp):
 def py_determination_proc_c(n_cams, sorted_pos, sorted_corresp, corrected):
     """Returns 3d positions"""
 
-    # Control parameters
-    cpar = ControlParams(n_cams)
-    cpar.read_control_par("parameters/ptv.par")
-
-    # Volume parameters
-    vpar = VolumeParams()
-    vpar.read_volume_par("parameters/criteria.par")
-
-    cals = []
-    for i_cam in range(n_cams):
-        cal = Calibration()
-        tmp = cpar.get_cal_img_base_name(i_cam)
-        cal.from_file(tmp + ".ori", tmp + ".addpar")
-        cals.append(cal)
+    cpar, spar, vpar, track_par, tpar, cals, epar = py_start_proc_c(n_cams)
 
     # Distinction between quad/trip irrelevant here.
     sorted_pos = np.concatenate(sorted_pos, axis=1)
     sorted_corresp = np.concatenate(sorted_corresp, axis=1)
 
     flat = np.array([
-        corrected[i].get_by_pnrs(sorted_corresp[i]) for i in range(len(cals))
+        corrected[i].get_by_pnrs(sorted_corresp[i]) for i in range(n_cams)
     ])
     pos, rcm = point_positions(flat.transpose(1, 0, 2), cpar, cals, vpar)
 
-    if len(cals) < 4:
+    if n_cams < 4:
         print_corresp = -1 * np.ones((4, sorted_corresp.shape[1]))
         print_corresp[:len(cals), :] = sorted_corresp
     else:
         print_corresp = sorted_corresp
 
     # Save rt_is in a temporary file
-    fname = (default_naming["corres"]+'.123456789')
+    fname = (default_naming["corres"].decode()+'.123456789').encode()
 
     print(f'Prepared {fname} to write positions\n')
 
@@ -281,7 +280,7 @@ def py_sequence_loop(exp):
 
     # # Sequence parameters
     # spar = SequenceParams(num_cams=n_cams)
-    # spar.read_sequence_par("parameters/sequence.par", n_cams)
+    # spar.read_sequence_par(b"parameters/sequence.par", n_cams)
 
 
     pftVersionParams = par.PftVersionParams(path=Path("parameters"))
@@ -299,11 +298,11 @@ def py_sequence_loop(exp):
         detections = []
         corrected = []
         for i_cam in range(n_cams):
-            base_image_name = spar.get_img_base_name(i_cam)
+            base_image_name = spar.get_img_base_name(i_cam).decode()
             if Existing_Target:
                 targs = read_targets(base_image_name, frame)
             else:
-                # imname = spar.get_img_base_name(i_cam) + str(frame)
+                # imname = spar.get_img_base_name(i_cam) + str(frame).encode()
                 
                 # imname = Path(imname.replace('#',f'{frame}'))
                 imname = Path(base_image_name % frame) # works with jumps from 1 to 10 
@@ -356,7 +355,7 @@ def py_sequence_loop(exp):
         # Save targets only after they've been modified:
         # this is a workaround of the proper way to construct _targets name
         for i_cam in range(n_cams):
-            base_name = spar.get_img_base_name(i_cam)
+            base_name = spar.get_img_base_name(i_cam).decode()
             # base_name = replace_format_specifiers(base_name) # %d to %04d
             write_targets(detections[i_cam], base_name, frame)
 
@@ -400,7 +399,7 @@ def py_trackcorr_init(exp):
     """Reads all the necessary stuff into Tracker"""
     
     for cam_id in range(exp.cpar.get_num_cams()):
-        img_base_name = exp.spar.get_img_base_name(cam_id)
+        img_base_name = exp.spar.get_img_base_name(cam_id).decode()
         # print(img_base_name)
         short_name = img_base_name.split('%')[0]
         if short_name[-1] == '_':
@@ -521,7 +520,7 @@ def py_get_pix(x, y):
     return x, y
 
 
-def py_calibration(selection):
+def py_calibration(selection, exp):
     """Calibration
     def py_calibration(sel):
     calibration_proc_c(sel)"""
@@ -537,106 +536,171 @@ def py_calibration(selection):
         It is the same function as show trajectories, just read from a different
         file
         """
+        
+    if selection == 10:
+        """Run the calibration with particles """
+        from optv.tracking_framebuf import Frame
+        from pyptv.parameters import OrientParams, ShakingParams
 
+        num_cams = exp.cpar.get_num_cams()
 
-def py_multiplanecalibration(exp):
-    """Performs multiplane calibration, in which for all cameras the pre-processed plane in multiplane.par al combined.
-    Overwrites the ori and addpar files of the cameras specified in cal_ori.par of the multiplane parameter folder
-    """
+        # cpar, spar, vpar, track_par, tpar, calibs, epar = py_start_proc_c(num_cams)
+        calibs = _read_calibrations(exp.cpar, num_cams)
 
-    for i_cam in range(exp.n_cams):  # iterate over all cameras
-        all_known = []
-        all_detected = []
-        for i in range(exp.MultiParams.n_planes):  # combine all single planes
-
-            c = exp.calParams.img_ori[i_cam][-9]  # Get camera id
-
-            file_known = exp.MultiParams.plane_name[i] + str(c) + ".tif.fix"
-            file_detected = exp.MultiParams.plane_name[i] + str(c) + ".tif.crd"
-
-            # Load calibration point information from plane i
-            known = np.loadtxt(file_known)
-            detected = np.loadtxt(file_detected)
-
-            if np.any(detected == -999):
-                raise ValueError(
-                    ("Using undetected points in {} will cause " +
-                     "silliness. Quitting.").format(file_detected))
-
-            num_known = len(known)
-            num_detect = len(detected)
-
-            if num_known != num_detect:
-                raise ValueError(
-                    "Number of detected points (%d) does not match" +
-                    " number of known points (%d) for %s, %s" %
-                    (num_known, num_detect, file_known, file_detected))
-
-            if len(all_known) > 0:
-                detected[:, 0] = (all_detected[-1][-1, 0] + 1 +
-                                  np.arange(len(detected)))
-
-            # Append to list of total known and detected points
-            all_known.append(known)
-            all_detected.append(detected)
-
-        # Make into the format needed for full_calibration.
-        all_known = np.vstack(all_known)[:, 1:]
-        all_detected = np.vstack(all_detected)
-
-        targs = TargetArray(len(all_detected))
-        for tix in range(len(all_detected)):
-            targ = targs[tix]
-            det = all_detected[tix]
-
-            targ.set_pnr(tix)
-            targ.set_pos(det[1:])
-
-        # backup the ORI/ADDPAR files first
-        exp.backup_ori_files()
-
-        op = par.OrientParams()
+        targ_files = [exp.spar.get_img_base_name(c).decode().split('%d')[0].encode() for c in \
+    range(num_cams)]
+        # recognized names for the flags:
+        
+        op = OrientParams()
         op.read()
 
-        # recognized names for the flags:
-        names = [
-            "cc",
-            "xh",
-            "yh",
-            "k1",
-            "k2",
-            "k3",
-            "p1",
-            "p2",
-            "scale",
-            "shear",
-        ]
-        op_names = [
-            op.cc,
-            op.xh,
-            op.yh,
-            op.k1,
-            op.k2,
-            op.k3,
-            op.p1,
-            op.p2,
-            op.scale,
-            op.shear,
-        ]
+        sp = ShakingParams()
+        sp.read()
 
-        flags = []
-        for name, op_name in zip(names, op_names):
-            if op_name == 1:
-                flags.append(name)
+        flags = [name for name in NAMES if getattr(op, name) == 1]
+        # Iterate over frames, loading the big lists of 3D positions and 
+        # respective detections.
+        all_known = []
+        all_detected = [[] for c in range(num_cams)]
 
-        # Run the multiplane calibration
-        residuals, targ_ix, err_est = full_calibration(exp.cals[0], all_known,
-                                                       targs, exp.cpar, flags)
+        for frm_num in range(sp.shaking_first_frame, sp.shaking_last_frame + 1): 
+            frame = Frame(exp.cpar.get_num_cams(), 
+                corres_file_base = ('res/rt_is').encode(), 
+                linkage_file_base= ('res/ptv_is').encode(),
+                target_file_base = targ_files, 
+                frame_num = frm_num)
+                
+            all_known.append(frame.positions())
+            for cam in range(num_cams):
+                all_detected[cam].append(frame.target_positions_for_camera(cam))
 
-        # Save the results
-        exp._write_ori(i_cam,
-                       addpar_flag=True)  # addpar_flag to save addpar file
-        print("End multiplane")
+        # Make into the format needed for full_calibration.
+        all_known = np.vstack(all_known)
+
+        # Calibrate each camera accordingly.
+        targ_ix_all = []
+        residuals_all = []
+        targs_all = []
+        for cam in range(num_cams):
+            detects = np.vstack(all_detected[cam])
+            assert detects.shape[0] == all_known.shape[0]
+            
+            have_targets = ~np.isnan(detects[:,0])
+            used_detects = detects[have_targets,:]
+            used_known = all_known[have_targets,:]
+            
+            targs = TargetArray(len(used_detects))
+            
+            for tix in range(len(used_detects)):
+                targ = targs[tix]
+                targ.set_pnr(tix)
+                targ.set_pos(used_detects[tix])
+            
+
+
+            residuals = full_scipy_calibration(
+                calibs[cam],
+                used_known,
+                targs,
+                exp.cpar,
+                flags=flags
+            )
+            print(f"After scipy full calibration, {np.sum(residuals**2)}")
+            
+            print(("Camera %d" % (cam + 1)))
+            print((calibs[cam].get_pos()))
+            print((calibs[cam].get_angles()))
+
+            # Save the results
+            ori_filename = exp.cpar.get_cal_img_base_name(cam)
+            addpar_filename = ori_filename + b".addpar"
+            ori_filename = ori_filename + b".ori"
+            calibs[cam].write(ori_filename, addpar_filename)
+            # exp._write_ori(cam, addpar_flag=True)  # addpar_flag to save addpar file
+
+            targ_ix = [t.pnr() for t in targs if t.pnr() != -999]
+
+            targs_all.append(targs)
+            targ_ix_all.append(targ_ix)
+            residuals_all.append(residuals)
+
+            
+        print("End calibration with particles")
+        return targs_all, targ_ix_all, residuals_all
+        
+
+
+# def py_multiplanecalibration(exp):
+#     """Performs multiplane calibration, in which for all cameras the pre-processed plane in multiplane.par al combined.
+#     Overwrites the ori and addpar files of the cameras specified in cal_ori.par of the multiplane parameter folder
+#     """
+
+#     for i_cam in range(exp.n_cams):  # iterate over all cameras
+#         all_known = []
+#         all_detected = []
+#         for i in range(exp.MultiParams.n_planes):  # combine all single planes
+
+#             c = exp.calParams.img_ori[i_cam][-9]  # Get camera id
+
+#             file_known = exp.MultiParams.plane_name[i] + str(c) + ".tif.fix"
+#             file_detected = exp.MultiParams.plane_name[i] + str(c) + ".tif.crd"
+
+#             # Load calibration point information from plane i
+#             known = np.loadtxt(file_known)
+#             detected = np.loadtxt(file_detected)
+
+#             if np.any(detected == -999):
+#                 raise ValueError(
+#                     ("Using undetected points in {} will cause " +
+#                      "silliness. Quitting.").format(file_detected))
+
+#             num_known = len(known)
+#             num_detect = len(detected)
+
+#             if num_known != num_detect:
+#                 raise ValueError(
+#                     "Number of detected points (%d) does not match" +
+#                     " number of known points (%d) for %s, %s" %
+#                     (num_known, num_detect, file_known, file_detected))
+
+#             if len(all_known) > 0:
+#                 detected[:, 0] = (all_detected[-1][-1, 0] + 1 +
+#                                   np.arange(len(detected)))
+
+#             # Append to list of total known and detected points
+#             all_known.append(known)
+#             all_detected.append(detected)
+
+#         # Make into the format needed for full_calibration.
+#         all_known = np.vstack(all_known)[:, 1:]
+#         all_detected = np.vstack(all_detected)
+
+#         targs = TargetArray(len(all_detected))
+#         for tix in range(len(all_detected)):
+#             targ = targs[tix]
+#             det = all_detected[tix]
+
+#             targ.set_pnr(tix)
+#             targ.set_pos(det[1:])
+
+#         # backup the ORI/ADDPAR files first
+#         exp.backup_ori_files()
+
+#         op = par.OrientParams()
+#         op.read()
+#         flags = [name for name in NAMES if getattr(op, name) == 1]
+
+#         # Run the multiplane calibration
+#         residuals, targ_ix, err_est = full_calibration(exp.cals[i_cam], all_known,
+#                                                        targs, exp.cpar, flags)
+
+#         # Save the results
+#         ori = exp.calParams.img_ori[i_cam]
+#         addpar = ori + ".addpar"
+#         ori = ori + ".ori"
+        
+#         exp.cals[i_cam].write(ori.encode(), addpar.encode())
+#         print("End multiplane")
 
 
 def read_targets(file_base: str, frame: int=123456789) -> TargetArray:
@@ -693,7 +757,7 @@ def write_targets(
     # file_base = replace_format_specifiers(file_base) # remove %d
     filename = file_base_to_filename(file_base, frame)
 
-    print("Writing targets to file: ", filename)
+    # print("Writing targets to file: ", filename)
 
     num_targets = len(targets)
 
@@ -727,3 +791,192 @@ def file_base_to_filename(file_base, frame):
         filename =  Path(f'{file_base}.{frame:04d}_targets')
 
     return filename
+
+
+def read_rt_is_file(filename) -> List[List[float]]:
+    """Read data from an rt_is file and return the parsed values."""
+    try:
+        with open(filename, "r", encoding="utf-8") as file:
+            # Read the number of rows
+            num_rows = int(file.readline().strip())
+            if num_rows == 0:
+                raise ValueError("Failed to read the number of rows")
+
+            data = []
+            for _ in range(num_rows):
+                line = file.readline().strip()
+                if not line:
+                    break
+
+                values = line.split()
+                if len(values) != 8:
+                    raise ValueError("Incorrect number of values in line")
+
+                row_number = int(values[0])
+                x = float(values[1])
+                y = float(values[2])
+                z = float(values[3])
+                p1 = int(values[4])
+                p2 = int(values[5])
+                p3 = int(values[6])
+                p4 = int(values[7])
+
+                data.append([x, y, z, p1, p2, p3, p4])
+
+            return data
+
+    except IOError as e:
+        print(f"Can't open ascii file: {filename}")
+        raise e
+    
+
+def full_scipy_calibration(cal: Calibration, 
+                           XYZ: np.ndarray, 
+                           targs: TargetArray, 
+                           cpar: ControlParams, 
+                           flags=[]
+                           ):
+    
+    """ Full calibration using scipy.optimize """
+    from scipy.optimize import minimize
+    from optv.transforms import convert_arr_metric_to_pixel
+    from optv.imgcoord import image_coordinates
+
+    def _residuals_k(x, cal, XYZ, xy, cpar):
+        """Residuals due to radial distortion
+
+        Args:
+            x (array-like): Array of parameters.
+            cal (Calibration): Calibration object.
+            XYZ (array-like): 3D coordinates.
+            xy (array-like): 2D image coordinates.
+            cpar (CPar): Camera parameters.
+
+
+            args=(calibs[i_cam], 
+                self.cal_points["pos"], 
+                targs,
+                self.cpar
+                )
+
+
+        Returns:
+            residuals: Distortion in pixels
+        """
+
+        cal.set_radial_distortion(x)
+        targets = convert_arr_metric_to_pixel(
+            image_coordinates(XYZ, cal, cpar.get_multimedia_params()),
+            cpar
+        )
+        xyt = np.array([t.pos() if t.pnr() != -999 else [np.nan, np.nan] for t in xy])
+        residuals = np.nan_to_num(xyt - targets)
+        # residuals = xy[:,1:] - targets
+        return np.sum(residuals**2)
+
+    def _residuals_p(x, cal, XYZ, xy, cpar):
+        """Residuals due to decentering """
+        cal.set_decentering(x)
+        targets = convert_arr_metric_to_pixel(
+            image_coordinates(XYZ, cal, cpar.get_multimedia_params()),
+            cpar
+        )
+        xyt = np.array([t.pos() if t.pnr() != -999 else [np.nan, np.nan] for t in xy])
+        residuals = np.nan_to_num(xyt - targets)
+        return np.sum(residuals**2)
+
+    def _residuals_s(x, cal, XYZ, xy, cpar):
+        """Residuals due to decentering """
+        cal.set_affine_trans(x)
+        targets = convert_arr_metric_to_pixel(
+            image_coordinates(XYZ, cal, cpar.get_multimedia_params()),
+            cpar
+        )
+        xyt = np.array([t.pos() if t.pnr() != -999 else [np.nan, np.nan] for t in xy])
+        residuals = np.nan_to_num(xyt - targets)
+        return np.sum(residuals**2)    
+
+    def _residuals_combined(x, cal, XYZ, xy, cpar):
+        """Combined residuals  """
+
+        cal.set_radial_distortion(x[:3])
+        cal.set_decentering(x[3:5])
+        cal.set_affine_trans(x[5:])
+
+        targets = convert_arr_metric_to_pixel(
+            image_coordinates(XYZ, cal, cpar.get_multimedia_params()),
+            cpar
+        )
+        xyt = np.array([t.pos() if t.pnr() != -999 else [np.nan, np.nan] for t in xy])
+        residuals = np.nan_to_num(xyt - targets)
+        return residuals
+    
+
+    # Main loop
+
+    if any(flag in flags for flag in ['k1', 'k2', 'k3']):
+        sol = minimize(_residuals_k,
+                    cal.get_radial_distortion(), 
+                    args=(cal, 
+                            XYZ, 
+                            targs,
+                            cpar
+                            ), 
+                            method='Nelder-Mead', 
+                            tol=1e-11,
+                            options={'disp':True},
+                            )
+        radial = sol.x 
+        cal.set_radial_distortion(radial)
+    else:
+        radial = cal.get_radial_distortion()
+
+    if any(flag in flags for flag in ['p1', 'p2']):
+        # now decentering
+        sol = minimize(_residuals_p,
+                    cal.get_decentering(), 
+                    args=(cal, 
+                            XYZ, 
+                            targs,
+                            cpar
+                            ), 
+                            method='Nelder-Mead', 
+                            tol=1e-11,
+                            options={'disp':True},
+                            )
+        decentering = sol.x 
+        cal.set_decentering(decentering)
+    else:
+        decentering = cal.get_decentering()
+
+    if any(flag in flags for flag in ['scale', 'shear']):
+        # now affine
+        sol = minimize(_residuals_s,
+                    cal.get_affine(), 
+                    args=(cal, 
+                            XYZ, 
+                            targs,
+                            cpar
+                            ), 
+                            method='Nelder-Mead', 
+                            tol=1e-11,
+                            options={'disp':True},
+                            )
+        affine = sol.x 
+        cal.set_affine_trans(affine)
+
+    else:
+        affine = cal.get_affine()
+
+
+    residuals = _residuals_combined(
+                    np.r_[radial, decentering, affine],
+                    cal, 
+                    XYZ, 
+                    targs,
+                    cpar
+                    )
+
+    residuals /= 100
+
+    return residuals 

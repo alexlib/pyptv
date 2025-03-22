@@ -52,6 +52,7 @@ from pyptv.directory_editor import DirectoryEditorDialog
 from pyptv.parameter_gui import Experiment, Paramset
 from pyptv.quiverplot import QuiverPlot
 from pyptv.detection_gui import DetectionGUI
+from pyptv.mask_gui import MaskGUI
 from pyptv import __version__
 import optv.orientation
 import optv.epipolar
@@ -477,8 +478,19 @@ class TreeMenuHandler(Handler):
     def saveas_action(self, info):
         print("not implemented")
 
-    # def showimg_action(self, info):
-    #     info.object.update_plots(info.object.orig_image)
+
+
+    def draw_mask_action(self, info):
+        """ drawing masks GUI """
+        print("\n Opening drawing mask GUI \n")
+
+        info.object.pass_init = False
+        print("Active parameters set \n")
+        print(info.object.exp1.active_params.par_path)
+        mask_gui = MaskGUI(info.object.exp1.active_params.par_path)
+        mask_gui.configure_traits()
+
+
 
     def highpass_action(self, info):
         """highpass_action - calls ptv.py_pre_processing_c() binding which
@@ -501,6 +513,7 @@ class TreeMenuHandler(Handler):
                             "#", str(i)
                         )
                     )
+                    print(f'Subtracting {background_name}')
                     background = imread(background_name)
                     # im[mask] = 0
                     info.object.orig_image[i] = np.clip(info.object.orig_image[i] - background, 0, 255).astype(np.uint8)
@@ -970,7 +983,7 @@ menu_bar = MenuBar(
         Action(name="Exit", action="exit_action"),
         name="File",
     ),
-    Menu(Action(name="Init / Restart", action="init_action"), name="Start"),
+    Menu(Action(name="Init / Reload", action="init_action"), name="Start"),
     Menu(
         Action(
             name="High pass filter",
@@ -1047,6 +1060,10 @@ menu_bar = MenuBar(
     Menu(
         Action(name="Detection GUI demo", action="detection_gui_action"),
         name="Detection demo",
+    ),
+    Menu(
+        Action(name="Draw mask", action="draw_mask_action", enabled_when="pass_init",),
+        name="Drawing mask",
     ),
 )
 
@@ -1189,6 +1206,7 @@ class MainGUI(HasTraits):
     # ---------------------------------------------------
     def __init__(self, exp_path: Path, software_path: Path):
         super(MainGUI, self).__init__()
+       
         colors = ["yellow", "green", "red", "blue"]
         self.exp1 = Experiment()
         self.exp1.populate_runs(exp_path)
