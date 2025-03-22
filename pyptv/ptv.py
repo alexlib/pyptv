@@ -384,7 +384,7 @@ def py_sequence_loop(exp):
             print_corresp = sorted_corresp
 
         # Save rt_is
-        rt_is_filename = default_naming["corres"]
+        rt_is_filename = default_naming["corres"].decode()
         # rt_is_filename = f'{rt_is_filename}.{frame:04d}'
         rt_is_filename = f'{rt_is_filename}.{frame}'
         with open(rt_is_filename, "w", encoding="utf8") as rt_is:
