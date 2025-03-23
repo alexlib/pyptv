@@ -1,6 +1,3 @@
-# This workflow will install Python dependencies, run tests and lint with a variety of Python versions
-# For more information see: https://help.github.com/actions/language-and-framework-guides/using-python-with-github-actions
-
 name: Python package
 
 on:
@@ -10,43 +7,47 @@ on:
     branches: [ master ]
 
 jobs:
-  build-edm:
-    strategy:
-      matrix:
-        os: [ubuntu-latest]
-    runs-on: ${{ matrix.os }}
+  build:
+    runs-on: ubuntu-latest
     steps:
-      - name: Checkout
+      - name: Checkout repository
         uses: actions/checkout@v4
-      - name: Cache EDM packages
-        uses: actions/cache@v4
+
+      - name: Set up Miniconda
+        uses: conda-incubator/setup-miniconda@v3
         with:
-          path: ~/.cache
-          key: ${{ runner.os }}--${{ hashFiles('requirements.txt') }}
-      - name: Setup EDM
-        uses: enthought/setup-edm-action@v3
-        with:
-          edm-version: 3.7.0
-      - name: Install Python packages
+          python-version: "3.11"
+          auto-activate-base: false
+          activate-environment: pyptv
+
+      - name: Install dependencies
+        shell: bash -l {0}
         run: |
-          edm install -y enable
-          edm install -y numpy"==1.26.4"
-          edm install -y matplotlib
-          edm shell
-          edm run -- python -m pip install optv==0.3.0 tqdm flake8 pytest pyptv \
-          --index-url https://pypi.fury.io/pyptv \
-          --extra-index-url https://pypi.org/simple
+          conda install -y numpy==1.26.4 matplotlib pytest flake8 tqdm
+          pip install optv==0.3.0 pyptv \
+            --index-url https://pypi.fury.io/pyptv \
+            --extra-index-url https://pypi.org/simple
+
+      - name: Setup test data
+        shell: bash -l {0}
+        run: |
+          git clone https://github.com/openptv/test_cavity
+          mkdir -p tests/test_cavity/parameters
+          cp -r test_cavity/parameters/* tests/test_cavity/parameters/
+
+      - name: Verify environment
+        shell: bash -l {0}
+        run: python scripts/verify_environment.py
+
+      # Uncomment if you want to run linting
       # - name: Lint with flake8
+      #   shell: bash -l {0}
       #   run: |
       #     # stop the build if there are Python syntax errors or undefined names
       #     flake8 . --count --select=E9,F63,F7,F82 --ignore=F821 --show-source --statistics
-      #     # exit-zero treats all errors as warnings. The GitHub editor is 127 chars wide
+      #     # exit-zero treats all errors as warnings
       #     flake8 . --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
-      - name: Test with pytest
-        run: |
-          # First clone test data to a specific location
-          git clone https://github.com/openptv/test_cavity
-          # Copy necessary parameter files
-          cp -r test_cavity/parameters/* tests/test_cavity/parameters/
-          # Run tests with more verbose output and fail on first error
-          edm run -- pytest -v -x --tb=short
+
+      - name: Run tests
+        shell: bash -l {0}
+        run: pytest -v -x --tb=short

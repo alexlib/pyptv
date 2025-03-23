@@ -1,0 +1,47 @@
+# Use Ubuntu as base image to match GitHub Actions
+FROM ubuntu:latest
+
+# Set environment variables
+ENV DEBIAN_FRONTEND=noninteractive
+ENV PATH="/root/miniconda3/bin:${PATH}"
+
+# Install system dependencies
+RUN apt-get update && apt-get install -y \
+    wget \
+    git \
+    && rm -rf /var/lib/apt/lists/*
+
+# Install Miniconda
+RUN wget https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh -O miniconda.sh \
+    && bash miniconda.sh -b -p /root/miniconda3 \
+    && rm miniconda.sh
+
+# Initialize conda for bash
+RUN conda init bash
+
+# Create and activate conda environment
+RUN conda create -y -n pyptv python=3.11 \
+    && echo "conda activate pyptv" >> ~/.bashrc
+
+# Set working directory
+WORKDIR /app
+
+# Copy project files
+COPY . .
+
+# Setup test environment script
+RUN echo '#!/bin/bash \n\
+source ~/.bashrc && \
+conda install -y numpy==1.26.4 matplotlib pytest flake8 tqdm && \
+pip install optv==0.3.0 pyptv \
+    --index-url https://pypi.fury.io/pyptv \
+    --extra-index-url https://pypi.org/simple && \
+git clone https://github.com/openptv/test_cavity && \
+mkdir -p tests/test_cavity/parameters && \
+cp -r test_cavity/parameters/* tests/test_cavity/parameters/ && \
+python scripts/verify_environment.py && \
+pytest -v -x --tb=short \
+' > run_tests.sh && chmod +x run_tests.sh
+
+# Default command
+CMD ["./run_tests.sh"]
