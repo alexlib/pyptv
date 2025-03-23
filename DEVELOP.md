@@ -107,15 +107,7 @@ Critical version requirements:
 
 ## Common Issues
 
-1. EDM Installation Problems:
-   - Verify EDM version (3.7.0 required)
-   - Check system dependencies
-
-2. Test Data Issues:
-   - Ensure test_cavity repository is cloned
-   - Verify parameter files are copied correctly
-
-3. Version Conflicts:
+1. Version Conflicts:
    - Use `scripts/verify_environment.py` to check versions
    - Follow exact versions in `pyproject.toml`
 
