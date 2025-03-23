@@ -30,7 +30,7 @@ jobs:
       - name: Install Python packages
         run: |
           edm install -y enable
-          edm install -y numpy==1.26.4
+          edm install -y numpy"==1.26.4"
           edm install -y matplotlib
           edm shell
           edm run -- python -m pip install optv==0.3.0 tqdm flake8 pytest pyptv \
