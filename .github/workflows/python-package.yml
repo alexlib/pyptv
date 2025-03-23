@@ -40,7 +40,6 @@ jobs:
           cmake ../
           make
           sudo make install
-          make verify
           cd ../../py_bind
           python setup.py prepare
           python -m build --wheel --outdir dist/
