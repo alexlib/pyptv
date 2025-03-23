@@ -3,26 +3,29 @@ FROM ubuntu:latest
 
 # Set environment variables
 ENV DEBIAN_FRONTEND=noninteractive
-ENV PATH="/root/miniconda3/bin:${PATH}"
+ENV PYTHONUNBUFFERED=1
 
-# Install system dependencies
+# Install minimal system dependencies
 RUN apt-get update && apt-get install -y \
     wget \
     git \
     build-essential \
+    cmake \
+    check \
+    libsubunit-dev \
+    pkg-config \
     && rm -rf /var/lib/apt/lists/*
 
-# Install Miniconda
-RUN wget https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh -O miniconda.sh \
-    && bash miniconda.sh -b -p /root/miniconda3 \
-    && rm miniconda.sh
+# Install uv and add to PATH
+RUN wget -O - https://astral.sh/uv/install.sh | sh
+ENV PATH="/root/.local/bin:/root/.cargo/bin:$PATH"
 
-# Initialize conda for bash
-RUN conda init bash
+# Install Python 3.11 using uv
+RUN uv venv /opt/venv --python=3.11
+ENV PATH="/opt/venv/bin:$PATH"
 
-# Create and activate conda environment
-RUN conda create -y -n pyptv python=3.11 \
-    && echo "conda activate pyptv" >> ~/.bashrc
+# Verify Python version
+RUN python --version | grep "3.11" || (echo "Python 3.11 not installed correctly" && exit 1)
 
 # Set working directory
 WORKDIR /app
@@ -32,17 +35,22 @@ COPY . .
 
 # Setup test environment script
 RUN echo '#!/bin/bash \n\
-source ~/.bashrc && \
-conda install -y numpy==1.26.4 matplotlib pytest flake8 tqdm cython pyyaml && \
-pip install build && \
+python --version && \
+uv pip install setuptools numpy==1.26.4 matplotlib pytest flake8 tqdm cython pyyaml build && \
 git clone https://github.com/openptv/openptv && \
-cd openptv/py_bind && \
+cd openptv/liboptv && \
+mkdir -p build && cd build && \
+cmake ../ && \
+make && \
+make install && \
+cd ../../py_bind && \
 python setup.py prepare && \
+python setup.py build_ext --inplace && \
 python -m build --wheel --outdir dist/ && \
-pip install dist/*.whl --force-reinstall && \
+uv pip install dist/*.whl --force-reinstall && \
 cd test && python -m pytest --verbose && \
 cd ../../.. && \
-pip install pyptv \
+uv pip install pyptv \
     --index-url https://pypi.fury.io/pyptv \
     --extra-index-url https://pypi.org/simple && \
 git clone https://github.com/openptv/test_cavity && \
