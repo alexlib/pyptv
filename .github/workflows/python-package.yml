@@ -13,6 +13,11 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
+      - name: Install system dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y cmake check libsubunit-dev pkg-config
+
       - name: Set up Miniconda
         uses: conda-incubator/setup-miniconda@v3
         with:
@@ -30,7 +35,13 @@ jobs:
         shell: bash -l {0}
         run: |
           git clone https://github.com/openptv/openptv
-          cd openptv/py_bind
+          cd openptv/liboptv
+          mkdir -p build && cd build
+          cmake ../
+          make
+          sudo make install
+          make verify
+          cd ../../py_bind
           python setup.py prepare
           python -m build --wheel --outdir dist/
           pip install dist/*.whl --force-reinstall
