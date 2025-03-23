@@ -1,4 +1,5 @@
 import re
+import argparse
 from pathlib import Path
 
 def get_version_from_file(version_file):
@@ -50,6 +51,12 @@ def increment_version(version, part='minor'):
 
 
 if __name__ == '__main__':
+    parser = argparse.ArgumentParser(description='Bump version numbers in project files')
+    parser.add_argument('--major', action='store_true', help='Bump major version')
+    parser.add_argument('--minor', action='store_true', help='Bump minor version')
+    parser.add_argument('--patch', action='store_true', help='Bump patch version')
+    args = parser.parse_args()
+
     version_file = Path('pyptv/__version__.py')
     pyproject_file = Path('pyproject.toml')
 
@@ -57,8 +64,17 @@ if __name__ == '__main__':
     current_version = get_version_from_file(version_file)
     print(f"Current version is {current_version}")
 
-    # Example usage
-    new_version = increment_version(current_version, 'patch')
+    # Determine which part to increment
+    if args.major:
+        part = 'major'
+    elif args.minor:
+        part = 'minor'
+    elif args.patch:
+        part = 'patch'
+    else:
+        part = 'patch'  # default to patch if no argument provided
+
+    new_version = increment_version(current_version, part)
     print(f"New version is {new_version}")
 
     # Update the version in pyproject.toml

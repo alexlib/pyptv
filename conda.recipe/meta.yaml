@@ -24,11 +24,13 @@ requirements:
   build:
     - python {{ python }}
     - setuptools
-    - numpy
+    - numpy ==1.26.4
+    - optv ==0.3.0
     - cython
   run:
     - python
-    - numpy
+    - numpy ==1.26.4
+    - optv ==0.3.0
     - cython
     - numba
     - scipy
@@ -42,3 +44,4 @@ about:
   license_family: MIT
   license_file: LICENSE.txt
   doc_url: http://openptv-python.readthedocs.io
+  dev_url: http://www.openptv.net

@@ -30,10 +30,10 @@ jobs:
       - name: Install Python packages
         run: |
           edm install -y enable
-          edm install -y numpy
+          edm install -y numpy==1.26.4
           edm install -y matplotlib
           edm shell
-          edm run -- python -m pip install tqdm flake8 pytest pyptv \
+          edm run -- python -m pip install optv==0.3.0 tqdm flake8 pytest pyptv \
           --index-url https://pypi.fury.io/pyptv \
           --extra-index-url https://pypi.org/simple
       # - name: Lint with flake8
@@ -44,5 +44,9 @@ jobs:
       #     flake8 . --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
       - name: Test with pytest
         run: |
+          # First clone test data to a specific location
           git clone https://github.com/openptv/test_cavity
-          edm run -- pytest --verbose
+          # Copy necessary parameter files
+          cp -r test_cavity/parameters/* tests/test_cavity/parameters/
+          # Run tests with more verbose output and fail on first error
+          edm run -- pytest -v -x --tb=short

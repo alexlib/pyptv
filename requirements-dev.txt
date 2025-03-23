@@ -45,9 +45,8 @@ networkx==3.4.2
 numba==0.61.0
 numexpr==2.10.2
 numpy==1.26.4
-onnxruntime==1.21.0
+optv==0.3.0
 opencv-python-headless==4.11.0.86
-optv @ file:///home/user/Documents/repos/openptv/py_bind
 packaging @ file:///home/conda/feedstock_root/build_artifacts/packaging_1733203243479/work
 pandas==2.2.3
 parso @ file:///home/conda/feedstock_root/build_artifacts/parso_1733271261340/work

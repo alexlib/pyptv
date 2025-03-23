@@ -10,8 +10,21 @@ def verify_environment():
     print("Environment Verification Report")
     print("-" * 30)
     print(f"Python version: {sys.version}")
-    print(f"NumPy version: {np.__version__}")
-    print(f"OpenPTV version: {optv.__version__}")
+    
+    # Check NumPy version
+    required_numpy = "1.26.4"
+    if np.__version__ != required_numpy:
+        print(f"WARNING: NumPy version mismatch. Required: {required_numpy}, Found: {np.__version__}")
+    else:
+        print(f"NumPy version: {np.__version__} (OK)")
+    
+    # Check OpenPTV version
+    required_optv = "0.3.0"
+    if optv.__version__ != required_optv:
+        print(f"WARNING: OpenPTV version mismatch. Required: {required_optv}, Found: {optv.__version__}")
+    else:
+        print(f"OpenPTV version: {optv.__version__} (OK)")
+    
     print(f"PyPTV version: {pyptv.__version__}")
     
     # Verify numpy functionality
