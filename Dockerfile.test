@@ -9,6 +9,7 @@ ENV PATH="/root/miniconda3/bin:${PATH}"
 RUN apt-get update && apt-get install -y \
     wget \
     git \
+    build-essential \
     && rm -rf /var/lib/apt/lists/*
 
 # Install Miniconda
@@ -32,8 +33,16 @@ COPY . .
 # Setup test environment script
 RUN echo '#!/bin/bash \n\
 source ~/.bashrc && \
-conda install -y numpy==1.26.4 matplotlib pytest flake8 tqdm && \
-pip install optv==0.3.0 pyptv \
+conda install -y numpy==1.26.4 matplotlib pytest flake8 tqdm cython pyyaml && \
+pip install build && \
+git clone https://github.com/openptv/openptv && \
+cd openptv/py_bind && \
+python setup.py prepare && \
+python -m build --wheel --outdir dist/ && \
+pip install dist/*.whl --force-reinstall && \
+cd test && python -m pytest --verbose && \
+cd ../../.. && \
+pip install pyptv \
     --index-url https://pypi.fury.io/pyptv \
     --extra-index-url https://pypi.org/simple && \
 git clone https://github.com/openptv/test_cavity && \

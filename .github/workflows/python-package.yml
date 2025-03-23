@@ -23,8 +23,23 @@ jobs:
       - name: Install dependencies
         shell: bash -l {0}
         run: |
-          conda install -y numpy==1.26.4 matplotlib pytest flake8 tqdm
-          pip install optv==0.3.0 pyptv \
+          conda install -y numpy==1.26.4 matplotlib pytest flake8 tqdm cython pyyaml
+          pip install build
+          
+      - name: Build and install optv
+        shell: bash -l {0}
+        run: |
+          git clone https://github.com/openptv/openptv
+          cd openptv/py_bind
+          python setup.py prepare
+          python -m build --wheel --outdir dist/
+          pip install dist/*.whl --force-reinstall
+          cd ../..
+
+      - name: Install pyptv
+        shell: bash -l {0}
+        run: |
+          pip install pyptv \
             --index-url https://pypi.fury.io/pyptv \
             --extra-index-url https://pypi.org/simple
 
@@ -38,15 +53,6 @@ jobs:
       - name: Verify environment
         shell: bash -l {0}
         run: python scripts/verify_environment.py
-
-      # Uncomment if you want to run linting
-      # - name: Lint with flake8
-      #   shell: bash -l {0}
-      #   run: |
-      #     # stop the build if there are Python syntax errors or undefined names
-      #     flake8 . --count --select=E9,F63,F7,F82 --ignore=F821 --show-source --statistics
-      #     # exit-zero treats all errors as warnings
-      #     flake8 . --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
 
       - name: Run tests
         shell: bash -l {0}
