@@ -1,0 +1,3 @@
+# Working plan
+
+1. https://shapely.readthedocs.io/en/stable/reference/shapely.within.html add to the draw_mask and allow easier selection of targets inside a predefined shape
