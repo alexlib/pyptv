@@ -1,0 +1,15 @@
+version: '3'
+
+services:
+  pyptv:
+    build:
+      context: .
+      dockerfile: Dockerfile.novnc
+    ports:
+      - "6080:6080"  # noVNC web interface
+      - "5901:5901"  # VNC port (optional, for direct VNC clients)
+    volumes:
+      - ./data:/home/pyptv/work  # Mount local data directory
+    environment:
+      - RESOLUTION=1920x1080  # Set the screen resolution
+    restart: unless-stopped

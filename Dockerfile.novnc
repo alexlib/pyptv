@@ -1,0 +1,111 @@
+# Base image with Ubuntu
+FROM ubuntu:22.04
+
+# Set environment variables
+ENV DEBIAN_FRONTEND=noninteractive
+ENV PYTHONUNBUFFERED=1
+ENV HOME=/home/pyptv
+ENV DISPLAY=:1
+ENV RESOLUTION=1920x1080
+ENV VNC_PORT=5901
+ENV NOVNC_PORT=6080
+
+# Install system dependencies
+RUN apt-get update && apt-get install -y \
+    wget \
+    git \
+    build-essential \
+    cmake \
+    check \
+    libsubunit-dev \
+    pkg-config \
+    python3.11 \
+    python3.11-dev \
+    python3.11-venv \
+    python3-pip \
+    python3-setuptools \
+    python3-wheel \
+    xvfb \
+    x11vnc \
+    xfce4 \
+    xfce4-terminal \
+    novnc \
+    supervisor \
+    net-tools \
+    libgl1-mesa-glx \
+    libglib2.0-0 \
+    && rm -rf /var/lib/apt/lists/*
+
+# Create a non-root user
+RUN useradd -m -d /home/pyptv -s /bin/bash pyptv && \
+    mkdir -p /home/pyptv/work && \
+    chown -R pyptv:pyptv /home/pyptv
+
+# Set up Python environment
+RUN python3.11 -m venv /home/pyptv/venv
+ENV PATH="/home/pyptv/venv/bin:$PATH"
+
+# Install Python dependencies
+RUN pip install --no-cache-dir --upgrade pip && \
+    pip install --no-cache-dir numpy matplotlib pytest tqdm cython pyyaml setuptools wheel
+
+# Install OpenPTV
+RUN cd /tmp && \
+    git clone https://github.com/openptv/openptv && \
+    cd openptv/liboptv && \
+    mkdir -p build && cd build && \
+    cmake ../ && \
+    make && \
+    make install && \
+    cd ../../py_bind && \
+    python setup.py prepare && \
+    python setup.py build_ext --inplace && \
+    python -m pip install . && \
+    cd / && \
+    rm -rf /tmp/openptv
+
+# Install PyPTV
+WORKDIR /home/pyptv/pyptv
+COPY . .
+RUN pip install -e .
+
+# Set up noVNC
+RUN mkdir -p /home/pyptv/.vnc && \
+    mkdir -p /home/pyptv/.config/autostart && \
+    echo "pyptv" | vncpasswd -f > /home/pyptv/.vnc/passwd && \
+    chmod 600 /home/pyptv/.vnc/passwd && \
+    chown -R pyptv:pyptv /home/pyptv/.vnc
+
+# Configure supervisord
+COPY docker/supervisord.conf /etc/supervisor/conf.d/supervisord.conf
+
+# Create startup script
+RUN echo '#!/bin/bash\ncd /home/pyptv/work\npython -m pyptv.pyptv_gui' > /home/pyptv/start_pyptv.sh && \
+    chmod +x /home/pyptv/start_pyptv.sh
+
+# Create desktop shortcut
+RUN echo "[Desktop Entry]\nVersion=1.0\nType=Application\nName=PyPTV\nComment=Particle Tracking Velocimetry\nExec=/home/pyptv/start_pyptv.sh\nIcon=\nPath=/home/pyptv/work\nTerminal=false\nStartupNotify=false" > /home/pyptv/.config/autostart/pyptv.desktop && \
+    chown -R pyptv:pyptv /home/pyptv/.config
+
+# Create docker directory for additional files
+RUN mkdir -p /home/pyptv/pyptv/docker
+WORKDIR /home/pyptv/pyptv/docker
+
+# Create supervisord configuration
+RUN echo '[supervisord]\nnodaemon=true\nuser=root\n\n[program:xvfb]\ncommand=/usr/bin/Xvfb :1 -screen 0 %(ENV_RESOLUTION)s -ac +extension GLX +render -noreset\nautorestart=true\npriority=1\n\n[program:x11vnc]\ncommand=/usr/bin/x11vnc -display :1 -xkb -forever -shared -repeat -capslock -rfbauth /home/pyptv/.vnc/passwd -rfbport %(ENV_VNC_PORT)s -noxrecord -noxfixes -noxdamage\nautorestart=true\npriority=2\n\n[program:novnc]\ncommand=/usr/share/novnc/utils/launch.sh --vnc localhost:%(ENV_VNC_PORT)s --listen %(ENV_NOVNC_PORT)s\nautorestart=true\npriority=3\n\n[program:xfce4]\ncommand=/usr/bin/startxfce4\nenvironment=DISPLAY=:1\nautorestart=true\npriority=4\nuser=pyptv\n' > /etc/supervisor/conf.d/supervisord.conf
+
+# Create a README file with instructions
+RUN echo '# PyPTV with noVNC\n\nThis Docker container provides PyPTV with a graphical interface accessible through your web browser.\n\n## Usage\n\n1. Access the PyPTV GUI by opening your web browser and navigating to:\n   http://localhost:6080/vnc.html\n\n2. When prompted for a password, enter: pyptv\n\n3. Your host directories are mounted at /home/pyptv/work\n\n4. To start PyPTV, double-click the PyPTV desktop shortcut or run the following in the terminal:\n   /home/pyptv/start_pyptv.sh\n\n## Notes\n\n- Files saved in the /home/pyptv/work directory will be available on your host system\n- The resolution can be adjusted by changing the RESOLUTION environment variable when running the container\n' > /home/pyptv/README.md
+
+# Set permissions
+RUN chown -R pyptv:pyptv /home/pyptv
+
+# Switch to non-root user for better security
+USER pyptv
+WORKDIR /home/pyptv/work
+
+# Expose ports
+EXPOSE $VNC_PORT $NOVNC_PORT
+
+# Start supervisord
+CMD ["supervisord", "-c", "/etc/supervisor/conf.d/supervisord.conf"]
