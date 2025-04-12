@@ -34,7 +34,6 @@ RUN apt-get update && apt-get install -y \
     net-tools \
     libgl1-mesa-glx \
     libglib2.0-0 \
-    tigervnc-common \
     && rm -rf /var/lib/apt/lists/*
 
 # Create a non-root user
@@ -73,7 +72,8 @@ RUN pip install -e .
 # Set up noVNC
 RUN mkdir -p /home/pyptv/.vnc && \
     mkdir -p /home/pyptv/.config/autostart && \
-    echo "pyptv" | vncpasswd -f > /home/pyptv/.vnc/passwd && \
+    # Create VNC password file manually (password: pyptv)
+    echo -n "pyptv" | openssl passwd -1 -stdin > /home/pyptv/.vnc/passwd && \
     chmod 600 /home/pyptv/.vnc/passwd && \
     chown -R pyptv:pyptv /home/pyptv/.vnc
 
