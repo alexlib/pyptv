@@ -1,16 +1,29 @@
-from pathlib import Path
+"""PyPTV core functionality module.
+
+This module provides the core functionality for the PyPTV package, including
+image processing, calibration, tracking, and other utilities.
+"""
+
+# Standard library imports
 import importlib
-import os, sys
-import numpy as np
-from typing import List
+import os
+import sys
 import re
+from pathlib import Path
+from typing import List, Tuple, Dict, Optional, Union, Any, Callable
+
+# Third-party imports
+import numpy as np
+from scipy.optimize import minimize
+from skimage.io import imread
+from skimage import img_as_ubyte
+from skimage.color import rgb2gray
+
+# OptV imports
 from optv.calibration import Calibration
 from optv.correspondences import correspondences, MatchedCoords
 from optv.image_processing import preprocess_image
-from optv.orientation import (
-    point_positions,
-    full_calibration,
-)
+from optv.orientation import point_positions, full_calibration
 from optv.parameters import (
     ControlParams,
     VolumeParams,
@@ -22,111 +35,197 @@ from optv.segmentation import target_recognition
 from optv.tracking_framebuf import TargetArray
 from optv.tracker import Tracker, default_naming
 
-from skimage.io import imread
-from skimage import img_as_ubyte
-from skimage.color import rgb2gray
+# PyPTV imports
 from pyptv import parameters as par
-import glob
-from scipy.optimize import minimize
-from pyptv import ptv as ptv
-import re
 
+# Constants
 NAMES = ["cc", "xh", "yh", "k1", "k2", "k3", "p1", "p2", "scale", "shear"]
+DEFAULT_FRAME_NUM = -1  # Default frame number instead of magic number 123456789
+DEFAULT_HIGHPASS_FILTER_SIZE = 25  # Default size for highpass filter
 
 
-def negative(img):
-    """ Negative 8-bit image """
+def negative(img: np.ndarray) -> np.ndarray:
+    """Convert an 8-bit image to its negative.
+
+    Args:
+        img: Input 8-bit image as numpy array
+
+    Returns:
+        Negative of the input image
+    """
     return 255 - img
 
-def simple_highpass(img, cpar):
-    """ Simple highpass is using liboptv preprocess_image """
-    return preprocess_image(img, 0, cpar, 25)
 
+def simple_highpass(img: np.ndarray, cpar: ControlParams) -> np.ndarray:
+    """Apply a simple highpass filter to an image using liboptv preprocess_image.
 
-def py_set_img(img, i):
-    """Not used anymore, was transferring images to the C"""
-    pass
+    Args:
+        img: Input image as numpy array
+        cpar: Control parameters
 
-def _read_calibrations(cpar: ControlParams, n_cams: int):
-    # Calibration parameters
+    Returns:
+        Highpass filtered image
+    """
+    return preprocess_image(img, 0, cpar, DEFAULT_HIGHPASS_FILTER_SIZE)
+
+def _read_calibrations(cpar: ControlParams, n_cams: int) -> List[Calibration]:
+    """Read calibration files for all cameras.
+
+    Args:
+        cpar: Control parameters
+        n_cams: Number of cameras
+
+    Returns:
+        List of Calibration objects, one for each camera
+
+    Raises:
+        IOError: If calibration files cannot be read
+    """
     cals = []
     for i_cam in range(n_cams):
         cal = Calibration()
-        tmp = cpar.get_cal_img_base_name(i_cam)
-        cal.from_file(tmp + ".ori", tmp + ".addpar")
-        cals.append(cal)
+        base_name = cpar.get_cal_img_base_name(i_cam)
+        ori_file = base_name + ".ori"
+        addpar_file = base_name + ".addpar"
+
+        try:
+            cal.from_file(ori_file, addpar_file)
+            cals.append(cal)
+        except IOError as e:
+            raise IOError(f"Failed to read calibration files for camera {i_cam}: {e}")
 
     return cals
 
 
-def py_start_proc_c(n_cams):
-    """ Read parameters
-    
-    Usage: 
-    cpar, spar, vpar, track_par, tpar, cals, epar = py_start_proc_c(n_cams)
+def py_start_proc_c(n_cams: int) -> Tuple[ControlParams, SequenceParams, VolumeParams,
+                                    TrackingParams, TargetParams, List[Calibration],
+                                    par.ExamineParams]:
+    """Read all parameters needed for processing.
 
+    This function reads all parameter files from the parameters directory and initializes
+    the necessary objects for processing.
+
+    Args:
+        n_cams: Number of cameras
+
+    Returns:
+        Tuple containing:
+            - cpar: Control parameters
+            - spar: Sequence parameters
+            - vpar: Volume parameters
+            - track_par: Tracking parameters
+            - tpar: Target parameters
+            - cals: List of calibration objects
+            - epar: Examine parameters
+
+    Raises:
+        IOError: If any parameter file cannot be read
     """
+    # Define parameter file paths
+    param_dir = Path("parameters")
+    ptv_par_path = param_dir / "ptv.par"
+    sequence_par_path = param_dir / "sequence.par"
+    criteria_par_path = param_dir / "criteria.par"
+    track_par_path = param_dir / "track.par"
+    targ_rec_par_path = param_dir / "targ_rec.par"
 
-    # Control parameters
-    cpar = ControlParams(n_cams)
-    cpar.read_control_par("parameters/ptv.par")
+    try:
+        # Control parameters
+        cpar = ControlParams(n_cams)
+        cpar.read_control_par(str(ptv_par_path))
 
-    # Sequence parameters
-    spar = SequenceParams(num_cams=n_cams)
-    spar.read_sequence_par("parameters/sequence.par", n_cams)
+        # Sequence parameters
+        spar = SequenceParams(num_cams=n_cams)
+        spar.read_sequence_par(str(sequence_par_path), n_cams)
 
-    # Volume parameters
-    vpar = VolumeParams()
-    vpar.read_volume_par("parameters/criteria.par")
+        # Volume parameters
+        vpar = VolumeParams()
+        vpar.read_volume_par(str(criteria_par_path))
 
-    # Tracking parameters
-    track_par = TrackingParams()
-    track_par.read_track_par("parameters/track.par")
+        # Tracking parameters
+        track_par = TrackingParams()
+        track_par.read_track_par(str(track_par_path))
 
-    # Target parameters
-    tpar = TargetParams(n_cams)
-    tpar.read("parameters/targ_rec.par")
+        # Target parameters
+        tpar = TargetParams(n_cams)
+        tpar.read(str(targ_rec_par_path))
 
-    # Examine parameters, multiplane (single plane vs combined calibration)
-    epar = par.ExamineParams()
-    epar.read()
+        # Examine parameters (multiplane vs single plane calibration)
+        epar = par.ExamineParams()
+        epar.read()
 
-    cals = _read_calibrations(cpar, n_cams)
+        # Read calibration files
+        cals = _read_calibrations(cpar, n_cams)
 
-    return cpar, spar, vpar, track_par, tpar, cals, epar
+        return cpar, spar, vpar, track_par, tpar, cals, epar
+
+    except IOError as e:
+        raise IOError(f"Failed to read parameter files: {e}")
 
 
-def py_pre_processing_c(list_of_images, cpar):
-    """Image pre-processing, mostly highpass filter, could be extended in
-    the future
+def py_pre_processing_c(list_of_images: List[np.ndarray], cpar: ControlParams) -> List[np.ndarray]:
+    """Apply pre-processing to a list of images.
 
-    Inputs:
-        list of images
-        cpar ControlParams()
+    Currently applies a highpass filter to each image, but could be extended
+    with additional processing steps in the future.
+
+    Args:
+        list_of_images: List of input images as numpy arrays
+        cpar: Control parameters
+
+    Returns:
+        List of processed images
     """
-    newlist = []
+    processed_images = []
     for img in list_of_images:
-        newlist.append(simple_highpass(img, cpar))
-    return newlist
+        processed_images.append(simple_highpass(img, cpar))
+    return processed_images
 
 
-def py_detection_proc_c(list_of_images, cpar, tpar, cals):
-    """Detection of targets"""
+def py_detection_proc_c(list_of_images: List[np.ndarray],
+                      cpar: ControlParams,
+                      tpar: TargetParams,
+                      cals: List[Calibration]) -> Tuple[List[TargetArray], List[MatchedCoords]]:
+    """Detect targets in a list of images.
 
-    pftVersionParams = par.PftVersionParams(path=Path("parameters"))
-    pftVersionParams.read()
-    Existing_Target = bool(pftVersionParams.Existing_Target)
+    This function performs target detection on each image and returns the detected
+    targets and their corrected coordinates.
 
-    detections, corrected = [], []
+    Args:
+        list_of_images: List of input images as numpy arrays
+        cpar: Control parameters
+        tpar: Target parameters
+        cals: List of calibration objects
+
+    Returns:
+        Tuple containing:
+            - detections: List of TargetArray objects with detected targets
+            - corrected: List of MatchedCoords objects with corrected coordinates
+
+    Raises:
+        NotImplementedError: If Existing_Target is True (not implemented yet)
+    """
+    # Read PFT version parameters
+    param_dir = Path("parameters")
+    pft_version_params = par.PftVersionParams(path=param_dir)
+    pft_version_params.read()
+    existing_target = bool(pft_version_params.Existing_Target)
+
+    detections = []
+    corrected = []
+
     for i_cam, img in enumerate(list_of_images):
-        if Existing_Target:
+        if existing_target:
             raise NotImplementedError("Existing targets are not implemented")
-            # targs = read_targets('not implemented')
         else:
+            # Detect targets in the image
             targs = target_recognition(img, tpar, i_cam, cpar)
 
+        # Sort targets by y-coordinate
         targs.sort_y()
         detections.append(targs)
+
+        # Create matched coordinates
         mc = MatchedCoords(targs, cpar, cals[i_cam])
         corrected.append(mc)
 
@@ -163,111 +262,113 @@ def py_correspondences_proc_c(exp):
     return sorted_pos, sorted_corresp, num_targs
 
 
-def py_determination_proc_c(n_cams, sorted_pos, sorted_corresp, corrected):
-    """Returns 3d positions"""
+def py_determination_proc_c(n_cams: int,
+                         sorted_pos: List[np.ndarray],
+                         sorted_corresp: np.ndarray,
+                         corrected: List[MatchedCoords]) -> None:
+    """Calculate 3D positions from 2D correspondences and save to file.
 
-    cpar, spar, vpar, track_par, tpar, cals, epar = py_start_proc_c(n_cams)
+    Args:
+        n_cams: Number of cameras
+        sorted_pos: List of sorted positions for each camera
+        sorted_corresp: Array of correspondence indices
+        corrected: List of corrected coordinates
+    """
+    # Get parameters
+    cpar, _, vpar, _, _, cals, _ = py_start_proc_c(n_cams)
 
-    # Distinction between quad/trip irrelevant here.
+    # Concatenate sorted positions (distinction between quad/trip irrelevant here)
     sorted_pos = np.concatenate(sorted_pos, axis=1)
     sorted_corresp = np.concatenate(sorted_corresp, axis=1)
 
+    # Get corrected coordinates by point numbers
     flat = np.array([
         corrected[i].get_by_pnrs(sorted_corresp[i]) for i in range(n_cams)
     ])
-    pos, rcm = point_positions(flat.transpose(1, 0, 2), cpar, cals, vpar)
 
+    # Calculate 3D positions
+    pos, _ = point_positions(flat.transpose(1, 0, 2), cpar, cals, vpar)
+
+    # Format correspondence array for printing
     if n_cams < 4:
         print_corresp = -1 * np.ones((4, sorted_corresp.shape[1]))
         print_corresp[:len(cals), :] = sorted_corresp
     else:
         print_corresp = sorted_corresp
 
-    # Save rt_is in a temporary file
-    fname = (default_naming["corres"].decode()+'.123456789').encode()
+    # Save positions to a temporary file
+    fname = (default_naming["corres"].decode() + '.' + str(DEFAULT_FRAME_NUM)).encode()
 
-    print(f'Prepared {fname} to write positions\n')
+    print(f'Prepared {fname} to write positions')
 
     try:
         with open(fname, "w", encoding='utf-8') as rt_is:
-            print(f'Opened {fname} \n')
+            print(f'Opened {fname}')
             rt_is.write(str(pos.shape[0]) + "\n")
             for pix, pt in enumerate(pos):
                 pt_args = (pix + 1, ) + tuple(pt) + tuple(print_corresp[:, pix])
                 rt_is.write("%4d %9.3f %9.3f %9.3f %4d %4d %4d %4d\n" % pt_args)
-    except FileNotFoundError:
-        msg = "Sorry, the file "+ fname + "does not exist."
-        print(msg) # Sorry, the file John.txt does not exist.
+    except FileNotFoundError as e:
+        print(f"Error writing to file {fname}: {e}")
 
-    # rt_is.close()
+def run_plugin(exp) -> None:
+    """Load and run plugins for sequence processing.
 
-def run_plugin(exp):
-    """Reads and runs the plugins"""
+    This function searches for plugins in the 'plugins' directory and runs the
+    appropriate plugin based on the experiment configuration.
 
-
-    # plugin_dir = 'plugins'
-    plugin_dir = os.path.join(os.getcwd(), 'plugins')
+    Args:
+        exp: Experiment object containing configuration
+    """
+    # Get the plugin directory path
+    plugin_dir = Path(os.getcwd()) / 'plugins'
     print(f"Plugin directory: {plugin_dir}")
-    # Add the plugins directory to sys.path so that Python can find the modules
-    sys.path.append(plugin_dir)
-    print(f"sys.path: {sys.path}")
-    # plugin = importlib.import_module(f"{exp.plugins.sequence_alg}")  
 
+    # Add the plugins directory to sys.path so that Python can find the modules
+    if str(plugin_dir) not in sys.path:
+        sys.path.append(str(plugin_dir))
 
     # Iterate over the files in the 'plugins' directory
     for filename in os.listdir(plugin_dir):
         if filename.endswith('.py') and filename != '__init__.py':
             # Get the plugin name without the '.py' extension
             plugin_name = filename[:-3]
-            
+
+            # Check if the plugin name matches the sequence_alg
             if plugin_name == exp.plugins.sequence_alg:
-            # Dynamically import the plugin
+                # Dynamically import the plugin
                 try:
                     print(f"Loading plugin: {plugin_name}")
                     plugin = importlib.import_module(plugin_name)
-                except ImportError:
-                    print(f"Error loading {plugin_name}. Check missing packages or syntax errors.")
-                    return None
-            
-                # Now you can use the plugin (e.g., assume each plugin has a `run()` function)
+                except ImportError as e:
+                    print(f"Error loading {plugin_name}: {e}")
+                    print("Check for missing packages or syntax errors.")
+                    return
+
+                # Check if the plugin has a Sequence class
                 if hasattr(plugin, 'Sequence'):
-                    # plugin.run()  # Call the `run` function of the plugin
-
-                    print(f"Sequence by using {exp.plugins.sequence_alg}")
-                    try: 
-                        sequence = plugin.Sequence(ptv=ptv, exp = exp)
+                    print(f"Running sequence plugin: {exp.plugins.sequence_alg}")
+                    try:
+                        # Create a Sequence instance and run it
+                        sequence = plugin.Sequence(exp=exp)
                         sequence.do_sequence()
-                        
-                    except:
-                        print(f"Sequence by using {plugin_name} has failed.")
-
-
-            #     seq = importlib.import_module(str(extern_sequence))
-            # except ImportError:
-            #     print(
-            #         "Error loading or running "
-            #         + extern_sequence
-            #         + ". Falling back to default sequence algorithm"
-            #     )
-
-            # print("Sequence by using " + extern_sequence)
-            # sequence = seq.Sequence(
-            #     ptv=ptv,
-            #     exp1=info.object.exp1,
-            #     camera_list=info.object.camera_list,
-            # )
-            # sequence.do_sequence()
-            # print("Sequence by using "+extern_sequence+" has failed."
+                    except Exception as e:
+                        print(f"Error running sequence plugin {plugin_name}: {e}")
 
 
 
-def py_sequence_loop(exp):
-    """Runs a sequence of detection, stereo-correspondence, determination and stores
-    the data in the cam#.XXX_targets (rewritten) and rt_is.XXX files. Basically
-    it is to run the batch as in pyptv_batch.py without tracking
+def py_sequence_loop(exp) -> None:
+    """Run a sequence of detection, stereo-correspondence, and determination.
+
+    This function processes a sequence of frames, performing detection, stereo-correspondence,
+    and 3D position determination. It stores the results in cam#.XXX_targets and rt_is.XXX files.
+    It's similar to running pyptv_batch.py without tracking.
+
+    Args:
+        exp: Experiment object containing configuration and parameters
     """
 
-    # Sequence parameters    
+    # Sequence parameters
 
     n_cams, cpar, spar, vpar, tpar, cals = (
         exp.n_cams,
@@ -291,7 +392,7 @@ def py_sequence_loop(exp):
     first_frame = spar.get_first()
     last_frame = spar.get_last()
     print(f" From {first_frame = } to {last_frame = }")
-    
+
     for frame in range(first_frame, last_frame + 1):
         # print(f"processing {frame = }")
 
@@ -303,9 +404,9 @@ def py_sequence_loop(exp):
                 targs = read_targets(base_image_name, frame)
             else:
                 # imname = spar.get_img_base_name(i_cam) + str(frame).encode()
-                
+
                 # imname = Path(imname.replace('#',f'{frame}'))
-                imname = Path(base_image_name % frame) # works with jumps from 1 to 10 
+                imname = Path(base_image_name % frame) # works with jumps from 1 to 10
                 # print(f'Image name {imname}')
 
                 if not imname.exists():
@@ -314,11 +415,11 @@ def py_sequence_loop(exp):
                     img = imread(imname)
                     if img.ndim > 2:
                         img = rgb2gray(img)
-                        
+
                     if img.dtype != np.uint8:
                         img = img_as_ubyte(img)
                 # time.sleep(.1) # I'm not sure we need it here
-                
+
                 if 'exp1' in exp.__dict__:
                     if exp.exp1.active_params.m_params.Inverse:
                         print("Invert image")
@@ -334,8 +435,8 @@ def py_sequence_loop(exp):
 
                         except ValueError:
                             print("failed to read the mask")
-                    
-                
+
+
                 high_pass = simple_highpass(img, cpar)
                 targs = target_recognition(high_pass, tpar, i_cam, cpar)
 
@@ -397,7 +498,7 @@ def py_sequence_loop(exp):
 
 def py_trackcorr_init(exp):
     """Reads all the necessary stuff into Tracker"""
-    
+
     for cam_id in range(exp.cpar.get_num_cams()):
         img_base_name = exp.spar.get_img_base_name(cam_id)
         # print(img_base_name)
@@ -407,12 +508,12 @@ def py_trackcorr_init(exp):
         # print(short_name)
         print(f' Renaming {img_base_name} to {short_name} before C library tracker')
         exp.spar.set_img_base_name(cam_id, short_name)
-        
+
 
     tracker = Tracker(exp.cpar, exp.vpar, exp.track_par, exp.spar, exp.cals,
                       default_naming)
 
-    
+
     return tracker
 
 
@@ -448,75 +549,57 @@ def py_traject_loop():
 # ------- Utilities ----------#
 
 
-def py_rclick_delete(x, y, n):
-    """a tool to delete clicked points
+def py_rclick_delete(x: int, y: int, n: int) -> None:
+    """Delete clicked points (stub function).
 
-    def py_right_click(int coord_x, int coord_y, n_image):
-    global rclick_intx1,rclick_inty1,rclick_intx2,rclick_inty2,rclick_points_x1, rclick_points_y1,rclick_count,rclick_points_intx1, rclick_points_inty1
+    This is a placeholder for a function that would delete points clicked by the user.
+    The original C implementation would store clicked coordinates for later processing.
 
-    x2_points,y2_points,x1,y1,x2,y2=[],[],[],[],[],[]
-
-    cdef volume_par *vpar = read_volume_par("parameters/criteria.par")
-    r = mouse_proc_c (coord_x, coord_y, 3, n_image, vpar, cpar)
-    free(vpar)
-
-    if r == -1:
-        return -1,-1,-1,-1,-1,-1,-1,-1
-    for i in range(cpar[0].num_cams):
-        x2_temp,y2_temp=[],[]
-        for j in range(rclick_count[i]):
-            x2_temp.append(rclick_points_x1[i][j])
-            y2_temp.append(rclick_points_y1[i][j])
-
-        x2_points.append(x2_temp)
-        y2_points.append(y2_temp)
-        x1.append(rclick_intx1[i])
-        y1.append(rclick_inty1[i])
-        x2.append(rclick_intx2[i])
-        y2.append(rclick_inty2[i])
-
-    return  x1,y1,x2,y2,x2_points,y2_points,rclick_points_intx1, rclick_points_inty1
-
-
+    Args:
+        x: X-coordinate of the click
+        y: Y-coordinate of the click
+        n: Camera number
     """
+    # This function is not implemented in the Python version
+    # It was used in the C version to delete points clicked by the user
     pass
 
 
-def py_get_pix_N(x, y, n):
+def py_get_pix_N(x: int, y: int, n: int) -> Tuple[List[int], List[int]]:
+    """Get pixel coordinates (stub function).
+
+    This is a placeholder for a function that would return pixel coordinates.
+    The original C implementation would return lists of x and y coordinates.
+
+    Args:
+        x: X-coordinate
+        y: Y-coordinate
+        n: Camera number
+
+    Returns:
+        Empty lists of x and y coordinates (placeholder)
     """
-    def py_get_pix_N(x,y,n_image):
-    global pix
-    cdef int i,j
-    i=n_image
-    x1=[]
-    y1=[]
-    for j in range(num[i]):
-        x1.append(pix[i][j].x)
-        y1.append(pix[i][j].y)
-        x.append(x1)
-        y.append(y1)
+    # This function is not implemented in the Python version
+    # It was used in the C version to get pixel coordinates
+    return [], []
 
+
+def py_get_pix(x: List[List[int]], y: List[List[int]]) -> Tuple[List[List[int]], List[List[int]]]:
+    """Get target positions (stub function).
+
+    This function is supposed to return lists of target positions.
+    In the original C implementation, it would fill the provided x and y lists
+    with target positions from all cameras.
+
+    Args:
+        x: List to be filled with x-coordinates
+        y: List to be filled with y-coordinates
+
+    Returns:
+        Tuple containing the input lists (unchanged in this implementation)
     """
-    pass
-
-
-def py_get_pix(x, y):
-    """
-    Returns a list of lists of target positions
-
-    def py_get_pix(x,y):
-    global pix
-    cdef int i,j
-    for i in range(cpar[0].num_cams):
-        x1=[]
-        y1=[]
-        for j in range(num[i]):
-            x1.append(pix[i][j].x)
-            y1.append(pix[i][j].y)
-        x.append(x1)
-        y.append(y1)
-
-    """
+    # This function is not fully implemented in the Python version
+    # It was used in the C version to get target positions
     return x, y
 
 
@@ -536,7 +619,7 @@ def py_calibration(selection, exp):
         It is the same function as show trajectories, just read from a different
         file
         """
-        
+
     if selection == 10:
         """Run the calibration with particles """
         from optv.tracking_framebuf import Frame
@@ -550,7 +633,7 @@ def py_calibration(selection, exp):
         targ_files = [exp.spar.get_img_base_name(c).decode().split('%d')[0].encode() for c in \
     range(num_cams)]
         # recognized names for the flags:
-        
+
         op = OrientParams()
         op.read()
 
@@ -558,18 +641,18 @@ def py_calibration(selection, exp):
         sp.read()
 
         flags = [name for name in NAMES if getattr(op, name) == 1]
-        # Iterate over frames, loading the big lists of 3D positions and 
+        # Iterate over frames, loading the big lists of 3D positions and
         # respective detections.
         all_known = []
         all_detected = [[] for c in range(num_cams)]
 
-        for frm_num in range(sp.shaking_first_frame, sp.shaking_last_frame + 1): 
-            frame = Frame(exp.cpar.get_num_cams(), 
-                corres_file_base = ('res/rt_is').encode(), 
+        for frm_num in range(sp.shaking_first_frame, sp.shaking_last_frame + 1):
+            frame = Frame(exp.cpar.get_num_cams(),
+                corres_file_base = ('res/rt_is').encode(),
                 linkage_file_base= ('res/ptv_is').encode(),
-                target_file_base = targ_files, 
+                target_file_base = targ_files,
                 frame_num = frm_num)
-                
+
             all_known.append(frame.positions())
             for cam in range(num_cams):
                 all_detected[cam].append(frame.target_positions_for_camera(cam))
@@ -584,18 +667,18 @@ def py_calibration(selection, exp):
         for cam in range(num_cams):
             detects = np.vstack(all_detected[cam])
             assert detects.shape[0] == all_known.shape[0]
-            
+
             have_targets = ~np.isnan(detects[:,0])
             used_detects = detects[have_targets,:]
             used_known = all_known[have_targets,:]
-            
+
             targs = TargetArray(len(used_detects))
-            
+
             for tix in range(len(used_detects)):
                 targ = targs[tix]
                 targ.set_pnr(tix)
                 targ.set_pos(used_detects[tix])
-            
+
 
 
             residuals = full_scipy_calibration(
@@ -606,7 +689,7 @@ def py_calibration(selection, exp):
                 flags=flags
             )
             print(f"After scipy full calibration, {np.sum(residuals**2)}")
-            
+
             print(("Camera %d" % (cam + 1)))
             print((calibs[cam].get_pos()))
             print((calibs[cam].get_angles()))
@@ -624,10 +707,10 @@ def py_calibration(selection, exp):
             targ_ix_all.append(targ_ix)
             residuals_all.append(residuals)
 
-            
+
         print("End calibration with particles")
         return targs_all, targ_ix_all, residuals_all
-        
+
 
 
 # def py_multiplanecalibration(exp):
@@ -698,7 +781,7 @@ def py_calibration(selection, exp):
 #         ori = exp.calParams.img_ori[i_cam]
 #         addpar = ori + ".addpar"
 #         ori = ori + ".ori"
-        
+
 #         exp.cals[i_cam].write(ori.encode(), addpar.encode())
 #         print("End multiplane")
 
@@ -726,19 +809,19 @@ def read_targets(file_base: str, frame: int=123456789) -> TargetArray:
 
                 if len(line) != 8:
                     raise ValueError(f"Bad format for file: {filename}")
-                
+
                 targ = targs[tix]
                 targ.set_pnr(int(line[0]))
                 targ.set_pos([float(line[1]), float(line[2])])
                 targ.set_pixel_counts(int(line[3]), int(line[4]), int(line[5]))
-                targ.set_sum_grey_value(int(line[6]))                
+                targ.set_sum_grey_value(int(line[6]))
                 targ.set_tnr(int(line[7]))
 
 
     except IOError as err:
         print(f"Can't open targets file: {filename}")
         raise err
-    
+
     # print(f" read {len(buffer)} targets from {filename}")
     return targs
 
@@ -828,15 +911,15 @@ def read_rt_is_file(filename) -> List[List[float]]:
     except IOError as e:
         print(f"Can't open ascii file: {filename}")
         raise e
-    
 
-def full_scipy_calibration(cal: Calibration, 
-                           XYZ: np.ndarray, 
-                           targs: TargetArray, 
-                           cpar: ControlParams, 
+
+def full_scipy_calibration(cal: Calibration,
+                           XYZ: np.ndarray,
+                           targs: TargetArray,
+                           cpar: ControlParams,
                            flags=[]
                            ):
-    
+
     """ Full calibration using scipy.optimize """
     from scipy.optimize import minimize
     from optv.transforms import convert_arr_metric_to_pixel
@@ -853,8 +936,8 @@ def full_scipy_calibration(cal: Calibration,
             cpar (CPar): Camera parameters.
 
 
-            args=(calibs[i_cam], 
-                self.cal_points["pos"], 
+            args=(calibs[i_cam],
+                self.cal_points["pos"],
                 targs,
                 self.cpar
                 )
@@ -894,7 +977,7 @@ def full_scipy_calibration(cal: Calibration,
         )
         xyt = np.array([t.pos() if t.pnr() != -999 else [np.nan, np.nan] for t in xy])
         residuals = np.nan_to_num(xyt - targets)
-        return np.sum(residuals**2)    
+        return np.sum(residuals**2)
 
     def _residuals_combined(x, cal, XYZ, xy, cpar):
         """Combined residuals  """
@@ -910,23 +993,23 @@ def full_scipy_calibration(cal: Calibration,
         xyt = np.array([t.pos() if t.pnr() != -999 else [np.nan, np.nan] for t in xy])
         residuals = np.nan_to_num(xyt - targets)
         return residuals
-    
+
 
     # Main loop
 
     if any(flag in flags for flag in ['k1', 'k2', 'k3']):
         sol = minimize(_residuals_k,
-                    cal.get_radial_distortion(), 
-                    args=(cal, 
-                            XYZ, 
+                    cal.get_radial_distortion(),
+                    args=(cal,
+                            XYZ,
                             targs,
                             cpar
-                            ), 
-                            method='Nelder-Mead', 
+                            ),
+                            method='Nelder-Mead',
                             tol=1e-11,
                             options={'disp':True},
                             )
-        radial = sol.x 
+        radial = sol.x
         cal.set_radial_distortion(radial)
     else:
         radial = cal.get_radial_distortion()
@@ -934,17 +1017,17 @@ def full_scipy_calibration(cal: Calibration,
     if any(flag in flags for flag in ['p1', 'p2']):
         # now decentering
         sol = minimize(_residuals_p,
-                    cal.get_decentering(), 
-                    args=(cal, 
-                            XYZ, 
+                    cal.get_decentering(),
+                    args=(cal,
+                            XYZ,
                             targs,
                             cpar
-                            ), 
-                            method='Nelder-Mead', 
+                            ),
+                            method='Nelder-Mead',
                             tol=1e-11,
                             options={'disp':True},
                             )
-        decentering = sol.x 
+        decentering = sol.x
         cal.set_decentering(decentering)
     else:
         decentering = cal.get_decentering()
@@ -952,17 +1035,17 @@ def full_scipy_calibration(cal: Calibration,
     if any(flag in flags for flag in ['scale', 'shear']):
         # now affine
         sol = minimize(_residuals_s,
-                    cal.get_affine(), 
-                    args=(cal, 
-                            XYZ, 
+                    cal.get_affine(),
+                    args=(cal,
+                            XYZ,
                             targs,
                             cpar
-                            ), 
-                            method='Nelder-Mead', 
+                            ),
+                            method='Nelder-Mead',
                             tol=1e-11,
                             options={'disp':True},
                             )
-        affine = sol.x 
+        affine = sol.x
         cal.set_affine_trans(affine)
 
     else:
@@ -971,12 +1054,12 @@ def full_scipy_calibration(cal: Calibration,
 
     residuals = _residuals_combined(
                     np.r_[radial, decentering, affine],
-                    cal, 
-                    XYZ, 
+                    cal,
+                    XYZ,
                     targs,
                     cpar
                     )
 
     residuals /= 100
 
-    return residuals 
+    return residuals
