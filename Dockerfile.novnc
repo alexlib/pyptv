@@ -101,12 +101,11 @@ RUN echo '# PyPTV with noVNC\n\nThis Docker container provides PyPTV with a grap
 # Set permissions
 RUN chown -R pyptv:pyptv /home/pyptv
 
-# Switch to non-root user for better security
-USER pyptv
+# Set working directory
 WORKDIR /home/pyptv/work
 
 # Expose ports
 EXPOSE $VNC_PORT $NOVNC_PORT
 
-# Start supervisord
+# Start supervisord as root (required for some services)
 CMD ["supervisord", "-c", "/etc/supervisor/conf.d/supervisord.conf"]
