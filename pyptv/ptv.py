@@ -40,7 +40,7 @@ from pyptv import parameters as par
 
 # Constants
 NAMES = ["cc", "xh", "yh", "k1", "k2", "k3", "p1", "p2", "scale", "shear"]
-DEFAULT_FRAME_NUM = -1  # Default frame number instead of magic number 123456789
+DEFAULT_FRAME_NUM = 123456789  # Default frame number instead of magic number 123456789
 DEFAULT_HIGHPASS_FILTER_SIZE = 25  # Default size for highpass filter
 
 
