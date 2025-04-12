@@ -571,7 +571,7 @@ class CalibrationGUI(HasTraits):
         ) = ptv.py_start_proc_c(self.n_cams)
 
         print("reset grey scale thresholds for calibration:\n")
-        self.tpar.read(b"parameters/detect_plate.par")
+        self.tpar.read("parameters/detect_plate.par")
         print(self.tpar.get_grey_thresholds())
 
 
@@ -588,7 +588,7 @@ class CalibrationGUI(HasTraits):
         # read calibration images
         self.cal_images = []
         for i in range(len(self.camera)):
-            imname = self.cpar.get_cal_img_base_name(i).decode()
+            imname = self.cpar.get_cal_img_base_name(i)
             im = imread(imname)
             # im = ImageData.fromfile(imname).data
             if im.ndim > 2:
@@ -713,7 +713,7 @@ class CalibrationGUI(HasTraits):
         for i_cam in range(self.n_cams):
             cal = Calibration()
             tmp = self.cpar.get_cal_img_base_name(i_cam)
-            cal.from_file(tmp + b".ori", tmp + b".addpar")
+            cal.from_file(tmp + ".ori", tmp + ".addpar")
             self.cals.append(cal)
 
         for i_cam in range(self.n_cams):
