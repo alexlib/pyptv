@@ -9,7 +9,7 @@ import optv
 from optv.calibration import Calibration
 from optv.parameters import ControlParams
 
-def test_installation():
+def test_installation(test_data_dir):
     """Test if pyptv and optv are installed correctly"""
     try:
         import pyptv
@@ -17,25 +17,24 @@ def test_installation():
     except ImportError:
         print("Error: PyPTV is not installed correctly")
         return False
-    
+
     try:
         import optv
         print(f"OpenPTV version: {optv.__version__}")
     except ImportError:
         print("Error: OpenPTV is not installed correctly")
         return False
-    
+
     # Test path to test_cavity
-    script_dir = os.path.dirname(os.path.abspath(__file__))
-    test_cavity_path = os.path.join(script_dir, "test_cavity")
+    test_cavity_path = test_data_dir
     print(f"Test cavity path: {test_cavity_path}")
-    
+
     # Test if we can load calibration
     try:
         cal = Calibration()
         cal_file = os.path.join(test_cavity_path, "cal", "cam1.tif.ori")
         addpar_file = os.path.join(test_cavity_path, "cal", "cam1.tif.addpar")
-        
+
         if os.path.exists(cal_file) and os.path.exists(addpar_file):
             cal.from_file(cal_file.encode(), addpar_file.encode())
             print("Successfully loaded calibration")
@@ -46,7 +45,7 @@ def test_installation():
     except Exception as e:
         print(f"Error loading calibration: {str(e)}")
         return False
-    
+
     print("Installation test completed successfully!")
     return True
 

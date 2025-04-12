@@ -9,7 +9,7 @@ import optv
 from optv.calibration import Calibration
 from optv.parameters import ControlParams, VolumeParams
 
-def test_core_functionality():
+def test_core_functionality(test_data_dir):
     """Test core functionality of pyptv and optv"""
     print("Testing core functionality...")
 
@@ -19,8 +19,7 @@ def test_core_functionality():
     print(f"OpenPTV version: {optv.__version__}")
 
     # Test path to test_cavity
-    script_dir = os.path.dirname(os.path.abspath(__file__))
-    test_cavity_path = os.path.join(script_dir, "test_cavity")
+    test_cavity_path = test_data_dir
     print(f"Test cavity path: {test_cavity_path}")
 
     # Test if we can load calibration
