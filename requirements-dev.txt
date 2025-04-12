@@ -90,7 +90,7 @@ sympy==1.13.3
 tables==3.10.1
 tifffile==2025.3.13
 tomli==2.2.1
-tornado==6.4
+tornado==6.4.2
 tqdm==4.67.1
 traitlets==5.14.1
 traits==7.0.2
