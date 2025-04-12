@@ -1,7 +1,17 @@
 @echo off
 REM Script to install pyptv locally on Windows
+REM Tested with Wine on Linux to ensure compatibility
+
+setlocal enabledelayedexpansion
+
+REM Create a log file
+set LOG_FILE=%~dp0install_pyptv.log
+echo PyPTV Installation Log > %LOG_FILE%
+echo Started at: %date% %time% >> %LOG_FILE%
+echo. >> %LOG_FILE%
 
 echo === Setting up pyptv local environment ===
+echo === Setting up pyptv local environment === >> %LOG_FILE%
 
 REM Check if conda is installed
 where conda >nul 2>&1
@@ -200,3 +210,13 @@ echo. >> run_pyptv.bat
 echo pause >> run_pyptv.bat
 
 echo Created run_pyptv.bat for easy launching of pyptv.
+
+REM Log completion
+echo. >> %LOG_FILE%
+echo Installation completed successfully at: %date% %time% >> %LOG_FILE%
+echo Log file created at: %LOG_FILE%
+
+REM Return to original directory
+cd %REPO_DIR%
+
+endlocal

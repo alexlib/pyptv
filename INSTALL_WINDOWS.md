@@ -24,6 +24,8 @@ Before running the installation script, make sure you have the following prerequ
 
 ### Option 1: Automated Installation Script
 
+The installation script has been tested with Wine on Linux to ensure compatibility with Windows systems.
+
 1. Clone the repository:
    ```
    git clone https://github.com/openptv/pyptv
