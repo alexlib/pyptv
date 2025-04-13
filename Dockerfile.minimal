@@ -1,0 +1,47 @@
+# Use a base image with noVNC already set up
+FROM linuxserver/webtop:ubuntu-xfce
+
+# Set environment variables
+ENV DEBIAN_FRONTEND=noninteractive
+ENV PYTHONUNBUFFERED=1
+
+# Install system dependencies
+RUN apt-get update && apt-get install -y \
+    wget \
+    git \
+    build-essential \
+    cmake \
+    check \
+    libsubunit-dev \
+    pkg-config \
+    python3 \
+    python3-pip \
+    python3-setuptools \
+    python3-wheel \
+    libgl1-mesa-glx \
+    libglib2.0-0 \
+    && rm -rf /var/lib/apt/lists/*
+
+# Install Python dependencies
+RUN pip3 install --no-cache-dir numpy matplotlib pytest tqdm cython pyyaml setuptools wheel
+
+# Create work directory
+WORKDIR /config/work
+
+# Copy PyPTV source
+COPY . /config/pyptv
+
+# Install PyPTV
+WORKDIR /config/pyptv
+RUN pip3 install -e .
+
+# Create startup script
+RUN echo '#!/bin/bash\ncd /config/work\npython3 -m pyptv.pyptv_gui' > /config/start_pyptv.sh && \
+    chmod +x /config/start_pyptv.sh
+
+# Create desktop shortcut
+RUN mkdir -p /config/.config/autostart && \
+    echo "[Desktop Entry]\nVersion=1.0\nType=Application\nName=PyPTV\nComment=Particle Tracking Velocimetry\nExec=/config/start_pyptv.sh\nIcon=\nPath=/config/work\nTerminal=false\nStartupNotify=false" > /config/.config/autostart/pyptv.desktop
+
+# Set working directory
+WORKDIR /config/work
