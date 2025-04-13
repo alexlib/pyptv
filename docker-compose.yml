@@ -11,5 +11,6 @@ services:
     volumes:
       - ./data:/home/pyptv/work  # Mount local data directory
     environment:
-      - RESOLUTION=1920x1080  # Set the screen resolution
+      - RESOLUTION=1280x720  # Lower resolution for better compatibility
     restart: unless-stopped
+    shm_size: '2gb'  # Increase shared memory for X server

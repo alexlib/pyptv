@@ -1,0 +1,16 @@
+version: '3'
+
+services:
+  pyptv:
+    build:
+      context: .
+      dockerfile: Dockerfile.simple
+    ports:
+      - "3000:3000"  # noVNC web interface
+    volumes:
+      - ./data:/config/work  # Mount local data directory
+    environment:
+      - PUID=1000  # Set this to your user ID
+      - PGID=1000  # Set this to your group ID
+    restart: unless-stopped
+    shm_size: '2gb'  # Increase shared memory for X server

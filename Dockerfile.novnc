@@ -6,9 +6,11 @@ ENV DEBIAN_FRONTEND=noninteractive
 ENV PYTHONUNBUFFERED=1
 ENV HOME=/home/pyptv
 ENV DISPLAY=:1
-ENV RESOLUTION=1920x1080
+ENV RESOLUTION=1280x720
 ENV VNC_PORT=5901
 ENV NOVNC_PORT=6080
+ENV LANG=C.UTF-8
+ENV LC_ALL=C.UTF-8
 
 # Install system dependencies
 RUN apt-get update && apt-get install -y \
@@ -34,6 +36,12 @@ RUN apt-get update && apt-get install -y \
     net-tools \
     libgl1-mesa-glx \
     libglib2.0-0 \
+    xauth \
+    dbus-x11 \
+    libxext6 \
+    libxrender1 \
+    libxtst6 \
+    libxi6 \
     && rm -rf /var/lib/apt/lists/*
 
 # Create a non-root user

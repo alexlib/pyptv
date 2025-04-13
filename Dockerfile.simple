@@ -1,0 +1,80 @@
+# Use a base image with noVNC already set up
+FROM linuxserver/webtop:ubuntu-xfce
+
+# Set environment variables
+ENV DEBIAN_FRONTEND=noninteractive
+ENV PYTHONUNBUFFERED=1
+ENV HOME=/config
+ENV DISPLAY=:1
+ENV PUSER=abc
+ENV PGROUP=abc
+
+# Install system dependencies
+RUN apt-get update && apt-get install -y \
+    wget \
+    git \
+    build-essential \
+    cmake \
+    check \
+    libsubunit-dev \
+    pkg-config \
+    python3.11 \
+    python3.11-dev \
+    python3.11-venv \
+    python3-pip \
+    python3-setuptools \
+    python3-wheel \
+    libgl1-mesa-glx \
+    libglib2.0-0 \
+    && rm -rf /var/lib/apt/lists/*
+
+# Set up Python environment
+RUN python3.11 -m venv /config/venv
+ENV PATH="/config/venv/bin:$PATH"
+
+# Install Python dependencies
+RUN pip install --no-cache-dir --upgrade pip && \
+    pip install --no-cache-dir numpy matplotlib pytest tqdm cython pyyaml setuptools wheel
+
+# Install OpenPTV
+RUN cd /tmp && \
+    git clone https://github.com/openptv/openptv && \
+    cd openptv/liboptv && \
+    mkdir -p build && cd build && \
+    cmake ../ && \
+    make && \
+    make install && \
+    cd ../../py_bind && \
+    python setup.py prepare && \
+    python setup.py build_ext --inplace && \
+    python -m pip install . && \
+    cd / && \
+    rm -rf /tmp/openptv
+
+# Create work directory
+RUN mkdir -p /config/work && \
+    chown -R ${PUSER}:${PGROUP} /config/work
+
+# Copy PyPTV source
+COPY --chown=${PUSER}:${PGROUP} . /config/pyptv
+
+# Install PyPTV
+WORKDIR /config/pyptv
+RUN pip install -e .
+
+# Create startup script
+RUN echo '#!/bin/bash\ncd /config/work\npython -m pyptv.pyptv_gui' > /config/start_pyptv.sh && \
+    chmod +x /config/start_pyptv.sh && \
+    chown ${PUSER}:${PGROUP} /config/start_pyptv.sh
+
+# Create desktop shortcut
+RUN mkdir -p /config/.config/autostart && \
+    echo "[Desktop Entry]\nVersion=1.0\nType=Application\nName=PyPTV\nComment=Particle Tracking Velocimetry\nExec=/config/start_pyptv.sh\nIcon=\nPath=/config/work\nTerminal=false\nStartupNotify=false" > /config/.config/autostart/pyptv.desktop && \
+    chown -R ${PUSER}:${PGROUP} /config/.config
+
+# Create README file with instructions
+RUN echo '# PyPTV with noVNC\n\nThis Docker container provides PyPTV with a graphical interface accessible through your web browser.\n\n## Usage\n\n1. Your host directories are mounted at /config/work\n\n2. To start PyPTV, double-click the PyPTV desktop shortcut or run the following in the terminal:\n   /config/start_pyptv.sh\n\n## Notes\n\n- Files saved in the /config/work directory will be available on your host system\n' > /config/README.md && \
+    chown ${PUSER}:${PGROUP} /config/README.md
+
+# Set working directory
+WORKDIR /config/work
