@@ -2,11 +2,37 @@
 
 This guide provides step-by-step instructions for running PyPTV using Docker with a graphical interface accessible through your web browser. This approach works on any platform that supports Docker (Windows, macOS, Linux).
 
-> **Note**: We provide two different Docker setups:
-> 1. **Kasm Setup** (Recommended): Uses the kasmweb base image which provides a more reliable VNC experience
-> 2. **Standard Setup**: Uses a custom-built VNC setup
+> **Note**: We provide three different Docker setups:
+> 1. **TiredOfIt Setup** (Recommended): Uses the tiredofit/novnc base image which provides the most reliable VNC experience
+> 2. **Kasm Setup**: Uses the kasmweb base image
+> 3. **Standard Setup**: Uses a custom-built VNC setup
 
-## Kasm Setup (Recommended)
+## TiredOfIt Setup (Recommended)
+
+### Quick Start
+
+1. **Create a data directory**
+   ```bash
+   mkdir -p data
+   ```
+
+2. **Start the container**
+   ```bash
+   # On Linux/macOS:
+   ./run_tiredofit_docker.sh
+
+   # On Windows:
+   run_tiredofit_docker.bat
+   ```
+
+3. **Access PyPTV**
+   - Open your web browser and go to: http://localhost:3000
+   - You'll be connected automatically without a password
+   - Start PyPTV using the desktop shortcut or by running `/home/gui/start_pyptv.sh` in a terminal
+
+That's it! You're now running PyPTV in a Docker container with full GUI access.
+
+## Kasm Setup
 
 ### Quick Start
 
@@ -220,17 +246,17 @@ This gives you a shell inside the container where you can run commands.
 
 ### If You're Having Connection Issues
 
-If you're experiencing connection issues with the standard setup, we recommend trying the Kasm setup instead:
+If you're experiencing connection issues with any of the setups, we recommend trying the TiredOfIt setup:
 
 ```bash
 # On Linux/macOS:
-./run_kasm_docker.sh
+./run_tiredofit_docker.sh
 
 # On Windows:
-run_kasm_docker.bat
+run_tiredofit_docker.bat
 ```
 
-The Kasm setup uses a more reliable base image (kasmweb) that has better compatibility across different systems.
+The TiredOfIt setup uses the tiredofit/novnc base image, which is specifically designed for running GUI applications in a web browser and has excellent compatibility across different systems.
 
 ### Container Not Starting
 

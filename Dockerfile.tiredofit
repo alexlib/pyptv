@@ -1,0 +1,83 @@
+FROM tiredofit/novnc:latest
+
+# Set environment variables
+ENV CONTAINER_NAME=pyptv-novnc \
+    CONTAINER_PRETTY_NAME="PyPTV with noVNC" \
+    DESKTOP_TYPE=xfce \
+    DEFAULT_TIMEZONE=Etc/UTC \
+    DISPLAY_DEPTH=24 \
+    DISPLAY_HEIGHT=768 \
+    DISPLAY_WIDTH=1280 \
+    ENABLE_AUTHENTICATION=FALSE \
+    ENABLE_GUACAMOLE=FALSE \
+    ENABLE_NOVNC=TRUE \
+    ENABLE_SSHD=FALSE \
+    ENABLE_XVFB=TRUE \
+    ENABLE_VNC=TRUE \
+    ENABLE_XFCE_PANEL_PLUGINS=TRUE \
+    ENABLE_XFCE_TERMINAL=TRUE \
+    PYTHONUNBUFFERED=1
+
+# Install system dependencies
+RUN set -x && \
+    apt-get update && \
+    apt-get install -y --no-install-recommends \
+        wget \
+        git \
+        build-essential \
+        cmake \
+        check \
+        libsubunit-dev \
+        pkg-config \
+        python3 \
+        python3-pip \
+        python3-setuptools \
+        python3-wheel \
+        libgl1-mesa-glx \
+        libglib2.0-0 \
+        && \
+    apt-get clean && \
+    rm -rf /var/lib/apt/lists/*
+
+# Install Python dependencies
+RUN pip3 install --no-cache-dir numpy matplotlib pytest tqdm cython pyyaml setuptools wheel
+
+# Install OpenPTV
+RUN cd /tmp && \
+    git clone https://github.com/openptv/openptv && \
+    cd openptv/liboptv && \
+    mkdir -p build && cd build && \
+    cmake ../ && \
+    make && \
+    make install && \
+    cd ../../py_bind && \
+    python3 setup.py prepare && \
+    python3 setup.py build_ext --inplace && \
+    python3 -m pip install . && \
+    cd / && \
+    rm -rf /tmp/openptv
+
+# Create work directory
+RUN mkdir -p /home/gui/work
+WORKDIR /home/gui/work
+
+# Copy PyPTV source
+COPY --chown=gui:gui . /home/gui/pyptv
+
+# Install PyPTV
+WORKDIR /home/gui/pyptv
+RUN pip3 install -e .
+
+# Create startup script
+RUN echo '#!/bin/bash\ncd /home/gui/work\npython3 -m pyptv.pyptv_gui' > /home/gui/start_pyptv.sh && \
+    chmod +x /home/gui/start_pyptv.sh && \
+    chown gui:gui /home/gui/start_pyptv.sh
+
+# Create desktop shortcut
+RUN mkdir -p /home/gui/Desktop && \
+    echo "[Desktop Entry]\nVersion=1.0\nType=Application\nName=PyPTV\nComment=Particle Tracking Velocimetry\nExec=/home/gui/start_pyptv.sh\nIcon=\nPath=/home/gui/work\nTerminal=false\nStartupNotify=false" > /home/gui/Desktop/pyptv.desktop && \
+    chmod +x /home/gui/Desktop/pyptv.desktop && \
+    chown gui:gui /home/gui/Desktop/pyptv.desktop
+
+# Set working directory
+WORKDIR /home/gui/work
