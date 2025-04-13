@@ -2,11 +2,34 @@
 
 This guide provides step-by-step instructions for running PyPTV using Docker with a graphical interface accessible through your web browser. This approach works on any platform that supports Docker (Windows, macOS, Linux).
 
-> **Note**: We provide two different Docker setups:
-> 1. **Simple Setup** (Recommended): Uses the linuxserver/webtop base image which provides a more reliable VNC experience
-> 2. **Standard Setup**: Uses a custom-built VNC setup
+> **Note**: We provide three different Docker setups:
+> 1. **Minimal Setup** (Recommended): A simplified setup using linuxserver/webtop
+> 2. **Simple Setup**: Uses the linuxserver/webtop base image with more features
+> 3. **Standard Setup**: Uses a custom-built VNC setup
 
-## Simple Setup (Recommended)
+## Minimal Setup (Recommended)
+
+### Quick Start
+
+1. **Create a data directory**
+   ```bash
+   mkdir -p data
+   ```
+
+2. **Start the container**
+   ```bash
+   # On Linux/macOS:
+   ./run_minimal_docker.sh
+   ```
+
+3. **Access PyPTV**
+   - Open your web browser and go to: http://localhost:3000
+   - You'll be connected automatically without a password
+   - Start PyPTV using the desktop shortcut or by running `/config/start_pyptv.sh` in a terminal
+
+That's it! You're now running PyPTV in a Docker container with full GUI access.
+
+## Simple Setup
 
 ### Quick Start
 
@@ -227,17 +250,14 @@ This gives you a shell inside the container where you can run commands.
 
 ### If You're Having Connection Issues
 
-If you're experiencing connection issues with the standard setup, we recommend trying the simple setup instead:
+If you're experiencing connection issues with any of the setups, we recommend trying the minimal setup:
 
 ```bash
 # On Linux/macOS:
-./run_simple_docker.sh
-
-# On Windows:
-run_simple_docker.bat
+./run_minimal_docker.sh
 ```
 
-The simple setup uses a more reliable base image (linuxserver/webtop) that has better compatibility across different systems.
+The minimal setup uses a more reliable base image (linuxserver/webtop) with fewer components, which has better compatibility across different systems.
 
 ### Container Not Starting
 
