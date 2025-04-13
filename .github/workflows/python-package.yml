@@ -42,6 +42,7 @@ jobs:
           sudo make install
           cd ../../py_bind
           python setup.py prepare
+          python setup.py install 
           python -m build --wheel --outdir dist/
           pip install dist/*.whl --force-reinstall
           cd ../..
