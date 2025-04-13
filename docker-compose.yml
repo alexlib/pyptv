@@ -7,7 +7,7 @@ services:
       dockerfile: Dockerfile.novnc
     ports:
       - "6080:6080"  # noVNC web interface
-      - "5901:5901"  # VNC port (optional, for direct VNC clients)
+      - "5900:5900"  # VNC port (optional, for direct VNC clients)
     volumes:
       - ./data:/home/pyptv/work  # Mount local data directory
     environment:

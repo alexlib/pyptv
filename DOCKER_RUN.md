@@ -2,66 +2,7 @@
 
 This guide provides step-by-step instructions for running PyPTV using Docker with a graphical interface accessible through your web browser. This approach works on any platform that supports Docker (Windows, macOS, Linux).
 
-> **Note**: We provide three different Docker setups:
-> 1. **Minimal Setup** (Recommended): A simplified setup using linuxserver/webtop
-> 2. **Simple Setup**: Uses the linuxserver/webtop base image with more features
-> 3. **Standard Setup**: Uses a custom-built VNC setup
-
-## Minimal Setup (Recommended)
-
-### Quick Start
-
-1. **Create a data directory**
-   ```bash
-   mkdir -p data
-   ```
-
-2. **Start the container**
-   ```bash
-   # On Linux/macOS:
-   ./run_minimal_docker.sh
-   ```
-
-3. **Access PyPTV**
-   - Open your web browser and go to: http://localhost:3000
-   - You'll be connected automatically without a password
-   - Start PyPTV using the desktop shortcut or by running `/config/start_pyptv.sh` in a terminal
-
-That's it! You're now running PyPTV in a Docker container with full GUI access.
-
-## Simple Setup
-
-### Quick Start
-
-1. **Create a data directory**
-   ```bash
-   mkdir -p data
-   ```
-
-2. **Start the container**
-   ```bash
-   # On Linux/macOS:
-   ./run_simple_docker.sh
-
-   # On Windows:
-   run_simple_docker.bat
-   ```
-
-3. **Access PyPTV**
-   - Open your web browser and go to: http://localhost:3000
-   - You'll be connected automatically without a password
-   - Start PyPTV using the desktop shortcut or by running `/config/start_pyptv.sh` in a terminal
-
-That's it! You're now running PyPTV in a Docker container with full GUI access.
-
-## Standard Setup
-
-### Prerequisites
-
-Before you begin, make sure you have:
-
-1. [Docker](https://docs.docker.com/get-docker/) installed
-2. [Docker Compose](https://docs.docker.com/compose/install/) installed (included with Docker Desktop for Windows and macOS)
+## Quick Start Guide
 
 ### Running PyPTV in 3 Simple Steps
 
@@ -74,7 +15,7 @@ Before you begin, make sure you have:
    ```bash
    # On Linux/macOS:
    ./run_pyptv_docker.sh
-
+   
    # On Windows:
    run_pyptv_docker.bat
    ```
@@ -105,10 +46,10 @@ That's it! You're now running PyPTV in a Docker container with full GUI access.
    # Ubuntu/Debian
    sudo apt update
    sudo apt install docker.io docker-compose
-
+   
    # Fedora
    sudo dnf install docker docker-compose
-
+   
    # Arch Linux
    sudo pacman -S docker docker-compose
    ```
@@ -140,7 +81,7 @@ That's it! You're now running PyPTV in a Docker container with full GUI access.
    ```bash
    # Using docker-compose directly
    docker-compose up -d
-
+   
    # Or using the provided scripts
    ./run_pyptv_docker.sh  # Linux/macOS
    run_pyptv_docker.bat   # Windows
@@ -195,7 +136,7 @@ Edit the `docker-compose.yml` file and modify the `RESOLUTION` environment varia
 
 ```yaml
 environment:
-  - RESOLUTION=1920x1080  # Change to your preferred resolution
+  - RESOLUTION=1280x720  # Change to your preferred resolution
 ```
 
 Common resolutions:
@@ -227,7 +168,7 @@ Then access noVNC at http://localhost:8080/vnc.html
 
 If you prefer to use a VNC client instead of the web interface:
 
-1. Connect to `localhost:5901` using your VNC client
+1. Connect to `localhost:5900` using your VNC client
 2. No password is required
 
 This can provide better performance than the web interface.
@@ -247,17 +188,6 @@ docker exec -it pyptv_pyptv_1 bash
 This gives you a shell inside the container where you can run commands.
 
 ## Troubleshooting
-
-### If You're Having Connection Issues
-
-If you're experiencing connection issues with any of the setups, we recommend trying the minimal setup:
-
-```bash
-# On Linux/macOS:
-./run_minimal_docker.sh
-```
-
-The minimal setup uses a more reliable base image (linuxserver/webtop) with fewer components, which has better compatibility across different systems.
 
 ### Container Not Starting
 
@@ -302,7 +232,7 @@ If PyPTV doesn't start inside the container:
 2. Try running PyPTV manually in a terminal inside the container:
    ```bash
    cd /home/pyptv/work
-   python -m pyptv.pyptv_gui
+   python3 -m pyptv.pyptv_gui
    ```
 
 3. Check for error messages in the terminal output
@@ -333,25 +263,6 @@ If you encounter issues not covered in this guide:
 1. Check the [PyPTV GitHub repository](https://github.com/alexlib/pyptv) for updates
 2. Open an issue on GitHub with details about your problem
 3. Join the PyPTV community discussions
-
-## Uninstalling
-
-To completely remove the PyPTV Docker setup:
-
-1. Stop and remove the container:
-   ```bash
-   docker-compose down
-   ```
-
-2. Remove the Docker image:
-   ```bash
-   docker rmi pyptv_pyptv
-   ```
-
-3. Delete the data directory if you no longer need your data:
-   ```bash
-   rm -rf data
-   ```
 
 ## License
 
