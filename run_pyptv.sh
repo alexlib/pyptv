@@ -12,7 +12,7 @@ export QT_QPA_PLATFORM=xcb
 
 # Run pyptv with the test_cavity data
 echo "Running pyptv with OpenGL workarounds..."
-pyptv test_cavity
+pyptv tests/test_cavity
 
 # If pyptv exits with an error, try with different settings
 if [ $? -ne 0 ]; then

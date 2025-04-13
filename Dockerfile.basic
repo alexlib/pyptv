@@ -26,21 +26,6 @@ RUN apt-get update && apt-get install -y \
 # Install Python dependencies
 RUN pip3 install --no-cache-dir numpy matplotlib pytest tqdm cython pyyaml setuptools wheel
 
-# Install OpenPTV
-RUN cd /tmp && \
-    git clone https://github.com/openptv/openptv && \
-    cd openptv/liboptv && \
-    mkdir -p build && cd build && \
-    cmake ../ && \
-    make && \
-    make install && \
-    cd ../../py_bind && \
-    python3 setup.py prepare && \
-    python3 setup.py build_ext --inplace && \
-    python3 -m pip install . && \
-    cd / && \
-    rm -rf /tmp/openptv
-
 # Create work directory
 RUN mkdir -p $HOME/work
 WORKDIR $HOME/work

@@ -4,7 +4,7 @@ services:
   pyptv:
     build:
       context: .
-      dockerfile: Dockerfile.kasm
+      dockerfile: Dockerfile.basic
     ports:
       - "6901:6901"  # Kasm web interface
     volumes:
@@ -12,4 +12,3 @@ services:
     environment:
       - VNC_PW=  # Empty password for no authentication
     restart: unless-stopped
-    shm_size: '2gb'  # Increase shared memory for X server
