@@ -2,12 +2,37 @@
 
 This guide provides step-by-step instructions for running PyPTV using Docker with a graphical interface accessible through your web browser. This approach works on any platform that supports Docker (Windows, macOS, Linux).
 
-> **Note**: We provide three different Docker setups:
-> 1. **TiredOfIt Setup** (Recommended): Uses the tiredofit/novnc base image which provides the most reliable VNC experience
-> 2. **Kasm Setup**: Uses the kasmweb base image
-> 3. **Standard Setup**: Uses a custom-built VNC setup
+> **Note**: We provide four different Docker setups:
+> 1. **Simple Setup** (Recommended): A single script that does everything automatically
+> 2. **TiredOfIt Setup**: Uses the tiredofit/novnc base image
+> 3. **Kasm Setup**: Uses the kasmweb base image
+> 4. **Standard Setup**: Uses a custom-built VNC setup
 
-## TiredOfIt Setup (Recommended)
+## Simple Setup (Recommended)
+
+### Quick Start
+
+This is the easiest way to get started with PyPTV in Docker. A single script does everything for you:
+
+```bash
+# On Linux/macOS:
+./run_pyptv_docker_simple.sh
+
+# On Windows:
+run_pyptv_docker_simple.bat
+```
+
+That's it! The script will:
+1. Create a Docker container with all necessary dependencies
+2. Install PyPTV inside the container
+3. Set up noVNC for web-based access
+4. Open your browser to http://localhost:6080
+
+Once the desktop loads in your browser, you can start PyPTV by:
+- Double-clicking the PyPTV icon on the desktop, or
+- Opening a terminal and running `/home/ubuntu/start_pyptv.sh`
+
+## TiredOfIt Setup
 
 ### Quick Start
 
@@ -246,17 +271,17 @@ This gives you a shell inside the container where you can run commands.
 
 ### If You're Having Connection Issues
 
-If you're experiencing connection issues with any of the setups, we recommend trying the TiredOfIt setup:
+If you're experiencing connection issues with any of the setups, we recommend trying the Simple Setup:
 
 ```bash
 # On Linux/macOS:
-./run_tiredofit_docker.sh
+./run_pyptv_docker_simple.sh
 
 # On Windows:
-run_tiredofit_docker.bat
+run_pyptv_docker_simple.bat
 ```
 
-The TiredOfIt setup uses the tiredofit/novnc base image, which is specifically designed for running GUI applications in a web browser and has excellent compatibility across different systems.
+The Simple Setup uses the dorowu/ubuntu-desktop-lxde-vnc base image, which is specifically designed for running GUI applications in a web browser and has excellent compatibility across different systems.
 
 ### Container Not Starting
 
