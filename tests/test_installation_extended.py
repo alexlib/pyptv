@@ -159,9 +159,9 @@ def test_windows_environment():
 def test_installation_scripts():
     """Test that installation scripts exist"""
     # Check for Linux installation script
-    linux_script = Path("/home/user/Documents/repos/pyptv/install_pyptv.sh")
+    linux_script = Path("install_pyptv.sh")
     assert linux_script.exists(), "Linux installation script not found"
 
     # Check for Windows installation script
-    windows_script = Path("/home/user/Documents/repos/pyptv/install_pyptv.bat")
+    windows_script = Path("install_pyptv.bat")
     assert windows_script.exists(), "Windows installation script not found"
