@@ -2,7 +2,36 @@
 
 This guide provides step-by-step instructions for running PyPTV using Docker with a graphical interface accessible through your web browser. This approach works on any platform that supports Docker (Windows, macOS, Linux).
 
-## Quick Start Guide
+> **Note**: We provide two different Docker setups:
+> 1. **Simple Setup** (Recommended): Uses the linuxserver/webtop base image which provides a more reliable VNC experience
+> 2. **Standard Setup**: Uses a custom-built VNC setup
+
+## Simple Setup (Recommended)
+
+### Quick Start
+
+1. **Create a data directory**
+   ```bash
+   mkdir -p data
+   ```
+
+2. **Start the container**
+   ```bash
+   # On Linux/macOS:
+   ./run_simple_docker.sh
+
+   # On Windows:
+   run_simple_docker.bat
+   ```
+
+3. **Access PyPTV**
+   - Open your web browser and go to: http://localhost:3000
+   - You'll be connected automatically without a password
+   - Start PyPTV using the desktop shortcut or by running `/config/start_pyptv.sh` in a terminal
+
+That's it! You're now running PyPTV in a Docker container with full GUI access.
+
+## Standard Setup
 
 ### Prerequisites
 
@@ -195,6 +224,20 @@ docker exec -it pyptv_pyptv_1 bash
 This gives you a shell inside the container where you can run commands.
 
 ## Troubleshooting
+
+### If You're Having Connection Issues
+
+If you're experiencing connection issues with the standard setup, we recommend trying the simple setup instead:
+
+```bash
+# On Linux/macOS:
+./run_simple_docker.sh
+
+# On Windows:
+run_simple_docker.bat
+```
+
+The simple setup uses a more reliable base image (linuxserver/webtop) that has better compatibility across different systems.
 
 ### Container Not Starting
 
