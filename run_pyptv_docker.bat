@@ -23,13 +23,19 @@ timeout /t 5 /nobreak > nul
 echo Container started successfully. Now installing PyPTV...
 
 echo Installing system dependencies...
-docker exec -it pyptv-container bash -c "apt-get update && apt-get install -y wget git build-essential cmake check libsubunit-dev pkg-config python3 python3-pip python3-setuptools python3-wheel libgl1-mesa-glx libglib2.0-0"
+docker exec -it pyptv-container bash -c "apt-get update"
+docker exec -it pyptv-container bash -c "apt-get install -y python3"
+docker exec -it pyptv-container bash -c "apt-get install -y git"
+docker exec -it pyptv-container bash -c "apt-get install -y wget build-essential cmake check libsubunit-dev pkg-config libgl1-mesa-glx libglib2.0-0"
 
 echo Verifying Python and Git installation...
 docker exec -it pyptv-container bash -c "python3 --version && git --version"
 
+echo Installing pip...
+docker exec -it pyptv-container bash -c "apt-get install -y python3-pip python3-setuptools python3-wheel"
+
 echo Installing Python dependencies...
-docker exec -it pyptv-container bash -c "python3 -m pip install --no-cache-dir numpy matplotlib pytest tqdm cython pyyaml setuptools wheel"
+docker exec -it pyptv-container bash -c "pip3 install --no-cache-dir numpy matplotlib pytest tqdm cython pyyaml setuptools wheel"
 
 echo Installing OpenPTV...
 docker exec -it pyptv-container bash -c "cd /tmp && git clone https://github.com/openptv/openptv && cd openptv/liboptv && mkdir -p build && cd build && cmake ../ && make && make install && cd ../../py_bind && python3 setup.py prepare && python3 setup.py build_ext --inplace && python3 -m pip install ."
