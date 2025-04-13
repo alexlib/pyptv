@@ -1,0 +1,16 @@
+version: '3'
+
+services:
+  pyptv:
+    image: dorowu/ubuntu-desktop-lxde-vnc
+    container_name: pyptv-desktop
+    ports:
+      - "6080:80"  # noVNC web interface
+    volumes:
+      - ./data:/home/ubuntu/work  # Mount local data directory
+    environment:
+      - USER=ubuntu
+      - PASSWORD=
+      - RESOLUTION=1280x720
+    restart: unless-stopped
+    shm_size: '2gb'  # Increase shared memory for X server
