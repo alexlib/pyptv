@@ -11,7 +11,7 @@ echo.
 echo Access the PyPTV GUI by opening your web browser and navigating to:
 echo http://localhost:6080/vnc.html
 echo.
-echo When prompted for a password, enter: pyptv
+echo You'll be connected automatically without a password.
 echo.
 echo Your local 'data' directory is mounted to /home/pyptv/work inside the container.
 echo Any files you save there will be accessible on your host system.

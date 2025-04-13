@@ -13,7 +13,7 @@ PyPTV with noVNC is now running!
 Access the PyPTV GUI by opening your web browser and navigating to:
 http://localhost:6080/vnc.html
 
-When prompted for a password, enter: pyptv
+You'll be connected automatically without a password.
 
 Your local 'data' directory is mounted to /home/pyptv/work inside the container.
 Any files you save there will be accessible on your host system.

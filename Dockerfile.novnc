@@ -69,13 +69,10 @@ WORKDIR /home/pyptv/pyptv
 COPY . .
 RUN pip install -e .
 
-# Set up noVNC
+# Set up noVNC directories
 RUN mkdir -p /home/pyptv/.vnc && \
     mkdir -p /home/pyptv/.config/autostart && \
-    # Create VNC password file manually (password: pyptv)
-    echo -n "pyptv" | openssl passwd -1 -stdin > /home/pyptv/.vnc/passwd && \
-    chmod 600 /home/pyptv/.vnc/passwd && \
-    chown -R pyptv:pyptv /home/pyptv/.vnc
+    chown -R pyptv:pyptv /home/pyptv/.vnc /home/pyptv/.config
 
 # Configure supervisord
 COPY docker/supervisord.conf /etc/supervisor/conf.d/supervisord.conf

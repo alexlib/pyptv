@@ -22,14 +22,14 @@ Before you begin, make sure you have:
    ```bash
    # On Linux/macOS:
    ./run_pyptv_docker.sh
-   
+
    # On Windows:
    run_pyptv_docker.bat
    ```
 
 3. **Access PyPTV**
    - Open your web browser and go to: http://localhost:6080/vnc.html
-   - Enter the password: `pyptv`
+   - You'll be connected automatically without a password
    - Start PyPTV using the desktop shortcut or by running `/home/pyptv/start_pyptv.sh` in a terminal
 
 That's it! You're now running PyPTV in a Docker container with full GUI access.
@@ -53,10 +53,10 @@ That's it! You're now running PyPTV in a Docker container with full GUI access.
    # Ubuntu/Debian
    sudo apt update
    sudo apt install docker.io docker-compose
-   
+
    # Fedora
    sudo dnf install docker docker-compose
-   
+
    # Arch Linux
    sudo pacman -S docker docker-compose
    ```
@@ -88,7 +88,7 @@ That's it! You're now running PyPTV in a Docker container with full GUI access.
    ```bash
    # Using docker-compose directly
    docker-compose up -d
-   
+
    # Or using the provided scripts
    ./run_pyptv_docker.sh  # Linux/macOS
    run_pyptv_docker.bat   # Windows
@@ -97,7 +97,7 @@ That's it! You're now running PyPTV in a Docker container with full GUI access.
 
 4. **Access the PyPTV GUI**:
    - Open your web browser and navigate to: http://localhost:6080/vnc.html
-   - When prompted for a password, enter: `pyptv`
+   - You'll be connected automatically without a password
    - You'll see a Linux desktop environment running inside your browser
 
 5. **Start PyPTV**:
@@ -176,7 +176,7 @@ Then access noVNC at http://localhost:8080/vnc.html
 If you prefer to use a VNC client instead of the web interface:
 
 1. Connect to `localhost:5901` using your VNC client
-2. Use the password: `pyptv`
+2. No password is required
 
 This can provide better performance than the web interface.
 
