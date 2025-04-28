@@ -152,7 +152,7 @@ class Sequence:
                 print_corresp = sorted_corresp
 
             # Save rt_is
-            rt_is_filename = default_naming["corres"].decode()
+            rt_is_filename = default_naming["corres"]
             rt_is_filename = rt_is_filename + f'.{frame}'
             with open(rt_is_filename, "w", encoding="utf8") as rt_is:
                 rt_is.write(str(pos.shape[0]) + "\n")

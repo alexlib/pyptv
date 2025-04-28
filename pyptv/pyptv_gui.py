@@ -52,8 +52,10 @@ from pyptv.directory_editor import DirectoryEditorDialog
 from pyptv.parameter_gui import Experiment, Paramset
 from pyptv.quiverplot import QuiverPlot
 from pyptv.detection_gui import DetectionGUI
+from pyptv.mask_gui import MaskGUI
 from pyptv import __version__
 import optv.orientation
+import optv.epipolar
 
 
 class Clicker(ImageInspectorTool):
@@ -476,8 +478,67 @@ class TreeMenuHandler(Handler):
     def saveas_action(self, info):
         print("not implemented")
 
-    # def showimg_action(self, info):
-    #     info.object.update_plots(info.object.orig_image)
+    def init_action(self, info):
+        """init_action - clears existing plots from the camera windows,
+        initializes C image arrays with mainGui.orig_image and
+        calls appropriate start_proc_c
+         by using ptv.py_start_proc_c()
+        """
+        mainGui = info.object
+        # synchronize the active run params dir with the temp params dir
+        mainGui.exp1.syncActiveDir()
+
+        for i in range(len(mainGui.camera_list)):
+            try:
+                im = imread(
+                    getattr(
+                        mainGui.exp1.active_params.m_params,
+                        f"Name_{i+1}_Image",
+                    )
+                )
+                if im.ndim > 2:
+                    im = rgb2gray(im)
+
+                mainGui.orig_image[i] = img_as_ubyte(im)
+            except IOError:
+                print("Error reading image, setting zero image")
+                h_img = mainGui.exp1.active_params.m_params.imx
+                v_img = mainGui.exp1.active_params.m_params.imy
+                temp_img = img_as_ubyte(np.zeros((v_img, h_img)))
+                # print(f"setting images of size {temp_img.shape}")
+                exec(f"mainGui.orig_image[{i}] = temp_img")
+
+            if hasattr(mainGui.camera_list[i], "img_plot"):
+                del mainGui.camera_list[i].img_plot
+        mainGui.clear_plots()
+        print("\n Init action \n")
+        # mainGui.update_plots(mainGui.orig_image, is_float=False)
+        mainGui.create_plots(mainGui.orig_image, is_float=False)
+        # mainGui.set_images(mainGui.orig_image)
+
+        (
+            info.object.cpar,
+            info.object.spar,
+            info.object.vpar,
+            info.object.track_par,
+            info.object.tpar,
+            info.object.cals,
+            info.object.epar,
+        ) = ptv.py_start_proc_c(info.object.n_cams)
+        mainGui.pass_init = True
+        print("Read all the parameters and calibrations successfully ")
+
+    def draw_mask_action(self, info):
+        """ drawing masks GUI """
+        print("\n Opening drawing mask GUI \n")
+
+        info.object.pass_init = False
+        print("Active parameters set \n")
+        print(info.object.exp1.active_params.par_path)
+        mask_gui = MaskGUI(info.object.exp1.active_params.par_path)
+        mask_gui.configure_traits()
+
+
 
     def highpass_action(self, info):
         """highpass_action - calls ptv.py_pre_processing_c() binding which
@@ -500,6 +561,7 @@ class TreeMenuHandler(Handler):
                             "#", str(i)
                         )
                     )
+                    print(f'Subtracting {background_name}')
                     background = imread(background_name)
                     # im[mask] = 0
                     info.object.orig_image[i] = np.clip(info.object.orig_image[i] - background, 0, 255).astype(np.uint8)
@@ -555,7 +617,7 @@ class TreeMenuHandler(Handler):
         pairs, and unused arrays
         """
 
-        # if info.object.n_cams  > 1: # single camera is not checked
+        
         print("correspondence proc started")
         (
             info.object.sorted_pos,
@@ -594,55 +656,7 @@ class TreeMenuHandler(Handler):
         # info.object.drawcross("pair_x", "pair_y", x, y, "yellow", 3)
         # info.object.drawcross("unused_x","unused_y",unused[:,0],unused[:,1],"blue",3)
 
-    def init_action(self, info):
-        """init_action - clears existing plots from the camera windows,
-        initializes C image arrays with mainGui.orig_image and
-        calls appropriate start_proc_c
-         by using ptv.py_start_proc_c()
-        """
-        mainGui = info.object
-        # synchronize the active run params dir with the temp params dir
-        mainGui.exp1.syncActiveDir()
 
-        for i in range(len(mainGui.camera_list)):
-            try:
-                im = imread(
-                    getattr(
-                        mainGui.exp1.active_params.m_params,
-                        f"Name_{i+1}_Image",
-                    )
-                )
-                if im.ndim > 2:
-                    im = rgb2gray(im)
-
-                mainGui.orig_image[i] = img_as_ubyte(im)
-            except IOError:
-                print("Error reading image, setting zero image")
-                h_img = mainGui.exp1.active_params.m_params.imx
-                v_img = mainGui.exp1.active_params.m_params.imy
-                temp_img = img_as_ubyte(np.zeros((h_img, v_img)))
-                # print(f"setting images of size {temp_img.shape}")
-                exec(f"mainGui.orig_image[{i}] = temp_img")
-
-            if hasattr(mainGui.camera_list[i], "img_plot"):
-                del mainGui.camera_list[i].img_plot
-        mainGui.clear_plots()
-        print("\n Init action \n")
-        # mainGui.update_plots(mainGui.orig_image, is_float=False)
-        mainGui.create_plots(mainGui.orig_image, is_float=False)
-        # mainGui.set_images(mainGui.orig_image)
-
-        (
-            info.object.cpar,
-            info.object.spar,
-            info.object.vpar,
-            info.object.track_par,
-            info.object.tpar,
-            info.object.cals,
-            info.object.epar,
-        ) = ptv.py_start_proc_c(info.object.n_cams)
-        mainGui.pass_init = True
-        print("Read all the parameters and calibrations successfully ")
 
     def calib_action(self, info):
         """calib_action - initializes calib class with appropriate number of
@@ -969,7 +983,7 @@ menu_bar = MenuBar(
         Action(name="Exit", action="exit_action"),
         name="File",
     ),
-    Menu(Action(name="Init / Restart", action="init_action"), name="Start"),
+    Menu(Action(name="Init / Reload", action="init_action"), name="Start"),
     Menu(
         Action(
             name="High pass filter",
@@ -1046,6 +1060,10 @@ menu_bar = MenuBar(
     Menu(
         Action(name="Detection GUI demo", action="detection_gui_action"),
         name="Detection demo",
+    ),
+    Menu(
+        Action(name="Draw mask", action="draw_mask_action", enabled_when="pass_init",),
+        name="Drawing mask",
     ),
 )
 
@@ -1188,6 +1206,7 @@ class MainGUI(HasTraits):
     # ---------------------------------------------------
     def __init__(self, exp_path: Path, software_path: Path):
         super(MainGUI, self).__init__()
+       
         colors = ["yellow", "green", "red", "blue"]
         self.exp1 = Experiment()
         self.exp1.populate_runs(exp_path)
@@ -1407,10 +1426,6 @@ class MainGUI(HasTraits):
             for i in range(n_cams)
         ]
 
-        # i = seq
-        # seq_ch = f"{seq:04d}"
-        # seq_ch = f"{seq:d}"
-        
 
         if update_all is False:
             j = self.current_camera
@@ -1436,17 +1451,33 @@ class MainGUI(HasTraits):
             update_all (bool, optional): _description_. Defaults to True.
             display_only (bool, optional): _description_. Defaults to False.
         """
+
+
+        n_cams = len(self.camera_list)
+        if not hasattr(self, "base_name"):
+            self.base_name = [
+                getattr(self.exp1.active_params.m_params, f"Basename_{i+1}_Seq")
+                for i in range(len(self.camera_list))
+            ]
+     
+
+        for cam_id in range(n_cams):
+            if os.path.exists(self.base_name[cam_id] % seq_first):
+                temp_img = []
+                for seq in range(seq_first, seq_last):
+                    _ = imread(self.base_name[cam_id] % seq)
+                    if _.ndim > 2:
+                        _ = rgb2gray(_)
+                    temp_img.append(img_as_ubyte(_))
+
+                temp_img = np.array(temp_img)
+                temp_img = np.max(temp_img, axis=0)
+            else:
+                h_img = self.exp1.active_params.m_params.imx
+                v_img = self.exp1.active_params.m_params.imy
+                temp_img = img_as_ubyte(np.zeros((v_img, h_img)))
         
 
-        for cam_id in range(len(self.camera_list)):
-            # print("Inside overlay: ", self.base_name[cam_id])
-            
-            temp_img = []
-            for seq in range(seq_first, seq_last):
-                temp_img.append(img_as_ubyte(imread(self.base_name[cam_id] % seq)))
-        
-            temp_img = np.array(temp_img)
-            temp_img = np.max(temp_img, axis=0)
             self.camera_list[cam_id].update_image(temp_img)
                     
 
@@ -1460,12 +1491,17 @@ class MainGUI(HasTraits):
         """
         # print(f"Setting image: {img_name}")
         try:
-            temp_img = img_as_ubyte(imread(img_name))
+            temp_img = imread(img_name)
+            if temp_img.ndim > 2:
+                temp_img = rgb2gray(temp_img)
+
+            temp_img = img_as_ubyte(temp_img)
         except IOError:
             print("Error reading file, setting zero image")
             h_img = self.exp1.active_params.m_params.imx
             v_img = self.exp1.active_params.m_params.imy
-            temp_img = img_as_ubyte(np.zeros((h_img, v_img)))
+            temp_img = img_as_ubyte(np.zeros((v_img, h_img)))
+
         # if not display_only:
         #     ptv.py_set_img(temp_img, j)
         if len(temp_img) > 0:
@@ -1502,8 +1538,9 @@ def main():
         # exp_path = software_path.parent / "test_cavity"
         # exp_path = Path('/home/user/Downloads/one-dot-example/working_folder')
         # exp_path = Path('/home/user/Downloads/test_crossing_particle')
-        # exp_path = Path('../test_cavity')
-        exp_path = Path('/media/user/ExtremePro/omer/star_exp')
+        # exp_path = Path('/home/user/Documents/repos/test_cavity')
+        exp_path = Path('/media/user/ExtremePro/omer/exp2')
+        # exp_path = Path('/home/user/Documents/repos/blob_pyptv_folder')
         print(f"Without input, PyPTV fallbacks to a default {exp_path} \n")
 
     if not exp_path.is_dir() or not exp_path.exists():
