@@ -92,7 +92,7 @@ class Sequence:
             detections = []
             corrected = []
             for i_cam in range(n_cams):
-                base_image_name = spar.get_img_base_name(i_cam).decode()
+                base_image_name = spar.get_img_base_name(i_cam)
                 imname = Path(base_image_name % frame) # works with jumps from 1 to 10 
                 masked_image = mask_image(imname)
 
@@ -124,7 +124,7 @@ class Sequence:
             # Save targets only after they've been modified:
             # this is a workaround of the proper way to construct _targets name
             for i_cam in range(n_cams):
-                base_name = spar.get_img_base_name(i_cam).decode()
+                base_name = spar.get_img_base_name(i_cam)
                 # base_name = replace_format_specifiers(base_name) # %d to %04d
                 self.ptv.write_targets(detections[i_cam], base_name, frame)
 
