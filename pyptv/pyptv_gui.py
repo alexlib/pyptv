@@ -1131,21 +1131,21 @@ class Plugins(HasTraits):
         # reading external tracking
         tracking_plugins = os.path.join(os.path.abspath(os.curdir), "tracking_plugins.txt")
         sequence_plugins = os.path.join(os.path.abspath(os.curdir), "sequence_plugins.txt")
+        print('Reading external plugins lists')
+        print(f'Reading from {tracking_plugins}, {sequence_plugins}')
+
+        
+        # Initialize with default
+        self.track_list = ["default"]
+        self.seq_list = ["default"]
+        # Add additional plugins if files exist
         if os.path.exists(tracking_plugins):
-            with open(tracking_plugins,"r", encoding="utf8") as f:
-                trackers = f.read().split("\n")
-                trackers.insert(0, "default")
-                self.track_list = trackers
-        else:
-            self.track_list = ["default"]
-        # reading external sequence
-        if os.path.exists( sequence_plugins ):
-            with open( sequence_plugins, "r", encoding="utf8" ) as f: 
-                seq = f.read().split("\n")
-                seq.insert(0, "default")
-                self.seq_list = seq
-        else:
-            self.seq_list = ["default"]
+            with open(tracking_plugins, "r", encoding="utf8") as f:
+                self.track_list.extend(f.read().split("\n"))
+                
+        if os.path.exists(sequence_plugins):
+            with open(sequence_plugins, "r", encoding="utf8") as f:
+                self.seq_list.extend(f.read().split("\n"))
 
 
 # ----------------------------------------------
@@ -1539,7 +1539,7 @@ def main():
         # exp_path = Path('/home/user/Downloads/one-dot-example/working_folder')
         # exp_path = Path('/home/user/Downloads/test_crossing_particle')
         # exp_path = Path('/home/user/Documents/repos/test_cavity')
-        exp_path = Path('/media/user/ExtremePro/omer/exp2')
+        exp_path = Path('E:\omer\exp2')
         # exp_path = Path('/home/user/Documents/repos/blob_pyptv_folder')
         print(f"Without input, PyPTV fallbacks to a default {exp_path} \n")
 
