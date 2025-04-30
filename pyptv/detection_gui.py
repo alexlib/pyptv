@@ -335,7 +335,7 @@ class DetectionGUI(HasTraits):
         self.cpar, self.spar, self.vpar, self.track_par, self.tpar, \
         self.cals, self.epar = ptv.py_start_proc_c(self.n_cams)
 
-        self.tpar.read(b'parameters/detect_plate.par')
+        self.tpar.read('parameters/detect_plate.par')
 
         self.thresholds = self.tpar.get_grey_thresholds()
         self.pixel_count_bounds = list(self.tpar.get_pixel_count_bounds())
