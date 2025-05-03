@@ -17,12 +17,8 @@ from optv.orientation import point_positions
 
 import matplotlib.pyplot as plt
 
-from pyptv import ptv
-
 from rembg import remove, new_session
 session = new_session('u2net')
-
-
 
 def save_mask_areas(areas_data: list, output_file: Path) -> None:
     """Save mask areas to CSV file.
@@ -107,7 +103,8 @@ class Sequence:
     User responsibility is to read necessary files, make the calculations and write the files back.
     """
 
-    def __init__(self, exp=None):
+    def __init__(self, ptv=None, exp=None):
+        self.ptv = ptv
         self.exp = exp
         self.areas_data = []  # Store areas data during processing
 
@@ -163,8 +160,8 @@ class Sequence:
 
                         
                 
-                high_pass = ptv.simple_highpass(masked_image, cpar)
-                targs = ptv.target_recognition(high_pass, tpar, i_cam, cpar)
+                high_pass = self.ptv.simple_highpass(masked_image, cpar)
+                targs = self.ptv.target_recognition(high_pass, tpar, i_cam, cpar)
 
                 targs.sort_y()
                 detections.append(targs)
@@ -184,7 +181,7 @@ class Sequence:
             for i_cam in range(n_cams):
                 base_name = spar.get_img_base_name(i_cam)
                 # base_name = replace_format_specifiers(base_name) # %d to %04d
-                ptv.write_targets(detections[i_cam], base_name, frame)
+                self.ptv.write_targets(detections[i_cam], base_name, frame)
 
             print("Frame " + str(frame) + " had " +
                 repr([s.shape[1] for s in sorted_pos]) + " correspondences.")
