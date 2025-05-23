@@ -1,0 +1,836 @@
+
+# PyPTV: Comprehensive User Manual for Python Particle Tracking Velocimetry
+
+*Generated on: 2025-05-23*
+
+## Table of Contents
+- [Introduction](#introduction)
+- [Installation](#installation)
+- [Core Concepts: PyPTV, OpenPTV C Libraries, and Cython Bindings](#core-concepts)
+- [Getting Started: A Quick Tour with the Test Cavity Example](#getting-started)
+- [PyPTV GUI and Workflow Overview](#gui-workflow)
+- [Detailed PyPTV Functionality](#detailed-functionality)
+- [API Reference (Conceptual)](#api-reference)
+- [Advanced Topics](#advanced-topics)
+- [Troubleshooting](#troubleshooting)
+- [Contributing to PyPTV](#contributing)
+- [License](#license)
+- [Appendix](#appendix)
+
+## Introduction {#introduction}
+
+This manual provides a comprehensive guide to PyPTV, a Python-based tool for Particle Tracking Velocimetry (PTV). It covers installation, core concepts, usage, and advanced topics, with a particular focus on how PyPTV interacts with the underlying OpenPTV C libraries via Cython bindings.
+
+### What is PyPTV?
+
+PyPTV, also known as OpenPTV-Python, is a Python-based Graphical User Interface (GUI) designed for the OpenPTV (Open Source Particle Tracking Velocimetry) project. It provides a user-friendly environment for conducting 3D PTV analysis. ([alexlib/pyptv GitHub](https://github.com/alexlib/pyptv)). PyPTV is built utilizing the Enthought Tool Suite, leveraging components such as:
+
+- `traits` and `traitsui`: For creating the graphical user interface elements and managing application data models.
+- `chaco`: For interactive 2D plotting capabilities, essential for visualizing PTV data.
+- `enable`: A low-level graphics library that underpins Chaco.
+- `pyface`: An application framework providing components like windows, menus, and dialogs.
+
+The primary purpose of PyPTV is to simplify the complex workflow of 3D PTV, making these advanced techniques accessible to a broader range of users.
+
+### Key Features of PyPTV
+
+- **Comprehensive PTV Workflow:** Supports the entire PTV pipeline, including camera calibration, image pre-processing, particle detection, stereo-matching (correspondence), particle tracking, and post-processing.
+- **Interactive GUI:** Allows for intuitive parameter adjustment, step-by-step execution of the PTV process, and interactive visualization of intermediate and final results.
+- **High-Performance Core:** Leverages the computational power of the underlying OpenPTV C libraries (`liboptv`) for numerically intensive tasks, ensuring efficient processing.
+- **Plugin System:** PyPTV features a plugin system that allows for extending its functionality without modifying the core GUI. An example is the integration with `rembg` for background removal, which can be installed with `pip install rembg[cpu]` or `rembg[gpu]` for specific branches. ([PyPTV README](https://github.com/alexlib/pyptv/blob/master/README.md)).
+- **Cross-Platform Compatibility:** Designed to run on Windows, Linux, and macOS.
+
+### Relationship with OpenPTV C Libraries (`liboptv`) and Cython Bindings (`optv` package)
+
+PyPTV serves as a high-level Python interface to the powerful OpenPTV ecosystem. The core of the processing, especially numerically intensive tasks like calibration algorithms, correspondence calculations, and tracking, is handled by `liboptv`. This is a set of C libraries developed as part of the OpenPTV project, with a specific version often maintained in repositories like [alexlib/openptv](https://github.com/alexlib/openptv) or the main [OpenPTV GitHub organization](https://github.com/OpenPTV/openptv).
+
+To enable PyPTV (written in Python) to communicate with and utilize the functions in `liboptv` (written in C), Cython is employed. Cython creates Python bindings, which are packaged as the `optv` Python package. PyPTV directly depends on and imports this `optv` package to call the C library functions efficiently, bridging the gap between Python's ease of use and C's performance. ([OpenPTV Installation Instructions](https://openptv-python.readthedocs.io/en/latest/installation_instruction.html)).
+
+### Target Audience
+
+PyPTV is intended for:
+
+- Researchers, engineers, and students in fields such as fluid mechanics, experimental physics, biomechanics, and any other domain requiring quantitative 3D tracking of particles or objects.
+- Users who prefer a GUI-driven approach for complex data analysis tasks but require the performance of compiled languages like C/C++ for the core computations.
+- Individuals involved in developing or customizing PTV methodologies.
+
+## Installation {#installation}
+
+This section outlines the prerequisites and steps for installing PyPTV on your system.
+
+### Prerequisites
+
+- **Python Version:** PyPTV generally requires Python 3. The `pyproject.toml` file in the [alexlib/pyptv repository](https://github.com/alexlib/pyptv) and its documentation often specifies compatible versions. For instance, documentation mentions Python 3.11 as being compatible with modern setups ([OpenPTV Installation Guide](https://openptv-python.readthedocs.io/en/latest/installation_instruction.html)), while `pyproject.toml` might list specific a NumPy version compatible with e.g. Python <=3.9 or a wider range. Always check the latest project files. As of early 2025, `numpy==1.26.4` is listed in the dependencies ([pyproject.toml snippet](https://github.com/alexlib/pyptv/blob/master/pyproject.toml)), which supports newer Python versions.
+                
+- **Operating Systems:** Windows, Linux, and macOS.
+  - OS-specific considerations: For building from source, a C compiler (GCC on Linux, Clang on macOS, MSVC on Windows) and CMake are necessary. The [OpenPTV Installation Guide](https://openptv-python.readthedocs.io/en/latest/installation_instruction.html) mentions that on new Apple Macbook M1 machines, Enthought Python Distribution (EDM) might be recommended over Anaconda for specific Python versions (e.g., Python 3.8) due to precompiled binary availability for key dependencies.
+
+- **Required Python Dependencies:** Key packages are listed in the `pyproject.toml` file. These include:
+  - `numpy`: For numerical operations (fundamental array manipulations).
+  - `optv`: The Cython bindings to the OpenPTV core C library (`liboptv`), providing the PTV algorithms.
+  - `traits`, `traitsui`, `enable`, `chaco`, `pyface`: Enthought Tool Suite components for the GUI.
+  - `PySide6` (or potentially PyQt): For the Qt backend of the GUI. `INSTALL.md` mentions compatibility fixes for `PySide6` and `TraitsUI` ([PyPTV INSTALL.md](https://github.com/alexlib/pyptv/blob/master/INSTALL.md)).
+  - `scikit-image`: For image processing tasks.
+  - `pandas`, `matplotlib`, `scipy`, `PyYAML`, `xarray`, `natsort`, `imageio`, `tifffile`, `tables`: For data handling, plotting, scientific computation, configuration, and file I/O. ([pyproject.toml snippet based on search results](https://github.com/alexlib/pyptv/blob/master/pyproject.toml)).
+
+- **OpenPTV C Libraries (`liboptv`):** This core C library is typically bundled and installed as part of the `optv` Python package when you install `optv` or `pyptv` via pip using pre-built wheels. If pre-built wheels are unavailable for your platform/Python version, or if you are developing, you might need to compile `liboptv` from source, requiring a C compiler and CMake.
+
+### Installation Steps
+
+#### Recommended Method (using `pip` and pre-built packages)
+
+The simplest way to install PyPTV is using `pip`, which will attempt to download and install PyPTV and its dependencies from the Python Package Index (PyPI) or other specified indices.
+
+```bash
+pip install pyptv
+```
+
+This command should automatically fetch `optv` (which includes `liboptv`) and other Python dependencies. In some cases, especially if using development versions or specific repositories, you might need to use alternative index URLs, as mentioned in the PyPTV documentation:
+
+```bash
+pip install pyptv --index-url https://pypi.fury.io/pyptv --extra-index-url https://pypi.org/simple
+```
+
+([OpenPTV Installation Guide](https://openptv-python.readthedocs.io/en/latest/installation_instruction.html))
+
+#### Using Conda (and `INSTALL.md` script)
+
+The PyPTV GitHub repository often provides automated installation scripts (e.g., `install_pyptv.sh` for Linux/macOS, `install_pyptv.bat` for Windows) which typically use Conda for managing environments and dependencies. ([PyPTV INSTALL.md](https://github.com/alexlib/pyptv/blob/master/INSTALL.md))
+
+These scripts generally perform the following actions:
+
+1. Clone the repository (if you haven't already).
+2. Create a new Conda environment with a specific Python version.
+3. Install system dependencies (if any are specified).
+4. Install Python dependencies using pip or conda (from `pyproject.toml` or `requirements-dev.txt`).
+5. Build and install OpenPTV (`liboptv` and `optv` bindings) if necessary (e.g., if pre-built wheels are not suitable).
+6. Install PyPTV itself (often in editable mode for development).
+
+Refer to the `INSTALL.md` file in the [alexlib/pyptv repository](https://github.com/alexlib/pyptv) for detailed instructions on using these scripts.
+
+#### Building from Source (Briefly for advanced users/developers)
+
+For advanced users or developers who need to modify the code or build against specific library versions:
+
+1. Clone the `alexlib/pyptv` repository from GitHub.
+2. Consider cloning the corresponding `alexlib/openptv` repository if you need to build `liboptv` from source.
+3. Set up a development environment (preferably using Conda or a Python virtual environment).
+4. Install build dependencies (CMake, C compiler, Cython, etc.).
+5. Build and install `liboptv` and the `optv` Cython bindings. This typically involves running CMake and then a make/build command for `liboptv`, followed by `pip install .` or `python setup.py install` for the `optv` bindings.
+6. Install PyPTV, often using `pip install -e .` from the cloned PyPTV directory for an editable install.
+
+Detailed instructions for building from source can usually be found in the OpenPTV documentation ([OpenPTV Installation Guide - Building from source](https://openptv-python.readthedocs.io/en/latest/installation_instruction.html)).
+
+#### Docker Option
+
+For a hassle-free, contained environment, Docker images are often available. These images come pre-configured with PyPTV and all its dependencies, making them ideal for testing or avoiding complex local setups. Look for "OpenPTV + PyPTV Dockerfiles" in the OpenPTV documentation or related repositories. ([OpenPTV Installation Guide - Try Docker](https://openptv-python.readthedocs.io/en/latest/installation_instruction.html)).
+
+### Verifying Installation
+
+- **Running PyPTV GUI:** Open a terminal (with the correct Python environment activated) and type:
+  ```bash
+  pyptv
+  ```
+
+- **Running a test case:** Download the `OpenPTV/test_cavity` dataset ([Test Cavity GitHub](https://github.com/OpenPTV/test_cavity)) and try to load and process it within the PyPTV GUI. The OpenPTV documentation provides tutorials using this dataset. ([Use our test case folder](https://openptv-python.readthedocs.io/en/latest/installation_instruction.html)).
+
+- **Simple script import:** In a Python interpreter, try importing core PyPTV or optv modules:
+  ```python
+  import pyptv
+  import optv
+  print("PyPTV and optv imported successfully!")
+  ```
+
+## Core Concepts: PyPTV, OpenPTV C Libraries, and Cython Bindings {#core-concepts}
+
+Understanding the architecture of PyPTV and its relationship with the underlying OpenPTV C libraries (`liboptv`) and the Cython bindings (`optv` package) is crucial for effective use and potential customization. This layered approach combines Python's ease of use for the GUI and high-level logic with C's performance for computationally intensive tasks.
+
+### Overview of the PyPTV Architecture
+
+PyPTV operates on a layered architecture:
+
+1. **PyPTV GUI (Python):** This is the topmost layer that the user interacts with. It's built using Python and the Enthought Tool Suite (`traitsui`, `chaco`, etc.). It handles user input, displays data and results, and allows users to control the PTV workflow. The main GUI logic is often found in modules like `pyptv.pyptv_gui`.
+
+2. **PyPTV Python Logic (Python):** This layer sits beneath the GUI. It consists of Python code that manages PTV project data, parameters, and orchestrates the sequence of processing steps by calling functions from the lower-level `optv` package.
+
+3. **`optv` Cython Bindings (Python/Cython):** This is the crucial bridge between the Python world of PyPTV and the C world of `liboptv`. The `optv` package is a Python module, largely written in Cython, that wraps the C functions from `liboptv`, making them callable from Python with minimal overhead. PyPTV directly imports and uses functions from the `optv` package.
+
+4. **`liboptv` (C Library):** This is the core engine, originating from the OpenPTV project (e.g., [alexlib/openptv](https://github.com/alexlib/openptv) or the broader [OpenPTV](https://github.com/OpenPTV/openptv) community effort). It contains highly optimized algorithms written in C for all fundamental PTV tasks such as calibration, image processing, particle detection, stereo correspondence, and tracking.
+
+The following diagram conceptually illustrates this layered architecture:
+
+```
++-----------------------------------------------------+
+|             PyPTV GUI (Python)                      |
+| User Interaction, Workflow Control, Visualization   |
+| (TraitsUI, Chaco, Pyface)                           |
++-----------------------------------------------------+
+                      ↓
++-----------------------------------------------------+
+|             PyPTV Python Logic (Python)             |
+| Data Management, Parameter Handling,                |
+| High-Level Orchestration                            |
++-----------------------------------------------------+
+                      ↓
++-----------------------------------------------------+
+|     `optv` Cython Bindings (Python/Cython Package)  |
+| Wraps C functions, Manages Data Marshalling         |
+| (NumPy ↔ C pointers)                                |
++-----------------------------------------------------+
+                      ↓
++-----------------------------------------------------+
+|               `liboptv` (C Library)                 |
+| Core PTV Algorithms: Calibration, Detection,        |
+| Correspondence, Tracking                            |
+| (Performance-critical computations)                 |
++-----------------------------------------------------+
+```
+
+### The Role of OpenPTV C Libraries (`liboptv`)
+
+`liboptv` forms the computational backbone of PyPTV. Its key characteristics and functions include:
+
+- **Source:** Developed as part of the OpenPTV project, written in ANSI C for maximum performance and portability. ([OpenPTV Documentation](https://openptv-python.readthedocs.io/en/latest/installation_instruction.html)).
+
+- **Purpose:** To provide a robust and efficient implementation of the fundamental, computationally intensive algorithms required for 3D Particle Tracking Velocimetry.
+
+- **Key Functionality (exposed via `optv` bindings):**
+  - **Calibration:** Algorithms to determine intrinsic camera parameters (focal length, principal point, lens distortions) and extrinsic parameters (3D position and orientation of each camera). This often involves processing images of a known calibration target.
+  - **Image Processing:** Functions for image enhancement, filtering (e.g., noise reduction, background subtraction), and segmentation to identify potential particle candidates.
+  - **Correspondence (Stereo Matching):** Sophisticated algorithms, often based on epipolar geometry and potentially iterative relaxation methods, to match the 2D projections of particles from multiple camera views to reconstruct their 3D positions.
+  - **Tracking:** Algorithms to link the 3D positions of particles across consecutive time frames to form trajectories. This can involve methods like nearest-neighbor search, predictive algorithms (e.g., based on velocity and acceleration), or more complex multi-frame approaches.
+  - **Data Structures:** Efficient C-level data structures for managing large amounts of PTV data, such as lists of detected 2D particles, 3D matched particles, and particle trajectories.
+
+### Cython Bindings (`optv` package) Explained
+
+The `optv` package is the critical intermediary that allows PyPTV's Python code to harness the speed of the C-based `liboptv`.
+
+- **What are Cython Bindings?**
+  - Cython is a programming language and compiler that makes writing C extensions for Python almost as easy as writing Python itself. ([Cython Official Website](https://cython.org/)). It allows you to write code that mixes Python-like syntax with C data types and function calls.
+  - The purpose of these bindings in `optv` is to "wrap" the C functions from `liboptv`. This means creating Python-callable functions that, under the hood, execute the corresponding C code.
+  - **How it works:** Cython code (typically in `.pyx` files) is translated by the Cython compiler into C code. This generated C code (along with the original `liboptv` C code) is then compiled by a C compiler (like GCC or MSVC) into a shared library (`.pyd` on Windows, `.so` on Linux/macOS). This shared library is importable as a standard Python module – this is the `optv` package.
+
+- **How the `optv` package uses Cython to interface with `liboptv`:**
+  - The `optv` package is what PyPTV's Python scripts `import` to access PTV functionalities.
+  - Cython source files (`.pyx`) within the `optv` package's source (historically noted to be in a `py_bind` directory alongside `liboptv` source code) define the interface. ([OpenPTV Documentation](https://openptv-python.readthedocs.io/en/latest/installation_instruction.html)).
+  - **Structure of Bindings (Illustrative, based on common Cython practices):**
+    
+    Within `.pyx` files, Cython uses `cdef extern from "header_file.h":` blocks to declare C functions, structs, and types from the `liboptv` header files. Example from the "Python Bindings to PTV library" document that illustrates this general principle for a hypothetical `lsqadj.c`:
+
+    ```cython
+    # ptv1.pyx (example structure)
+    cimport numpy as np # For NumPy integration
+
+    # Declare C functions from liboptv's headers
+    cdef extern from "lsqadj.h": # Example header
+        void c_ata(double *a, double *ata, int m, int n)
+        void c_mat_transpose(double *mat1, double *mat2, int m, int n)
+
+    # Define Python wrapper functions
+    def py_ata(np.ndarray[double, ndim=1] s, np.ndarray[double, ndim=1] sata, int m, int n):
+        # Call the C function, passing pointers to NumPy array data
+        c_ata(&s[0], &sata[0], m, n)
+
+    def py_mat_transpose(np.ndarray[double, ndim=1] s, np.ndarray[double, ndim=1] sata, int m, int n):
+        c_mat_transpose(&s[0], &sata[0], m, n)
+    ```
+
+    (Based on general Cython practices and concepts from [Python Bindings to PTV library PDF](https://openptv-python.readthedocs.io/en/latest/_downloads/a32f19c3fced64590c695f0595594654/Python_bindings.pdf) which shows how to compile and link such Cython extensions with external C code.)
+
+    These Python wrapper functions (like `py_ata`, `py_mat_transpose`) handle the conversion of Python data types (e.g., NumPy arrays) into the C data types (e.g., pointers like `double *`) expected by the `liboptv` functions. They also handle the conversion of results back from C to Python.
+
+- **Data Marshalling between Python and C within `optv`:**
+  - A key role of the Cython bindings is efficient data marshalling (conversion and transfer).
+  - Python objects, particularly NumPy arrays (which are used extensively in PyPTV for image data, particle coordinates, etc.), need to be converted into formats usable by C, such as pointers to contiguous memory blocks (e.g., `double*`, `int*`) or C structs.
+  - Similarly, data produced by `liboptv` C functions (e.g., arrays of results, struct values) must be converted back into appropriate Python objects (often NumPy arrays or basic Python types).
+  - Cython provides tools to do this efficiently, minimizing the overhead associated with Python-C calls, which is crucial for performance in data-intensive applications like PTV. Functions might use `np.ndarray.data_as(ct.POINTER(ct.c_double))` when using `ctypes` or direct pointer access `&arr[0]` or `<double*>arr.data` in Cython.
+
+This architecture allows PyPTV to offer a user-friendly Python environment while ensuring that the computationally demanding parts of the PTV analysis are executed with the speed and efficiency of compiled C code.
+
+## Getting Started: A Quick Tour with the Test Cavity Example {#getting-started}
+
+This section provides a quick walkthrough to get you started with PyPTV using the standard `test_cavity` example dataset. This dataset is widely referenced in OpenPTV tutorials and documentation.
+
+### Obtaining the Test Dataset
+
+- **Source:** The `test_cavity` dataset can be downloaded or cloned from its GitHub repository: [https://github.com/OpenPTV/test_cavity](https://github.com/OpenPTV/test_cavity).
+
+- **Description:** This dataset represents a lid-driven cavity flow experiment. It includes raw images captured by four cameras, calibration images, and corresponding camera orientation and parameter files. ([test_cavity README](https://github.com/OpenPTV/test_cavity/blob/master/Readme.md)).
+
+- **Directory Structure:** After obtaining the dataset, you will typically find a directory structure similar to this:
+
+  ```
+  test_cavity/
+  ├── cal/             # Calibration files (images, .ori, calblock.txt)
+  ├── img_1/           # Image sequence from camera 1
+  ├── img_2/           # Image sequence from camera 2
+  ├── img_3/           # Image sequence from camera 3
+  ├── img_4/           # Image sequence from camera 4 (if used)
+  ├── parameters/      # Parameter files for various processing steps
+  ├── parametersRun1/  # Example parameter sets
+  ├── parametersRun2/
+  ├── parametersRun3/
+  ├── res/             # Directory for results
+  ├── plugins/         # Plugin related scripts or configurations
+  └── Readme.md
+  └── ... other supporting files
+  ```
+
+### Launching PyPTV and Loading the Example
+
+1. **Start PyPTV:** Open your terminal (ensure the correct Python environment where PyPTV is installed is activated) and run the command:
+   ```bash
+   pyptv
+   ```
+   This should launch the PyPTV graphical user interface.
+
+2. **Load/Setup Experiment:**
+   - In PyPTV, you typically set up a new experiment or load an existing one. For the `test_cavity` data, you would navigate the GUI to specify the paths to the calibration images, image sequences for each camera, and parameter files located within the `test_cavity` directory structure.
+   - The [OpenPTV Tutorials page](https://openptv-python.readthedocs.io/en/latest/tutorial.html) provides guidance on setting up a new experiment folder structure which the `test_cavity` example follows.
+
+### Overview of a Typical PTV Workflow in PyPTV using `test_cavity`
+
+The following steps outline a standard PTV analysis process you would perform within the PyPTV GUI using the `test_cavity` data. Each step involves configuring parameters and initiating actions through the GUI, which in turn call the underlying `liboptv` functions via the `optv` bindings.
+
+1. **Calibration:**
+   - **Loading Data:** In the calibration module of PyPTV, load the calibration images (e.g., `cam1.tif`, `cam2.tif`, etc.) from the `test_cavity/cal/` directory.
+   - **Parameters:** Utilize the camera orientation files (e.g., `cam1.ori`) and the control point coordinates file (`calblock.txt` or similar like `target_on_a_side.txt` as mentioned in `test_cavity` commits) also found in the `cal/` directory. ([test_cavity/cal directory](https://github.com/OpenPTV/test_cavity/tree/master/cal))
+   - **Process:** Run the calibration procedure through the GUI. This step determines the intrinsic and extrinsic parameters for each camera.
+
+2. **Image Loading and Pre-processing:**
+   - **Loading Sequences:** Select the image sequences for each camera (e.g., from `test_cavity/img_1/`, `test_cavity/img_2/`, etc.).
+   - **Pre-processing:** Apply any necessary pre-processing steps available in the GUI, such as background subtraction, filtering, or contrast enhancement to improve particle visibility. These operations are often implemented in `liboptv`.
+
+3. **Particle Detection (Segmentation):**
+   - **Parameters:** Adjust parameters in the GUI for particle detection, such as intensity thresholds, expected particle size ranges, and minimum/maximum particle areas.
+   - **Process:** Run the particle detection algorithm on the pre-processed images for each camera view. This will identify 2D particle candidates in each image.
+
+4. **Sequence Processing (Correspondence/Stereo Matching):**
+   - **Parameters:** Set parameters for matching 2D particles across different camera views to reconstruct their 3D positions. These include epipolar tolerances, intensity/size matching criteria, and relaxation parameters. Use parameters from the `test_cavity/parameters/` directory as a starting point.
+   - **Process:** Execute the correspondence algorithm. This process uses the calibration data and 2D particle detections to find matching particle images and triangulate their 3D coordinates for each time step.
+
+5. **Tracking:**
+   - **Parameters:** Configure parameters for the particle tracking algorithm, such as search radius in 3D space, maximum expected displacement between frames, velocity-based prediction parameters, and minimum track length.
+   - **Process:** Run the tracking algorithm. This links the 3D particle positions identified at consecutive time steps to form particle trajectories.
+
+6. **Post-processing and Visualization:**
+   - **Filtering:** Apply filters to the generated trajectories, for instance, removing very short tracks or tracks with unrealistic accelerations.
+   - **Visualization:** Use PyPTV's built-in visualization tools (powered by Chaco) to display detected 2D particles on images, reconstructed 3D particle clouds, and the final 3D trajectories. This allows for qualitative assessment of the results.
+
+### Expected Output
+
+- **Result Files:** PyPTV will generate various output files, typically stored in the `res/` directory of your project. Common OpenPTV output files include:
+  - `camN.N_targets`: Detected 2D particles for camera N at frame N.
+  - `rt_is.N`: Reconstructed 3D particle positions at frame N after correspondence.
+  - `ptv_is.N`: Trajectory data up to frame N.
+  - Final trajectory files in various formats (ASCII, etc.).
+  - Calibration parameter files (e.g., updated `.ori`, `addpar.dat`).
+
+  The "PTV file system description" document, available from the OpenPTV documentation page, provides details on these file formats ([OpenPTV Detailed Documentation](https://openptv-python.readthedocs.io/en/latest/add_doc.html)).
+
+- **Visualizations:** The PyPTV GUI will display plots and overlays showing the detected particles, matched 3D points, and the resulting trajectories, allowing for immediate visual feedback.
+
+Detailed video tutorials demonstrating these steps are often linked in the PyPTV and OpenPTV documentation, such as those listed on the [PyPTV README](https://github.com/alexlib/pyptv/blob/master/README.md) (e.g., Tutorial 1: http://youtu.be/S2fY5WFsFwo).
+
+## PyPTV GUI and Workflow Overview {#gui-workflow}
+
+PyPTV provides a graphical user interface (GUI) to streamline the complex process of Particle Tracking Velocimetry. This section gives an overview of the main GUI components and the typical workflow.
+
+### Main Window Layout
+
+Upon launching PyPTV, the main window is typically organized into several key areas (the exact layout may evolve with versions):
+
+- **Menu Bar:** Provides access to PTV operations (File, Edit, Calibration, Processing, Tracking, View, Help, etc.).
+- **Toolbars:** Offer quick access to frequently used functions and tools (e.g., open project, save, zoom).
+- **Project/Data Panel:** Displays the loaded project, image sequences, calibration data, and other relevant files. Allows selection of items for processing or visualization.
+- **Parameter Panel:** A dedicated area or dialogs that appear for setting parameters for different PTV stages (e.g., detection thresholds, tracking search radius).
+- **Visualization Panel(s):** One or more windows where images, detected particles, and 3D trajectories are displayed. These are often interactive, allowing zooming, panning, and rotation (for 3D plots).
+
+> **Note**
+> A visual screenshot of the PyPTV GUI in action would be beneficial here. Users are encouraged to launch PyPTV and familiarize themselves with its layout. The [PyPTV GitHub repository](https://github.com/alexlib/pyptv) or its documentation may contain screenshots.
+
+### Project Setup and Management
+
+- **Creating a New Project:** PyPTV usually allows users to create a new PTV project by specifying a main project directory. It often expects a specific sub-directory structure for organizing input data and results. The [OpenPTV tutorial documentation](https://openptv-python.readthedocs.io/en/latest/tutorial.html) describes a standard structure:
+  - `cal/`: For calibration images and parameters.
+  - `img/` (or `img_1/`, `img_2/`, etc.): For raw image sequences from each camera.
+  - `parameters/`: For storing parameter files for different processing steps.
+  - `res/`: For outputting result files.
+  
+  The `test_cavity` example ([OpenPTV/test_cavity](https://github.com/OpenPTV/test_cavity)) serves as a good template for this structure.
+
+- **Loading an Existing Project:** Users can typically load a previously saved project, which would repopulate the GUI with the project's data and settings.
+
+### Standard PTV Workflow through the GUI
+
+The PyPTV GUI guides the user through a logical sequence of operations, corresponding to the standard PTV methodology:
+
+1. **Calibration:**
+   - Load calibration images and control point data.
+   - Set calibration parameters.
+   - Execute the calibration algorithm to determine camera parameters.
+   - Save calibration results.
+
+2. **Image Preprocessing & Particle Detection:**
+   - Load image sequences for each camera.
+   - Apply pre-processing filters (e.g., background removal, sharpening).
+   - Set particle detection parameters (e.g., thresholds, size criteria).
+   - Run detection to identify 2D particle candidates in each image.
+   - Visualize and save detected particles.
+
+3. **Sequence Processing (Correspondence):**
+   - Load 2D particle data from all cameras for a given time step or sequence.
+   - Set parameters for stereo matching (e.g., epipolar constraints, matching tolerances).
+   - Execute the correspondence algorithm to find matching particles and reconstruct 3D positions.
+   - Visualize 3D matched particles.
+
+4. **Tracking:**
+   - Load time-resolved 3D particle data.
+   - Set tracking parameters (e.g., search radius, dynamic constraints).
+   - Run the tracking algorithm to link 3D particles over time into trajectories.
+   - Visualize 3D trajectories.
+
+5. **Post-Processing:**
+   - Apply filters to trajectories (e.g., based on length, displacement, smoothness).
+   - Perform data smoothing or interpolation if needed.
+
+6. **Data Export & Further Visualization:**
+   - Export final trajectory data in desired formats for external analysis tools.
+   - Utilize PyPTV's visualization tools for final inspection.
+
+Navigation between these stages is typically done via menu options or dedicated buttons within the GUI.
+
+### Parameter Configuration
+
+A crucial aspect of PTV is the proper setting of numerous parameters that control each processing step.
+
+- PyPTV provides GUI elements (dialogs, input fields, sliders in dedicated panels) to access and modify these parameters.
+- Users can often save sets of parameters to files (e.g., `.par` files, YAML files, or other formats) and load them later. This is useful for reproducing results or applying consistent settings to different datasets.
+- The `parameters/` directory in the `test_cavity` example contains sample parameter files which can be inspected and used as a starting point. ([test_cavity/parameters](https://github.com/OpenPTV/test_cavity/tree/master/parameters)).
+
+### Visualization Tools
+
+PyPTV incorporates powerful visualization tools, largely based on the Chaco plotting library, to aid in every step of the PTV process:
+
+- Displaying raw and processed images.
+- Overlaying detected 2D particle centroids on the images.
+- Visualizing 3D point clouds of matched particles.
+- Displaying 3D particle trajectories, often with options to color-code by velocity or other properties.
+- Interactive plot features such as zoom, pan, rotate (for 3D plots), and data point inspection.
+
+These visualization capabilities are essential for quality control, parameter tuning, and understanding the experimental data.
+
+## Detailed PyPTV Functionality {#detailed-functionality}
+
+This section delves into the specific modules and functionalities within PyPTV, corresponding to the major stages of the Particle Tracking Velocimetry workflow. For each stage, PyPTV provides GUI elements to control the process, which in turn leverages the `optv` package to call underlying C functions from `liboptv`.
+
+### Calibration Module
+
+- **Purpose:** To determine the intrinsic parameters (e.g., focal length, principal point, lens distortion coefficients) and extrinsic parameters (3D position and orientation in a global coordinate system) of each camera used in the PTV setup. Accurate calibration is fundamental for correct 3D reconstruction.
+
+- **GUI Elements:** Typically includes a dedicated calibration window or dialogs. Users can load calibration images, select or identify control points on these images (if manual/semi-automatic calibration is supported), input known coordinates of control points, and set parameters for the calibration algorithm.
+
+- **Inputs:**
+  - Calibration images: Images of a known calibration target taken by each camera (e.g., from `test_cavity/cal/`).
+  - Control point coordinates: A file listing the known 3D coordinates of points on the calibration target (e.g., `calblock.txt` or `target_on_a_side.txt` in `test_cavity`). ([OpenPTV Tutorial on Calibration Files](https://openptv-python.readthedocs.io/en/latest/tutorial.html)).
+  - Initial orientation estimates: Files (e.g., `camN.ori`) providing an initial guess for camera positions and orientations, which can help the calibration algorithm converge.
+
+- **Underlying C library functions (via `optv`):** PyPTV invokes specific C calibration algorithms from `liboptv`. These may include non-linear optimization routines to minimize reprojection errors.
+
+- **Outputs:** Calibrated camera parameters. These are typically saved in camera-specific files (e.g., updated `.ori` files, `addpar.dat` files, or similar formats) that store both intrinsic and extrinsic parameters.
+
+- **Usage Example (Conceptual with `test_cavity`):**
+  1. Navigate to the calibration section in PyPTV.
+  2. Load calibration images (e.g., `cam1.tif`, `cam2.tif`) from `test_cavity/cal/`.
+  3. Specify the `calblock.txt` (or equivalent) file and initial `.ori` files.
+  4. Adjust any calibration algorithm parameters (e.g., distortion model).
+  5. Run the calibration process.
+  6. Inspect residuals and save the results.
+
+### Image Processing & Particle Detection Module
+
+- **Purpose:** To enhance the quality of raw images for better particle identification and to detect the 2D coordinates of particle candidates in each camera view.
+
+- **GUI Elements:** Image display windows, menus or panels for selecting pre-processing filters, and dialogs for setting particle detection parameters (e.g., intensity thresholds, particle size ranges).
+
+- **Available Pre-processing Techniques:** PyPTV's GUI may offer options like:
+  - Background subtraction (e.g., subtracting a mean or static background image).
+  - Image filtering (e.g., Gaussian blur for noise reduction, sharpening filters).
+  - Intensity normalization or contrast enhancement.
+
+- **Particle Detection Algorithms:** Commonly involves:
+  - Threshold-based segmentation to distinguish bright particles from a darker background.
+  - Blob detection and centroid calculation to find the precise 2D coordinates (often sub-pixel) of each detected particle.
+
+- **Inputs:** Raw image sequences from each camera.
+
+- **Underlying C library functions (via `optv`):** Leverages image manipulation and segmentation routines from `liboptv` for efficient processing.
+
+- **Outputs:** Lists of 2D particle coordinates (centroids) for each image frame from each camera. These are often saved in intermediate files (e.g., `cam1.1_targets`, `cam1.2_targets`, etc.).
+
+### Sequence Processing (Correspondence / Stereo Matching) Module
+
+- **Purpose:** To match the 2D particle detections from multiple camera views at a single time instant to reconstruct the 3D positions of the actual particles in space.
+
+- **GUI Elements:** Parameter setting dialogs for correspondence criteria, including:
+  - Epipolar constraints (particles must lie on corresponding epipolar lines).
+  - Relaxation parameters (for iterative matching schemes).
+  - Tolerances for particle properties (e.g., size, intensity) if used in matching.
+
+- **Algorithms:** The core typically relies on epipolar geometry derived from the camera calibration. It might involve searching for candidate matches along epipolar lines and then using optimization or relaxation techniques to resolve ambiguities and find the most consistent set of 3D particles.
+
+- **Inputs:**
+  - 2D particle detection data (e.g., `*_targets` files) for all cameras at a specific time step or for a sequence of time steps.
+  - Accurate camera calibration parameters.
+
+- **Underlying C library functions (via `optv`):** Employs core stereo-matching and 3D triangulation algorithms from `liboptv`.
+
+- **Outputs:** A list of 3D particle coordinates for each time step where matching was successful. These are often saved in files like `rt_is.N` (reconstructed tracks - initial step, for frame N).
+
+### Tracking Module
+
+- **Purpose:** To link the_3D particle positions identified at consecutive time frames to form individual particle trajectories over time.
+
+- **GUI Elements:** Options for selecting the tracking algorithm and setting its parameters, such as:
+  - Search radius (maximum expected displacement of a particle between frames).
+  - Dynamic constraints (e.g., maximum allowable change in velocity or acceleration).
+  - Minimum number of frames a particle must be tracked to be considered a valid trajectory.
+
+- **Available Algorithms (from `liboptv`):** PyPTV provides access to tracking algorithms implemented in `liboptv`, which may include:
+  - Nearest neighbor search in 3D space.
+  - Four-frame best estimate (a common PTV tracking approach considering particle positions over four consecutive frames).
+  - Predictive tracking based on past motion (e.g., Kalman filtering concepts).
+  
+  ([OpenPTV Tutorial discusses tracking](https://openptv-python.readthedocs.io/en/latest/tutorial.html), and the underlying methods are from ETH Zurich legacy. [OpenPTV Manual Draft by Goumnerov](https://openptv-python.readthedocs.io/en/latest/_downloads/28930196abb2204bb773c5808287177c/OpenPTV%20Manual%20-%20first%20draft.docx) pages 25-26).
+
+- **Inputs:** Time-resolved 3D particle data (e.g., from `rt_is.*` files or an in-memory representation).
+
+- **Underlying C library functions (via `optv`):** Calls dedicated tracking algorithms within `liboptv`.
+
+- **Outputs:** Particle trajectories, typically stored as a list of (x, y, z, t) coordinates for each tracked particle. These are often saved in files like `ptv_is.*` or other specific trajectory data formats.
+
+### Post-Processing Module
+
+- **Purpose:** To refine and analyze the generated particle trajectories, improving data quality and extracting meaningful physical quantities.
+
+- **GUI Elements:** Tools for applying filters to trajectories, options for smoothing data, and potentially basic analysis plots.
+
+- **Techniques:**
+  - Filtering by trajectory length (removing too short tracks).
+  - Filtering by displacement or velocity (removing static or unrealistically fast particles).
+  - Data smoothing (e.g., moving average filters) to reduce noise in trajectories.
+  - Interpolation to fill small gaps in trajectories or to resample data at uniform time intervals.
+
+- **Outputs:** Refined trajectory datasets, potentially with derived quantities like velocities and accelerations.
+
+### Visualization and Data Export
+
+- **Purpose:** To allow users to visually inspect the results at various stages and to export data for further analysis or publication using other software.
+
+- **GUI Elements:**
+  - Plotting windows (leveraging Chaco) for displaying raw images, 2D detected particles, 3D matched particles (point clouds), and 3D trajectories.
+  - Interactive tools for zooming, panning, rotating 3D views, and selecting/highlighting data points or trajectories.
+  - Dialogs or menu options for exporting data.
+
+- **Export Formats:** PyPTV typically supports exporting data in common formats, such as:
+  - ASCII text files (e.g., CSV-like formats for particle positions or trajectories).
+  - Specific binary formats used within the OpenPTV ecosystem.
+  - Potentially other standard formats for scientific data.
+
+## API Reference (Conceptual) {#api-reference}
+
+This user manual primarily focuses on the graphical user interface (GUI) usage of PyPTV. A full, detailed Application Programming Interface (API) reference, especially for the underlying `optv` package and `liboptv` C functions, is extensive and typically best maintained through automatically generated documentation (e.g., using Sphinx from source code docstrings) or dedicated developer documentation.
+
+> **Note**
+> For detailed API information, users should consult the official OpenPTV documentation and the source code of PyPTV and `optv`.
+> - OpenPTV Documentation: [openptv-python.readthedocs.io](https://openptv-python.readthedocs.io/en/latest/)
+>   (Look for API sections or links to component documentation).
+> - The "Python Bindings to PTV library" PDF ([available from OpenPTV docs](https://openptv-python.readthedocs.io/en/latest/_downloads/a32f19c3fced64590c695f0595594654/Python_bindings.pdf)) illustrates how C functions can be wrapped using Cython or ctypes, providing insight into how the `optv` API might be structured.
+
+### PyPTV Core Python Modules (Conceptual - for users wanting to script PyPTV operations)
+
+While PyPTV is primarily GUI-driven, advanced users might wish to script parts of its functionality. The internal structure of PyPTV would dictate how this is possible. Conceptually, key modules might include:
+
+- `pyptv.pyptv_gui`: Contains the main application logic and GUI definitions. Accessing functionality directly from here for scripting might be complex as it's tightly coupled with the GUI event loop. The `pyproject.toml` file often specifies the entry point script for the GUI, e.g., `pyptv = "pyptv.pyptv_gui:main"` ([pyproject.toml snippet](https://github.com/alexlib/pyptv/blob/master/pyproject.toml)).
+
+- Potentially, other modules within the `pyptv` package could expose higher-level functions for specific PTV tasks (e.g., `pyptv.io` for data loading/saving, `pyptv.processing` for PTV steps, `pyptv.viz` for plotting). An inspection of the PyPTV source code would be necessary to identify such scriptable components.
+
+To truly script PTV operations without the GUI, users would more typically interact directly with the `optv` package (see below) or use command-line tools if PyPTV/OpenPTV provides them for batch processing.
+
+### Accessing `liboptv` functions via `optv` package (For Advanced Users/Developers)
+
+For users who need direct programmatic access to the core PTV algorithms without the PyPTV GUI, or for developers looking to integrate these algorithms into custom Python scripts or applications, the `optv` package is the relevant API.
+
+- **`optv` Package:** This is the Python package that PyPTV itself depends on. It contains the Cython-generated bindings that directly call functions within the `liboptv` C library. ([OpenPTV Installation Instructions](https://openptv-python.readthedocs.io/en/latest/installation_instruction.html)).
+
+- **Usage:** You would import functions or classes from the `optv` package in your Python script. For example (hypothetically):
+  ```python
+  from optv import calibrate_cameras, detect_particles_2d, match_stereo_particles, track_particles_3d
+  # Example (conceptual - actual function names and parameters will vary)
+  # calibration_params = calibrate_cameras(calibration_images, control_points)
+  # particles_cam1_frame1 = detect_particles_2d(image_cam1_frame1, detection_settings)
+  ```
+
+- **API Details:** The exact API of the `optv` package (function names, arguments, return types) would be defined by its Cython wrapper code (`.pyx` and `.pxd` files). This API aims to expose the functionality of `liboptv` in a Python-friendly way, often involving NumPy arrays for input/output of numerical data.
+
+- **Documentation:** The primary source for the `optv` API would be the OpenPTV documentation ([openptv-python.readthedocs.io](https://openptv-python.readthedocs.io/en/latest/)) or any specific documentation generated for the `optv` package itself (potentially from its source code using tools like Sphinx). The [optv PyPI page](https://pypi.org/project/optv/) might also offer some information or links.
+
+Working directly with the `optv` API requires a deeper understanding of the PTV algorithms and data structures involved but offers maximum flexibility and performance for custom scripting and integration tasks.
+
+## Advanced Topics {#advanced-topics}
+
+This section covers more advanced aspects of using PyPTV, including parameter customization, performance considerations, using plugins, and scripting for batch processing.
+
+### Customizing Configuration Parameters
+
+Effective Particle Tracking Velocimetry heavily relies on the careful tuning of various parameters at each stage of the workflow. PyPTV allows users to adjust these settings through its GUI, and these parameters are often stored in configuration files.
+
+- **Parameter Files:** PyPTV and OpenPTV often use text-based parameter files (e.g., `.par` files, potentially YAML or other structured text formats) to store settings for calibration, detection, correspondence, and tracking. The `test_cavity` example includes a `parameters/` directory with such files ([test_cavity/parameters](https://github.com/OpenPTV/test_cavity/tree/master/parameters)). These files typically contain key-value pairs or specific formatted lines that define thresholds, search radii, tolerances, algorithm choices, etc.
+
+- **Tuning Tips:**
+  - **Calibration:** Ensure high-quality calibration images and accurate control point data. Experiment with distortion models if significant lens distortion is present.
+  - **Particle Detection:** Adjust intensity thresholds based on image contrast and particle brightness. Set appropriate particle size ranges to avoid detecting noise or non-particle objects. Background subtraction methods can be critical in images with stationary or slowly varying backgrounds.
+  - **Correspondence:** Epipolar tolerance is a key parameter; too small might miss valid matches, too large might introduce false matches. Consider particle size and intensity consistency across views if your algorithm uses these.
+  - **Tracking:** The search radius (maximum inter-frame displacement) should be based on expected particle velocities and the time interval between frames. Dynamic constraints (max acceleration/velocity) can help filter out erroneous tracks.
+
+- **Iterative Process:** Parameter tuning is often an iterative process. Start PTV process, inspect intermediate results (e.g., detected particles, matched pairs, short tracks), adjust parameters, and re-run until satisfactory results are achieved.
+
+### Performance Considerations
+
+PTV can be computationally intensive, especially with large images, long sequences, or high particle densities.
+
+- **Data Size:** Image resolution, number of cameras, and length of image sequences directly impact memory usage and processing time.
+- **Particle Density:** Higher particle densities increase the complexity of correspondence and tracking.
+- **Optimization Tips:**
+  - **Region of Interest (ROI):** If applicable, process only a relevant sub-region of the images.
+  - **Efficient Data Handling:** Ensure data is loaded and accessed efficiently. The underlying C libraries (`liboptv`) are designed for this, but Python-level operations should also be mindful.
+  - **Algorithm Choice:** Some algorithms might be faster but less accurate, or vice-versa. Choose appropriately based on requirements.
+  - **Hardware:** Sufficient RAM is crucial, especially for holding image data. A fast CPU will speed up C-library computations. Some operations (like background removal with the `rembg[gpu]` plugin) can be accelerated using a GPU if supported. ([PyPTV README on plugins](https://github.com/alexlib/pyptv/blob/master/README.md)).
+  - **Parallel Processing:** While not explicitly detailed for PyPTV in the provided docs, some PTV tasks are inherently parallelizable (e.g., processing individual frames or cameras independently for detection). Check if PyPTV or underlying libraries offer parallel execution options.
+
+### Using Plugins
+
+PyPTV supports a plugin system to extend its capabilities. This allows for the integration of new functionalities without altering the core codebase.
+
+- **Discovery and Installation:** Information on available plugins and how to install them would typically be found in the PyPTV documentation or specific plugin repositories.
+
+- **Example: `rembg` Plugin:** The PyPTV README mentions a specific branch (`plugin_remback`) that uses the `rembg` library for background removal. This plugin requires separate installation (e.g., `pip install rembg[cpu]` or `pip install rembg[gpu]`). ([PyPTV README](https://github.com/alexlib/pyptv/blob/master/README.md)). This suggests that plugins might be tied to specific branches or versions and have their own dependencies. The `test_cavity` repository also has a `plugins` directory, suggesting a way to organize plugin-related scripts or configurations. ([test_cavity repository structure](https://github.com/OpenPTV/test_cavity)).
+
+- **Usage:** Once a plugin is installed and recognized by PyPTV, its functionality would typically be accessible through the GUI, perhaps as new menu options or processing steps.
+
+### Batch Processing / Scripting
+
+For processing large datasets or automating repetitive tasks, running PTV analysis in batch mode without direct GUI interaction is often necessary.
+
+- **Headless Operation:** Check if PyPTV offers a command-line interface (CLI) or if its core components can be invoked from a Python script for headless operation. The `INSTALL.md` for `alexlib/pyptv` includes a section "Running Batch Processing", indicating this is a supported use case. ([PyPTV INSTALL.md](https://github.com/alexlib/pyptv/blob/master/INSTALL.md)).
+
+- **Scripting with `optv`:** As discussed in the API Reference section, the `optv` package provides direct access to the core PTV algorithms. This is the most flexible way to script PTV workflows, allowing full control over each step and parameter.
+
+- **Automation:** Scripts can be written to loop through multiple datasets, apply consistent parameter sets, and save results automatically.
+
+### Extending PyPTV (Brief Developer Note)
+
+For developers interested in contributing new algorithms or features:
+
+- **Contributing to `liboptv` (C code):** If you develop a new core PTV algorithm (e.g., a novel correspondence or tracking method), it would typically be implemented in C and added to the `liboptv` library.
+
+- **Creating/Updating Cython Bindings:** To make new `liboptv` functions accessible from Python (and thus PyPTV), you would need to create or update the Cython bindings in the `optv` package. This involves writing `.pyx` and potentially `.pxd` files to wrap the C functions.
+
+- **Contributing to PyPTV (Python/GUI code):** New features for the PyPTV GUI, improvements to existing modules, or integration of new plugins would involve modifying the Python codebase of PyPTV itself.
+
+- Follow the contribution guidelines of the respective projects (PyPTV, OpenPTV) regarding code style, testing, and pull requests.
+
+## Troubleshooting {#troubleshooting}
+
+This section provides guidance on common issues encountered during installation or runtime of PyPTV and suggests solutions or diagnostic steps. Always refer to the latest `INSTALL.md` and issue trackers for the most up-to-date troubleshooting information.
+
+### Common Installation Issues
+
+- **Dependency Conflicts:**
+  - **Problem:** Incompatible versions of Python packages (e.g., `numpy`, `PySide6`, `traitsui`, `scipy`) can cause installation failures or runtime errors. The `INSTALL.md` for `alexlib/pyptv` specifically notes potential compatibility issues between PySide6 and TraitsUI, suggesting installing specific compatible versions as a fix. ([PyPTV INSTALL.md](https://github.com/alexlib/pyptv/blob/master/INSTALL.md)).
+  - **Solution:**
+    - Always use a virtual environment (e.g., Conda, Python's `venv`) to isolate PyPTV's dependencies.
+    - Check the `pyproject.toml` file in the PyPTV repository for specified compatible version ranges of dependencies.
+    - Follow any specific version requirements mentioned in `INSTALL.md` or release notes.
+    - Try installing problematic packages one by one or with specific version numbers.
+
+- **Compiler Errors (if building `liboptv` or `optv` from source):**
+  - **Problem:** Errors during the compilation of C code (`liboptv`) or Cython bindings (`optv`).
+  - **Cause:** Missing C/C++ compiler (GCC, Clang, MSVC), CMake, or other necessary build tools for your operating system. Incorrect paths or incompatible compiler versions.
+  - **Solution:**
+    - Ensure you have a working C/C++ compiler and CMake installed and correctly configured in your system's PATH. The [OpenPTV Installation Guide](https://openptv-python.readthedocs.io/en/latest/installation_instruction.html) mentions Windows compiler resources (e.g., from wiki.python.org/moin/WindowsCompilers).
+    - Check build logs for specific error messages that can indicate missing headers or libraries.
+
+- **`optv` package not found or `liboptv` related errors:**
+  - **Problem:** Python cannot import the `optv` module, or errors indicate that `liboptv` (or its shared libraries like `.dll`, `.so`) cannot be found or loaded.
+  - **Cause:** The `optv` package (Cython bindings) might not have installed correctly, or the compiled `liboptv` shared libraries are not in a location where the system or Python can find them.
+  - **Solution:**
+    - Try reinstalling `optv` or PyPTV.
+    - Ensure that if `liboptv` was compiled from source, the resulting shared libraries are correctly placed or that environment variables (like `LD_LIBRARY_PATH` on Linux or `PATH` on Windows) point to their location.
+    - Verify that the `optv` package version is compatible with your PyPTV and Python versions.
+
+- **GUI Toolkit Issues (e.g., "Qt platform plugin not found", `pyface.color.qt4` error):**
+  - **Problem:** The GUI fails to launch, often with errors related to Qt plugins (e.g., "This application failed to start because no Qt platform plugin could be initialized") or specific toolkit configurations like `pyface.color.qt4` (though PySide6 implies newer Qt versions).
+  - **Cause:** Missing system-level Qt dependencies, incorrect Qt backend selected by TraitsUI/Pyface, or conflicts between different Qt installations.
+  - **Solution:**
+    - Refer to the PyPTV `INSTALL.md`, which may list specific Qt dependencies to install (e.g., `libxcb-xinerama0`, `qt6-base-dev`, `pyside6-tools`). ([PyPTV INSTALL.md - Qt Platform Plugin Issues](https://github.com/alexlib/pyptv/blob/master/INSTALL.md)).
+    - For older configurations potentially involving `ETSConfig.toolkit = 'qt4'` (mentioned in some OpenPTV docs), ensure this is appropriate for your setup or if a newer toolkit (like 'qt') should be used with PySide6. ([OpenPTV Installation - pyface.color.qt4 error](https://openptv-python.readthedocs.io/en/latest/installation_instruction.html)).
+    - Ensure your environment variables (e.g., `QT_QPA_PLATFORM_PLUGIN_PATH`) are set correctly if you have multiple Qt versions or custom installations.
+
+### Runtime Errors
+
+- **Errors from `liboptv` (C library):**
+  - **Manifestation:** These can sometimes be cryptic, leading to unexpected behavior, crashes, or error messages propagated through the Cython bindings.
+  - **Diagnosis:** Run PyPTV from a terminal to capture any console output or error messages. Enable verbose logging if PyPTV has such an option. Check for segmentation faults or other low-level errors.
+
+- **Incorrect parameter settings leading to poor results or errors:**
+  - **Symptoms:** Calibration fails or gives high residuals; very few or no particles detected; no matches found during correspondence; no trajectories or nonsensical trajectories formed.
+  - **Solution:**
+    - Carefully review all parameters for the problematic PTV step.
+    - Consult the documentation or tutorials for guidance on typical parameter ranges.
+    - Use the `test_cavity` dataset with its provided parameters as a reference to ensure your baseline settings are reasonable.
+    - Simplify the problem: try with fewer images, a smaller region of interest, or more obvious particles first.
+
+- **Memory Issues with Large Datasets:**
+  - **Symptoms:** PyPTV becomes very slow, unresponsive, or crashes, particularly when loading or processing large image sequences.
+  - **Solution:**
+    - Process data in smaller chunks if the software supports it (e.g., process a few hundred frames at a time).
+    - Reduce image resolution if feasible without losing essential particle information.
+    - Ensure you have sufficient RAM.
+    - Close other memory-intensive applications.
+
+### Debugging Tips
+
+- **Check Console Output:** Always run PyPTV from a command line or terminal, as critical error messages and diagnostic information are often printed there.
+- **Log Files:** Check if PyPTV or OpenPTV generate log files that might contain more detailed error information.
+- **Isolate Problematic Steps:** Try to identify which specific PTV stage is failing (e.g., if detection works but correspondence fails).
+- **Use `test_cavity`:** If you encounter issues with your own data, try processing the standard `test_cavity` dataset. If it works, the problem likely lies in your data or parameter settings. If `test_cavity` also fails, it might indicate an installation issue.
+- **Simplify Configuration:** Start with default or minimal parameter settings and gradually make them more complex.
+
+### Getting Help
+
+If you are unable to resolve an issue:
+
+- **PyPTV GitHub Issues Tracker:** For bugs or issues specific to PyPTV ([alexlib/pyptv](https://github.com/alexlib/pyptv)), check existing issues and report new ones at: [https://github.com/alexlib/pyptv/issues](https://github.com/alexlib/pyptv/issues). The `pyproject.toml` file also lists this URL. ([pyproject.toml snippet](https://github.com/alexlib/pyptv/blob/master/pyproject.toml)).
+- **OpenPTV Community Mailing List/Forum:** For general OpenPTV questions, discussions about PTV algorithms, or issues that might relate to the broader OpenPTV ecosystem, the community forum is a good resource: [https://groups.google.com/forum/#!forum/openptv](https://groups.google.com/forum/#!forum/openptv). This is often mentioned in README files and documentation. ([PyPTV README](https://github.com/alexlib/pyptv/blob/master/README.md)).
+- When asking for help, provide detailed information: PyPTV version, Python version, operating system, exact steps to reproduce the issue, complete error messages, and relevant parts of your parameter files or screenshots.
+
+## Contributing to PyPTV {#contributing}
+
+PyPTV is an open-source project, and contributions from the community are welcome. Whether it's reporting bugs, suggesting new features, or contributing code, your involvement can help improve the software. The primary platform for contributions is the GitHub repository: [https://github.com/alexlib/pyptv](https://github.com/alexlib/pyptv).
+
+### Reporting Bugs
+
+- **Where to Report:** Bugs should be reported on the PyPTV GitHub Issues tracker: [https://github.com/alexlib/pyptv/issues](https://github.com/alexlib/pyptv/issues).
+- **Check Existing Issues:** Before submitting a new bug report, search the existing issues to see if the problem has already been reported.
+- **What to Include:** A good bug report is detailed and reproducible. Include:
+  - PyPTV version (and `optv` version if known).
+  - Python version.
+  - Operating system and version.
+  - Clear, step-by-step instructions to reproduce the bug.
+  - Expected behavior and actual behavior.
+  - Complete error messages (copy-paste from the console).
+  - Screenshots or short videos if they help illustrate the problem.
+  - If relevant, a minimal example dataset or parameter file that triggers the bug.
+
+### Suggesting Features or Enhancements
+
+- **Where to Suggest:** Use the PyPTV GitHub Issues tracker for feature requests or suggestions for enhancements. You can label it appropriately (e.g., "enhancement" or "feature request").
+- **Provide Rationale:** Clearly explain the proposed feature and why it would be beneficial. Describe the use case(s) it would address.
+- **Be Specific:** If possible, provide details on how you envision the feature working or integrating into the existing PyPTV workflow.
+
+### Code Contributions
+
+If you're interested in contributing code (bug fixes, new features, documentation improvements):
+
+- **Fork-and-Pull Request Workflow:**
+  1. Fork the [alexlib/pyptv](https://github.com/alexlib/pyptv) repository on GitHub to your own account.
+  2. Clone your fork to your local machine.
+  3. Create a new branch for your changes (e.g., `git checkout -b feature/my-new-feature` or `bugfix/issue-123`).
+  4. Make your code changes.
+     - Adhere to existing coding style and conventions (check if a style guide like PEP 8 is mentioned or evident).
+     - Write clear, commented code.
+  5. **Write Tests:** If adding new functionality or fixing a bug, write unit tests or integration tests to cover your changes. This ensures maintainability and helps prevent regressions.
+  6. Commit your changes with clear and descriptive commit messages.
+  7. Push your branch to your fork on GitHub (e.g., `git push origin feature/my-new-feature`).
+  8. Open a Pull Request (PR) from your branch to the `master` (or relevant development) branch of the main `alexlib/pyptv` repository.
+  9. In your PR description, clearly explain the changes you've made and link to any relevant issues.
+
+- **Development Setup:**
+  - Follow instructions in `INSTALL.md` or developer documentation for setting up a development environment. This usually involves installing PyPTV in editable mode (`pip install -e .`) within a virtual environment, along with development dependencies (often listed in a `requirements-dev.txt` file or as optional dependencies in `pyproject.toml`).
+
+- **Discussion:** For significant changes, it's often a good idea to discuss your plans by opening an issue first, to ensure your contribution aligns with the project's goals and to get feedback from maintainers.
+
+Contributions to the underlying `liboptv` C library or the `optv` Cython bindings would typically follow a similar process on their respective repositories (e.g., [alexlib/openptv](https://github.com/alexlib/openptv) or repositories within the [OpenPTV organization](https://github.com/OpenPTV)).
+
+## License {#license}
+
+PyPTV and its core components are typically distributed under open-source licenses. It's important to understand these licenses, especially if you plan to use, modify, or redistribute the software.
+
+- **PyPTV License:** The license for PyPTV itself can be found in the `LICENSE.txt` file within the [alexlib/pyptv](https://github.com/alexlib/pyptv) GitHub repository. For many OpenPTV-related projects, licenses like the GNU General Public License (GPL) are common, but you must check the specific `LICENSE.txt` file for authoritative information. The crawled content includes references to `LICENSE.txt` being updated (e.g., "Update LICENSE.txt | Apr 14, 2022" from repository file listing).
+
+- **`liboptv` and `optv` License:** The underlying OpenPTV C library (`liboptv`) and the Cython bindings (`optv` package) will also have their own licenses, which are often compatible with or the same as PyPTV's license. These are usually found within their respective source code repositories.
+
+Users and developers should consult these `LICENSE.txt` files (or similarly named files like `COPYING`) in the relevant repositories to understand the terms and conditions for use, modification, and distribution. The [OpenPTV/docs repository](https://github.com/OpenPTV/docs) also contains `LICENSE` and `COPYING` files that may provide overall licensing information for the OpenPTV project.
+
+## Appendix {#appendix}
+
+### Glossary of Terms
+
+**PTV (Particle Tracking Velocimetry)**
+: An experimental technique used to measure the velocity field in fluid flows (or other systems with moving particles) by tracking the motion of individual tracer particles over time.
+
+**PyPTV (OpenPTV-Python)**
+: A Python-based Graphical User Interface (GUI) for the OpenPTV project, designed to facilitate 3D PTV analysis. ([alexlib/pyptv](https://github.com/alexlib/pyptv)).
+
+**OpenPTV**
+: Open Source Particle Tracking Velocimetry; a collaborative project to develop and maintain software for PTV analysis. ([www.openptv.net](http://www.openptv.net/)).
+
+**`liboptv`**
+: The core C library of the OpenPTV project, containing optimized algorithms for PTV tasks like calibration, particle detection, stereo matching, and tracking.
+
+**Cython**
+: A programming language and compiler that allows writing C extensions for Python, used to create bindings between Python and C libraries. ([cython.org](https://cython.org/)).
+
+**`optv` package**
+: The Python package, created using Cython, that provides bindings to the `liboptv` C library, making its functions callable from Python. PyPTV depends on this package.
+
+**Traits, TraitsUI, Chaco, Enable, Pyface**
+: Components of the Enthought Tool Suite used in PyPTV. `Traits` for typed attributes, `TraitsUI` for automatic GUI generation from models, `Chaco` for 2D plotting, `Enable` for low-level graphics, and `Pyface` for application framework elements.
+
+**Calibration**
+: In PTV, the process of determining the intrinsic (e.g., focal length, distortions) and extrinsic (3D position and orientation) parameters of each camera.
+
+**Correspondence (Stereo Matching)**
+: The process of identifying and matching the 2D images of the same particle from multiple camera views to reconstruct its 3D position.
+
+**Tracking**
+: The process of linking the 3D positions of particles across consecutive time frames to form their trajectories.
+
+**Epipolar Geometry**
+: The geometric relationship between two camera views, used in stereo vision to constrain the search for corresponding points.
+
+**`pyproject.toml`**
+: A standard configuration file used in modern Python packaging (PEP 518) to specify build system requirements and project metadata, including dependencies. ([Python Packaging User Guide](https://packaging.python.org/en/latest/guides/writing-pyproject-toml/)).
+
+### Further Reading and Resources
+
+- **Official OpenPTV Documentation:** [http://openptv-python.readthedocs.io/en/latest/](http://openptv-python.readthedocs.io/en/latest/) (This is the central hub for documentation, including installation, tutorials, and more detailed explanations).
+
+- **OpenPTV Website:** [http://www.openptv.net/](http://www.openptv.net/) (General information about the OpenPTV project).
+
+- **PyPTV GitHub Repository:** [https://github.com/alexlib/pyptv](https://github.com/alexlib/pyptv) (Source code, issue tracker, latest updates for PyPTV).
+
+- **OpenPTV C Library Repository (Example):** [https://github.com/alexlib/openptv](https://github.com/alexlib/openptv) or check the [OpenPTV organization on GitHub](https://github.com/OpenPTV) for the canonical C library repositories.
+
+- **Python Bindings to PTV library PDF:** (Linked from [OpenPTV Detailed Documentation](https://openptv-python.readthedocs.io/en/latest/add_doc.html)) [Python_bindings.pdf](https://openptv-python.readthedocs.io/en/latest/_downloads/a32f19c3fced64590c695f0595594654/Python_bindings.pdf) - Illustrates creating bindings.
+
+- **OpenPTV Installation and User's Manual (Draft by H. Goumnerov):** (Linked from [OpenPTV Detailed Documentation](https://openptv-python.readthedocs.io/en/latest/add_doc.html)) [OpenPTV Manual - first draft.docx](https://openptv-python.readthedocs.io/en/latest/_downloads/28930196abb2204bb773c5808287177c/OpenPTV%20Manual%20-%20first%20draft.docx) - Contains detailed procedural information and context.
+
+- **PyPTV Screencasts/Tutorials (YouTube):**
+  - Tutorial 1: [http://youtu.be/S2fY5WFsFwo](http://youtu.be/S2fY5WFsFwo)
+  - Tutorial 2: [http://www.youtube.com/watch?v=_JxFxwVDSt0](http://www.youtube.com/watch?v=_JxFxwVDSt0)
+  - Tutorial 3: [http://www.youtube.com/watch?v=z1eqFL5JIJc](http://www.youtube.com/watch?v=z1eqFL5JIJc)
+    (Links found in [PyPTV README](https://github.com/alexlib/pyptv/blob/master/README.md)).
+
+- **Relevant Scientific Papers:** The field of PTV has a rich history. Key papers on 3D-PTV (e.g., by Maas, Dracos, Willneff, Gharib) and papers citing OpenPTV can provide deeper theoretical understanding. The OpenPTV documentation often links to foundational theses and papers. ([OpenPTV Detailed Documentation page lists several relevant publications](https://openptv-python.readthedocs.io/en/latest/add_doc.html)).
