@@ -1295,6 +1295,8 @@ args=(self.cals[i_cam],
 
     def protect_ori_files(self):
         # backup ORI/ADDPAR files to the backup_cal directory
+        calOriParams = par.CalOriParams(self.n_cams, path=self.par_path)
+        calOriParams.read()        
 
         for f in calOriParams.img_ori[: self.n_cams]:
             with open(f, "r") as d:
