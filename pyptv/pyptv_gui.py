@@ -1539,7 +1539,8 @@ def main():
         # exp_path = Path('/home/user/Downloads/one-dot-example/working_folder')
         # exp_path = Path('/home/user/Downloads/test_crossing_particle')
         # exp_path = Path('/home/user/Documents/repos/test_cavity')
-        exp_path = Path('/media/user/ExtremePro/omer/exp2')
+        # exp_path = Path('/media/user/ExtremePro/omer/exp2')
+        exp_path = Path('/home/user/Dropbox/Open_Pro_My_PTV/Tracking/50000_30/')
         # exp_path = Path('/home/user/Documents/repos/blob_pyptv_folder')
         print(f"Without input, PyPTV fallbacks to a default {exp_path} \n")
 
