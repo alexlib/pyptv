@@ -366,7 +366,7 @@ class CalibrationGUI(HasTraits):
         self.working_folder = self.active_path.parent
         self.par_path = self.working_folder / "parameters"
         
-        self.man_ori_dat_path = self.working_folder / "man_ori.dat"
+        self.man_ori_dat_path = self.par_path / "man_ori.dat"
 
         print(" Copying parameters inside Calibration GUI: \n")
         par.copy_params_dir(self.active_path, self.par_path)
@@ -550,14 +550,14 @@ class CalibrationGUI(HasTraits):
         # copy parameters from active to default folder parameters/
         par.copy_params_dir(self.active_path, self.par_path)
 
-        print("\n Copying man_ori.dat \n")
-        if os.path.isfile(os.path.join(self.par_path, "man_ori.dat")):
-            print("Warning - copying man_ori.dat from the /parameters\n")
-            shutil.copyfile(
-                os.path.join(self.par_path, "man_ori.dat"),
-                os.path.join(self.working_folder, "man_ori.dat"),
-            )
-            print("\n Copied man_ori.dat \n")
+        # print("\n Copying man_ori.dat \n")
+        # if os.path.isfile(os.path.join(self.par_path, "man_ori.dat")):
+        #     print("Warning - copying man_ori.dat from the /parameters\n")
+        #     shutil.copyfile(
+        #         os.path.join(self.par_path, "man_ori.dat"),
+        #         os.path.join(self.working_folder, "man_ori.dat"),
+        #     )
+        #     print("\n Copied man_ori.dat \n")
 
         # read from parameters
         (
@@ -637,6 +637,9 @@ class CalibrationGUI(HasTraits):
             self.camera[i]._right_click_avail = 1
 
     def _button_manual_fired(self):
+        """ Manual orientation of cameras by clicking on 4 points"""
+
+        import filecmp
         print('Start manual orientation, use clicks and then press this button again')
         points_set = True
         for i in range(self.n_cams):
@@ -650,7 +653,7 @@ class CalibrationGUI(HasTraits):
             print(f'Manual orientation file is {self.man_ori_dat_path}')
             with open(self.man_ori_dat_path, "w", encoding="utf-8") as f:
                 if f is None:
-                    self.status_text = "Error saving man_ori.dat."
+                    self.status_text = f"Error saving {self.man_ori_dat_path}."
                 else:
                     for i in range(self.n_cams):
                         for j in range(4):
@@ -659,12 +662,30 @@ class CalibrationGUI(HasTraits):
                                 % (self.camera[i]._x[j], self.camera[i]._y[j])
                             )
 
-                    self.status_text = "man_ori.dat saved."
+                    self.status_text = f"{self.man_ori_dat_path} saved."
                     # f.close()
         else:
             self.status_text = (
                 "Click on 4 points on each calibration image for manual orientation"
             )
+
+        src = self.man_ori_dat_path
+        dst = self.active_path / "man_ori.dat"
+        
+        # copy man_ori.dat to the parameters folder
+        if os.path.exists(src):
+            shutil.copyfile(
+                src,
+                dst
+            )
+        else:
+            print(f"Error: Source file {src} does not exist.")
+
+
+        if os.path.exists(dst) and filecmp.cmp(src, dst, shallow=False):
+            self.status_text = "man_ori.dat copied and verified successfully."
+        else:
+            self.status_text = "Error: man_ori.dat copy verification failed."
 
     def _button_file_orient_fired(self):
         if self.need_reset:
@@ -681,11 +702,9 @@ class CalibrationGUI(HasTraits):
                     self.camera[i]._x.append(float(line[0]))
                     self.camera[i]._y.append(float(line[1]))
 
-        self.status_text = "man_ori.dat loaded."
-        shutil.copyfile(
-            self.man_ori_dat_path, 
-            self.par_path / "man_ori.dat",
-            )
+        self.status_text = f"{self.man_ori_dat_path} loaded."
+
+
 
         # TODO: rewrite using Parameters subclass
         man_ori_par_path = os.path.join(self.par_path, "man_ori.par")
@@ -712,8 +731,8 @@ class CalibrationGUI(HasTraits):
         self.cals = []
         for i_cam in range(self.n_cams):
             cal = Calibration()
-            tmp = self.cpar.get_cal_img_base_name(i_cam)
-            cal.from_file(tmp + ".ori", tmp + ".addpar")
+            tmp = self.calParams.img_ori[i_cam]
+            cal.from_file(tmp, tmp.replace(".ori", ".addpar"))
             self.cals.append(cal)
 
         for i_cam in range(self.n_cams):
@@ -1274,9 +1293,10 @@ args=(self.cals[i_cam],
 
     def backup_ori_files(self):
         """backup ORI/ADDPAR files to the backup_cal directory"""
-        calOriParams = par.CalOriParams(self.n_cams, path=self.par_path)
-        calOriParams.read()
-        for f in calOriParams.img_ori[: self.n_cams]:
+
+        # calOriParams = par.CalOriParams(self.n_cams, path=self.par_path)
+        # calOriParams.read()
+        for f in self.calParams.img_ori[: self.n_cams]:
             print(f"Backing up {f}")
             shutil.copyfile(f, f + ".bck")
             g = f.replace("ori", "addpar")
@@ -1284,10 +1304,10 @@ args=(self.cals[i_cam],
 
     def restore_ori_files(self):
         # backup ORI/ADDPAR files to the backup_cal directory
-        calOriParams = par.CalOriParams(self.n_cams, path=self.par_path)
-        calOriParams.read()
+        # calOriParams = par.CalOriParams(self.n_cams, path=self.par_path)
+        # calOriParams.read()
 
-        for f in calOriParams.img_ori[: self.n_cams]:
+        for f in self.calParams.img_ori[: self.n_cams]:
             print(f"Restoring {f}")
             shutil.copyfile(f + ".bck", f)
             g = f.replace("ori", "addpar")
@@ -1295,10 +1315,10 @@ args=(self.cals[i_cam],
 
     def protect_ori_files(self):
         # backup ORI/ADDPAR files to the backup_cal directory
-        calOriParams = par.CalOriParams(self.n_cams, path=self.par_path)
-        calOriParams.read()        
+        # calOriParams = par.CalOriParams(self.n_cams, path=self.par_path)
+        # calOriParams.read()        
 
-        for f in calOriParams.img_ori[: self.n_cams]:
+        for f in self.calParams.img_ori[: self.n_cams]:
             with open(f, "r") as d:
                 d.read().split()
                 if not np.all(
