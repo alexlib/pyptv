@@ -588,7 +588,7 @@ class CalibrationGUI(HasTraits):
         # read calibration images
         self.cal_images = []
         for i in range(len(self.camera)):
-            imname = self.cpar.get_cal_img_base_name(i)
+            imname = self.calParams.img_cal_name[i]
             im = imread(imname)
             # im = ImageData.fromfile(imname).data
             if im.ndim > 2:
@@ -1307,8 +1307,6 @@ args=(self.cals[i_cam],
 
 
     def _read_cal_points(self):
-
-
 
         return np.atleast_1d(
             np.loadtxt(
