@@ -92,7 +92,7 @@ For development work with latest NumPy:
 ```bash
 conda create -n pyptv python=3.11
 conda activate pyptv
-conda install numpy>=1.23.5 optv>=0.2.9
+conda install numpy>=1.23.5 optv>=0.3.0
 pip install -e .
 ```
 
