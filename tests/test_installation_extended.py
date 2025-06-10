@@ -1,6 +1,7 @@
 """
 Extended tests for installation and environment
 """
+
 import pytest
 import sys
 import os
@@ -9,10 +10,12 @@ import subprocess
 import importlib
 from pathlib import Path
 
+
 def test_python_version():
     """Test that the Python version is compatible"""
     assert sys.version_info.major == 3
     assert sys.version_info.minor >= 10, "Python version should be 3.10 or higher"
+
 
 def test_required_packages():
     """Test that all required packages are installed"""
@@ -32,8 +35,8 @@ def test_required_packages():
         "tqdm",
         # "imagecodecs",  # Optional dependency
         # "flowtracks",   # Optional dependency
-        "pygments",     # Lowercase for consistency
-        "pyparsing"
+        "pygments",  # Lowercase for consistency
+        "pyparsing",
     ]
 
     for package in required_packages:
@@ -41,6 +44,7 @@ def test_required_packages():
             importlib.import_module(package)
         except ImportError:
             pytest.fail(f"Required package {package} is not installed")
+
 
 def test_numpy_version_compatibility():
     """Test that the installed NumPy version is compatible"""
@@ -60,6 +64,7 @@ def test_numpy_version_compatibility():
     test_array2 = test_array + 1
     assert np.all(test_array2 == 1)
 
+
 def test_optv_version_compatibility():
     """Test that the installed optv version is compatible"""
     import optv
@@ -68,12 +73,18 @@ def test_optv_version_compatibility():
     optv_version = optv.__version__.split(".")
     assert int(optv_version[0]) >= 0
     assert int(optv_version[1]) >= 2 or int(optv_version[0]) > 0
-    assert int(optv_version[2]) >= 9 or int(optv_version[1]) > 2 or int(optv_version[0]) > 0
+    assert (
+        int(optv_version[2]) >= 9
+        or int(optv_version[1]) > 2
+        or int(optv_version[0]) > 0
+    )
 
     # Test basic optv functionality
     from optv.calibration import Calibration
+
     cal = Calibration()
     assert cal is not None
+
 
 def test_pyptv_version():
     """Test that the installed pyptv version is correct"""
@@ -83,7 +94,12 @@ def test_pyptv_version():
     pyptv_version = pyptv.__version__.split(".")
     assert int(pyptv_version[0]) >= 0
     assert int(pyptv_version[1]) >= 3 or int(pyptv_version[0]) > 0
-    assert int(pyptv_version[2]) >= 5 or int(pyptv_version[1]) > 3 or int(pyptv_version[0]) > 0
+    assert (
+        int(pyptv_version[2]) >= 5
+        or int(pyptv_version[1]) > 3
+        or int(pyptv_version[0]) > 0
+    )
+
 
 def test_pyside6_compatibility():
     """Test that PySide6 is compatible with traitsui"""
@@ -101,6 +117,7 @@ def test_pyside6_compatibility():
         assert int(traitsui_version[1]) >= 4 or int(traitsui_version[0]) > 7
     except ImportError as e:
         pytest.skip(f"PySide6 or traitsui not installed: {str(e)}")
+
 
 @pytest.mark.skipif(platform.system() != "Linux", reason="OpenGL test only on Linux")
 def test_opengl_environment_variables():
@@ -120,6 +137,7 @@ def test_opengl_environment_variables():
     # Test that we can import PySide6 without OpenGL errors
     try:
         import PySide6.QtWidgets
+
         assert True
     except Exception as e:
         if "OpenGL" in str(e):
@@ -127,6 +145,7 @@ def test_opengl_environment_variables():
         else:
             # Other errors might be unrelated to OpenGL
             pytest.skip(f"PySide6 import error: {str(e)}")
+
 
 @pytest.mark.skipif(platform.system() != "Windows", reason="Windows-specific test")
 def test_windows_environment():
@@ -148,6 +167,7 @@ def test_windows_environment():
     # Test that we can import PySide6 without OpenGL errors
     try:
         import PySide6.QtWidgets
+
         assert True
     except Exception as e:
         if "OpenGL" in str(e):
@@ -155,6 +175,7 @@ def test_windows_environment():
         else:
             # Other errors might be unrelated to OpenGL
             pytest.skip(f"PySide6 import error: {str(e)}")
+
 
 def test_installation_scripts():
     """Test that installation scripts exist"""

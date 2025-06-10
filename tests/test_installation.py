@@ -2,6 +2,7 @@
 """
 Test script to verify pyptv installation
 """
+
 import os
 import sys
 import numpy as np
@@ -9,10 +10,12 @@ import optv
 from optv.calibration import Calibration
 from optv.parameters import ControlParams
 
+
 def test_installation(test_data_dir):
     """Test if pyptv and optv are installed correctly"""
     try:
         import pyptv
+
         print(f"PyPTV version: {pyptv.__version__}")
     except ImportError:
         print("Error: PyPTV is not installed correctly")
@@ -20,6 +23,7 @@ def test_installation(test_data_dir):
 
     try:
         import optv
+
         print(f"OpenPTV version: {optv.__version__}")
     except ImportError:
         print("Error: OpenPTV is not installed correctly")
@@ -48,6 +52,7 @@ def test_installation(test_data_dir):
 
     print("Installation test completed successfully!")
     return True
+
 
 if __name__ == "__main__":
     success = test_installation()

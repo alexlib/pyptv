@@ -108,9 +108,7 @@ class ParamHandler(Handler):
                 path=par_path,
             ).write()
             # write pft_version_par
-            par.PftVersionParams(
-                mainParams.Existing_Target, path=par_path
-            ).write()
+            par.PftVersionParams(mainParams.Existing_Target, path=par_path).write()
             # write sequence_par
             par.SequenceParams(
                 mainParams.Num_Cam,
@@ -132,13 +130,13 @@ class ParamHandler(Handler):
                 mainParams.Tol_Band,
                 path=par_path,
             ).write()
-            
+
             # write masking parameters
             masking_dict = {
-                "mask_flag":mainParams.Subtr_Mask,
-                "mask_base_name":mainParams.Base_Name_Mask,
+                "mask_flag": mainParams.Subtr_Mask,
+                "mask_base_name": mainParams.Base_Name_Mask,
             }
-            with (Path(par_path) / 'masking.json').open('w') as json_file:
+            with (Path(par_path) / "masking.json").open("w") as json_file:
                 json.dump(masking_dict, json_file)
 
 
@@ -469,9 +467,7 @@ class Main_Params(HasTraits):
     Min_Corr_ny = Float(DEFAULT_FLOAT, label="min corr for ratio ny")
     Min_Corr_npix = Float(DEFAULT_FLOAT, label="min corr for ratio npix")
     Sum_gv = Float(DEFAULT_FLOAT, label="sum of gv")
-    Min_Weight_corr = Float(
-        DEFAULT_FLOAT, label="min for weighted correlation"
-    )
+    Min_Weight_corr = Float(DEFAULT_FLOAT, label="min for weighted correlation")
     Tol_Band = Float(DEFAULT_FLOAT, lable="Tolerance of epipolar band [mm]")
 
     # Group 1 is the group of General parameters
@@ -621,21 +617,16 @@ class Main_Params(HasTraits):
     def _pair_Flag_fired(self):
         # print("test")
         if self.pair_Flag:
-
             self.all_enable_flag = False
 
         else:
-
             self.all_enable_flag = True
 
     def _Accept_OnlyAllCameras_fired(self):
-
         if self.Accept_OnlyAllCameras:
-
             self.pair_enable_flag = False
 
         else:
-
             self.pair_enable_flag = True
 
     # TODO: underscore in Python signifies a private method (i.e. it shouldn't be accessed from outside this module).
@@ -679,11 +670,7 @@ class Main_Params(HasTraits):
         targRecParams.read()
 
         for i in range(ptvParams.n_img):
-            exec(
-                "self.Gray_Tresh_{0} = targRecParams.gvthres[{1}]".format(
-                    i + 1, i
-                )
-            )
+            exec("self.Gray_Tresh_{0} = targRecParams.gvthres[{1}]".format(i + 1, i))
 
         self.Min_Npix = targRecParams.nnmin
         self.Max_Npix = targRecParams.nnmax
@@ -701,16 +688,12 @@ class Main_Params(HasTraits):
         self.Existing_Target = np.bool8(pftVersionParams.Existing_Target)
 
         # load sequence_par
-        sequenceParams = par.SequenceParams(
-            ptvParams.n_img, path=self.par_path
-        )
+        sequenceParams = par.SequenceParams(ptvParams.n_img, path=self.par_path)
         sequenceParams.read()
 
         for i in range(ptvParams.n_img):
             exec(
-                "self.Basename_{0}_Seq = sequenceParams.base_name[{1}]".format(
-                    i + 1, i
-                )
+                "self.Basename_{0}_Seq = sequenceParams.base_name[{1}]".format(i + 1, i)
             )
 
         self.Seq_First = sequenceParams.first
@@ -731,14 +714,14 @@ class Main_Params(HasTraits):
         self.Sum_gv = criteriaParams.csumg
         self.Min_Weight_corr = criteriaParams.corrmin
         self.Tol_Band = criteriaParams.eps0
-        
+
         # write masking parameters
-        masking_filename = Path(self.par_path) / 'masking.json'
+        masking_filename = Path(self.par_path) / "masking.json"
         if masking_filename.exists():
-                masking_dict = json.load(masking_filename.open('r'))
-                # json.dump(masking_dict, json_file)
-                self.Subtr_Mask = masking_dict['mask_flag']
-                self.Base_Name_Mask = masking_dict['mask_base_name']
+            masking_dict = json.load(masking_filename.open("r"))
+            # json.dump(masking_dict, json_file)
+            self.Subtr_Mask = masking_dict["mask_flag"]
+            self.Base_Name_Mask = masking_dict["mask_base_name"]
 
     # create initfunc
     def __init__(self, par_path):
@@ -749,7 +732,6 @@ class Main_Params(HasTraits):
 
 # -----------------------------------------------------------------------------
 class Calib_Params(HasTraits):
-
     # general and unsed variables
     pair_enable_flag = Bool(True)
     n_img = Int(DEFAULT_INT)
@@ -958,9 +940,7 @@ class Calib_Params(HasTraits):
     Examine_Flag = Bool(False, label="Calibrate with different Z")
     Combine_Flag = Bool(False, label="Combine preprocessed planes")
 
-    point_number_of_orientation = Int(
-        DEFAULT_INT, label="Point number of orientation"
-    )
+    point_number_of_orientation = Int(DEFAULT_INT, label="Point number of orientation")
     cc = Bool(False, label="cc")
     xh = Bool(False, label="xh")
     yh = Bool(False, label="yh")
@@ -1034,9 +1014,7 @@ class Calib_Params(HasTraits):
     dumbbell_gradient_descent = Float(
         DEFAULT_FLOAT, label="dumbbell gradient descent factor"
     )
-    dumbbell_penalty_weight = Float(
-        DEFAULT_FLOAT, label="weight for dumbbell penalty"
-    )
+    dumbbell_penalty_weight = Float(DEFAULT_FLOAT, label="weight for dumbbell penalty")
     dumbbell_step = Int(DEFAULT_INT, label="step size through sequence")
     dumbbell_niter = Int(DEFAULT_INT, label="number of iterations per click")
 
@@ -1128,14 +1106,8 @@ class Calib_Params(HasTraits):
         )
 
         for i in range(self.n_img):
-            exec(
-                "self.cam_{0} = calOriParams.img_cal_name[{1}]".format(
-                    i + 1, i
-                )
-            )
-            exec(
-                "self.ori_cam_{0} = calOriParams.img_ori[{1}]".format(i + 1, i)
-            )
+            exec("self.cam_{0} = calOriParams.img_cal_name[{1}]".format(i + 1, i))
+            exec("self.ori_cam_{0} = calOriParams.img_ori[{1}]".format(i + 1, i))
 
         self.tiff_head = np.bool8(tiff_flag)
         self.pair_head = np.bool8(pair_flag)
@@ -1200,7 +1172,7 @@ class Calib_Params(HasTraits):
 
         for i in range(self.n_img):
             for j in range(4):  # 4 points per image
-                exec(f"self.img_{i+1}_p{j+1} = manOriParams.nr[{i*4+j}]")
+                exec(f"self.img_{i + 1}_p{j + 1} = manOriParams.nr[{i * 4 + j}]")
 
         # examine arameters
         examineParams = par.ExamineParams(path=self.par_path)
@@ -1311,9 +1283,7 @@ class Experiment(HasTraits):
         self.changed_active_params = False
 
     def getParamsetIdx(self, paramset):
-        if isinstance(
-                paramset,
-                type(1)):  # integer value (index of the paramset)
+        if isinstance(paramset, type(1)):  # integer value (index of the paramset)
             return paramset
         else:  # Value is instance of Pramset
             return self.paramsets.index(paramset)
@@ -1352,14 +1322,10 @@ class Experiment(HasTraits):
     def populate_runs(self, exp_path: Path):
         # Read all parameters directories from an experiment directory
         self.paramsets = []
-        
+
         # list all directories
-        dir_contents = [
-            f
-            for f in exp_path.iterdir()
-            if (exp_path / f).is_dir()
-        ]
-        
+        dir_contents = [f for f in exp_path.iterdir() if (exp_path / f).is_dir()]
+
         # choose directories that has 'parameters' in their path
         dir_contents = [
             f for f in dir_contents if str(f.stem).startswith(par.par_dir_prefix)
@@ -1382,7 +1348,7 @@ class Experiment(HasTraits):
             # par_path = exp_path / dir_item
             if str(dir_item.stem) != par.par_dir_prefix:
                 # This should be a params dir, add a tree entry for it.
-                exp_name = str(dir_item.stem).rsplit('parameters',maxsplit=1)[-1]
+                exp_name = str(dir_item.stem).rsplit("parameters", maxsplit=1)[-1]
 
                 print(f"Experiment name is: {exp_name}")
                 print(f" adding Parameter set\n")

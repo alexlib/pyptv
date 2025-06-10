@@ -41,7 +41,6 @@ from chaco.tools.api import PanTool, ZoomTool
 
 
 class DemoView(HasTraits):
-
     ### Public Traits ##########################################################
 
     # A Plot Data object to hold our image data
@@ -101,9 +100,7 @@ class DemoView(HasTraits):
             ),
             menubar=MenuBar(
                 Menu(
-                    Action(
-                        name="Save Plot", action="save"
-                    ),  # see Controller for
+                    Action(name="Save Plot", action="save"),  # see Controller for
                     Action(name="Load Plot", action="load"),  # these callbacks
                     Separator(),
                     CloseAction,
@@ -171,7 +168,6 @@ class DemoView(HasTraits):
 
 
 class DemoController(Handler):
-
     # The HasTraits object we are a controller for
     view = Instance(DemoView)
 

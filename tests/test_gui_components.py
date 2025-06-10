@@ -1,6 +1,7 @@
 """
 Integration tests for GUI components
 """
+
 import pytest
 import os
 import tempfile
@@ -12,8 +13,7 @@ import numpy as np
 
 # Skip all tests in this file if running in a headless environment
 pytestmark = pytest.mark.skipif(
-    os.environ.get("DISPLAY") is None,
-    reason="GUI tests require a display"
+    os.environ.get("DISPLAY") is None, reason="GUI tests require a display"
 )
 
 # Import components that don't require a display
@@ -33,6 +33,7 @@ except ImportError as e:
     # If we can't import the GUI components, we'll skip the tests
     print(f"Error importing GUI components: {e}")
     ImagePlot = None
+
 
 @pytest.fixture
 def mock_experiment_dir():
@@ -76,16 +77,24 @@ def mock_experiment_dir():
         f.write("10010\n")  # last
 
     # Create other required parameter files
-    for param_file in ["criteria.par", "detect_plate.par", "orient.par",
-                       "pft_par.par", "targ_rec.par", "track.par"]:
+    for param_file in [
+        "criteria.par",
+        "detect_plate.par",
+        "orient.par",
+        "pft_par.par",
+        "targ_rec.par",
+        "track.par",
+    ]:
         with open(params_dir / param_file, "w") as f:
             f.write("# Test parameter file\n")
 
     yield exp_dir
     shutil.rmtree(temp_dir)
 
-@pytest.mark.skipif(os.environ.get("DISPLAY") is None,
-                   reason="GUI tests require a display")
+
+@pytest.mark.skipif(
+    os.environ.get("DISPLAY") is None, reason="GUI tests require a display"
+)
 def test_imageplot_creation():
     """Test that ImagePlot can be created"""
     # Skip if ImagePlot is not available
@@ -117,8 +126,10 @@ def test_imageplot_creation():
         else:
             raise
 
-@pytest.mark.skipif(os.environ.get("DISPLAY") is None,
-                   reason="GUI tests require a display")
+
+@pytest.mark.skipif(
+    os.environ.get("DISPLAY") is None, reason="GUI tests require a display"
+)
 def test_code_editor_creation(tmp_path):
     """Test that codeEditor can be created"""
     # Create a temporary file
@@ -136,8 +147,10 @@ def test_code_editor_creation(tmp_path):
         else:
             raise
 
-@pytest.mark.skipif(os.environ.get("DISPLAY") is None,
-                   reason="GUI tests require a display")
+
+@pytest.mark.skipif(
+    os.environ.get("DISPLAY") is None, reason="GUI tests require a display"
+)
 def test_directory_editor_creation(tmp_path):
     """Test that DirectoryEditorDialog can be created"""
     try:
@@ -152,8 +165,10 @@ def test_directory_editor_creation(tmp_path):
         else:
             raise
 
-@pytest.mark.skipif(os.environ.get("DISPLAY") is None,
-                   reason="GUI tests require a display")
+
+@pytest.mark.skipif(
+    os.environ.get("DISPLAY") is None, reason="GUI tests require a display"
+)
 def test_calibration_gui_creation(mock_experiment_dir, test_data_dir):
     """Test that CalibrationGUI can be created"""
     # Skip if CalibrationGUI is not available
@@ -163,8 +178,10 @@ def test_calibration_gui_creation(mock_experiment_dir, test_data_dir):
     # Skip this test for now as it requires more complex setup
     pytest.skip("CalibrationGUI test requires more complex setup")
 
-@pytest.mark.skipif(os.environ.get("DISPLAY") is None,
-                   reason="GUI tests require a display")
+
+@pytest.mark.skipif(
+    os.environ.get("DISPLAY") is None, reason="GUI tests require a display"
+)
 def test_parameters_gui_creation(mock_experiment_dir, test_data_dir):
     """Test that Main_Params can be created"""
     # Skip if Main_Params is not available

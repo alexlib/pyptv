@@ -8,7 +8,7 @@ http://opensource.org/licenses/MIT
 import os
 import shutil
 import re
-from  pathlib import Path
+from pathlib import Path
 import numpy as np
 from skimage.io import imread
 from skimage.util import img_as_ubyte
@@ -17,14 +17,14 @@ from skimage.color import rgb2gray
 from traits.api import HasTraits, Str, Int, Bool, Instance, Button
 from traitsui.api import View, Item, HGroup, VGroup, ListEditor
 from enable.component_editor import ComponentEditor
-    
+
 from chaco.api import (
     Plot,
     ArrayPlotData,
     gray,
     ArrayDataSource,
     LinearMapper,
-    PolygonPlot
+    PolygonPlot,
 )
 
 # from traitsui.menu import MenuBar, ToolBar, Menu, Action
@@ -50,6 +50,7 @@ from scipy.optimize import minimize
 # recognized names for the flags:
 NAMES = ["cc", "xh", "yh", "k1", "k2", "k3", "p1", "p2", "scale", "shear"]
 SCALE = 5000
+
 
 # -------------------------------------------
 class ClickerTool(ImageInspectorTool):
@@ -82,7 +83,6 @@ class ClickerTool(ImageInspectorTool):
             self.right_changed = 1 - self.right_changed
             print(f"Right: {self.x}, {self.y}")
 
-
             self.last_mouse_position = (event.x, event.y)
 
     def normal_mouse_move(self, event):
@@ -112,7 +112,7 @@ class PlotWindow(HasTraits):
         super().__init__()
         # -------------- Initialization of plot system ----------------
         padd = 25
-        self.plot_data = ArrayPlotData(px=np.array([]),py=np.array([]))
+        self.plot_data = ArrayPlotData(px=np.array([]), py=np.array([]))
         self._x, self._y = [], []
         self.man_ori = range(50)
         self._plot = Plot(self.plot_data, default_origin="top left")
@@ -121,25 +121,23 @@ class PlotWindow(HasTraits):
         self.face_alpha = 0.5
         self.edge_alpha = 0.5
         self.edge_style = "solid"
-           
 
     def left_clicked_event(self):
-        """ left click event """
+        """left click event"""
         print("left clicked")
         self._x.append(self._click_tool.x)
         self._y.append(self._click_tool.y)
         print(self._x, self._y)
 
         self.drawcross("coord_x", "coord_y", self._x, self._y, "red", 5)
-        
+
         if self._plot.overlays is not None:
-            self._plot.overlays.clear() # type: ignore
+            self._plot.overlays.clear()  # type: ignore
 
-        self.plot_num_overlay(self._x, self._y, self.man_ori)          
-
+        self.plot_num_overlay(self._x, self._y, self.man_ori)
 
     def right_clicked_event(self):
-        """ right click event """
+        """right click event"""
         print("right clicked")
         if len(self._x) > 0:
             self._x.pop()
@@ -148,7 +146,7 @@ class PlotWindow(HasTraits):
 
             self.drawcross("coord_x", "coord_y", self._x, self._y, "red", 5)
             if self._plot.overlays is not None:
-                self._plot.overlays.clear() # type: ignore
+                self._plot.overlays.clear()  # type: ignore
             self.plot_num_overlay(self._x, self._y, self.man_ori)
         else:
             if self._right_click_avail:
@@ -162,14 +160,10 @@ class PlotWindow(HasTraits):
                 self.drawcross("x", "y", x[0], y[0], "blue", 4)
 
     def attach_tools(self):
-        """ Attaches the necessary tools to the plot """
+        """Attaches the necessary tools to the plot"""
         self._click_tool = ClickerTool(self._img_plot)
-        self._click_tool.on_trait_change(
-            self.left_clicked_event, "left_changed"
-        )
-        self._click_tool.on_trait_change(
-            self.right_clicked_event, "right_changed"
-        )
+        self._click_tool.on_trait_change(self.left_clicked_event, "left_changed")
+        self._click_tool.on_trait_change(self.right_clicked_event, "right_changed")
         self._img_plot.tools.append(self._click_tool)
         self._zoom_tool = SimpleZoom(
             component=self._plot, tool_mode="box", always_on=False
@@ -220,9 +214,7 @@ class PlotWindow(HasTraits):
             draws 2 red lines with thickness = 2 :  100,100->400,300 and 200,100->400,200
 
         """
-        x1, y1, x2, y2 = self.remove_short_lines(
-            x1c, y1c, x2c, y2c, min_length=0
-        )
+        x1, y1, x2, y2 = self.remove_short_lines(x1c, y1c, x2c, y2c, min_length=0)
         if len(x1) > 0:
             xs = ArrayDataSource(x1)
             ys = ArrayDataSource(y1)
@@ -239,19 +231,21 @@ class PlotWindow(HasTraits):
             #     ep_index=np.array(x2) * scale,
             #     ep_value=np.array(y2) * scale,
             # )
-            vectors = np.array(((np.array(x2)-np.array(x1))/scale, 
-                                (np.array(y2)-np.array(y1))/scale)).T
+            vectors = np.array(
+                (
+                    (np.array(x2) - np.array(x1)) / scale,
+                    (np.array(y2) - np.array(y1)) / scale,
+                )
+            ).T
             self.plot_data.set_data("index", x1)
             self.plot_data.set_data("value", y1)
             self.plot_data.set_data("vectors", vectors)
             # self._quiverplots.append(quiverplot)
             self._plot.quiverplot(
-                ('index','value','vectors'),
-                arrow_size=0,
-                line_color="red"
-                )
+                ("index", "value", "vectors"), arrow_size=0, line_color="red"
+            )
             # self._plot.overlays.append(quiverplot)
-        
+
     def remove_short_lines(self, x1, y1, x2, y2, min_length=2):
         """removes short lines from the array of lines
         parameters:
@@ -267,10 +261,7 @@ class PlotWindow(HasTraits):
         # dx, dy = 2, 2  # minimum allowable dx,dy
         x1f, y1f, x2f, y2f = [], [], [], []
         for i in range(len(x1)):
-            if (
-                abs(x1[i] - x2[i]) > min_length
-                or abs(y1[i] - y2[i]) > min_length
-            ):
+            if abs(x1[i] - x2[i]) > min_length or abs(y1[i] - y2[i]) > min_length:
                 x1f.append(x1[i])
                 y1f.append(y1[i])
                 x2f.append(x2[i])
@@ -306,7 +297,7 @@ class PlotWindow(HasTraits):
             self.plot_data.set_data("imagedata", image.astype(float))
         else:
             self.plot_data.set_data("imagedata", image.astype(np.uint8))
-            
+
         # Alex added to plot the image here from update image
         self._img_plt = self._plot.img_plot("imagedata", colormap=gray)[0]
 
@@ -347,16 +338,15 @@ class MaskGUI(HasTraits):
         self.active_path = active_path
         self.working_folder = self.active_path.parent
         self.par_path = self.working_folder / "parameters"
-        
+
         self.man_ori_dat_path = self.working_folder / "man_ori.dat"
 
         print(" Copying parameters inside Mask GUI: \n")
         par.copy_params_dir(self.active_path, self.par_path)
 
-        
         os.chdir(self.working_folder)
         print(f"Inside a folder: {Path.cwd()}")
-        
+
         # read parameters
         with open(self.par_path / "ptv.par", "r") as f:
             self.n_cams = int(f.readline())
@@ -375,19 +365,19 @@ class MaskGUI(HasTraits):
 
     view = View(
         HGroup(
-                VGroup(
-                    Item(
-                        name="button_showimg",
-                        label="Load images/parameters",
-                        show_label=False,
-                    ),
-                    Item(
-                        name="button_manual",
-                        label="Draw and store mask",
-                        show_label=False,
-                        enabled_when="pass_init",
-                    ),
+            VGroup(
+                Item(
+                    name="button_showimg",
+                    label="Load images/parameters",
+                    show_label=False,
                 ),
+                Item(
+                    name="button_manual",
+                    label="Draw and store mask",
+                    show_label=False,
+                    enabled_when="pass_init",
+                ),
+            ),
             Item(
                 "camera",
                 style="custom",
@@ -412,7 +402,6 @@ class MaskGUI(HasTraits):
     # --------------------------------------------------
 
     def _button_showimg_fired(self):
-
         print("Loading images \n")
 
         # Initialize what is needed, copy necessary things
@@ -431,7 +420,6 @@ class MaskGUI(HasTraits):
             self.epar,
         ) = ptv.py_start_proc_c(self.n_cams)
 
-
         # read Mask images
         self.images = []
         for i in range(len(self.camera)):
@@ -439,7 +427,7 @@ class MaskGUI(HasTraits):
             im = imread(imname)
             # im = ImageData.fromfile(imname).data
             if im.ndim > 2:
-                im = rgb2gray(im[:,:,:3])
+                im = rgb2gray(im[:, :, :3])
 
             self.images.append(img_as_ubyte(im))
 
@@ -449,21 +437,21 @@ class MaskGUI(HasTraits):
         self.pass_init = True
         self.status_text = "Initialization finished."
 
-
     def _button_manual_fired(self):
-
-        self.mask_files = [f'mask_{cam}.txt' for cam in range(self.n_cams)]
+        self.mask_files = [f"mask_{cam}.txt" for cam in range(self.n_cams)]
         print(self.mask_files)
-        
-        print('Start mask drawing click in some order in each camera')
-        
+
+        print("Start mask drawing click in some order in each camera")
+
         points_set = True
         for i in range(self.n_cams):
             if len(self.camera[i]._x) < 4:
                 print(f"Camera {i} less than 4 points: {self.camera[i]._x}")
                 points_set = False
             else:
-                print(f"Camera {i} has {len(self.camera[i]._x)} points: {self.camera[i]._x}")
+                print(
+                    f"Camera {i} has {len(self.camera[i]._x)} points: {self.camera[i]._x}"
+                )
                 self.camera[i].plot_data.set_data("px", np.array(self.camera[i]._x))
                 self.camera[i].plot_data.set_data("py", np.array(self.camera[i]._y))
                 p = self.camera[i]._plot.plot(
@@ -473,16 +461,14 @@ class MaskGUI(HasTraits):
                     edge_color=(0, 0, 0),
                     edge_style="solid",
                     alpha=0.5,
-                )                  
+                )
 
         if points_set:
             for cam in range(self.n_cams):
                 with open(self.mask_files[cam], "w", encoding="utf-8") as f:
-                        for x,y in zip(self.camera[cam]._x, self.camera[cam]._y):
-                            f.write(
-                                "%f %f\n" % (x, y)
-                            )
-        
+                    for x, y in zip(self.camera[cam]._x, self.camera[cam]._y):
+                        f.write("%f %f\n" % (x, y))
+
                 self.status_text = f"{self.mask_files[cam]} saved."
 
         else:
@@ -503,41 +489,32 @@ class MaskGUI(HasTraits):
         #     )
         #     print(p[0])
 
-
     def reset_plots(self):
         for i in range(len(self.n_cams)):
-            self.camera[i]._plot.delplot(
-                *self.camera[i]._plot.plots.keys()[0:]
-            )
+            self.camera[i]._plot.delplot(*self.camera[i]._plot.plots.keys()[0:])
             self.camera[i]._plot.overlays.clear()
 
     def reset_show_images(self):
         for i, cam in enumerate(self.camera):
             cam._plot.delplot(*list(cam._plot.plots.keys())[0:])
             cam._plot.overlays = []
-            cam.plot_data.set_data(
-                "imagedata", self.images[i].astype(np.uint8)
-            )
+            cam.plot_data.set_data("imagedata", self.images[i].astype(np.uint8))
 
             cam._img_plot = cam._plot.img_plot("imagedata", colormap=gray)[0]
             cam._x = []
             cam._y = []
             cam._img_plot.tools = []
-            
-            
+
             cam.attach_tools()
             cam._plot.request_redraw()
 
     def drawcross(self, str_x, str_y, x, y, color1, size1, i_cam=None):
-        """ Draw crosses on images """
+        """Draw crosses on images"""
         if i_cam is None:
             for i in range(self.n_cams):
-                self.camera[i].drawcross(
-                    str_x, str_y, x[i], y[i], color1, size1
-                )
+                self.camera[i].drawcross(str_x, str_y, x[i], y[i], color1, size1)
         else:
             self.camera[i_cam].drawcross(str_x, str_y, x, y, color1, size1)
-
 
 
 if __name__ == "__main__":

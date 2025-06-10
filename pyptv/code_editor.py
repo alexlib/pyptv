@@ -1,6 +1,7 @@
 """
 Editor for editing the cameras ori files
 """
+
 # Imports:
 from traits.api import (
     HasTraits,
@@ -19,20 +20,14 @@ from pyptv import parameters as par
 
 def get_path(filename):
     splitted_filename = filename.split("/")
-    return (
-        os.getcwd()
-        + os.sep
-        + splitted_filename[0]
-        + os.sep
-        + splitted_filename[1]
-    )
+    return os.getcwd() + os.sep + splitted_filename[0] + os.sep + splitted_filename[1]
 
 
 def get_code(path: Path):
-    """ Read the code from the file """
+    """Read the code from the file"""
 
     # print(f"Read from {path}: {path.exists()}")
-    with open(path, "r", encoding="utf-8") as f:    
+    with open(path, "r", encoding="utf-8") as f:
         retCode = f.read()
 
     # print(retCode)
@@ -61,15 +56,15 @@ class codeEditor(HasTraits):
             # print(f"Saving to {self.file_Path}")
             # print(f"Code: {self._Code}")
             f.write(self._Code)
-        
+
         print(f"Saved to {self.file_Path}")
-        
+
     def __init__(self, file_path: Path):
         self.file_Path = file_path
         self._Code = get_code(file_path)
 
-class oriEditor(HasTraits):
 
+class oriEditor(HasTraits):
     # number of images
     n_img = Int()
 
@@ -93,7 +88,7 @@ class oriEditor(HasTraits):
     )
 
     def __init__(self, path: Path):
-        """ Initialize by reading parameters and filling the editor windows """
+        """Initialize by reading parameters and filling the editor windows"""
         # load ptv_par
         ptvParams = par.PtvParams(path=path)
         ptvParams.read()
@@ -104,13 +99,10 @@ class oriEditor(HasTraits):
         calOriParams.read()
 
         for i in range(self.n_img):
-            self.oriEditors.append(
-                codeEditor(Path(calOriParams.img_ori[i]))
-            )
+            self.oriEditors.append(codeEditor(Path(calOriParams.img_ori[i])))
 
 
 class addparEditor(HasTraits):
-
     # number of images
     n_img = Int()
 
@@ -134,7 +126,7 @@ class addparEditor(HasTraits):
     )
 
     def __init__(self, path):
-        """ Initialize by reading parameters and filling the editor windows """
+        """Initialize by reading parameters and filling the editor windows"""
         # load ptv_par
         ptvParams = par.PtvParams(path=path)
         ptvParams.read()
@@ -146,5 +138,5 @@ class addparEditor(HasTraits):
 
         for i in range(self.n_img):
             self.addparEditors.append(
-                codeEditor(Path(calOriParams.img_ori[i].replace('ori', 'addpar')))
+                codeEditor(Path(calOriParams.img_ori[i].replace("ori", "addpar")))
             )

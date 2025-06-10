@@ -32,8 +32,9 @@ class Sequence:
         base_name = []
         for i in range(n_camera):
             exec(
-                "base_name.append(self.exp1.active_params.m_params.Basename_%d_Seq)" %
-                (i + 1))
+                "base_name.append(self.exp1.active_params.m_params.Basename_%d_Seq)"
+                % (i + 1)
+            )
             print(base_name[i])
 
         self.ptv.py_sequence_init(0)  # init C sequence function

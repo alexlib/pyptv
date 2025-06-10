@@ -1,4 +1,4 @@
-""" PyPTV_BATCH is the script for the 3D-PTV (http://ptv.origo.ethz.ch)
+"""PyPTV_BATCH is the script for the 3D-PTV (http://ptv.origo.ethz.ch)
     written in Python with Enthought Traits GUI/Numpy/Chaco
 
 Example:
@@ -9,7 +9,6 @@ the present "active" parameters are kept intact except the sequence
 
 
 """
-
 
 # from scipy.misc import imread
 from pathlib import Path
@@ -23,10 +22,12 @@ from pyptv.ptv import py_start_proc_c, py_trackcorr_init, py_sequence_loop
 # project specific inputs
 # import pdb; pdb.set_trace()
 
+
 class AttrDict(dict):
     def __init__(self, *args, **kwargs):
         super(AttrDict, self).__init__(*args, **kwargs)
         self.__dict__ = self
+
 
 def run_batch(new_seq_first: int, new_seq_last: int):
     """this file runs inside exp_path, so the other names are
@@ -39,29 +40,30 @@ def run_batch(new_seq_first: int, new_seq_last: int):
     # read the number of cameras
     with open("parameters/ptv.par", "r") as f:
         n_cams = int(f.readline())
-    
+
     cpar, spar, vpar, track_par, tpar, cals, epar = py_start_proc_c(n_cams=n_cams)
-    
+
     spar.set_first(first)
     spar.set_last(last)
-    
+
     exp = {
-    'cpar':cpar,
-    'spar':spar,
-    'vpar':vpar,
-    'track_par':track_par,
-    'tpar':tpar,
-    'cals':cals,
-    'epar':epar,
-    'n_cams':n_cams,
-        }
-    
+        "cpar": cpar,
+        "spar": spar,
+        "vpar": vpar,
+        "track_par": track_par,
+        "tpar": tpar,
+        "cals": cals,
+        "epar": epar,
+        "n_cams": n_cams,
+    }
+
     # use dataclass to convert dictionary keys to attributes
     exp = AttrDict(exp)
-    
+
     py_sequence_loop(exp)
     tracker = py_trackcorr_init(exp)
     tracker.full_forward()
+
 
 #
 
@@ -83,7 +85,7 @@ def main(exp_path, first, last, repetitions=1):
         exp_path = Path(exp_path).resolve()
         print(f"Inside main of pyptv_batch, exp_path is {exp_path} \n")
         os.chdir(exp_path)
-        
+
         print(f"double checking that its inside {Path.cwd()} \n")
     except Exception:
         raise ValueError(f"Wrong experimental directory {exp_path}")
@@ -91,7 +93,7 @@ def main(exp_path, first, last, repetitions=1):
     # RON - make a res dir if it not found
 
     res_path = exp_path / "res"
-    
+
     if not res_path.is_dir():
         print(" 'res' folder not found. creating one")
         res_path.mkdir(parents=True, exist_ok=True)
@@ -135,8 +137,8 @@ if __name__ == "__main__":
         experiments/exp1 seq_first seq_last"
         )
         # raise ValueError("wrong number of inputs")
-        
-        exp_path = Path('tests/test_cavity').resolve()
+
+        exp_path = Path("tests/test_cavity").resolve()
         first = 10000
         last = 10004
     else:

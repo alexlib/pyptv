@@ -23,6 +23,7 @@ from chaco.tools.api import PanTool, ZoomTool
 import imageio
 from numpy import array
 
+
 # ===============================================================================
 # # Create the Chaco plot.
 # ===============================================================================
@@ -32,7 +33,7 @@ def _create_plot_component():
     # Read images from disk
     images = []
     for cam in range(1, 5):
-        image = imageio.imread(f'tests/test_cavity/img/cam{cam}.10000', mode='L')
+        image = imageio.imread(f"tests/test_cavity/img/cam{cam}.10000", mode="L")
         images.append(array(image))
 
     # Create a plot data object and give it this data
@@ -49,7 +50,7 @@ def _create_plot_component():
         )[0]
 
         # Tweak some of the plot properties
-        plot.title = f"Camera {i+1}"
+        plot.title = f"Camera {i + 1}"
         plot.padding = 50
 
         # Attach some tools to the plot
@@ -63,7 +64,10 @@ def _create_plot_component():
     container = VPlotContainer(
         HPlotContainer(plots[0], plots[1]),
         HPlotContainer(plots[2], plots[3]),
-        padding=40, fill_padding=True, bgcolor="white", use_backbuffer=True
+        padding=40,
+        fill_padding=True,
+        bgcolor="white",
+        use_backbuffer=True,
     )
     return container
 
@@ -72,6 +76,7 @@ def _create_plot_component():
 # Attributes to use for the plot view.
 size = (800, 600)
 title = "Basic Colormapped Image Plot"
+
 
 # ===============================================================================
 # # Demo class that is used by the demo.py application.

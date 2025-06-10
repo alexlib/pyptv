@@ -1,6 +1,7 @@
 """
 Tests for the plugin system
 """
+
 import pytest
 import os
 import sys
@@ -16,8 +17,10 @@ from pyptv.plugins.ext_sequence_contour import Sequence as Sequence_Contour
 
 # Conditionally import rembg-dependent modules
 import importlib.util
+
 if importlib.util.find_spec("rembg") is not None:
     from pyptv.plugins.ext_sequence_rembg import Sequence as Sequence_Rembg
+
 
 @pytest.fixture
 def mock_experiment_dir():
@@ -52,8 +55,12 @@ def mock_experiment_dir():
         f.write("ext_tracker_denis\n")
 
     # Copy plugin files to the plugins directory
-    for plugin_file in ["ext_sequence_denis.py", "ext_tracker_denis.py",
-                        "ext_sequence_contour.py", "ext_sequence_rembg.py"]:
+    for plugin_file in [
+        "ext_sequence_denis.py",
+        "ext_tracker_denis.py",
+        "ext_sequence_contour.py",
+        "ext_sequence_rembg.py",
+    ]:
         src_path = Path("/home/user/Documents/repos/pyptv/pyptv/plugins") / plugin_file
         if src_path.exists():
             shutil.copy(src_path, plugins_dir / plugin_file)
@@ -61,11 +68,13 @@ def mock_experiment_dir():
     yield exp_dir
     shutil.rmtree(temp_dir)
 
+
 def test_sequence_denis_plugin():
     """Test the Sequence plugin from ext_sequence_denis"""
     plugin = Sequence()
     assert hasattr(plugin, "do_sequence")
     assert callable(plugin.do_sequence)
+
 
 def test_tracker_denis_plugin():
     """Test the Tracking plugin from ext_tracker_denis"""
@@ -73,14 +82,17 @@ def test_tracker_denis_plugin():
     assert hasattr(plugin, "do_tracking")
     assert callable(plugin.do_tracking)
 
+
 def test_sequence_contour_plugin():
     """Test the Sequence_Contour plugin"""
     plugin = Sequence_Contour()
     assert hasattr(plugin, "do_sequence")
     assert callable(plugin.do_sequence)
 
-@pytest.mark.skipif(not importlib.util.find_spec("rembg"),
-                   reason="rembg package not installed")
+
+@pytest.mark.skipif(
+    not importlib.util.find_spec("rembg"), reason="rembg package not installed"
+)
 def test_sequence_rembg_plugin():
     """Test the Sequence_Rembg plugin"""
     if importlib.util.find_spec("rembg") is None:
@@ -92,6 +104,7 @@ def test_sequence_rembg_plugin():
         assert callable(plugin.do_sequence)
     except ImportError:
         pytest.skip("rembg package not installed")
+
 
 def test_plugin_loading(mock_experiment_dir):
     """Test loading plugins from files"""
@@ -113,13 +126,16 @@ def test_plugin_loading(mock_experiment_dir):
         # Try to import each plugin
         for plugin_name in sequence_plugins:
             # Skip rembg plugin if rembg is not installed
-            if plugin_name == "ext_sequence_rembg" and importlib.util.find_spec("rembg") is None:
+            if (
+                plugin_name == "ext_sequence_rembg"
+                and importlib.util.find_spec("rembg") is None
+            ):
                 continue
 
             try:
                 module = importlib.import_module(plugin_name)
                 # For sequence plugins, the class is always named 'Sequence'
-                plugin_class = getattr(module, 'Sequence')
+                plugin_class = getattr(module, "Sequence")
                 plugin = plugin_class()
                 assert hasattr(plugin, "do_sequence")
                 assert callable(plugin.do_sequence)
@@ -137,7 +153,7 @@ def test_plugin_loading(mock_experiment_dir):
             try:
                 module = importlib.import_module(plugin_name)
                 # For tracking plugins, the class is always named 'Tracking'
-                plugin_class = getattr(module, 'Tracking')
+                plugin_class = getattr(module, "Tracking")
                 plugin = plugin_class()
                 assert hasattr(plugin, "do_tracking")
                 assert callable(plugin.do_tracking)

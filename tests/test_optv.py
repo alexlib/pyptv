@@ -7,6 +7,7 @@ from optv.calibration import Calibration
 from optv.parameters import ControlParams, VolumeParams, TrackingParams, SequenceParams
 from optv.tracking_framebuf import read_targets
 
+
 def test_optv_functionality(test_data_dir):
     """Test basic OpenPTV functionality"""
     print("Testing OpenPTV functionality...")
@@ -47,6 +48,7 @@ def test_optv_functionality(test_data_dir):
         print(f"Error loading calibration: {str(e)}")
 
     print("OpenPTV functionality test completed")
+
 
 if __name__ == "__main__":
     test_optv_functionality()

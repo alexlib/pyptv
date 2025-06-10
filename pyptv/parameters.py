@@ -14,7 +14,7 @@ max_cam = int(4)
 
 
 def g(f):
-    """ Returns a line without white spaces """
+    """Returns a line without white spaces"""
     return f.readline().strip()
 
 
@@ -25,13 +25,13 @@ class Parameters(HasTraits):
     # default path of the directory of the param files
     default_path = Path(par_dir_prefix)
 
-    def __init__(self, path: Path=default_path):
+    def __init__(self, path: Path = default_path):
         HasTraits.__init__(self)
         if isinstance(path, str):
             path = Path(path)
-            
+
         self.path = path.resolve()
-        self.exp_path = self.path.parent 
+        self.exp_path = self.path.parent
 
     # returns the name of the specific params file
     def filename(self):
@@ -88,7 +88,7 @@ def warning(msg):
 
 
 def readParamsDir(par_path):
-    """ Reads a parameters directory and returns a dictionary with all parameter objects"""
+    """Reads a parameters directory and returns a dictionary with all parameter objects"""
 
     ptvParams = PtvParams(path=par_path)
     ptvParams.read()
@@ -121,17 +121,17 @@ def readParamsDir(par_path):
 
 
 def copy_params_dir(src: Path, dest: Path):
-    """ Copying all parameter files from /src folder to /dest 
-        including .dat, .par and .yaml files
+    """Copying all parameter files from /src folder to /dest
+    including .dat, .par and .yaml files
     """
     ext_set = ("*.dat", "*.par", "*.yaml")
     files = []
     for ext in ext_set:
         files.extend(src.glob(ext))
-        
-    # print(f'List of parameter files in {src} is \n {files} \n')    
+
+    # print(f'List of parameter files in {src} is \n {files} \n')
     # print(f'Destination folder is {dest.resolve()}')
-    # files = [f for f in src.iterdir() if str(f.parts[-1]).endswith(ext_set)]    
+    # files = [f for f in src.iterdir() if str(f.parts[-1]).endswith(ext_set)]
 
     if not dest.is_dir():
         print(f"Destination folder does not exist, creating it")
@@ -315,7 +315,7 @@ class PtvParams(Parameters):
 
 
 class CalOriParams(Parameters):
-    """ calibration parameters:
+    """calibration parameters:
     cal_ori.par:    calibration plate, images, orientation files
     ptv/ssc_cal.c3d control point file (point number, X, Y, Z in [mm], ASCII
     kal1    calibration
@@ -375,7 +375,6 @@ class CalOriParams(Parameters):
     def read(self):
         try:
             with open(self.filepath(), "r") as f:
-
                 self.fixp_name = g(f)
                 self.istherefile(self.fixp_name)
 
@@ -401,7 +400,6 @@ class CalOriParams(Parameters):
     def write(self):
         try:
             with open(self.filepath(), "w") as f:
-
                 f.write("%s\n" % self.fixp_name)
                 for i in range(self.n_img):
                     # for i in range(max_cam):
@@ -676,7 +674,6 @@ class TargRecParams(Parameters):
     def read(self):
         try:
             with open(self.filepath(), "r") as f:
-
                 self.gvthres = [0] * max_cam
                 # for i in range(self.n_img):
                 for i in range(max_cam):
@@ -1024,7 +1021,6 @@ class OrientParams(Parameters):
     def read(self):
         try:
             with open(self.filepath(), "r") as f:
-
                 self.pnfo = int(g(f))
                 self.cc = int(g(f))
                 self.xh = int(g(f))
@@ -1044,7 +1040,6 @@ class OrientParams(Parameters):
     def write(self):
         try:
             with open(self.filepath(), "w") as f:
-
                 f.write("%d\n" % int(self.pnfo))
                 f.write("%d\n" % int(self.cc))
                 f.write("%d\n" % int(self.xh))
@@ -1499,7 +1494,6 @@ class MultiPlaneParams(Parameters):
     def write(self):
         try:
             with open(self.filepath(), "w") as f:
-
                 f.write("%d\n" % self.n_planes)
                 #            for i in range(self.n_img):
                 for i in range(self.n_planes):

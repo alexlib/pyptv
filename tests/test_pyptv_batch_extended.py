@@ -1,6 +1,7 @@
 """
 Extended unit tests for the pyptv_batch module
 """
+
 import pytest
 import os
 import sys
@@ -9,6 +10,7 @@ from pathlib import Path
 import shutil
 
 from pyptv.pyptv_batch import run_batch, main, AttrDict
+
 
 @pytest.fixture
 def mock_experiment_dir():
@@ -52,13 +54,20 @@ def mock_experiment_dir():
         f.write("10010\n")  # last
 
     # Create other required parameter files
-    for param_file in ["criteria.par", "detect_plate.par", "orient.par",
-                       "pft_par.par", "targ_rec.par", "track.par"]:
+    for param_file in [
+        "criteria.par",
+        "detect_plate.par",
+        "orient.par",
+        "pft_par.par",
+        "targ_rec.par",
+        "track.par",
+    ]:
         with open(params_dir / param_file, "w") as f:
             f.write("# Test parameter file\n")
 
     yield exp_dir
     shutil.rmtree(temp_dir)
+
 
 def test_attr_dict():
     """Test the AttrDict class"""
@@ -76,8 +85,10 @@ def test_attr_dict():
     assert ad.d == 4
     assert ad["d"] == 4
 
+
 def test_run_batch(mock_experiment_dir, monkeypatch):
     """Test the run_batch function with mocked dependencies"""
+
     # Create a mock implementation of run_batch
     def mock_run_batch(new_seq_first, new_seq_last):
         # Just verify that the parameters are passed correctly
@@ -95,6 +106,7 @@ def test_run_batch(mock_experiment_dir, monkeypatch):
     try:
         # Test the function
         from pyptv.pyptv_batch import run_batch
+
         run_batch(10001, 10005)
         # If we get here without exceptions, the test passes
         assert True
@@ -102,8 +114,10 @@ def test_run_batch(mock_experiment_dir, monkeypatch):
         # Change back to the original directory
         os.chdir(original_dir)
 
+
 def test_main(mock_experiment_dir, test_data_dir, monkeypatch):
     """Test the main function with mocked dependencies"""
+
     # Mock the run_batch function
     def mock_run_batch(first, last):
         assert first == 10000
@@ -115,6 +129,7 @@ def test_main(mock_experiment_dir, test_data_dir, monkeypatch):
 
     # Test the function with explicit arguments
     from pyptv.pyptv_batch import main
+
     main(test_data_dir, 10000, 10004)
 
     # If we get here without exceptions, the test passes

@@ -68,6 +68,7 @@ def simple_highpass(img: np.ndarray, cpar: ControlParams) -> np.ndarray:
     """
     return preprocess_image(img, 0, cpar, DEFAULT_HIGHPASS_FILTER_SIZE)
 
+
 def _read_calibrations(cpar: ControlParams, n_cams: int) -> List[Calibration]:
     """Read calibration files for all cameras.
 
@@ -97,9 +98,17 @@ def _read_calibrations(cpar: ControlParams, n_cams: int) -> List[Calibration]:
     return cals
 
 
-def py_start_proc_c(n_cams: int) -> Tuple[ControlParams, SequenceParams, VolumeParams,
-                                    TrackingParams, TargetParams, List[Calibration],
-                                    par.ExamineParams]:
+def py_start_proc_c(
+    n_cams: int,
+) -> Tuple[
+    ControlParams,
+    SequenceParams,
+    VolumeParams,
+    TrackingParams,
+    TargetParams,
+    List[Calibration],
+    par.ExamineParams,
+]:
     """Read all parameters needed for processing.
 
     This function reads all parameter files from the parameters directory and initializes
@@ -163,7 +172,9 @@ def py_start_proc_c(n_cams: int) -> Tuple[ControlParams, SequenceParams, VolumeP
         raise IOError(f"Failed to read parameter files: {e}")
 
 
-def py_pre_processing_c(list_of_images: List[np.ndarray], cpar: ControlParams) -> List[np.ndarray]:
+def py_pre_processing_c(
+    list_of_images: List[np.ndarray], cpar: ControlParams
+) -> List[np.ndarray]:
     """Apply pre-processing to a list of images.
 
     Currently applies a highpass filter to each image, but could be extended
@@ -182,10 +193,12 @@ def py_pre_processing_c(list_of_images: List[np.ndarray], cpar: ControlParams) -
     return processed_images
 
 
-def py_detection_proc_c(list_of_images: List[np.ndarray],
-                      cpar: ControlParams,
-                      tpar: TargetParams,
-                      cals: List[Calibration]) -> Tuple[List[TargetArray], List[MatchedCoords]]:
+def py_detection_proc_c(
+    list_of_images: List[np.ndarray],
+    cpar: ControlParams,
+    tpar: TargetParams,
+    cals: List[Calibration],
+) -> Tuple[List[TargetArray], List[MatchedCoords]]:
     """Detect targets in a list of images.
 
     This function performs target detection on each image and returns the detected
@@ -248,24 +261,31 @@ def py_correspondences_proc_c(exp):
 
     # Corresp. + positions.
     sorted_pos, sorted_corresp, num_targs = correspondences(
-        exp.detections, exp.corrected, exp.cals, exp.vpar, exp.cpar)
+        exp.detections, exp.corrected, exp.cals, exp.vpar, exp.cpar
+    )
 
     # Save targets only after they've been modified:
     for i_cam in range(exp.n_cams):
         base_name = exp.spar.get_img_base_name(i_cam)
         write_targets(exp.detections[i_cam], base_name, frame)
 
-
-    print("Frame " + str(frame) + " had " +
-          repr([s.shape[1] for s in sorted_pos]) + " correspondences.")
+    print(
+        "Frame "
+        + str(frame)
+        + " had "
+        + repr([s.shape[1] for s in sorted_pos])
+        + " correspondences."
+    )
 
     return sorted_pos, sorted_corresp, num_targs
 
 
-def py_determination_proc_c(n_cams: int,
-                         sorted_pos: List[np.ndarray],
-                         sorted_corresp: np.ndarray,
-                         corrected: List[MatchedCoords]) -> None:
+def py_determination_proc_c(
+    n_cams: int,
+    sorted_pos: List[np.ndarray],
+    sorted_corresp: np.ndarray,
+    corrected: List[MatchedCoords],
+) -> None:
     """Calculate 3D positions from 2D correspondences and save to file.
 
     Args:
@@ -282,9 +302,9 @@ def py_determination_proc_c(n_cams: int,
     sorted_corresp = np.concatenate(sorted_corresp, axis=1)
 
     # Get corrected coordinates by point numbers
-    flat = np.array([
-        corrected[i].get_by_pnrs(sorted_corresp[i]) for i in range(n_cams)
-    ])
+    flat = np.array(
+        [corrected[i].get_by_pnrs(sorted_corresp[i]) for i in range(n_cams)]
+    )
 
     # Calculate 3D positions
     pos, _ = point_positions(flat.transpose(1, 0, 2), cpar, cals, vpar)
@@ -292,24 +312,25 @@ def py_determination_proc_c(n_cams: int,
     # Format correspondence array for printing
     if n_cams < 4:
         print_corresp = -1 * np.ones((4, sorted_corresp.shape[1]))
-        print_corresp[:len(cals), :] = sorted_corresp
+        print_corresp[: len(cals), :] = sorted_corresp
     else:
         print_corresp = sorted_corresp
 
     # Save positions to a temporary file
-    fname = (default_naming["corres"].decode() + '.' + str(DEFAULT_FRAME_NUM)).encode()
+    fname = (default_naming["corres"].decode() + "." + str(DEFAULT_FRAME_NUM)).encode()
 
-    print(f'Prepared {fname} to write positions')
+    print(f"Prepared {fname} to write positions")
 
     try:
-        with open(fname, "w", encoding='utf-8') as rt_is:
-            print(f'Opened {fname}')
+        with open(fname, "w", encoding="utf-8") as rt_is:
+            print(f"Opened {fname}")
             rt_is.write(str(pos.shape[0]) + "\n")
             for pix, pt in enumerate(pos):
-                pt_args = (pix + 1, ) + tuple(pt) + tuple(print_corresp[:, pix])
+                pt_args = (pix + 1,) + tuple(pt) + tuple(print_corresp[:, pix])
                 rt_is.write("%4d %9.3f %9.3f %9.3f %4d %4d %4d %4d\n" % pt_args)
     except FileNotFoundError as e:
         print(f"Error writing to file {fname}: {e}")
+
 
 def run_plugin(exp) -> None:
     """Load and run plugins for sequence processing.
@@ -321,7 +342,7 @@ def run_plugin(exp) -> None:
         exp: Experiment object containing configuration
     """
     # Get the plugin directory path
-    plugin_dir = Path(os.getcwd()) / 'plugins'
+    plugin_dir = Path(os.getcwd()) / "plugins"
     print(f"Plugin directory: {plugin_dir}")
 
     # Add the plugins directory to sys.path so that Python can find the modules
@@ -330,7 +351,7 @@ def run_plugin(exp) -> None:
 
     # Iterate over the files in the 'plugins' directory
     for filename in os.listdir(plugin_dir):
-        if filename.endswith('.py') and filename != '__init__.py':
+        if filename.endswith(".py") and filename != "__init__.py":
             # Get the plugin name without the '.py' extension
             plugin_name = filename[:-3]
 
@@ -346,7 +367,7 @@ def run_plugin(exp) -> None:
                     return
 
                 # Check if the plugin has a Sequence class
-                if hasattr(plugin, 'Sequence'):
+                if hasattr(plugin, "Sequence"):
                     print(f"Running sequence plugin: {exp.plugins.sequence_alg}")
                     try:
                         # Create a Sequence instance and run it
@@ -354,7 +375,6 @@ def run_plugin(exp) -> None:
                         sequence.do_sequence()
                     except Exception as e:
                         print(f"Error running sequence plugin {plugin_name}: {e}")
-
 
 
 def py_sequence_loop(exp) -> None:
@@ -383,7 +403,6 @@ def py_sequence_loop(exp) -> None:
     # spar = SequenceParams(num_cams=n_cams)
     # spar.read_sequence_par(b"parameters/sequence.par", n_cams)
 
-
     pftVersionParams = par.PftVersionParams(path=Path("parameters"))
     pftVersionParams.read()
     Existing_Target = np.bool8(pftVersionParams.Existing_Target)
@@ -406,7 +425,7 @@ def py_sequence_loop(exp) -> None:
                 # imname = spar.get_img_base_name(i_cam) + str(frame).encode()
 
                 # imname = Path(imname.replace('#',f'{frame}'))
-                imname = Path(base_image_name % frame) # works with jumps from 1 to 10
+                imname = Path(base_image_name % frame)  # works with jumps from 1 to 10
                 # print(f'Image name {imname}')
 
                 if not imname.exists():
@@ -420,7 +439,7 @@ def py_sequence_loop(exp) -> None:
                         img = img_as_ubyte(img)
                 # time.sleep(.1) # I'm not sure we need it here
 
-                if 'exp1' in exp.__dict__:
+                if "exp1" in exp.__dict__:
                     if exp.exp1.active_params.m_params.Inverse:
                         print("Invert image")
                         img = 255 - img
@@ -429,13 +448,15 @@ def py_sequence_loop(exp) -> None:
                         # print("Subtracting mask")
                         try:
                             # background_name = exp.exp1.active_params.m_params.Base_Name_Mask.replace('#',str(i_cam))
-                            background_name = exp.exp1.active_params.m_params.Base_Name_Mask % (i_cam + 1)
+                            background_name = (
+                                exp.exp1.active_params.m_params.Base_Name_Mask
+                                % (i_cam + 1)
+                            )
                             background = imread(background_name)
                             img = np.clip(img - background, 0, 255).astype(np.uint8)
 
                         except ValueError:
                             print("failed to read the mask")
-
 
                 high_pass = simple_highpass(img, cpar)
                 targs = target_recognition(high_pass, tpar, i_cam, cpar)
@@ -451,7 +472,8 @@ def py_sequence_loop(exp) -> None:
 
         # Corresp. + positions.
         sorted_pos, sorted_corresp, _ = correspondences(
-            detections, corrected, cals, vpar, cpar)
+            detections, corrected, cals, vpar, cpar
+        )
 
         # Save targets only after they've been modified:
         # this is a workaround of the proper way to construct _targets name
@@ -460,17 +482,21 @@ def py_sequence_loop(exp) -> None:
             # base_name = replace_format_specifiers(base_name) # %d to %04d
             write_targets(detections[i_cam], base_name, frame)
 
-        print("Frame " + str(frame) + " had " +
-              repr([s.shape[1] for s in sorted_pos]) + " correspondences.")
+        print(
+            "Frame "
+            + str(frame)
+            + " had "
+            + repr([s.shape[1] for s in sorted_pos])
+            + " correspondences."
+        )
 
         # Distinction between quad/trip irrelevant here.
         sorted_pos = np.concatenate(sorted_pos, axis=1)
         sorted_corresp = np.concatenate(sorted_corresp, axis=1)
 
-        flat = np.array([
-            corrected[i].get_by_pnrs(sorted_corresp[i])
-            for i in range(len(cals))
-        ])
+        flat = np.array(
+            [corrected[i].get_by_pnrs(sorted_corresp[i]) for i in range(len(cals))]
+        )
         pos, _ = point_positions(flat.transpose(1, 0, 2), cpar, cals, vpar)
 
         # if len(cals) == 1: # single camera case
@@ -479,18 +505,18 @@ def py_sequence_loop(exp) -> None:
 
         if len(cals) < 4:
             print_corresp = -1 * np.ones((4, sorted_corresp.shape[1]))
-            print_corresp[:len(cals), :] = sorted_corresp
+            print_corresp[: len(cals), :] = sorted_corresp
         else:
             print_corresp = sorted_corresp
 
         # Save rt_is
         rt_is_filename = default_naming["corres"].decode()
         # rt_is_filename = f'{rt_is_filename}.{frame:04d}'
-        rt_is_filename = f'{rt_is_filename}.{frame}'
+        rt_is_filename = f"{rt_is_filename}.{frame}"
         with open(rt_is_filename, "w", encoding="utf8") as rt_is:
             rt_is.write(str(pos.shape[0]) + "\n")
             for pix, pt in enumerate(pos):
-                pt_args = (pix + 1, ) + tuple(pt) + tuple(print_corresp[:, pix])
+                pt_args = (pix + 1,) + tuple(pt) + tuple(print_corresp[:, pix])
                 rt_is.write("%4d %9.3f %9.3f %9.3f %4d %4d %4d %4d\n" % pt_args)
         # rt_is.close()
     # end of a sequence loop
@@ -502,17 +528,16 @@ def py_trackcorr_init(exp):
     for cam_id in range(exp.cpar.get_num_cams()):
         img_base_name = exp.spar.get_img_base_name(cam_id)
         # print(img_base_name)
-        short_name = img_base_name.split('%')[0]
-        if short_name[-1] == '_':
-            short_name = short_name[:-1]+'.'
+        short_name = img_base_name.split("%")[0]
+        if short_name[-1] == "_":
+            short_name = short_name[:-1] + "."
         # print(short_name)
-        print(f' Renaming {img_base_name} to {short_name} before C library tracker')
+        print(f" Renaming {img_base_name} to {short_name} before C library tracker")
         exp.spar.set_img_base_name(cam_id, short_name)
 
-
-    tracker = Tracker(exp.cpar, exp.vpar, exp.track_par, exp.spar, exp.cals,
-                      default_naming)
-
+    tracker = Tracker(
+        exp.cpar, exp.vpar, exp.track_par, exp.spar, exp.cals, default_naming
+    )
 
     return tracker
 
@@ -584,7 +609,9 @@ def py_get_pix_N(x: int, y: int, n: int) -> Tuple[List[int], List[int]]:
     return [], []
 
 
-def py_get_pix(x: List[List[int]], y: List[List[int]]) -> Tuple[List[List[int]], List[List[int]]]:
+def py_get_pix(
+    x: List[List[int]], y: List[List[int]]
+) -> Tuple[List[List[int]], List[List[int]]]:
     """Get target positions (stub function).
 
     This function is supposed to return lists of target positions.
@@ -630,8 +657,10 @@ def py_calibration(selection, exp):
         # cpar, spar, vpar, track_par, tpar, calibs, epar = py_start_proc_c(num_cams)
         calibs = _read_calibrations(exp.cpar, num_cams)
 
-        targ_files = [exp.spar.get_img_base_name(c).decode().split('%d')[0].encode() for c in \
-    range(num_cams)]
+        targ_files = [
+            exp.spar.get_img_base_name(c).decode().split("%d")[0].encode()
+            for c in range(num_cams)
+        ]
         # recognized names for the flags:
 
         op = OrientParams()
@@ -647,11 +676,13 @@ def py_calibration(selection, exp):
         all_detected = [[] for c in range(num_cams)]
 
         for frm_num in range(sp.shaking_first_frame, sp.shaking_last_frame + 1):
-            frame = Frame(exp.cpar.get_num_cams(),
-                corres_file_base = ('res/rt_is').encode(),
-                linkage_file_base= ('res/ptv_is').encode(),
-                target_file_base = targ_files,
-                frame_num = frm_num)
+            frame = Frame(
+                exp.cpar.get_num_cams(),
+                corres_file_base=("res/rt_is").encode(),
+                linkage_file_base=("res/ptv_is").encode(),
+                target_file_base=targ_files,
+                frame_num=frm_num,
+            )
 
             all_known.append(frame.positions())
             for cam in range(num_cams):
@@ -668,9 +699,9 @@ def py_calibration(selection, exp):
             detects = np.vstack(all_detected[cam])
             assert detects.shape[0] == all_known.shape[0]
 
-            have_targets = ~np.isnan(detects[:,0])
-            used_detects = detects[have_targets,:]
-            used_known = all_known[have_targets,:]
+            have_targets = ~np.isnan(detects[:, 0])
+            used_detects = detects[have_targets, :]
+            used_known = all_known[have_targets, :]
 
             targs = TargetArray(len(used_detects))
 
@@ -679,14 +710,8 @@ def py_calibration(selection, exp):
                 targ.set_pnr(tix)
                 targ.set_pos(used_detects[tix])
 
-
-
             residuals = full_scipy_calibration(
-                calibs[cam],
-                used_known,
-                targs,
-                exp.cpar,
-                flags=flags
+                calibs[cam], used_known, targs, exp.cpar, flags=flags
             )
             print(f"After scipy full calibration, {np.sum(residuals**2)}")
 
@@ -707,10 +732,8 @@ def py_calibration(selection, exp):
             targ_ix_all.append(targ_ix)
             residuals_all.append(residuals)
 
-
         print("End calibration with particles")
         return targs_all, targ_ix_all, residuals_all
-
 
 
 # def py_multiplanecalibration(exp):
@@ -786,7 +809,7 @@ def py_calibration(selection, exp):
 #         print("End multiplane")
 
 
-def read_targets(file_base: str, frame: int=123456789) -> TargetArray:
+def read_targets(file_base: str, frame: int = 123456789) -> TargetArray:
     """Read targets from a file."""
     # buffer = TargetArray()
     # buffer = []
@@ -817,7 +840,6 @@ def read_targets(file_base: str, frame: int=123456789) -> TargetArray:
                 targ.set_sum_grey_value(int(line[6]))
                 targ.set_tnr(int(line[7]))
 
-
     except IOError as err:
         print(f"Can't open targets file: {filename}")
         raise err
@@ -826,8 +848,7 @@ def read_targets(file_base: str, frame: int=123456789) -> TargetArray:
     return targs
 
 
-def write_targets(
-    targets: TargetArray, file_base: str, frame: int=123456789) -> bool:
+def write_targets(targets: TargetArray, file_base: str, frame: int = 123456789) -> bool:
     """Write targets to a file."""
     success = False
 
@@ -847,7 +868,10 @@ def write_targets(
     try:
         # Convert targets to a 2D numpy array
         target_arr = np.array(
-            [([t.pnr(), *t.pos(), *t.count_pixels(), t.sum_grey_value(), t.tnr()]) for t in targets]
+            [
+                ([t.pnr(), *t.pos(), *t.count_pixels(), t.sum_grey_value(), t.tnr()])
+                for t in targets
+            ]
         )
         # Save the target array to file using savetxt
         np.savetxt(
@@ -863,15 +887,16 @@ def write_targets(
 
     return success
 
+
 def file_base_to_filename(file_base, frame):
-    """ Convert file base name to a filename """
+    """Convert file base name to a filename"""
     file_base = os.path.splitext(file_base)[0]
     file_base = re.sub(r"_%\d*d", "", file_base)
     if re.search(r"%\d*d", file_base):
         _ = re.sub(r"%\d*d", "%04d", file_base)
-        filename = Path(f'{_ % frame}_targets')
+        filename = Path(f"{_ % frame}_targets")
     else:
-        filename =  Path(f'{file_base}.{frame:04d}_targets')
+        filename = Path(f"{file_base}.{frame:04d}_targets")
 
     return filename
 
@@ -913,14 +938,10 @@ def read_rt_is_file(filename) -> List[List[float]]:
         raise e
 
 
-def full_scipy_calibration(cal: Calibration,
-                           XYZ: np.ndarray,
-                           targs: TargetArray,
-                           cpar: ControlParams,
-                           flags=[]
-                           ):
-
-    """ Full calibration using scipy.optimize """
+def full_scipy_calibration(
+    cal: Calibration, XYZ: np.ndarray, targs: TargetArray, cpar: ControlParams, flags=[]
+):
+    """Full calibration using scipy.optimize"""
     from scipy.optimize import minimize
     from optv.transforms import convert_arr_metric_to_pixel
     from optv.imgcoord import image_coordinates
@@ -949,8 +970,7 @@ def full_scipy_calibration(cal: Calibration,
 
         cal.set_radial_distortion(x)
         targets = convert_arr_metric_to_pixel(
-            image_coordinates(XYZ, cal, cpar.get_multimedia_params()),
-            cpar
+            image_coordinates(XYZ, cal, cpar.get_multimedia_params()), cpar
         )
         xyt = np.array([t.pos() if t.pnr() != -999 else [np.nan, np.nan] for t in xy])
         residuals = np.nan_to_num(xyt - targets)
@@ -958,107 +978,89 @@ def full_scipy_calibration(cal: Calibration,
         return np.sum(residuals**2)
 
     def _residuals_p(x, cal, XYZ, xy, cpar):
-        """Residuals due to decentering """
+        """Residuals due to decentering"""
         cal.set_decentering(x)
         targets = convert_arr_metric_to_pixel(
-            image_coordinates(XYZ, cal, cpar.get_multimedia_params()),
-            cpar
+            image_coordinates(XYZ, cal, cpar.get_multimedia_params()), cpar
         )
         xyt = np.array([t.pos() if t.pnr() != -999 else [np.nan, np.nan] for t in xy])
         residuals = np.nan_to_num(xyt - targets)
         return np.sum(residuals**2)
 
     def _residuals_s(x, cal, XYZ, xy, cpar):
-        """Residuals due to decentering """
+        """Residuals due to decentering"""
         cal.set_affine_trans(x)
         targets = convert_arr_metric_to_pixel(
-            image_coordinates(XYZ, cal, cpar.get_multimedia_params()),
-            cpar
+            image_coordinates(XYZ, cal, cpar.get_multimedia_params()), cpar
         )
         xyt = np.array([t.pos() if t.pnr() != -999 else [np.nan, np.nan] for t in xy])
         residuals = np.nan_to_num(xyt - targets)
         return np.sum(residuals**2)
 
     def _residuals_combined(x, cal, XYZ, xy, cpar):
-        """Combined residuals  """
+        """Combined residuals"""
 
         cal.set_radial_distortion(x[:3])
         cal.set_decentering(x[3:5])
         cal.set_affine_trans(x[5:])
 
         targets = convert_arr_metric_to_pixel(
-            image_coordinates(XYZ, cal, cpar.get_multimedia_params()),
-            cpar
+            image_coordinates(XYZ, cal, cpar.get_multimedia_params()), cpar
         )
         xyt = np.array([t.pos() if t.pnr() != -999 else [np.nan, np.nan] for t in xy])
         residuals = np.nan_to_num(xyt - targets)
         return residuals
 
-
     # Main loop
 
-    if any(flag in flags for flag in ['k1', 'k2', 'k3']):
-        sol = minimize(_residuals_k,
-                    cal.get_radial_distortion(),
-                    args=(cal,
-                            XYZ,
-                            targs,
-                            cpar
-                            ),
-                            method='Nelder-Mead',
-                            tol=1e-11,
-                            options={'disp':True},
-                            )
+    if any(flag in flags for flag in ["k1", "k2", "k3"]):
+        sol = minimize(
+            _residuals_k,
+            cal.get_radial_distortion(),
+            args=(cal, XYZ, targs, cpar),
+            method="Nelder-Mead",
+            tol=1e-11,
+            options={"disp": True},
+        )
         radial = sol.x
         cal.set_radial_distortion(radial)
     else:
         radial = cal.get_radial_distortion()
 
-    if any(flag in flags for flag in ['p1', 'p2']):
+    if any(flag in flags for flag in ["p1", "p2"]):
         # now decentering
-        sol = minimize(_residuals_p,
-                    cal.get_decentering(),
-                    args=(cal,
-                            XYZ,
-                            targs,
-                            cpar
-                            ),
-                            method='Nelder-Mead',
-                            tol=1e-11,
-                            options={'disp':True},
-                            )
+        sol = minimize(
+            _residuals_p,
+            cal.get_decentering(),
+            args=(cal, XYZ, targs, cpar),
+            method="Nelder-Mead",
+            tol=1e-11,
+            options={"disp": True},
+        )
         decentering = sol.x
         cal.set_decentering(decentering)
     else:
         decentering = cal.get_decentering()
 
-    if any(flag in flags for flag in ['scale', 'shear']):
+    if any(flag in flags for flag in ["scale", "shear"]):
         # now affine
-        sol = minimize(_residuals_s,
-                    cal.get_affine(),
-                    args=(cal,
-                            XYZ,
-                            targs,
-                            cpar
-                            ),
-                            method='Nelder-Mead',
-                            tol=1e-11,
-                            options={'disp':True},
-                            )
+        sol = minimize(
+            _residuals_s,
+            cal.get_affine(),
+            args=(cal, XYZ, targs, cpar),
+            method="Nelder-Mead",
+            tol=1e-11,
+            options={"disp": True},
+        )
         affine = sol.x
         cal.set_affine_trans(affine)
 
     else:
         affine = cal.get_affine()
 
-
     residuals = _residuals_combined(
-                    np.r_[radial, decentering, affine],
-                    cal,
-                    XYZ,
-                    targs,
-                    cpar
-                    )
+        np.r_[radial, decentering, affine], cal, XYZ, targs, cpar
+    )
 
     residuals /= 100
 

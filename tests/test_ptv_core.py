@@ -1,16 +1,19 @@
 """
 Unit tests for the core ptv module functionality
 """
+
 import pytest
 import numpy as np
 from pathlib import Path
 
 from pyptv.ptv import negative, py_start_proc_c, _read_calibrations
 
+
 @pytest.fixture
 def test_image():
     """Create a test image for image processing functions"""
     return np.ones((100, 100), dtype=np.uint8) * 128
+
 
 def test_negative(test_image):
     """Test the negative function"""
@@ -18,6 +21,7 @@ def test_negative(test_image):
     assert neg_img.shape == test_image.shape
     assert neg_img.dtype == test_image.dtype
     assert np.all(neg_img == 255 - test_image)
+
 
 def test_simple_highpass(test_image):
     """Test the simple_highpass function"""
@@ -27,6 +31,7 @@ def test_simple_highpass(test_image):
     assert neg_img.shape == test_image.shape
     assert neg_img.dtype == test_image.dtype
     assert np.all(neg_img == 255 - test_image)
+
 
 def test_read_calibrations(test_data_dir):
     """Test the _read_calibrations function"""
@@ -41,6 +46,7 @@ def test_read_calibrations(test_data_dir):
     # Check if at least one calibration file exists
     cal_files = list(cal_dir.glob("*.ori"))
     assert len(cal_files) > 0, f"No calibration files found in {cal_dir}"
+
 
 def test_py_start_proc_c():
     """Test the py_start_proc_c function"""

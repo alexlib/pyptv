@@ -1,4 +1,4 @@
-""" PyPTV_GUI is the GUI for the OpenPTV (www.openptv.net) written in
+"""PyPTV_GUI is the GUI for the OpenPTV (www.openptv.net) written in
 Python with Traits, TraitsUI, Numpy, Scipy and Chaco
 
 Copyright (c) 2008-2023, Turbulence Structure Laboratory, Tel Aviv University
@@ -11,7 +11,8 @@ see http://www.openptv.net for more details.
 """
 
 from traits.etsconfig.api import ETSConfig
-ETSConfig.toolkit = 'qt4'
+
+ETSConfig.toolkit = "qt4"
 
 import os
 from pathlib import Path, PurePath
@@ -32,8 +33,6 @@ from traitsui.api import (
     Separator,
     Group,
 )
-
-
 
 
 from traitsui.menu import Action, Menu, MenuBar
@@ -63,9 +62,10 @@ class Clicker(ImageInspectorTool):
     Clicker class handles right mouse click actions from the tree
     and menubar actions
     """
+
     left_changed = Int(0)
     right_changed = Int(0)
-    x,y = 0,0
+    x, y = 0, 0
 
     def __init__(self, *args, **kwargs):
         # Clicker.__init__(self,*args, **kwargs)
@@ -83,7 +83,6 @@ class Clicker(ImageInspectorTool):
             self.last_mouse_position = (event.x, event.y)
             self.left_changed = 1 - self.left_changed
             # print(f"left: x={self.x}, y={self.y}, I={self.data_value}, {self.left_changed}")
-            
 
     def normal_right_down(self, event):
         plot = self.component
@@ -93,12 +92,9 @@ class Clicker(ImageInspectorTool):
             self.data_value = plot.value.data[self.y, self.x]
             print(f"normal right down: x={self.x}, y={self.y}, I={self.data_value}")
             self.right_changed = 1 - self.right_changed
-            
-        
 
     # def normal_mouse_move(self, event):
     #     pass
-
 
 
 # --------------------------------------------------------------
@@ -125,7 +121,7 @@ class CameraWindow(HasTraits):
         """
         super(HasTraits, self).__init__()
         padd = 25
-        self._plot_data = ArrayPlotData() # we need set_data
+        self._plot_data = ArrayPlotData()  # we need set_data
         self._plot = Plot(self._plot_data, default_origin="top left")
         self._plot.padding_left = padd
         self._plot.padding_right = padd
@@ -140,26 +136,24 @@ class CameraWindow(HasTraits):
         ) = ([], [], [], [], [])
         self.cam_color = color
         self.name = name
-        
 
     def attach_tools(self):
         """attach_tools(self) contains the relevant tools:
         clicker, pan, zoom"""
-      
+
         print(f" Attaching clicker to camera {self.name}")
         self._click_tool = Clicker(component=self._img_plot)
         self._click_tool.on_trait_change(self.left_clicked_event, "left_changed")
         self._click_tool.on_trait_change(self.right_clicked_event, "right_changed")
         # self._img_plot.tools.clear()
         self._img_plot.tools.append(self._click_tool)
-        
+
         pan = PanTool(self._plot, drag_button="middle")
         zoom_tool = ZoomTool(self._plot, tool_mode="box", always_on=False)
         zoom_tool.max_zoom_out_factor = 1.0  # Disable "bird view" zoom out
         self._img_plot.overlays.append(zoom_tool)
         self._img_plot.tools.append(pan)
         # print(self._img_plot.tools)
-        
 
     def left_clicked_event(
         self,
@@ -172,7 +166,7 @@ class CameraWindow(HasTraits):
         print(
             f"x={self._click_tool.x} pix,y={self._click_tool.y} pix,I={self._click_tool.data_value}"
         )
-        
+
     def right_clicked_event(self):
         """right mouse button click event flag"""
         # # self._click_tool.right_changed = 1
@@ -181,7 +175,6 @@ class CameraWindow(HasTraits):
         )
         self.rclicked = 1
 
-        
     def create_image(self, image, is_float=False):
         """create_image - displays/updates image in the current camera window
         parameters:
@@ -399,7 +392,7 @@ class TreeMenuHandler(Handler):
         paramset = object
         print(f" Copying set of parameters \n")
         print(f"paramset is {paramset.name}")
-        if 'Run' in paramset.name:
+        if "Run" in paramset.name:
             print(f"paramset id is {int(paramset.name.split('Run')[-1])}")
         # print(f"paramset id is {int(paramset.name.split('Run')[-1])}")
         # print(f"experiment is {experiment}\n")
@@ -442,7 +435,9 @@ class TreeMenuHandler(Handler):
         # experiment.removeParamset(paramset)
         # experiment.addParamset(new_name, new_dir_path)
         print("Warning: This method is not implemented.")
-        print("Please open a folder, copy/paste the parameters directory, and rename it manually.")
+        print(
+            "Please open a folder, copy/paste the parameters directory, and rename it manually."
+        )
 
     def delete_set_params(self, editor, object):
         """delete_set_params deletes the node and the folder of parameters"""
@@ -493,7 +488,7 @@ class TreeMenuHandler(Handler):
                 im = imread(
                     getattr(
                         mainGui.exp1.active_params.m_params,
-                        f"Name_{i+1}_Image",
+                        f"Name_{i + 1}_Image",
                     )
                 )
                 if im.ndim > 2:
@@ -529,7 +524,7 @@ class TreeMenuHandler(Handler):
         print("Read all the parameters and calibrations successfully ")
 
     def draw_mask_action(self, info):
-        """ drawing masks GUI """
+        """drawing masks GUI"""
         print("\n Opening drawing mask GUI \n")
 
         info.object.pass_init = False
@@ -537,8 +532,6 @@ class TreeMenuHandler(Handler):
         print(info.object.exp1.active_params.par_path)
         mask_gui = MaskGUI(info.object.exp1.active_params.par_path)
         mask_gui.configure_traits()
-
-
 
     def highpass_action(self, info):
         """highpass_action - calls ptv.py_pre_processing_c() binding which
@@ -561,11 +554,13 @@ class TreeMenuHandler(Handler):
                             "#", str(i)
                         )
                     )
-                    print(f'Subtracting {background_name}')
+                    print(f"Subtracting {background_name}")
                     background = imread(background_name)
                     # im[mask] = 0
-                    info.object.orig_image[i] = np.clip(info.object.orig_image[i] - background, 0, 255).astype(np.uint8)
-                    
+                    info.object.orig_image[i] = np.clip(
+                        info.object.orig_image[i] - background, 0, 255
+                    ).astype(np.uint8)
+
             except ValueError as exc:
                 raise ValueError("Failed subtracting mask") from exc
 
@@ -617,7 +612,6 @@ class TreeMenuHandler(Handler):
         pairs, and unused arrays
         """
 
-        
         print("correspondence proc started")
         (
             info.object.sorted_pos,
@@ -655,8 +649,6 @@ class TreeMenuHandler(Handler):
         # x, y = self._clean_correspondences(pairs)
         # info.object.drawcross("pair_x", "pair_y", x, y, "yellow", 3)
         # info.object.drawcross("unused_x","unused_y",unused[:,0],unused[:,1],"blue",3)
-
-
 
     def calib_action(self, info):
         """calib_action - initializes calib class with appropriate number of
@@ -770,7 +762,6 @@ class TreeMenuHandler(Handler):
             prm.Basename_4_Seq,
         ]
 
-
         # load first image from sequence
         info.object.load_set_seq_image(seq_first)
         info.object.overlay_set_images(seq_first, seq_last)
@@ -783,15 +774,14 @@ class TreeMenuHandler(Handler):
             y1_a.append([])
             y2_a.append([])
 
-    # imx, imy = info.object.cpar.get_image_size()
+        # imx, imy = info.object.cpar.get_image_size()
 
-        
         for i_img in range(info.object.n_cams):
             for i_seq in range(seq_first, seq_last + 1):  # loop over sequences
                 intx_green, inty_green = [], []
                 intx_blue, inty_blue = [], []
-                 
-                # read targets from the current sequence    
+
+                # read targets from the current sequence
                 # file_name = ptv.replace_format_specifiers(base_names[i_img])
                 targets = ptv.read_targets(base_names[i_img], i_seq)
 
@@ -803,7 +793,9 @@ class TreeMenuHandler(Handler):
                         intx_blue.append(t.pos()[0])
                         inty_blue.append(t.pos()[1])
 
-                x1_a[i_img] = x1_a[i_img] + intx_green # add current step to result array
+                x1_a[i_img] = (
+                    x1_a[i_img] + intx_green
+                )  # add current step to result array
                 x2_a[i_img] = x2_a[i_img] + intx_blue
                 y1_a[i_img] = y1_a[i_img] + inty_green
                 y2_a[i_img] = y2_a[i_img] + inty_blue
@@ -811,10 +803,12 @@ class TreeMenuHandler(Handler):
         # plot result arrays
         for i_img in range(info.object.n_cams):
             info.object.camera_list[i_img].drawcross(
-                "x_tr_gr", "y_tr_gr", x1_a[i_img], y1_a[i_img], "green", 3)
+                "x_tr_gr", "y_tr_gr", x1_a[i_img], y1_a[i_img], "green", 3
+            )
             info.object.camera_list[i_img].drawcross(
-                "x_tr_bl","y_tr_bl", x2_a[i_img], y2_a[i_img], "blue",  2)
-            
+                "x_tr_bl", "y_tr_bl", x2_a[i_img], y2_a[i_img], "blue", 2
+            )
+
             info.object.camera_list[i_img]._plot.request_redraw()
 
         print("Finished detect_part_track")
@@ -889,7 +883,6 @@ class TreeMenuHandler(Handler):
             info.object.camera_list[i_cam].drawcross(
                 "ends_x", "ends_y", ends_x[i_cam], ends_y[i_cam], "orange", 3
             )
-
 
     def plugin_action(self, info):
         """Configure plugins by using GUI"""
@@ -1062,7 +1055,11 @@ menu_bar = MenuBar(
         name="Detection demo",
     ),
     Menu(
-        Action(name="Draw mask", action="draw_mask_action", enabled_when="pass_init",),
+        Action(
+            name="Draw mask",
+            action="draw_mask_action",
+            enabled_when="pass_init",
+        ),
         name="Drawing mask",
     ),
 )
@@ -1129,12 +1126,15 @@ class Plugins(HasTraits):
 
     def read(self):
         # reading external tracking
-        tracking_plugins = os.path.join(os.path.abspath(os.curdir), "tracking_plugins.txt")
-        sequence_plugins = os.path.join(os.path.abspath(os.curdir), "sequence_plugins.txt")
-        print('Reading external plugins lists')
-        print(f'Reading from {tracking_plugins}, {sequence_plugins}')
+        tracking_plugins = os.path.join(
+            os.path.abspath(os.curdir), "tracking_plugins.txt"
+        )
+        sequence_plugins = os.path.join(
+            os.path.abspath(os.curdir), "sequence_plugins.txt"
+        )
+        print("Reading external plugins lists")
+        print(f"Reading from {tracking_plugins}, {sequence_plugins}")
 
-        
         # Initialize with default
         self.track_list = ["default"]
         self.seq_list = ["default"]
@@ -1142,7 +1142,7 @@ class Plugins(HasTraits):
         if os.path.exists(tracking_plugins):
             with open(tracking_plugins, "r", encoding="utf8") as f:
                 self.track_list.extend(f.read().split("\n"))
-                
+
         if os.path.exists(sequence_plugins):
             with open(sequence_plugins, "r", encoding="utf8") as f:
                 self.seq_list.extend(f.read().split("\n"))
@@ -1188,8 +1188,7 @@ class MainGUI(HasTraits):
             ),
             orientation="vertical",
         ),
-        
-        title="pyPTV"  + __version__,
+        title="pyPTV" + __version__,
         id="main_view",
         width=1.0,
         height=1.0,
@@ -1206,7 +1205,7 @@ class MainGUI(HasTraits):
     # ---------------------------------------------------
     def __init__(self, exp_path: Path, software_path: Path):
         super(MainGUI, self).__init__()
-       
+
         colors = ["yellow", "green", "red", "blue"]
         self.exp1 = Experiment()
         self.exp1.populate_runs(exp_path)
@@ -1215,7 +1214,7 @@ class MainGUI(HasTraits):
         self.orig_image = self.n_cams * [[]]
         self.current_camera = 0
         self.camera_list = [
-            CameraWindow(colors[i], f"Camera {i+1}") for i in range(self.n_cams)
+            CameraWindow(colors[i], f"Camera {i + 1}") for i in range(self.n_cams)
         ]
         self.software_path = software_path
         self.exp_path = exp_path
@@ -1226,18 +1225,16 @@ class MainGUI(HasTraits):
         """
         Shows a line in camera color code corresponding to a point on another
         camera's view plane.
-        """        
+        """
         num_points = 2
-        
+
         try:
             _ = self.sorted_pos
             plot_epipolar = True
         except:
             plot_epipolar = False
-            
-        
-        if plot_epipolar:
 
+        if plot_epipolar:
             i = self.current_camera
             point = np.array(
                 [
@@ -1246,16 +1243,14 @@ class MainGUI(HasTraits):
                 ],
                 dtype="float64",
             )
-            
-            # find closest point in the sorted_pos            
-            for pos_type in self.sorted_pos: # quadruplet, triplet, pair
+
+            # find closest point in the sorted_pos
+            for pos_type in self.sorted_pos:  # quadruplet, triplet, pair
                 distances = np.linalg.norm(pos_type[i] - point, axis=1)
                 # next test prevents failure with empty quadruplets or triplets
-                if len(distances) > 0 and np.min(distances) < 5 :
+                if len(distances) > 0 and np.min(distances) < 5:
                     point = pos_type[i][np.argmin(distances)]
-                    
-                    
-            
+
             if not np.allclose(point, [0.0, 0.0]):
                 # mark the point with a circle
                 c = str(np.random.rand())[2:]
@@ -1292,10 +1287,8 @@ class MainGUI(HasTraits):
                             pts[-1, 1],
                             self.camera_list[i].cam_color,
                         )
-                
+
                 self.camera_list[i].rclicked = 0
-                        
-        
 
     def create_plots(self, images, is_float=False) -> None:
         """update_plots
@@ -1308,7 +1301,7 @@ class MainGUI(HasTraits):
         for i in range(self.n_cams):
             self.camera_list[i].create_image(images[i], is_float)
             self.camera_list[i]._plot.request_redraw()
-            
+
     def update_plots(self, images, is_float=False) -> None:
         """update_plots
 
@@ -1422,28 +1415,26 @@ class MainGUI(HasTraits):
         n_cams = len(self.camera_list)
         # if not hasattr(self, "base_name"):
         self.base_name = [
-            getattr(self.exp1.active_params.m_params, f"Basename_{i+1}_Seq")
+            getattr(self.exp1.active_params.m_params, f"Basename_{i + 1}_Seq")
             for i in range(n_cams)
         ]
-
 
         if update_all is False:
             j = self.current_camera
             # img_name = self.base_name[j] + seq_ch
             # img_name = self.base_name[j].replace("#", seq_ch)
-            img_name = self.base_name[j] % seq # works with jumps from 1 to 10
+            img_name = self.base_name[j] % seq  # works with jumps from 1 to 10
             # print(f"Image name in load_set_seq is {img_name}")
             self.load_disp_image(img_name, j, display_only)
         else:
             for j in range(n_cams):
                 # img_name = self.base_name[j] + seq_ch
                 # img_name = self.base_name[j].replace("#", seq_ch)
-                img_name = self.base_name[j] % seq # works with jumps from 1 to 10                
+                img_name = self.base_name[j] % seq  # works with jumps from 1 to 10
                 # print(f"Image name in load_set_seq is {img_name}")
                 self.load_disp_image(img_name, j, display_only)
-                
-                
-    def overlay_set_images(self, seq_first: int, seq_last:int):
+
+    def overlay_set_images(self, seq_first: int, seq_last: int):
         """load and set sequence images and overlay them for tracking show
 
         Args:
@@ -1452,14 +1443,12 @@ class MainGUI(HasTraits):
             display_only (bool, optional): _description_. Defaults to False.
         """
 
-
         n_cams = len(self.camera_list)
         if not hasattr(self, "base_name"):
             self.base_name = [
-                getattr(self.exp1.active_params.m_params, f"Basename_{i+1}_Seq")
+                getattr(self.exp1.active_params.m_params, f"Basename_{i + 1}_Seq")
                 for i in range(len(self.camera_list))
             ]
-     
 
         for cam_id in range(n_cams):
             if os.path.exists(self.base_name[cam_id] % seq_first):
@@ -1476,10 +1465,8 @@ class MainGUI(HasTraits):
                 h_img = self.exp1.active_params.m_params.imx
                 v_img = self.exp1.active_params.m_params.imy
                 temp_img = img_as_ubyte(np.zeros((v_img, h_img)))
-        
 
             self.camera_list[cam_id].update_image(temp_img)
-                    
 
     def load_disp_image(self, img_name: str, j: int, display_only: bool = False):
         """load and display image
@@ -1541,7 +1528,7 @@ def main():
         # exp_path = Path('/home/user/Documents/repos/test_cavity')
         # exp_path = Path('/media/user/ExtremePro/omer/exp2')
         # exp_path = Path('/home/user/Dropbox/Open_Pro_My_PTV/Tracking/50000_30/')
-        exp_path = Path('/home/user/Dropbox/Open_Pro_My_PTV/Tracking/949_particles/')
+        exp_path = Path("/home/user/Dropbox/Open_Pro_My_PTV/Tracking/949_particles/")
         # exp_path = Path('/home/user/Documents/repos/blob_pyptv_folder')
         print(f"Without input, PyPTV fallbacks to a default {exp_path} \n")
 

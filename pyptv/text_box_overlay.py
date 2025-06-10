@@ -1,5 +1,5 @@
-""" Defines the TextBoxOverlay class.
-"""
+"""Defines the TextBoxOverlay class."""
+
 # Enthought library imports
 from enable.api import ColorTrait, AbstractOverlay, Label, black_color_trait
 from kiva.trait_defs.kiva_font_trait import KivaFont

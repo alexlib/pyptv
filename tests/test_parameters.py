@@ -1,6 +1,7 @@
 """
 Unit tests for the parameters module
 """
+
 import pytest
 import os
 import tempfile
@@ -10,6 +11,7 @@ import shutil
 
 from pyptv.parameters import Parameters, PtvParams, SequenceParams
 
+
 @pytest.fixture
 def temp_params_dir():
     """Create a temporary directory for parameter files"""
@@ -18,6 +20,7 @@ def temp_params_dir():
     params_dir.mkdir(exist_ok=True)
     yield params_dir
     shutil.rmtree(temp_dir)
+
 
 def test_parameters_base_class():
     """Test the base Parameters class"""
@@ -41,6 +44,7 @@ def test_parameters_base_class():
     # Test read method
     with pytest.raises(NotImplementedError):
         params.read()
+
 
 def test_ptv_params(temp_params_dir):
     """Test the PtvParams class"""
@@ -90,7 +94,7 @@ def test_ptv_params(temp_params_dir):
         "mmp_n1": 1.0,
         "mmp_n2": 1.33,
         "mmp_n3": 1.46,
-        "mmp_d": 5.0
+        "mmp_d": 5.0,
     }
     with open(ptv_yaml_path, "w") as f:
         yaml.dump(ptv_yaml_data, f)
@@ -133,6 +137,7 @@ def test_ptv_params(temp_params_dir):
     finally:
         # Change back to the original directory
         os.chdir(original_dir)
+
 
 def test_sequence_params(temp_params_dir):
     """Test the SequenceParams class"""
@@ -179,5 +184,6 @@ def test_sequence_params(temp_params_dir):
     finally:
         # Change back to the original directory
         os.chdir(original_dir)
+
 
 # Add more tests for other parameter classes as needed

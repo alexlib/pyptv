@@ -1,5 +1,5 @@
-""" Overlay to display the data attached to a scatter point hovered over.
-"""
+"""Overlay to display the data attached to a scatter point hovered over."""
+
 import pandas as pd
 import numpy as np
 

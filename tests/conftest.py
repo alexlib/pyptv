@@ -2,6 +2,7 @@ import pytest
 from pathlib import Path
 import shutil
 
+
 @pytest.fixture(scope="session")
 def test_data_dir():
     """Fixture to set up test data directory"""
@@ -10,6 +11,7 @@ def test_data_dir():
     if not test_dir.exists():
         pytest.skip(f"Test data directory {test_dir} not found")
     return test_dir
+
 
 @pytest.fixture(scope="session")
 def clean_test_environment(test_data_dir):

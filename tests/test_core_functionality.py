@@ -2,6 +2,7 @@
 """
 Test script to verify core functionality of pyptv and optv
 """
+
 import os
 import sys
 import numpy as np
@@ -9,12 +10,14 @@ import optv
 from optv.calibration import Calibration
 from optv.parameters import ControlParams, VolumeParams
 
+
 def test_core_functionality(test_data_dir):
     """Test core functionality of pyptv and optv"""
     print("Testing core functionality...")
 
     # Print versions
     import pyptv
+
     print(f"PyPTV version: {pyptv.__version__}")
     print(f"OpenPTV version: {optv.__version__}")
 
@@ -75,6 +78,7 @@ def test_core_functionality(test_data_dir):
 
     print("Core functionality test completed successfully!")
     return True
+
 
 if __name__ == "__main__":
     success = test_core_functionality()
