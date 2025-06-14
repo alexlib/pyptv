@@ -1,25 +1,9 @@
-"""PyPTV_GUI is the GUI for the OpenPTV (www.openptv.net) written in
-Python with Traits, TraitsUI, Numpy, Scipy and Chaco
-
-Copyright (c) 2008-2023, Turbulence Structure Laboratory, Tel Aviv University
-The GUI software is distributed under the terms of MIT-like license
-http://opensource.org/licenses/MIT
-
-OpenPTV library is distributed under the terms of LGPL license
-see http://www.openptv.net for more details.
-
-"""
-
 from traits.etsconfig.api import ETSConfig
-
-ETSConfig.toolkit = "qt4"
-
 import os
-from pathlib import Path, PurePath
+from pathlib import Path
 import sys
 import time
 import importlib
-
 import numpy as np
 import optv
 from traits.api import HasTraits, Int, Bool, Instance, List, Enum, Any
@@ -34,15 +18,14 @@ from traitsui.api import (
     Group,
 )
 
-
 from traitsui.menu import Action, Menu, MenuBar
 from chaco.api import ArrayDataSource, ArrayPlotData, LinearMapper, Plot, gray
 from chaco.tools.api import PanTool, ZoomTool
 from chaco.tools.image_inspector_tool import ImageInspectorTool
 from enable.component_editor import ComponentEditor
 from skimage.util import img_as_ubyte
-from skimage.color import rgb2gray
 from skimage.io import imread
+from skimage.color import rgb2gray
 
 from pyptv import parameters as par
 from pyptv import ptv
@@ -55,6 +38,19 @@ from pyptv.mask_gui import MaskGUI
 from pyptv import __version__
 import optv.orientation
 import optv.epipolar
+
+"""PyPTV_GUI is the GUI for the OpenPTV (www.openptv.net) written in
+Python with Traits, TraitsUI, Numpy, Scipy and Chaco
+
+Copyright (c) 2008-2023, Turbulence Structure Laboratory, Tel Aviv University
+The GUI software is distributed under the terms of MIT-like license
+http://opensource.org/licenses/MIT
+
+OpenPTV library is distributed under the terms of LGPL license
+see http://www.openptv.net for more details.
+
+"""
+ETSConfig.toolkit = "qt4"
 
 
 class Clicker(ImageInspectorTool):
@@ -390,7 +386,7 @@ class TreeMenuHandler(Handler):
     def copy_set_params(self, editor, object):
         experiment = editor.get_parent(object)
         paramset = object
-        print(f" Copying set of parameters \n")
+        print(" Copying set of parameters \n")
         print(f"paramset is {paramset.name}")
         if "Run" in paramset.name:
             print(f"paramset id is {int(paramset.name.split('Run')[-1])}")
@@ -499,7 +495,7 @@ class TreeMenuHandler(Handler):
                 print("Error reading image, setting zero image")
                 h_img = mainGui.exp1.active_params.m_params.imx
                 v_img = mainGui.exp1.active_params.m_params.imy
-                temp_img = img_as_ubyte(np.zeros((v_img, h_img)))
+                img_as_ubyte(np.zeros((v_img, h_img)))
                 # print(f"setting images of size {temp_img.shape}")
                 exec(f"mainGui.orig_image[{i}] = temp_img")
 
@@ -895,7 +891,6 @@ class TreeMenuHandler(Handler):
         print("Saving trajectories for Paraview\n")
         info.object.clear_plots(remove_background=False)
         seq_first = info.object.exp1.active_params.m_params.Seq_First
-        seq_last = info.object.exp1.active_params.m_params.Seq_Last
         info.object.load_set_seq_image(seq_first, display_only=True)
 
         # borrowed from flowtracks that does much better job on this
@@ -1231,7 +1226,7 @@ class MainGUI(HasTraits):
         try:
             _ = self.sorted_pos
             plot_epipolar = True
-        except:
+        except Exception:
             plot_epipolar = False
 
         if plot_epipolar:
@@ -1525,11 +1520,12 @@ def main():
         # exp_path = software_path.parent / "test_cavity"
         # exp_path = Path('/home/user/Downloads/one-dot-example/working_folder')
         # exp_path = Path('/home/user/Downloads/test_crossing_particle')
-        # exp_path = Path('/home/user/Documents/repos/test_cavity')
+        exp_path = Path('/home/user/Documents/repos/test_cavity')
         # exp_path = Path('/media/user/ExtremePro/omer/exp2')
         # exp_path = Path('/home/user/Dropbox/Open_Pro_My_PTV/Tracking/50000_30/')
-        exp_path = Path("/home/user/Dropbox/Open_Pro_My_PTV/Tracking/949_particles/")
+        # exp_path = Path("/home/user/Dropbox/Open_Pro_My_PTV/Tracking/949_particles/")
         # exp_path = Path('/home/user/Documents/repos/blob_pyptv_folder')
+        # exp_path = Path("/home/user/Documents/repos/3dptv/test2/")
         print(f"Without input, PyPTV fallbacks to a default {exp_path} \n")
 
     if not exp_path.is_dir() or not exp_path.exists():
