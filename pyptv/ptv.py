@@ -11,6 +11,7 @@ import sys
 import re
 from pathlib import Path
 from typing import List, Tuple, Dict, Optional, Union, Any, Callable
+from concurrent.futures import ProcessPoolExecutor
 
 # Third-party imports
 import numpy as np
@@ -377,19 +378,89 @@ def run_plugin(exp) -> None:
                         print(f"Error running sequence plugin {plugin_name}: {e}")
 
 
+def process_sequence_frame(args):
+    frame, exp_dict, Existing_Target = args
+    # Reconstruct exp from exp_dict if needed, or pass only what's needed
+    # For simplicity, we assume exp_dict contains all needed params
+    n_cams = exp_dict["n_cams"]
+    cpar = exp_dict["cpar"]
+    spar = exp_dict["spar"]
+    vpar = exp_dict["vpar"]
+    tpar = exp_dict["tpar"]
+    cals = exp_dict["cals"]
+    exp1 = exp_dict.get("exp1", None)
+
+    detections = []
+    corrected = []
+    for i_cam in range(n_cams):
+        base_image_name = spar.get_img_base_name(i_cam)
+        if Existing_Target:
+            targs = read_targets(base_image_name, frame)
+        else:
+            imname = Path(base_image_name % frame)
+            if not imname.exists():
+                print(f"{imname} does not exist")
+                continue
+            img = imread(imname)
+            if img.ndim > 2:
+                img = rgb2gray(img)
+            if img.dtype != np.uint8:
+                img = img_as_ubyte(img)
+            if exp1 is not None:
+                if exp1.active_params.m_params.Inverse:
+                    print("Invert image")
+                    img = 255 - img
+                if exp1.active_params.m_params.Subtr_Mask:
+                    try:
+                        background_name = (
+                            exp1.active_params.m_params.Base_Name_Mask % (i_cam + 1)
+                        )
+                        background = imread(background_name)
+                        img = np.clip(img - background, 0, 255).astype(np.uint8)
+                    except ValueError:
+                        print("failed to read the mask")
+            high_pass = simple_highpass(img, cpar)
+            targs = target_recognition(high_pass, tpar, i_cam, cpar)
+        targs.sort_y()
+        detections.append(targs)
+        masked_coords = MatchedCoords(targs, cpar, cals[i_cam])
+        corrected.append(masked_coords)
+
+    sorted_pos, sorted_corresp, _ = correspondences(
+        detections, corrected, cals, vpar, cpar
+    )
+    for i_cam in range(n_cams):
+        base_name = spar.get_img_base_name(i_cam)
+        write_targets(detections[i_cam], base_name, frame)
+    print(
+        "Frame "
+        + str(frame)
+        + " had "
+        + repr([s.shape[1] for s in sorted_pos])
+        + " correspondences."
+    )
+    sorted_pos = np.concatenate(sorted_pos, axis=1)
+    sorted_corresp = np.concatenate(sorted_corresp, axis=1)
+    flat = np.array(
+        [corrected[i].get_by_pnrs(sorted_corresp[i]) for i in range(len(cals))]
+    )
+    pos, _ = point_positions(flat.transpose(1, 0, 2), cpar, cals, vpar)
+    if len(cals) < 4:
+        print_corresp = -1 * np.ones((4, sorted_corresp.shape[1]))
+        print_corresp[: len(cals), :] = sorted_corresp
+    else:
+        print_corresp = sorted_corresp
+    rt_is_filename = default_naming["corres"].decode()
+    rt_is_filename = f"{rt_is_filename}.{frame}"
+    with open(rt_is_filename, "w", encoding="utf8") as rt_is:
+        rt_is.write(str(pos.shape[0]) + "\n")
+        for pix, pt in enumerate(pos):
+            pt_args = (pix + 1,) + tuple(pt) + tuple(print_corresp[:, pix])
+            rt_is.write("%4d %9.3f %9.3f %9.3f %4d %4d %4d %4d\n" % pt_args)
+
+
 def py_sequence_loop(exp) -> None:
-    """Run a sequence of detection, stereo-correspondence, and determination.
-
-    This function processes a sequence of frames, performing detection, stereo-correspondence,
-    and 3D position determination. It stores the results in cam#.XXX_targets and rt_is.XXX files.
-    It's similar to running pyptv_batch.py without tracking.
-
-    Args:
-        exp: Experiment object containing configuration and parameters
-    """
-
-    # Sequence parameters
-
+    """Run a sequence of detection, stereo-correspondence, and determination in parallel."""
     n_cams, cpar, spar, vpar, tpar, cals = (
         exp.n_cams,
         exp.cpar,
@@ -398,128 +469,25 @@ def py_sequence_loop(exp) -> None:
         exp.tpar,
         exp.cals,
     )
-
-    # # Sequence parameters
-    # spar = SequenceParams(num_cams=n_cams)
-    # spar.read_sequence_par(b"parameters/sequence.par", n_cams)
-
     pftVersionParams = par.PftVersionParams(path=Path("parameters"))
     pftVersionParams.read()
     Existing_Target = np.bool8(pftVersionParams.Existing_Target)
-
-    # sequence loop for all frames
     first_frame = spar.get_first()
     last_frame = spar.get_last()
     print(f" From {first_frame = } to {last_frame = }")
-
-    for frame in range(first_frame, last_frame + 1):
-        # print(f"processing {frame = }")
-
-        detections = []
-        corrected = []
-        for i_cam in range(n_cams):
-            base_image_name = spar.get_img_base_name(i_cam)
-            if Existing_Target:
-                targs = read_targets(base_image_name, frame)
-            else:
-                # imname = spar.get_img_base_name(i_cam) + str(frame).encode()
-
-                # imname = Path(imname.replace('#',f'{frame}'))
-                imname = Path(base_image_name % frame)  # works with jumps from 1 to 10
-                # print(f'Image name {imname}')
-
-                if not imname.exists():
-                    print(f"{imname} does not exist")
-                else:
-                    img = imread(imname)
-                    if img.ndim > 2:
-                        img = rgb2gray(img)
-
-                    if img.dtype != np.uint8:
-                        img = img_as_ubyte(img)
-                # time.sleep(.1) # I'm not sure we need it here
-
-                if "exp1" in exp.__dict__:
-                    if exp.exp1.active_params.m_params.Inverse:
-                        print("Invert image")
-                        img = 255 - img
-
-                    if exp.exp1.active_params.m_params.Subtr_Mask:
-                        # print("Subtracting mask")
-                        try:
-                            # background_name = exp.exp1.active_params.m_params.Base_Name_Mask.replace('#',str(i_cam))
-                            background_name = (
-                                exp.exp1.active_params.m_params.Base_Name_Mask
-                                % (i_cam + 1)
-                            )
-                            background = imread(background_name)
-                            img = np.clip(img - background, 0, 255).astype(np.uint8)
-
-                        except ValueError:
-                            print("failed to read the mask")
-
-                high_pass = simple_highpass(img, cpar)
-                targs = target_recognition(high_pass, tpar, i_cam, cpar)
-
-            targs.sort_y()
-            detections.append(targs)
-            masked_coords = MatchedCoords(targs, cpar, cals[i_cam])
-            pos, _ = masked_coords.as_arrays()
-            corrected.append(masked_coords)
-
-        #        if any([len(det) == 0 for det in detections]):
-        #            return False
-
-        # Corresp. + positions.
-        sorted_pos, sorted_corresp, _ = correspondences(
-            detections, corrected, cals, vpar, cpar
-        )
-
-        # Save targets only after they've been modified:
-        # this is a workaround of the proper way to construct _targets name
-        for i_cam in range(n_cams):
-            base_name = spar.get_img_base_name(i_cam)
-            # base_name = replace_format_specifiers(base_name) # %d to %04d
-            write_targets(detections[i_cam], base_name, frame)
-
-        print(
-            "Frame "
-            + str(frame)
-            + " had "
-            + repr([s.shape[1] for s in sorted_pos])
-            + " correspondences."
-        )
-
-        # Distinction between quad/trip irrelevant here.
-        sorted_pos = np.concatenate(sorted_pos, axis=1)
-        sorted_corresp = np.concatenate(sorted_corresp, axis=1)
-
-        flat = np.array(
-            [corrected[i].get_by_pnrs(sorted_corresp[i]) for i in range(len(cals))]
-        )
-        pos, _ = point_positions(flat.transpose(1, 0, 2), cpar, cals, vpar)
-
-        # if len(cals) == 1: # single camera case
-        #     sorted_corresp = np.tile(sorted_corresp,(4,1))
-        #     sorted_corresp[1:,:] = -1
-
-        if len(cals) < 4:
-            print_corresp = -1 * np.ones((4, sorted_corresp.shape[1]))
-            print_corresp[: len(cals), :] = sorted_corresp
-        else:
-            print_corresp = sorted_corresp
-
-        # Save rt_is
-        rt_is_filename = default_naming["corres"].decode()
-        # rt_is_filename = f'{rt_is_filename}.{frame:04d}'
-        rt_is_filename = f"{rt_is_filename}.{frame}"
-        with open(rt_is_filename, "w", encoding="utf8") as rt_is:
-            rt_is.write(str(pos.shape[0]) + "\n")
-            for pix, pt in enumerate(pos):
-                pt_args = (pix + 1,) + tuple(pt) + tuple(print_corresp[:, pix])
-                rt_is.write("%4d %9.3f %9.3f %9.3f %4d %4d %4d %4d\n" % pt_args)
-        # rt_is.close()
-    # end of a sequence loop
+    # Prepare a serializable dict for exp (avoid passing the whole exp object to processes)
+    exp_dict = {
+        "n_cams": n_cams,
+        "cpar": cpar,
+        "spar": spar,
+        "vpar": vpar,
+        "tpar": tpar,
+        "cals": cals,
+        "exp1": getattr(exp, "exp1", None),
+    }
+    with ProcessPoolExecutor() as executor:
+        args = [(frame, exp_dict, Existing_Target) for frame in range(first_frame, last_frame + 1)]
+        list(executor.map(process_sequence_frame, args))
 
 
 def py_trackcorr_init(exp):
