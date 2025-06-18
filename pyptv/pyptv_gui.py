@@ -1086,7 +1086,7 @@ tree_editor_exp = TreeEditor(
             menu=Menu(
                 # NewAction,
                 CopySetParams,
-                RenameSetParams,
+                # RenameSetParams,
                 DeleteSetParams,
                 Separator(),
                 ConfigMainParams,
