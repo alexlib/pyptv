@@ -362,6 +362,7 @@ class DetectionGUI(HasTraits):
         self.xsize_bounds = list(self.tpar.get_xsize_bounds())
         self.ysize_bounds = list(self.tpar.get_ysize_bounds())
         self.sum_grey = self.tpar.get_min_sum_grey()
+        self.disco = self.tpar.get_max_discontinuity()
 
         # self.add_trait("i_cam", Enum(range(1,self.n_cams+1)))
         self.add_trait("grey_thresh", Range(1, 255, self.thresholds[0], mode="slider"))
@@ -426,6 +427,16 @@ class DetectionGUI(HasTraits):
             ),
         )
         self.add_trait(
+            "disco",
+            Range(
+                0,
+                255,
+                self.disco,
+                mode="slider",
+                label="Discontinuity",
+            ),
+        )        
+        self.add_trait(
             "sum_of_grey",
             Range(
                 self.sum_grey / 2,
@@ -459,6 +470,7 @@ class DetectionGUI(HasTraits):
                     Item(name="max_npix"),
                     Item(name="max_npix_x"),
                     Item(name="max_npix_y"),
+                    Item(name="disco"),
                     Item(name="sum_of_grey"),
                 ),
             ),
@@ -536,6 +548,11 @@ class DetectionGUI(HasTraits):
 
     def _sum_of_grey_changed(self):
         self.tpar.set_min_sum_grey(self.sum_of_grey)
+        self._button_detection_fired()
+
+    def _disco_changed(self):
+        self.tpar.set_max_discontinuity(self.disco)
+        # print(f"set disco {self.tpar.get_max_discontinuity()}")
         self._button_detection_fired()
 
     def _button_showimg_fired(self):

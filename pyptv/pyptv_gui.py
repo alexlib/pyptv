@@ -50,7 +50,7 @@ OpenPTV library is distributed under the terms of LGPL license
 see http://www.openptv.net for more details.
 
 """
-ETSConfig.toolkit = "qt4"
+ETSConfig.toolkit = "qt"
 
 
 class Clicker(ImageInspectorTool):
@@ -1517,10 +1517,10 @@ def main():
         exp_path = Path(sys.argv[1]).resolve()
         print(f"Experimental path is {exp_path}")
     else:
-        # exp_path = software_path.parent / "test_cavity"
+        exp_path = software_path.parent / "test_cavity"
         # exp_path = Path('/home/user/Downloads/one-dot-example/working_folder')
         # exp_path = Path('/home/user/Downloads/test_crossing_particle')
-        exp_path = Path('/home/user/Documents/repos/test_cavity')
+        # exp_path = Path('/home/user/Documents/repos/test_cavity')
         # exp_path = Path('/media/user/ExtremePro/omer/exp2')
         # exp_path = Path('/home/user/Dropbox/Open_Pro_My_PTV/Tracking/50000_30/')
         # exp_path = Path("/home/user/Dropbox/Open_Pro_My_PTV/Tracking/949_particles/")
