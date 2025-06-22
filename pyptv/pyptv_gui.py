@@ -6,7 +6,7 @@ import time
 import importlib
 import numpy as np
 import optv
-from traits.api import HasTraits, Int, Bool, Instance, List, Enum, Any
+from traits.api import HasTraits, Int, Bool, Instance, List, Enum, Any, Str
 from traitsui.api import (
     View,
     Item,
@@ -20,8 +20,12 @@ from traitsui.api import (
 
 from traitsui.menu import Action, Menu, MenuBar
 from chaco.api import ArrayDataSource, ArrayPlotData, LinearMapper, Plot, gray
-from chaco.tools.api import PanTool, ZoomTool
+from chaco.tools.api import PanTool#, ZoomTool
+from chaco.tools.better_zoom import BetterZoom as SimpleZoom
+
 from chaco.tools.image_inspector_tool import ImageInspectorTool
+from chaco.api import TextPlot
+
 from enable.component_editor import ComponentEditor
 from skimage.util import img_as_ubyte
 from skimage.io import imread
@@ -38,6 +42,8 @@ from pyptv.mask_gui import MaskGUI
 from pyptv import __version__
 import optv.orientation
 import optv.epipolar
+
+from pyptv.text_box_overlay import TextBoxOverlay
 
 """PyPTV_GUI is the GUI for the OpenPTV (www.openptv.net) written in
 Python with Traits, TraitsUI, Numpy, Scipy and Chaco
@@ -108,21 +114,19 @@ class CameraWindow(HasTraits):
     rclicked = Int(0)
 
     cam_color = ""
-    name = ""
+    name = Str
     view = View(Item(name="_plot", editor=ComponentEditor(), show_label=False))
 
     def __init__(self, color, name):
         """
         Initialization of plot system
         """
-        super(HasTraits, self).__init__()
+        # super(HasTraits, self).__init__()
+        super().__init__()
         padd = 25
         self._plot_data = ArrayPlotData()  # we need set_data
         self._plot = Plot(self._plot_data, default_origin="top left")
-        self._plot.padding_left = padd
-        self._plot.padding_right = padd
-        self._plot.padding_top = padd
-        self._plot.padding_bottom = padd
+        self._plot.padding = (padd, padd, padd, padd)
         (
             self.right_p_x0,
             self.right_p_y0,
@@ -132,6 +136,17 @@ class CameraWindow(HasTraits):
         ) = ([], [], [], [], [])
         self.cam_color = color
         self.name = name
+
+    # def handle_mapper(self):
+    #     for i in range(0, len(self._plot.overlays)):
+    #         if hasattr(self._plot.overlays[i], "real_position"):
+    #             coord_x1, coord_y1 = self._plot.map_screen(
+    #                 [self._plot.overlays[i].real_position]
+    #             )[0]
+    #             self._plot.overlays[i].alternate_position = (
+    #                 coord_x1,
+    #                 coord_y1,
+    #             )        
 
     def attach_tools(self):
         """attach_tools(self) contains the relevant tools:
@@ -144,11 +159,25 @@ class CameraWindow(HasTraits):
         # self._img_plot.tools.clear()
         self._img_plot.tools.append(self._click_tool)
 
-        pan = PanTool(self._plot, drag_button="middle")
-        zoom_tool = ZoomTool(self._plot, tool_mode="box", always_on=False)
-        zoom_tool.max_zoom_out_factor = 1.0  # Disable "bird view" zoom out
-        self._img_plot.overlays.append(zoom_tool)
-        self._img_plot.tools.append(pan)
+        # pan = PanTool(self._plot, drag_button="middle")
+
+        # zoom_tool = ZoomTool(self._plot, tool_mode="box", always_on=False)
+        # self._img_plot.overlays.append(zoom_tool)
+
+        # self._img_plot.tools.append(pan)
+        self._zoom_tool = SimpleZoom(
+            component=self._plot, tool_mode="box", always_on=False
+        )
+        self._img_plot.tools.append(self._zoom_tool)
+        # if self._plot.index_mapper is not None:
+        #     self._plot.index_mapper.on_trait_change(
+        #         self.handle_mapper, "updated", remove=False
+        #     )
+        # if self._plot.value_mapper is not None:
+        #     self._plot.value_mapper.on_trait_change(
+        #         self.handle_mapper, "updated", remove=False
+        #     )
+
         # print(self._img_plot.tools)
 
     def left_clicked_event(
@@ -215,6 +244,7 @@ class CameraWindow(HasTraits):
 
         self._plot.img_plot("imagedata", colormap=gray)[0]
         self._plot.request_redraw()
+     
 
     def drawcross(self, str_x, str_y, x, y, color, mrk_size, marker="plus"):
         """drawcross draws crosses at a given location (x,y) using color
@@ -231,6 +261,7 @@ class CameraWindow(HasTraits):
                 (100,100),(200,200),(200,300)
             :rtype:
         """
+        # print(self.name, 'drawcross')
         self._plot_data.set_data(str_x, np.atleast_1d(x))
         self._plot_data.set_data(str_y, np.atleast_1d(y))
         self._plot.plot(
@@ -241,6 +272,27 @@ class CameraWindow(HasTraits):
             marker_size=mrk_size,
         )
         self._plot.request_redraw()
+
+    def plot_num_overlay(self, x, y, txt, text_color="white", border_color="red"):
+
+        print(f" Inside {self.name} with text overlay: {txt[0]} at {x[0]}, {y[0]}")
+
+        
+        for i in range(len(x)):
+            # screen_x, screen_y = self._plot.map_screen(np.array([x[i],y[i]]))[0]
+            ovlay = TextBoxOverlay(
+                component=self._plot,
+                text=str(txt[i]),
+                # alternate_position=(screen_x, screen_y),
+                alternate_position=(x[i], y[i]),
+                real_position=(x[i], y[i]),
+                text_color=text_color,
+                border_color=border_color,
+            )
+            self._plot.overlays.append(ovlay)
+
+        # self._plot.request_redraw()
+        
 
     def drawquiver(self, x1c, y1c, x2c, y2c, color, linewidth=1.0):
         """Draws multiple lines at once on the screen x1,y1->x2,y2 in the
@@ -283,8 +335,8 @@ class CameraWindow(HasTraits):
             # we need this to track how many quiverplots are in the current
             # plot
             self._quiverplots.append(quiverplot)
+         
 
-    @staticmethod
     def remove_short_lines(x1, y1, x2, y2):
         """removes short lines from the array of lines
         parameters:
@@ -815,7 +867,10 @@ class TreeMenuHandler(Handler):
         Args:
             info (_type_): _description_
         """
-        info.object.clear_plots(remove_background=False)
+
+        info.object.clear_plots(remove_background=False)  # clear everything
+        info.object.update_plots(info.object.orig_image, is_float=False)
+
         seq_first = info.object.exp1.active_params.m_params.Seq_First
         seq_last = info.object.exp1.active_params.m_params.Seq_Last
         # info.object.load_set_seq_image(seq_first, display_only=True)
@@ -830,10 +885,12 @@ class TreeMenuHandler(Handler):
         heads_x, heads_y = [], []
         tails_x, tails_y = [], []
         ends_x, ends_y = [], []
+        trajids = []
         for i_cam in range(info.object.n_cams):
             head_x, head_y = [], []
             tail_x, tail_y = [], []
             end_x, end_y = [], []
+            trajid = []
             for traj in dataset:
                 # projected = optv.imgcoord.image_coordinates(
                 #     np.atleast_2d(traj.pos()[0]*1000),
@@ -861,6 +918,7 @@ class TreeMenuHandler(Handler):
                 tail_y.extend(list(pos[1:-1, 1]))
                 end_x.append(pos[-1, 0])
                 end_y.append(pos[-1, 1])
+                trajid.append(traj.trajid())
 
             heads_x.append(head_x)
             heads_y.append(head_y)
@@ -868,17 +926,33 @@ class TreeMenuHandler(Handler):
             tails_y.append(tail_y)
             ends_x.append(end_x)
             ends_y.append(end_y)
+            trajids.append(trajid)
 
-        for i_cam in range(info.object.n_cams):
-            info.object.camera_list[i_cam].drawcross(
-                "heads_x", "heads_y", heads_x[i_cam], heads_y[i_cam], "red", 3
-            )
-            info.object.camera_list[i_cam].drawcross(
-                "tails_x", "tails_y", tails_x[i_cam], tails_y[i_cam], "green", 2
-            )
-            info.object.camera_list[i_cam].drawcross(
-                "ends_x", "ends_y", ends_x[i_cam], ends_y[i_cam], "orange", 3
-            )
+
+        info.object.drawcross_in_all_cams("heads_x", "heads_y", heads_x, heads_y, "red", 3)
+        info.object.drawcross_in_all_cams("tails_x", "tails_y", tails_x, tails_y, "green", 3)
+        info.object.drawcross_in_all_cams("ends_x", "ends_y", ends_x, ends_y, "orange", 3)
+        info.object.plot_num_overlay_in_all_cams(heads_x, heads_y, trajids)
+
+
+        # for i_cam in range(info.object.n_cams):
+
+        #     info.object.camera_list[i_cam].drawcross(
+        #         "heads_x", "heads_y", heads_x[i_cam], heads_y[i_cam], "red", 3
+        #     )
+        #     info.object.camera_list[i_cam].drawcross(
+        #         "tails_x", "tails_y", tails_x[i_cam], tails_y[i_cam], "green", 3
+        #     )
+        #     info.object.camera_list[i_cam].drawcross(
+        #         "ends_x", "ends_y", ends_x[i_cam], ends_y[i_cam], "orange", 3
+        #     )
+            # info.object.camera_list[i_cam]._plot.overlays = []
+            # if info.object.camera_list[i_cam]._plot.overlays is not None:
+            #     info.object.camera_list[i_cam]._plot.overlays.clear()  # type: ignore
+            # info.object.camera_list[i_cam].plot_num_overlay(heads_x[i_cam], heads_y[i_cam], trajids[i_cam])
+
+            # info.object.camera_list[i_cam]._plot.request_redraw()
+            
 
     def plugin_action(self, info):
         """Configure plugins by using GUI"""
@@ -1316,6 +1390,12 @@ class MainGUI(HasTraits):
         for i, cam in enumerate(self.camera_list):
             cam.drawcross(str_x, str_y, x[i], y[i], color1, size1, marker=marker)
 
+    def plot_num_overlay_in_all_cams(self, x, y, int_list):
+        
+        for i, cam in enumerate(self.camera_list):
+            cam.plot_num_overlay(x[i], y[i], int_list[i])
+
+
     def clear_plots(self, remove_background=True):
         # this function deletes all plots except basic image plot
 
@@ -1492,6 +1572,7 @@ class MainGUI(HasTraits):
 
 def printException():
     import traceback
+
 
     print("=" * 50)
     print("Exception:", sys.exc_info()[1])

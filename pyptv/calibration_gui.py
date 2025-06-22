@@ -23,7 +23,7 @@ from chaco.api import (
     ArrayPlotData,
     gray,
     ArrayDataSource,
-    LinearMapper,
+    # LinearMapper,
 )
 
 # from traitsui.menu import MenuBar, ToolBar, Menu, Action
@@ -33,7 +33,7 @@ from chaco.tools.better_zoom import BetterZoom as SimpleZoom
 # from chaco.tools.simple_zoom import SimpleZoom
 from pyptv.text_box_overlay import TextBoxOverlay
 from pyptv.code_editor import oriEditor, addparEditor
-from pyptv.quiverplot import QuiverPlot
+# from pyptv.quiverplot import QuiverPlot
 
 
 from optv.imgcoord import image_coordinates
@@ -46,7 +46,6 @@ from optv.tracking_framebuf import TargetArray
 
 from pyptv import ptv, parameter_gui, parameters as par
 
-from scipy.optimize import minimize
 
 # recognized names for the flags:
 NAMES = ["cc", "xh", "yh", "k1", "k2", "k3", "p1", "p2", "scale", "shear"]
@@ -59,6 +58,9 @@ class ClickerTool(ImageInspectorTool):
     right_changed = Int(1)
     x = 0
     y = 0
+
+    def __init__(self, *args, **kwargs):
+        super(ClickerTool, self).__init__(*args, **kwargs)    
 
     def normal_left_down(self, event):
         """Handles the left mouse button being clicked.
@@ -96,9 +98,6 @@ class ClickerTool(ImageInspectorTool):
 
     def normal_mouse_move(self, event):
         pass
-
-    def __init__(self, *args, **kwargs):
-        super(ClickerTool, self).__init__(*args, **kwargs)
 
 
 # ----------------------------------------------------------
@@ -188,6 +187,7 @@ class PlotWindow(HasTraits):
         """
         Draws crosses on images
         """
+        print("drawcross in PlotWindow")
         self._plot_data.set_data(str_x, x)
         self._plot_data.set_data(str_y, y)
         self._plot.plot(
@@ -285,6 +285,7 @@ class PlotWindow(HasTraits):
                 )
 
     def plot_num_overlay(self, x, y, txt, text_color="white", border_color="red"):
+        
         for i in range(len(x)):
             coord_x, coord_y = self._plot.map_screen([(x[i], y[i])])[0]
             ovlay = TextBoxOverlay(
@@ -1243,6 +1244,7 @@ class CalibrationGUI(HasTraits):
 
         :rtype: None
         """
+        print("drawcross in CalibrationGUI")
         if i_cam is None:
             for i in range(self.n_cams):
                 self.camera[i].drawcross(str_x, str_y, x[i], y[i], color1, size1)
