@@ -1162,7 +1162,7 @@ class CalibrationGUI(HasTraits):
         seq_last = sp.shaking_last_frame
 
         base_names = [
-            self.spar.get_img_base_name(i).decode() for i in range(self.n_cams)
+            self.spar.get_img_base_name(i) for i in range(self.n_cams)
         ]
 
         for i_cam in range(self.n_cams):

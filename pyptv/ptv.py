@@ -658,7 +658,7 @@ def py_calibration(selection, exp):
         calibs = _read_calibrations(exp.cpar, num_cams)
 
         targ_files = [
-            exp.spar.get_img_base_name(c).decode().split("%d")[0].encode()
+            exp.spar.get_img_base_name(c).split("%d")[0].encode('utf-8')
             for c in range(num_cams)
         ]
         # recognized names for the flags:
@@ -678,8 +678,8 @@ def py_calibration(selection, exp):
         for frm_num in range(sp.shaking_first_frame, sp.shaking_last_frame + 1):
             frame = Frame(
                 exp.cpar.get_num_cams(),
-                corres_file_base=("res/rt_is").encode(),
-                linkage_file_base=("res/ptv_is").encode(),
+                corres_file_base=("res/rt_is").encode('utf-8'),
+                linkage_file_base=("res/ptv_is").encode('utf-8'),
                 target_file_base=targ_files,
                 frame_num=frm_num,
             )
@@ -721,9 +721,9 @@ def py_calibration(selection, exp):
 
             # Save the results
             ori_filename = exp.cpar.get_cal_img_base_name(cam)
-            addpar_filename = ori_filename + b".addpar"
-            ori_filename = ori_filename + b".ori"
-            calibs[cam].write(ori_filename, addpar_filename)
+            addpar_filename = ori_filename + ".addpar"
+            ori_filename = ori_filename + ".ori"
+            calibs[cam].write(ori_filename.encode('utf-8'), addpar_filename.encode('utf-8'))
             # exp._write_ori(cam, addpar_flag=True)  # addpar_flag to save addpar file
 
             targ_ix = [t.pnr() for t in targs if t.pnr() != -999]
