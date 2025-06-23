@@ -2,91 +2,150 @@ import napari
 import numpy as np
 from magicgui import magicgui
 from skimage.io import imread
+from skimage import img_as_ubyte
 from skimage.color import rgb2gray
-from pyptv import ptv, parameters as par
+from optv.parameters import TargetParams, ControlParams
+from optv.image_processing import preprocess_image
+
 from pathlib import Path
+from optv.segmentation import target_recognition
 
-# --- Load parameters (adjust path as needed) ---
-par_path = Path("tests/test_cavity/parameters")  # or your actual parameters path
 
-# Read number of cameras from ptv.par
-with open(par_path / "ptv.par", "r", encoding="utf-8") as f:
-    n_cams = int(f.readline())
+# --- Globals ---
+tpar = TargetParams()
+cpar = ControlParams(num_cam=1) # one image for now
+current_image = None
 
-# Load all parameter objects
-cpar, spar, vpar, track_par, tpar, cals, epar = ptv.py_start_proc_c(n_cams)
-tpar.read(str(par_path / "detect_plate.par"))
-
-# --- Load and preprocess image ---
-def load_image(path, inverse=False, highpass=False):
-    im = imread(path)
-    if im.ndim > 2:
-        im = rgb2gray(im)
-    # TODO: Add highpass filter if needed
-    return im
-
-image_path = str(par_path.parent / "img" / "cam1.tif")  # Example image path
-image = load_image(image_path)
-
-# --- Start Napari viewer ---
+# --- Napari viewer and points layer ---
 viewer = napari.Viewer()
-image_layer = viewer.add_image(image, name="Image")
+points_layer = viewer.add_points([], size=8, face_color='orange', name='Detections')
 
-# --- Points layer for detected dots ---
-points_layer = viewer.add_points(
-    [], size=8, face_color='orange', name='Detections'
+# --- 1. Image path and load image ---
+@magicgui(call_button="Load Image", image_path={"mode": "r"})
+def load_image(image_path=Path(".")):
+    global current_image
+    if not image_path.exists():
+        print("Image file does not exist!")
+        return
+    img = imread(str(image_path))
+    if img.ndim == 3:
+        img = rgb2gray(img)
+
+    if img.dtype != np.uint8:
+        img = img_as_ubyte(img)  # Ensure image is in uint8 format
+
+    imx, imy = img.shape
+    cpar.set_image_size(imx, imy)
+
+    current_image = img
+    # Remove previous image layers
+    for l in list(viewer.layers):
+        if isinstance(l, napari.layers.Image):
+            viewer.layers.remove(l)
+    viewer.add_image(img, name=image_path.name)
+    run_detection()
+
+viewer.window.add_dock_widget(load_image, area="right")
+
+# --- 2. Highpass and Inverse image checkboxes ---
+@magicgui(call_button="Apply", highpass={"label": "Highpass"}, inverse={"label": "Inverse"})
+def image_options(highpass: bool = False, inverse: bool = False):
+    global current_image
+    if current_image is None:
+        print("No image loaded.")
+        return
+    img = current_image.copy()
+    # Use ptv's preprocessing for highpass/inverse
+    if inverse: 
+        img = 255 - img  # Inverse the image
+    if highpass:
+        img = preprocess_image(img, 0, cpar, 3)
+
+    # Remove previous processed image layers
+    for l in list(viewer.layers):
+        if l.name == "Processed Image":
+            viewer.layers.remove(l)
+    processed_layer = viewer.add_image(img, name="Processed Image", visible=True)
+    viewer.layers.selection.active = processed_layer  # Make it active
+
+    run_detection()
+
+viewer.window.add_dock_widget(image_options, area="right")
+
+# --- 3. Detection parameter sliders (from tpar) ---
+@magicgui(
+    call_button="Update Parameters",
+    threshold={"label": "Threshold", "min": 0, "max": 255, "widget_type": "Slider"},
+    min_npix={"label": "Min npix", "min": 0, "max": 100, "widget_type": "Slider"},
+    max_npix={"label": "Max npix", "min": 1, "max": 500, "widget_type": "Slider"},
+    min_npix_x={"label": "Min npix in x", "min": 1, "max": 50, "widget_type": "Slider"},
+    max_npix_x={"label": "Max npix in x", "min": 1, "max": 100, "widget_type": "Slider"},
+    min_npix_y={"label": "Min npix in y", "min": 1, "max": 50, "widget_type": "Slider"},
+    max_npix_y={"label": "Max npix in y", "min": 1, "max": 100, "widget_type": "Slider"},
+    disco={"label": "Discontinuity", "min": 0, "max": 255, "widget_type": "Slider"},
+    sum_of_grey={"label": "Sum of greyvalue", "min": 0, "max": 1000, "widget_type": "Slider"},
 )
+def tpar_controls(
+    threshold=50,
+    min_npix=5,
+    max_npix=100,
+    min_npix_x=2,
+    max_npix_x=20,
+    min_npix_y=2,
+    max_npix_y=20,
+    disco=10,
+    sum_of_grey=100,
+):
+    # Use the correct setters as in detection_gui.py
+    tpar.set_grey_thresholds([threshold])
+    tpar.set_pixel_count_bounds([min_npix, max_npix])
+    tpar.set_xsize_bounds([min_npix_x, max_npix_x])
+    tpar.set_ysize_bounds([min_npix_y, max_npix_y])
+    tpar.set_max_discontinuity(disco)
+    tpar.set_min_sum_grey(sum_of_grey)
+    run_detection()
 
-# --- Shapes layer for lines/quivers (optional) ---
-shapes_layer = viewer.add_shapes(
-    [], shape_type='line', edge_color='blue', name='Lines'
-)
+viewer.window.add_dock_widget(tpar_controls, area="right")
 
-# --- Text layer for labels (optional) ---
-text_layer = viewer.add_text(
-    [], text='', color='yellow', name='Labels'
-)
+# --- 4. Detection logic ---
+def run_detection():
+    image_layers = [l for l in viewer.layers if isinstance(l, napari.layers.Image)]
+    if not image_layers:
+        print("No image loaded!")
+        return
+    img = image_layers[-1].data
+    # Dummy cpar, cals for demonstration; replace with real ones as needed
+    try:
+        targs = target_recognition(img,tpar, 0, cpar)
+        targs.sort_y()
+        x = [i.pos()[0] for i in targs]
+        y = [i.pos()[1] for i in targs]
+        points_layer.data = np.stack([y, x], axis=1) if x and y else np.empty((0, 2))
+    except Exception as e:
+        print(f"Detection failed: {e}")
+        points_layer.data = np.empty((0, 2))
 
-# --- Detection function using ptv.py_detection_proc_c ---
-def detect_particles(image):
-    detections, _ = ptv.py_detection_proc_c([image], cpar, tpar, cals)
-    targs = detections[0]
-    targs.sort_y()
-    x = [i.pos()[0] for i in targs]
-    y = [i.pos()[1] for i in targs]
-    return np.stack([y, x], axis=1)  # napari uses (row, col)
-
-# --- Magicgui widget for parameter control (expand as needed) ---
-@magicgui(call_button="Detect Dots")
-def detect_button():
-    points_layer.data = detect_particles(image_layer.data)
-
-viewer.window.add_dock_widget(detect_button, area="right")
-
-# --- Magicgui widget for adding crosses manually ---
+# --- 5. Manual cross addition and reset ---
 @magicgui(call_button="Add Cross", x={"label": "X"}, y={"label": "Y"})
 def add_cross(x: int = 0, y: int = 0):
     points = points_layer.data.tolist()
-    points.append([y, x])  # napari uses (row, col)
+    points.append([y, x])
     points_layer.data = np.array(points)
 
 viewer.window.add_dock_widget(add_cross, area="right")
 
-# --- Mouse click callback to add crosses interactively ---
-@viewer.mouse_drag_callbacks.append
-def on_click(viewer, event):
-    if event.type == 'mouse_press' and event.button == 1:
-        coords = np.round(event.position).astype(int)
-        points = points_layer.data.tolist()
-        points.append(coords)
-        points_layer.data = np.array(points)
-
-# --- Optional: Reset button ---
 @magicgui(call_button="Reset")
 def reset_button():
     points_layer.data = []
 
 viewer.window.add_dock_widget(reset_button, area="right")
 
-# --- Show the viewer ---
+def on_click(viewer, event):
+    if event.type == 'mouse_press' and event.button == 1:
+        coords = np.round(event.position).astype(int)
+        points = points_layer.data.tolist()
+        points.append(coords.tolist())
+        points_layer.data = np.array(points)
+
+
 napari.run()
