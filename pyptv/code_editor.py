@@ -140,3 +140,146 @@ class addparEditor(HasTraits):
             self.addparEditors.append(
                 codeEditor(Path(calOriParams.img_ori[i].replace("ori", "addpar")))
             )
+
+
+def minimal_napari():
+    """Create napari viewer with minimal interface - only central image viewer"""
+    import napari
+    from qtpy.QtWidgets import QTabWidget
+    
+    # Create viewer with minimal interface
+    viewer = napari.Viewer(show=False)  # Don't show yet
+    
+    # Hide default widgets/panels
+    viewer.window._qt_window.dockwidgets = {}  # Clear existing dock widgets
+    
+    # Remove default layer controls, console, etc.
+    for dock_widget in viewer.window._qt_window.findChildren(object):
+        if hasattr(dock_widget, 'setVisible') and hasattr(dock_widget, 'objectName'):
+            name = dock_widget.objectName()
+            if any(default in name.lower() for default in ['layer', 'console', 'activity']):
+                dock_widget.setVisible(False)
+    
+    # Create custom tab widget for all controls
+    tab_widget = QTabWidget()
+    
+    # Add orientation editor tab
+    ori_widget = open_ori_editor.Gui()
+    tab_widget.addTab(ori_widget.native, "Orientation Files")
+    
+    # Add additional parameters editor tab
+    addpar_widget = open_addpar_editor.Gui()
+    tab_widget.addTab(addpar_widget.native, "Additional Parameters")
+    
+    # Add the tab widget to the right side
+    viewer.window.add_dock_widget(
+        tab_widget, 
+        area='right', 
+        name='PTV Controls',
+        allowed_areas=['right', 'left']
+    )
+    
+    # Show the viewer
+    viewer.show()
+    
+    return viewer, tab_widget
+
+
+def custom_napari_app():
+    """Run napari with custom tabbed interface"""
+    import sys
+    
+    # Create minimal napari viewer
+    viewer, tab_widget = minimal_napari()
+    
+    # If path provided as command line argument
+    if len(sys.argv) > 1 and not sys.argv[1].startswith("-"):
+        project_path = Path(sys.argv[1])
+        if project_path.exists():
+            print(f"Opening project: {project_path}")
+            # Set default paths in the tab widgets
+            ori_widget = tab_widget.widget(0)  # Orientation tab
+            addpar_widget = tab_widget.widget(1)  # Addpar tab
+            
+            if hasattr(ori_widget, 'path'):
+                ori_widget.path.value = project_path
+            if hasattr(addpar_widget, 'path'):
+                addpar_widget.path.value = project_path
+    
+    # Start napari
+    napari.run()
+    
+    return viewer
+
+
+def main():
+    """Main function to run the code editor"""
+    import sys
+    
+    # Check run mode
+    standalone = "--standalone" in sys.argv or "-s" in sys.argv
+    minimal = "--minimal" in sys.argv or "-m" in sys.argv
+    
+    if standalone:
+        # ...existing code...
+        print("Running in standalone mode...")
+        # ...existing standalone code...
+        
+    elif minimal:
+        # Run napari with minimal interface and custom tabs
+        print("Running napari with minimal interface...")
+        custom_napari_app()
+        
+    else:
+        # ...existing code...
+        print("Running with napari...")
+        # ...existing napari code...
+
+
+# Alternative approach - completely custom napari setup
+def create_clean_napari():
+    """Create napari viewer with completely clean interface"""
+    import napari
+    from qtpy.QtWidgets import QTabWidget, QWidget, QVBoxLayout
+    
+    # Create viewer
+    viewer = napari.Viewer(show=False)
+    
+    # Access the main window
+    main_window = viewer.window._qt_window
+    
+    # Remove all default dock widgets
+    for dock in main_window.findChildren(object):
+        if hasattr(dock, 'setVisible') and 'dock' in str(type(dock)).lower():
+            dock.setVisible(False)
+            dock.deleteLater()
+    
+    # Create main container for custom widgets
+    custom_container = QWidget()
+    custom_layout = QVBoxLayout(custom_container)
+    
+    # Create tab widget
+    tabs = QTabWidget()
+    
+    # Add custom tabs
+    ori_tab = open_ori_editor.Gui()
+    tabs.addTab(ori_tab.native, "Orientation")
+    
+    addpar_tab = open_addpar_editor.Gui()  
+    tabs.addTab(addpar_tab.native, "Parameters")
+    
+    # You can add more custom tabs here
+    # tabs.addTab(some_other_widget, "Analysis")
+    # tabs.addTab(another_widget, "Calibration")
+    
+    custom_layout.addWidget(tabs)
+    
+    # Add to napari as single dock widget
+    viewer.window.add_dock_widget(
+        custom_container,
+        area='right',
+        name='PTV Tools'
+    )
+    
+    viewer.show()
+    return viewer, tabs
