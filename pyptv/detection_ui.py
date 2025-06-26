@@ -9,143 +9,147 @@ from optv.image_processing import preprocess_image
 
 from pathlib import Path
 from optv.segmentation import target_recognition
+from magicgui.widgets import Slider, Container, CheckBox, PushButton, Widget, Slider as MGSlider
 
 
 # --- Globals ---
 tpar = TargetParams()
-cpar = ControlParams(num_cam=1) # one image for now
-current_image = None
+cpar = ControlParams(1) # one image for now
 
 # --- Napari viewer and points layer ---
 viewer = napari.Viewer()
-points_layer = viewer.add_points([], size=8, face_color='orange', name='Detections')
 
-# --- 1. Image path and load image ---
-@magicgui(call_button="Load Image", image_path={"mode": "r"})
-def load_image(image_path=Path(".")):
-    global current_image
-    if not image_path.exists():
-        print("Image file does not exist!")
-        return
-    img = imread(str(image_path))
-    if img.ndim == 3:
-        img = rgb2gray(img)
 
-    if img.dtype != np.uint8:
-        img = img_as_ubyte(img)  # Ensure image is in uint8 format
+# --- 2. Preprocessing widget (Highpass/Inverse/Apply) ---
 
-    imx, imy = img.shape
-    cpar.set_image_size(imx, imy)
+# State variable to track if detection has been run
+_detection_enabled = {'value': False}
 
-    current_image = img
-    # Remove previous image layers
-    for l in list(viewer.layers):
-        if isinstance(l, napari.layers.Image):
-            viewer.layers.remove(l)
-    viewer.add_image(img, name=image_path.name)
-    run_detection()
+# Preprocessing widget
+highpass_cb = CheckBox(text="Highpass")
+inverse_cb = CheckBox(text="Inverse")
+apply_btn = PushButton(text="Apply")
 
-viewer.window.add_dock_widget(load_image, area="right")
+# --- 3. Detect dots button ---
+detect_btn = PushButton(text="Detect dots")
 
-# --- 2. Highpass and Inverse image checkboxes ---
-@magicgui(call_button="Apply", highpass={"label": "Highpass"}, inverse={"label": "Inverse"})
-def image_options(highpass: bool = False, inverse: bool = False):
-    global current_image
-    if current_image is None:
-        print("No image loaded.")
-        return
-    img = current_image.copy()
-    # Use ptv's preprocessing for highpass/inverse
-    if inverse: 
-        img = 255 - img  # Inverse the image
-    if highpass:
-        img = preprocess_image(img, 0, cpar, 3)
+# --- 4. Sliders for tpar (initially disabled) ---
+tpar_sliders = {
+    'threshold': MGSlider(label="Threshold", min=0, max=255, value=50, enabled=False),
+    'min_npix': MGSlider(label="Min npix", min=0, max=100, value=5, enabled=False),
+    'max_npix': MGSlider(label="Max npix", min=1, max=500, value=100, enabled=False),
+    'min_npix_x': MGSlider(label="Min npix in x", min=1, max=50, value=2, enabled=False),
+    'max_npix_x': MGSlider(label="Max npix in x", min=1, max=100, value=20, enabled=False),
+    'min_npix_y': MGSlider(label="Min npix in y", min=1, max=50, value=2, enabled=False),
+    'max_npix_y': MGSlider(label="Max npix in y", min=1, max=100, value=20, enabled=False),
+    'disco': MGSlider(label="Discontinuity", min=0, max=255, value=10, enabled=False),
+    'sum_of_grey': MGSlider(label="Sum of greyvalue", min=0, max=1000, value=100, enabled=False),
+}
 
-    # Remove previous processed image layers
-    for l in list(viewer.layers):
-        if l.name == "Processed Image":
-            viewer.layers.remove(l)
-    processed_layer = viewer.add_image(img, name="Processed Image", visible=True)
-    viewer.layers.selection.active = processed_layer  # Make it active
-
-    run_detection()
-
-viewer.window.add_dock_widget(image_options, area="right")
-
-# --- 3. Detection parameter sliders (from tpar) ---
-@magicgui(
-    call_button="Update Parameters",
-    threshold={"label": "Threshold", "min": 0, "max": 255, "widget_type": "Slider"},
-    min_npix={"label": "Min npix", "min": 0, "max": 100, "widget_type": "Slider"},
-    max_npix={"label": "Max npix", "min": 1, "max": 500, "widget_type": "Slider"},
-    min_npix_x={"label": "Min npix in x", "min": 1, "max": 50, "widget_type": "Slider"},
-    max_npix_x={"label": "Max npix in x", "min": 1, "max": 100, "widget_type": "Slider"},
-    min_npix_y={"label": "Min npix in y", "min": 1, "max": 50, "widget_type": "Slider"},
-    max_npix_y={"label": "Max npix in y", "min": 1, "max": 100, "widget_type": "Slider"},
-    disco={"label": "Discontinuity", "min": 0, "max": 255, "widget_type": "Slider"},
-    sum_of_grey={"label": "Sum of greyvalue", "min": 0, "max": 1000, "widget_type": "Slider"},
-)
-def tpar_controls(
-    threshold=50,
-    min_npix=5,
-    max_npix=100,
-    min_npix_x=2,
-    max_npix_x=20,
-    min_npix_y=2,
-    max_npix_y=20,
-    disco=10,
-    sum_of_grey=100,
-):
-    # Use the correct setters as in detection_gui.py
-    tpar.set_grey_thresholds([threshold])
-    tpar.set_pixel_count_bounds([min_npix, max_npix])
-    tpar.set_xsize_bounds([min_npix_x, max_npix_x])
-    tpar.set_ysize_bounds([min_npix_y, max_npix_y])
-    tpar.set_max_discontinuity(disco)
-    tpar.set_min_sum_grey(sum_of_grey)
-    run_detection()
-
-viewer.window.add_dock_widget(tpar_controls, area="right")
-
-# --- 4. Detection logic ---
-def run_detection():
+# --- Utility: get the single image layer ---
+def get_single_image_layer():
     image_layers = [l for l in viewer.layers if isinstance(l, napari.layers.Image)]
     if not image_layers:
-        print("No image loaded!")
+        print("No image layer found!")
+        return None
+    return image_layers[-1]
+
+# --- Preprocessing logic ---
+def apply_preprocessing():
+    img_layer = get_single_image_layer()
+    if img_layer is None:
         return
-    img = image_layers[-1].data
-    # Dummy cpar, cals for demonstration; replace with real ones as needed
+    img = img_layer.data.copy()
+    if img.ndim == 3 and img.shape[2] == 3:  # RGB image
+        img = rgb2gray(img)  # Convert to grayscale
+    
+    img = img_as_ubyte(img)  # Convert to uint8
+    cpar.set_image_size([img.shape[1],img.shape[0]])  # Set image size for control parameters
+    if inverse_cb.value:
+        img = 255 - img
+    if highpass_cb.value:
+        img = preprocess_image(img, 0, cpar, 3)
+    # Replace image data in the same layer
+    img_layer.data = img
+    # Remove all other image layers except this one
+    for l in list(viewer.layers):
+        if isinstance(l, napari.layers.Image) and l is not img_layer:
+            viewer.layers.remove(l)
+    # After preprocessing, reset detection state
+    _detection_enabled['value'] = False
+    for s in tpar_sliders.values():
+        s.enabled = False
+    # points_layer.data = np.empty((0, 2))
+
+apply_btn.clicked.connect(apply_preprocessing)
+
+# --- Detection logic ---
+def run_detection_and_enable_sliders():
+    img_layer = get_single_image_layer()
+    # Check if points layer exists; if not, create it
+    points_layer = None
+    for l in viewer.layers:
+        if isinstance(l, napari.layers.Points) and l.name == 'Detections':
+            points_layer = l
+            break
+    if points_layer is None:
+        points_layer = viewer.add_points([], size=8, face_color='orange', name='Detections')
+
+    if img_layer is None:
+        return
+    img = img_layer.data
+    # Set tpar from sliders
+    tpar.set_grey_thresholds([tpar_sliders['threshold'].value])
+    tpar.set_pixel_count_bounds([tpar_sliders['min_npix'].value, tpar_sliders['max_npix'].value])
+    tpar.set_xsize_bounds([tpar_sliders['min_npix_x'].value, tpar_sliders['max_npix_x'].value])
+    tpar.set_ysize_bounds([tpar_sliders['min_npix_y'].value, tpar_sliders['max_npix_y'].value])
+    tpar.set_max_discontinuity(tpar_sliders['disco'].value)
+    tpar.set_min_sum_grey(tpar_sliders['sum_of_grey'].value)
     try:
-        targs = target_recognition(img,tpar, 0, cpar)
+        targs = target_recognition(img, tpar, 0, cpar)
         targs.sort_y()
         x = [i.pos()[0] for i in targs]
         y = [i.pos()[1] for i in targs]
         points_layer.data = np.stack([y, x], axis=1) if x and y else np.empty((0, 2))
+        # Enable sliders after first detection
+        if not _detection_enabled['value']:
+            for s in tpar_sliders.values():
+                s.enabled = True
+            _detection_enabled['value'] = True
     except Exception as e:
         print(f"Detection failed: {e}")
         points_layer.data = np.empty((0, 2))
 
-# --- 5. Manual cross addition and reset ---
-@magicgui(call_button="Add Cross", x={"label": "X"}, y={"label": "Y"})
-def add_cross(x: int = 0, y: int = 0):
-    points = points_layer.data.tolist()
-    points.append([y, x])
-    points_layer.data = np.array(points)
+    # Move points layer to the top
+    if points_layer in viewer.layers:
+        viewer.layers.move(viewer.layers.index(points_layer), len(viewer.layers) - 1)
 
-viewer.window.add_dock_widget(add_cross, area="right")
+detect_btn.clicked.connect(run_detection_and_enable_sliders)
 
-@magicgui(call_button="Reset")
-def reset_button():
-    points_layer.data = []
+# --- Slider event: auto-detect after first detection ---
+def on_slider_change(event=None):
+    if _detection_enabled['value']:
+        run_detection_and_enable_sliders()
 
-viewer.window.add_dock_widget(reset_button, area="right")
+for s in tpar_sliders.values():
+    s.changed.connect(on_slider_change)
 
-def on_click(viewer, event):
-    if event.type == 'mouse_press' and event.button == 1:
-        coords = np.round(event.position).astype(int)
-        points = points_layer.data.tolist()
-        points.append(coords.tolist())
-        points_layer.data = np.array(points)
+# --- Compose the UI ---
+preproc_container = Container(widgets=[highpass_cb, inverse_cb, apply_btn])
+sliders_container = Container(widgets=list(tpar_sliders.values()))
+
+main_container = Container(widgets=[preproc_container, detect_btn, sliders_container])
+viewer.window.add_dock_widget(main_container, area="right", name="Detection Controls")
+
+# --- Points layer already created above ---
+
+# # --- Optional: mouse click to add points (if desired) ---
+# def on_click(viewer, event):
+#     if event.type == 'mouse_press' and event.button == 1:
+#         coords = np.round(event.position).astype(int)
+#         points = points_layer.data.tolist()
+#         points.append(coords.tolist())
+#         points_layer.data = np.array(points)
 
 
 napari.run()
