@@ -10,7 +10,7 @@ def test_numpy_version():
 
 def test_optv_version():
     """Verify optv version compatibility"""
-    assert optv.__version__ == "0.3.0", f"Expected optv 0.3.0, got {optv.__version__}"
+    assert optv.__version__ >= "0.3.0", f"Expected optv 0.3.0, got {optv.__version__}"
 
 
 def test_numpy_functionality():

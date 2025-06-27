@@ -92,7 +92,7 @@ class Clicker(ImageInspectorTool):
             self.x, self.y = plot.map_index((event.x, event.y))
             self.last_mouse_position = (event.x, event.y)
             self.data_value = plot.value.data[self.y, self.x]
-            print(f"normal right down: x={self.x}, y={self.y}, I={self.data_value}")
+            #  print(f"normal right down: x={self.x}, y={self.y}, I={self.data_value}")
             self.right_changed = 1 - self.right_changed
 
     # def normal_mouse_move(self, event):
@@ -110,7 +110,7 @@ class CameraWindow(HasTraits):
     """
 
     _plot = Instance(Plot)
-    _click_tool = Instance(Clicker)
+    # _click_tool = Instance(Clicker)
     rclicked = Int(0)
 
     cam_color = ""
@@ -189,14 +189,14 @@ class CameraWindow(HasTraits):
         on the screen
         """
         print(
-            f"x={self._click_tool.x} pix,y={self._click_tool.y} pix,I={self._click_tool.data_value}"
+            f"left click in {self.name} x={self._click_tool.x} pix,y={self._click_tool.y} pix,I={self._click_tool.data_value}"
         )
 
     def right_clicked_event(self):
         """right mouse button click event flag"""
         # # self._click_tool.right_changed = 1
         print(
-            f"right_clicked, x={self._click_tool.x} pix,y={self._click_tool.y} pix, I={self._click_tool.data_value}, {self.rclicked}"
+            f"right click in {self.name}, x={self._click_tool.x},y={self._click_tool.y}, I={self._click_tool.data_value}, {self.rclicked}"
         )
         self.rclicked = 1
 
@@ -1297,11 +1297,12 @@ class MainGUI(HasTraits):
         """
         num_points = 2
 
-        try:
-            _ = self.sorted_pos
+
+        if hasattr(self, "sorted_pos") and self.sorted_pos is not None:
             plot_epipolar = True
-        except Exception:
+        else:
             plot_epipolar = False
+
 
         if plot_epipolar:
             i = self.current_camera
