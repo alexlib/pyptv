@@ -862,97 +862,71 @@ class TreeMenuHandler(Handler):
         print("Finished detect_part_track")
 
     def traject_action_flowtracks(self, info):
-        """Shows trajectories reading and organizing by flowtracks
-
-        Args:
-            info (_type_): _description_
-        """
-
-        info.object.clear_plots(remove_background=False)  # clear everything
+        """Shows trajectories reading and organizing by flowtracks"""
+        
+        # Clear and setup plots
+        info.object.clear_plots(remove_background=False)
         info.object.update_plots(info.object.orig_image, is_float=False)
-
+        
         seq_first = info.object.exp1.active_params.m_params.Seq_First
         seq_last = info.object.exp1.active_params.m_params.Seq_Last
-        # info.object.load_set_seq_image(seq_first, display_only=True)
         info.object.overlay_set_images(seq_first, seq_last)
-
+        
+        # Load trajectory data
         from flowtracks.io import trajectories_ptvis
-
         dataset = trajectories_ptvis(
-            "res/ptv_is.%d", first=seq_first, last=seq_last, xuap=False, traj_min_len=3
+            "res/ptv_is.%d", 
+            first=seq_first, 
+            last=seq_last, 
+            xuap=False, 
+            traj_min_len=3
         )
-
-        heads_x, heads_y = [], []
-        tails_x, tails_y = [], []
-        ends_x, ends_y = [], []
-        trajids = []
-        for i_cam in range(info.object.n_cams):
-            head_x, head_y = [], []
-            tail_x, tail_y = [], []
-            end_x, end_y = [], []
-            trajid = []
-            for traj in dataset:
-                # projected = optv.imgcoord.image_coordinates(
-                #     np.atleast_2d(traj.pos()[0]*1000),
-                #     info.object.cals[i_cam],
-                #     info.object.cpar.get_multimedia_params(),
-                # )
-                # pos = optv.transforms.convert_arr_metric_to_pixel(
-                #     projected, info.object.cpar)
-
-                # head_x.append(pos[0][0])
-                # head_y.append(pos[0][1])
-
+        
+        # Pre-allocate lists for all cameras
+        n_cams = info.object.n_cams
+        heads_x = [[] for _ in range(n_cams)]
+        heads_y = [[] for _ in range(n_cams)]
+        tails_x = [[] for _ in range(n_cams)]
+        tails_y = [[] for _ in range(n_cams)]
+        ends_x = [[] for _ in range(n_cams)]
+        ends_y = [[] for _ in range(n_cams)]
+        trajids = [[] for _ in range(n_cams)]
+        
+        # Process each trajectory once
+        for traj in dataset:
+            traj_pos = traj.pos() * 1000  # Convert to mm once
+            traj_id = traj.trajid()
+            
+            # Project to each camera
+            for i_cam in range(n_cams):
                 projected = optv.imgcoord.image_coordinates(
-                    np.atleast_2d(traj.pos() * 1000),
+                    np.atleast_2d(traj_pos),
                     info.object.cals[i_cam],
                     info.object.cpar.get_multimedia_params(),
                 )
                 pos = optv.transforms.convert_arr_metric_to_pixel(
                     projected, info.object.cpar
                 )
-
-                head_x.append(pos[0, 0])  # first row
-                head_y.append(pos[0, 1])
-                tail_x.extend(list(pos[1:-1, 0]))  # all other rows,
-                tail_y.extend(list(pos[1:-1, 1]))
-                end_x.append(pos[-1, 0])
-                end_y.append(pos[-1, 1])
-                trajid.append(traj.trajid())
-
-            heads_x.append(head_x)
-            heads_y.append(head_y)
-            tails_x.append(tail_x)
-            tails_y.append(tail_y)
-            ends_x.append(end_x)
-            ends_y.append(end_y)
-            trajids.append(trajid)
-
-
+                
+                # Categorize points
+                if len(pos) > 0:
+                    heads_x[i_cam].append(pos[0, 0])
+                    heads_y[i_cam].append(pos[0, 1])
+                    trajids[i_cam].append(traj_id)
+                    
+                    if len(pos) > 2:  # Has middle points
+                        tails_x[i_cam].extend(pos[1:-1, 0])
+                        tails_y[i_cam].extend(pos[1:-1, 1])
+                    
+                    if len(pos) > 1:  # Has end point different from start
+                        ends_x[i_cam].append(pos[-1, 0])
+                        ends_y[i_cam].append(pos[-1, 1])
+    
+        # Visualize results
         info.object.drawcross_in_all_cams("heads_x", "heads_y", heads_x, heads_y, "red", 3)
         info.object.drawcross_in_all_cams("tails_x", "tails_y", tails_x, tails_y, "green", 3)
         info.object.drawcross_in_all_cams("ends_x", "ends_y", ends_x, ends_y, "orange", 3)
         info.object.plot_num_overlay_in_all_cams(heads_x, heads_y, trajids)
-
-
-        # for i_cam in range(info.object.n_cams):
-
-        #     info.object.camera_list[i_cam].drawcross(
-        #         "heads_x", "heads_y", heads_x[i_cam], heads_y[i_cam], "red", 3
-        #     )
-        #     info.object.camera_list[i_cam].drawcross(
-        #         "tails_x", "tails_y", tails_x[i_cam], tails_y[i_cam], "green", 3
-        #     )
-        #     info.object.camera_list[i_cam].drawcross(
-        #         "ends_x", "ends_y", ends_x[i_cam], ends_y[i_cam], "orange", 3
-        #     )
-            # info.object.camera_list[i_cam]._plot.overlays = []
-            # if info.object.camera_list[i_cam]._plot.overlays is not None:
-            #     info.object.camera_list[i_cam]._plot.overlays.clear()  # type: ignore
-            # info.object.camera_list[i_cam].plot_num_overlay(heads_x[i_cam], heads_y[i_cam], trajids[i_cam])
-
-            # info.object.camera_list[i_cam]._plot.request_redraw()
-            
 
     def plugin_action(self, info):
         """Configure plugins by using GUI"""
