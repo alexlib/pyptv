@@ -60,49 +60,23 @@ class ClickerTool(ImageInspectorTool):
     x = 0
     y = 0
 
-    def normal_left_down(self, event):
-        """Handles the left mouse button being clicked.
-        Fires the **new_value** event with the data (if any) from the event's
-        position.
-        """
-        plot = self.component
-        if plot is not None:
-            ndx = plot.map_index((event.x, event.y))
-
-            x_index, y_index = ndx
-            # image_data = plot.value
-            self.x = x_index
-            self.y = y_index
-            print(self.x)
-            print(self.y)
-            self.left_changed = 1 - self.left_changed
-            self.last_mouse_position = (event.x, event.y)
-
-    def normal_right_down(self, event):
-        plot = self.component
-        if plot is not None:
-            ndx = plot.map_index((event.x, event.y))
-
-            x_index, y_index = ndx
-            # image_data = plot.value
-            self.x = x_index
-            self.y = y_index
-
-            self.right_changed = 1 - self.right_changed
-            print(self.x)
-            print(self.y)
-
-            self.last_mouse_position = (event.x, event.y)
-
-    def normal_mouse_move(self, event):
-        pass
 
     def __init__(self, *args, **kwargs):
         super(ClickerTool, self).__init__(*args, **kwargs)
 
+    def normal_left_down(self, event):
+        if self.component is not None:
+            self.x, self.y = self.component.map_index((event.x, event.y)) # type: ignore
+            self.left_changed = 1 - self.left_changed
+            self.last_mouse_position = (event.x, event.y)
 
-# ----------------------------------------------------------
+    def normal_right_down(self, event):
+        if self.component is not None:
+            self.x, self.y = self.component.map_index((event.x, event.y))  # type: ignore
+            self.right_changed = 1 - self.right_changed
+            self.last_mouse_position = (event.x, event.y)
 
+# -------------------------------------------------------------
 
 class PlotWindow(HasTraits):
     _plot = Instance(Plot)
@@ -122,7 +96,10 @@ class PlotWindow(HasTraits):
         self._x, self._y = [], []
         self.man_ori = [1, 2, 3, 4]
         self._plot = Plot(self._plot_data, default_origin="top left")
-        self._plot.padding = (padd, padd, padd, padd)
+        self._plot.padding_left = padd
+        self._plot.padding_right = padd
+        self._plot.padding_top = padd
+        self._plot.padding_bottom = padd
         # self._quiverplots = []
 
         # -------------------------------------------------------------
@@ -137,7 +114,7 @@ class PlotWindow(HasTraits):
 
         self.drawcross("coord_x", "coord_y", self._x, self._y, "red", 5)
 
-        if self._plot.overlays is not None:
+        if self._plot.overlays is not None: # type: ignore
             self._plot.overlays.clear()  # type: ignore
         self.plot_num_overlay(self._x, self._y, self.man_ori)
 
@@ -150,7 +127,7 @@ class PlotWindow(HasTraits):
             print(self._x, self._y)
 
             self.drawcross("coord_x", "coord_y", self._x, self._y, "red", 5)
-            if self._plot.overlays is not None:
+            if self._plot.overlays is not None: # type: ignore
                 self._plot.overlays.clear()  # type: ignore
             self.plot_num_overlay(self._x, self._y, self.man_ori)
         else:
@@ -316,6 +293,7 @@ class CalibrationGUI(HasTraits):
     status_text = Str("")
     ori_cam_name = []
     ori_cam = []
+    num_cams = Int(0)
     pass_init = Bool(False)
     pass_sortgrid = Bool(False)
     pass_raw_orient = Bool(False)
