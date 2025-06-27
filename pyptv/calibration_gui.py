@@ -1288,8 +1288,7 @@ class CalibrationGUI(HasTraits):
     def _read_cal_points(self):
         return np.atleast_1d(
             np.loadtxt(
-                self.calParams.fixp_name,
-                # delimiter='\t',
+                str(self.calParams.fixp_name),
                 dtype=[("id", "i4"), ("pos", "3f8")],
                 skiprows=0,
             )
@@ -1299,10 +1298,16 @@ class CalibrationGUI(HasTraits):
 if __name__ == "__main__":
     import sys
 
-    if len(sys.argv) == 1:
-        active_path = Path("../test_cavity/parametersRun3")
-    else:
-        active_path = Path(sys.argv[0])
+    if len(sys.argv) != 2:
+        print("Usage: python calibration_gui.py <parameters_file>")
+        sys.exit(1)
 
-    calib_gui = CalibrationGUI(active_path)
+    active_param_path = Path(sys.argv[1]).resolve()
+    if not active_param_path.exists():
+        print(f"Error: Parameter folder '{active_param_path}' does not exist.")
+        sys.exit(1)
+
+    print(f"Using active path: {active_param_path}")
+
+    calib_gui = CalibrationGUI(active_param_path)
     calib_gui.configure_traits()
