@@ -1117,52 +1117,63 @@ tree_editor_exp = TreeEditor(
     editable=False,
 )
 
+import json
+from pathlib import Path
 
 # -------------------------------------------------------------------------
 class Plugins(HasTraits):
-    track_list = List
-    seq_list = List
-    track_alg = Enum(values="track_list")
-    sequence_alg = Enum(values="seq_list")
+    track_alg = Enum('default')
+    sequence_alg = Enum('default')
+    
     view = View(
-        Group(
-            Item(name="track_alg", label="Choose tracking algorithm:"),
-            Item(name="sequence_alg", label="Choose sequence algorithm:"),
-        ),
+        Item(name="track_alg", label="Tracking:"),
+        Item(name="sequence_alg", label="Sequence:"),
         buttons=["OK"],
-        title="External plugins configuration",
+        title="Plugins",
     )
 
     def __init__(self):
         self.read()
 
     def read(self):
-        # reading external tracking
-        tracking_plugins = os.path.join(
-            os.path.abspath(os.curdir), "tracking_plugins.txt"
-        )
-        sequence_plugins = os.path.join(
-            os.path.abspath(os.curdir), "sequence_plugins.txt"
-        )
-        print("Reading external plugins lists")
-        print(f"Reading from {tracking_plugins}, {sequence_plugins}")
-
-        # Initialize with default
-        # self.track_list = ["default"]
-        # self.seq_list = ["default"]
-        # Now if we include in the file 'default' it will be 
-        # for default sequence, all other will be external plugins
-        self.track_list = []
-        self.seq_list = []
-        # Add additional plugins if files exist
-        if os.path.exists(tracking_plugins):
-            with open(tracking_plugins, "r", encoding="utf8") as f:
-                self.track_list.extend(f.read().split("\n"))
-
-        if os.path.exists(sequence_plugins):
-            with open(sequence_plugins, "r", encoding="utf8") as f:
-                self.seq_list.extend(f.read().split("\n"))
-
+        config_file = Path.cwd() / "plugins.json"
+        
+        if config_file.exists():
+            try:
+                with open(config_file, 'r') as f:
+                    config = json.load(f)
+                
+                # Update enum values
+                track_options = config.get('tracking', ['default'])
+                seq_options = config.get('sequence', ['default'])
+                
+                # Dynamically update the Enum
+                self.add_trait('track_alg', Enum(*track_options))
+                self.add_trait('sequence_alg', Enum(*seq_options))
+                
+                # Set defaults
+                self.track_alg = track_options[0]
+                self.sequence_alg = seq_options[0]
+                
+            except (json.JSONDecodeError, KeyError) as e:
+                print(f"Error reading plugins.json: {e}")
+                self._set_defaults()
+        else:
+            self._create_default_json()
+    
+    def _set_defaults(self):
+        self.track_alg = 'default'
+        self.sequence_alg = 'default'
+    
+    def _create_default_json(self):
+        default_config = {
+            "tracking": ["default"],
+            "sequence": ["default"]
+        }
+        
+        with open('plugins.json', 'w') as f:
+            json.dump(default_config, f, indent=2)
+        
 
 # ----------------------------------------------
 class MainGUI(HasTraits):
