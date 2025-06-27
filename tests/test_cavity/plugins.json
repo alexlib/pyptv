@@ -2,12 +2,13 @@
   "tracking": [
     "default",
     "ext_tracker_denis",
-    "neural"
+    "ext_tracker_splitter"
   ],
   "sequence": [
     "default",
     "ext_sequence_rembg",
     "ext_sequence_contour",
-    "ext_sequence_rembg_contour"
+    "ext_sequence_rembg_contour",
+    "ext_sequence_splitter"
   ]
 }
