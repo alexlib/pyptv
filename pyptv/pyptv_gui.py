@@ -482,6 +482,7 @@ class TreeMenuHandler(Handler):
         # if Splitter is True, we need to create a temporary image
         # get first image:
         if mainGui.exp1.active_params.m_params.Splitter:
+            print("Using Splitter, add plugins")
             imname = getattr(mainGui.exp1.active_params.m_params, f"Name_{1}_Image")
             if Path(imname).exists():
                 temp_img = imread(imname)
@@ -691,7 +692,7 @@ class TreeMenuHandler(Handler):
 
         extern_sequence = info.object.plugins.sequence_alg
         if extern_sequence != "default":
-            ptv.run_plugin(info.object)
+            ptv.run_sequence_plugin(info.object)
         else:
             ptv.py_sequence_loop(info.object)
 
@@ -700,27 +701,32 @@ class TreeMenuHandler(Handler):
         call tracking without display"""
         extern_tracker = info.object.plugins.track_alg
         if extern_tracker != "default":
-            try:
-                os.chdir(info.exp1.object.software_path)
-                track = importlib.import_module(extern_tracker)
-            except BaseException:
-                print(
-                    "Error loading "
-                    + extern_tracker
-                    + ". Falling back to default tracker"
-                )
-                extern_tracker = "default"
-            os.chdir(info.exp1.object.exp_path)  # change back to working path
-        if extern_tracker == "default":
+            ptv.run_tracking_plugin(info.object)
+            print("After plugin tracker")
+        else:
+            # try:
+            #         # Get the plugin directory path
+            #     plugin_dir = Path(os.getcwd()) / "plugins"
+            #     print(f"Plugins directory: {plugin_dir}")
+            #     track = importlib.import_module(extern_tracker)
+            # except BaseException:
+            #     print(
+            #         "Error loading "
+            #         + extern_tracker
+            #         + ". Falling back to default tracker"
+            #     )
+            #     extern_tracker = "default"
+            # os.chdir(info.exp1.object.exp_path)  # change back to working path
+        # if extern_tracker == "default":
             print("Using default liboptv tracker")
             info.object.tracker = ptv.py_trackcorr_init(info.object)
             info.object.tracker.full_forward()
-        else:
-            print("Tracking by using " + extern_tracker)
-            tracker = track.Tracking(ptv=ptv, exp1=info.object.exp1)
-            tracker.do_tracking()
+        # else:
+        #     print("Tracking by using " + extern_tracker)
+        #     tracker = track.Tracking(ptv=ptv, exp1=info.object.exp1)
+        #     tracker.do_tracking()
 
-        print("tracking without display finished")
+            print("tracking without display finished")
 
     def track_disp_action(self, info):
         """tracking with display is handled by TrackThread which does
@@ -1142,8 +1148,12 @@ class Plugins(HasTraits):
         print(f"Reading from {tracking_plugins}, {sequence_plugins}")
 
         # Initialize with default
-        self.track_list = ["default"]
-        self.seq_list = ["default"]
+        # self.track_list = ["default"]
+        # self.seq_list = ["default"]
+        # Now if we include in the file 'default' it will be 
+        # for default sequence, all other will be external plugins
+        self.track_list = []
+        self.seq_list = []
         # Add additional plugins if files exist
         if os.path.exists(tracking_plugins):
             with open(tracking_plugins, "r", encoding="utf8") as f:

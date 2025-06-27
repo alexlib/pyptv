@@ -10,7 +10,7 @@ import shutil
 import re
 from pathlib import Path
 import numpy as np
-from skimage.io import imread
+from imageio.v3 import imread
 from skimage.util import img_as_ubyte
 from skimage.color import rgb2gray
 
