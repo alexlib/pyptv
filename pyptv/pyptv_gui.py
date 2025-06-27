@@ -211,7 +211,7 @@ class CameraWindow(HasTraits):
         if is_float:
             self._plot_data.set_data("imagedata", image.astype(np.float32))
         else:
-            self._plot_data.set_data("imagedata", image.astype(np.uint8))
+            self._plot_data.set_data("imagedata", image)
 
         self._plot.img_plot("imagedata", colormap=gray)[0]
         self._plot.request_redraw()
@@ -458,7 +458,7 @@ class TreeMenuHandler(Handler):
     def open_action(self, info):
         directory_dialog = DirectoryEditorDialog()
         directory_dialog.edit_traits()
-        exp_path = directory_dialog.dir_name
+        exp_path = str(directory_dialog.dir_name)
         print(f"Changing experimental path to {exp_path}")
         os.chdir(exp_path)
         info.object.exp1.populate_runs(exp_path)
@@ -471,7 +471,7 @@ class TreeMenuHandler(Handler):
 
     def init_action(self, info):
         """init_action - clears existing plots from the camera windows,
-        initializes C image arrays with mainGui.orig_image and
+        initializes C image arrays with mainGui.orig_images and
         calls appropriate start_proc_c
          by using ptv.py_start_proc_c()
         """
@@ -479,33 +479,45 @@ class TreeMenuHandler(Handler):
         # synchronize the active run params dir with the temp params dir
         mainGui.exp1.syncActiveDir()
 
-        for i in range(len(mainGui.camera_list)):
-            try:
-                im = imread(
-                    getattr(
-                        mainGui.exp1.active_params.m_params,
-                        f"Name_{i + 1}_Image",
-                    )
-                )
-                if im.ndim > 2:
-                    im = rgb2gray(im)
+        # if Splitter is True, we need to create a temporary image
+        # get first image:
+        if mainGui.exp1.active_params.m_params.Splitter:
+            imname = getattr(mainGui.exp1.active_params.m_params, f"Name_{1}_Image")
+            if Path(imname).exists():
+                temp_img = imread(imname)
+                if temp_img.ndim > 2:
+                    im = rgb2gray(temp_img)                
+                splitted_images = ptv.image_split(temp_img)
+                for i in range(len(mainGui.camera_list)):
+                    mainGui.orig_images[i] = img_as_ubyte(splitted_images[i])
+        else: #not splitter, default case
+            for i in range(len(mainGui.camera_list)):
+                # check if file exists:
+                imname = getattr(mainGui.exp1.active_params.m_params, \
+                                 f"Name_{i + 1}_Image")
+                if Path(imname).exists():
+                    print(f"Reading image {imname}")
+                    im = imread(imname)
+                    if im.ndim > 2:
+                        im = rgb2gray(im)
+                else:
+                    print(f"Image {imname} does not exist, setting zero image")
+                    im = np.zeros(
+                        (mainGui.exp1.active_params.m_params.imy, 
+                        mainGui.exp1.active_params.m_params.imx),
+                            dtype=np.uint8
+                                )
+                    
+                mainGui.orig_images[i] = img_as_ubyte(im)
 
-                mainGui.orig_image[i] = img_as_ubyte(im)
-            except IOError:
-                print("Error reading image, setting zero image")
-                h_img = mainGui.exp1.active_params.m_params.imx
-                v_img = mainGui.exp1.active_params.m_params.imy
-                img_as_ubyte(np.zeros((v_img, h_img)))
-                # print(f"setting images of size {temp_img.shape}")
-                exec(f"mainGui.orig_image[{i}] = temp_img")
 
             if hasattr(mainGui.camera_list[i], "img_plot"):
                 del mainGui.camera_list[i].img_plot
         mainGui.clear_plots()
         print("\n Init action \n")
-        # mainGui.update_plots(mainGui.orig_image, is_float=False)
-        mainGui.create_plots(mainGui.orig_image, is_float=False)
-        # mainGui.set_images(mainGui.orig_image)
+        # mainGui.update_plots(mainGui.orig_images, is_float=False)
+        mainGui.create_plots(mainGui.orig_images, is_float=False)
+        # mainGui.set_images(mainGui.orig_images)
 
         (
             info.object.cpar,
@@ -531,20 +543,19 @@ class TreeMenuHandler(Handler):
 
     def highpass_action(self, info):
         """highpass_action - calls ptv.py_pre_processing_c() binding which
-        does highpass on working images (object.orig_image) that were set
+        does highpass on working images (object.orig_images) that were set
         with init action
         """
-        # I want to add here negative image if the parameter is set in the
-        # main parameters
+
         if info.object.exp1.active_params.m_params.Inverse:
-            # print("Invert image")
-            for i, im in enumerate(info.object.orig_image):
-                info.object.orig_image[i] = 255 - im
+            print("Invert image")
+            for i, im in enumerate(info.object.orig_images):
+                info.object.orig_images[i] = ptv.negative(im)
 
         if info.object.exp1.active_params.m_params.Subtr_Mask:
             print("Subtracting mask")
             try:
-                for i, im in enumerate(info.object.orig_image):
+                for i, im in enumerate(info.object.orig_images):
                     background_name = (
                         info.object.exp1.active_params.m_params.Base_Name_Mask.replace(
                             "#", str(i)
@@ -553,19 +564,19 @@ class TreeMenuHandler(Handler):
                     print(f"Subtracting {background_name}")
                     background = imread(background_name)
                     # im[mask] = 0
-                    info.object.orig_image[i] = np.clip(
-                        info.object.orig_image[i] - background, 0, 255
+                    info.object.orig_images[i] = np.clip(
+                        info.object.orig_images[i] - background, 0, 255
                     ).astype(np.uint8)
 
             except ValueError as exc:
                 raise ValueError("Failed subtracting mask") from exc
 
         print("highpass started")
-        info.object.orig_image = ptv.py_pre_processing_c(
-            info.object.orig_image, info.object.cpar
+        info.object.orig_images = ptv.py_pre_processing_c(
+            info.object.orig_images, info.object.cpar
         )
-        # info.object.update_plots(info.object.orig_image)
-        info.object.update_plots(info.object.orig_image)
+        # info.object.update_plots(info.object.orig_images)
+        info.object.update_plots(info.object.orig_images)
         print("highpass finished")
 
     def img_coord_action(self, info):
@@ -580,7 +591,7 @@ class TreeMenuHandler(Handler):
             info.object.detections,
             info.object.corrected,
         ) = ptv.py_detection_proc_c(
-            info.object.orig_image,
+            info.object.orig_images,
             info.object.cpar,
             info.object.tpar,
             info.object.cals,
@@ -746,7 +757,7 @@ class TreeMenuHandler(Handler):
         2) ptv.py_get_mark_track_c(..)
         """
         info.object.clear_plots(remove_background=False)  # clear everything
-        info.object.update_plots(info.object.orig_image, is_float=False)
+        info.object.update_plots(info.object.orig_images, is_float=False)
 
         prm = info.object.exp1.active_params.m_params
         seq_first = prm.Seq_First  # get sequence parameters
@@ -1206,7 +1217,7 @@ class MainGUI(HasTraits):
         self.exp1.populate_runs(exp_path)
         self.plugins = Plugins()
         self.n_cams = self.exp1.active_params.m_params.Num_Cam
-        self.orig_image = self.n_cams * [[]]
+        self.orig_images = self.n_cams * [[]]
         self.current_camera = 0
         self.camera_list = [
             CameraWindow(colors[i], f"Camera {i + 1}") for i in range(self.n_cams)

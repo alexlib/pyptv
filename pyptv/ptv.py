@@ -16,7 +16,7 @@ from typing import List, Tuple, Dict, Optional, Union, Any, Callable
 import numpy as np
 from scipy.optimize import minimize
 from skimage.io import imread
-from skimage import img_as_ubyte
+from skimage.util import img_as_ubyte
 from skimage.color import rgb2gray
 
 # OptV imports
@@ -37,13 +37,37 @@ from optv.tracker import Tracker, default_naming
 
 # PyPTV imports
 from pyptv import parameters as par
+import numpy as np
 
 # Constants
 NAMES = ["cc", "xh", "yh", "k1", "k2", "k3", "p1", "p2", "scale", "shear"]
 DEFAULT_FRAME_NUM = 123456789  # Default frame number instead of magic number 123456789
-DEFAULT_HIGHPASS_FILTER_SIZE = 25  # Default size for highpass filter
+DEFAULT_HIGHPASS_FILTER_SIZE = 1  # Default size for highpass filter
+DEFAULT_NO_FILTER = 0
 
 
+
+def image_split(img: np.ndarray, order = [0,1,3,2]) -> List[np.ndarray]:
+    """Split image into four quadrants.
+    """
+    print(f"Splitting {img.shape} into four quadrants of size {img.shape[0] // 2, img.shape[1] // 2}")
+
+    # these specific images have white borders due to the cross in the original image
+    # we need to remove it for the highpass
+
+    list_of_images = [
+        img[: img.shape[0] // 2, : img.shape[1] // 2],  # Top-left
+        img[: img.shape[0] // 2, img.shape[1] // 2:],  # Top-right
+        img[img.shape[0] // 2:, : img.shape[1] // 2],  # Bottom-left
+        img[img.shape[0] // 2:, img.shape[1] // 2:],  # Bottom-right
+    ]
+
+
+    # Reorder the quadrants if needed
+    list_of_images = [list_of_images[i] for i in order]
+
+    return list_of_images
+    
 def negative(img: np.ndarray) -> np.ndarray:
     """Convert an 8-bit image to its negative.
 
@@ -66,7 +90,8 @@ def simple_highpass(img: np.ndarray, cpar: ControlParams) -> np.ndarray:
     Returns:
         Highpass filtered image
     """
-    return preprocess_image(img, 0, cpar, DEFAULT_HIGHPASS_FILTER_SIZE)
+    # return python_preproccess_image(img)
+    return preprocess_image(img, DEFAULT_NO_FILTER, cpar, DEFAULT_HIGHPASS_FILTER_SIZE)
 
 
 def _read_calibrations(cpar: ControlParams, n_cams: int) -> List[Calibration]:
@@ -173,7 +198,7 @@ def py_start_proc_c(
 
 
 def py_pre_processing_c(
-    list_of_images: List[np.ndarray], cpar: ControlParams
+    list_of_images: List[np.ndarray], cpar: ControlParams, 
 ) -> List[np.ndarray]:
     """Apply pre-processing to a list of images.
 
@@ -187,9 +212,12 @@ def py_pre_processing_c(
     Returns:
         List of processed images
     """
+    # for some reason we cannot take directly from the list
     processed_images = []
-    for img in list_of_images:
-        processed_images.append(simple_highpass(img, cpar))
+    for i, img in enumerate(list_of_images):
+        # img_lp = img.copy() 
+        processed_images.append(simple_highpass(img.copy(), cpar))
+
     return processed_images
 
 

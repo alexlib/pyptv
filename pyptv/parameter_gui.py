@@ -445,6 +445,7 @@ class Main_Params(HasTraits):
     Base_Name_Mask = Str(DEFAULT_STRING, label="Base name for the mask")
     Existing_Target = Bool(False, label="Use existing_target files?")
     Inverse = Bool(False, label="Negative images?")
+    Splitter = Bool(False, label="Split images into 4?")
 
     # New panel 3: Sequence
     Seq_First = Int(DEFAULT_INT, label="First sequence image:")
@@ -455,12 +456,12 @@ class Main_Params(HasTraits):
     Basename_4_Seq = Str(DEFAULT_STRING, label="Basename for 4. sequence")
 
     # Panel 4: ObservationVolume
-    Xmin = Int(DEFAULT_FLOAT, label="Xmin")
-    Xmax = Int(DEFAULT_FLOAT, label="Xmax")
-    Zmin1 = Int(DEFAULT_FLOAT, label="Zmin")
-    Zmin2 = Int(DEFAULT_FLOAT, label="Zmin")
-    Zmax1 = Int(DEFAULT_FLOAT, label="Zmax")
-    Zmax2 = Int(DEFAULT_FLOAT, label="Zmax")
+    Xmin = Float(DEFAULT_FLOAT, label="Xmin")
+    Xmax = Float(DEFAULT_FLOAT, label="Xmax")
+    Zmin1 = Float(DEFAULT_FLOAT, label="Zmin")
+    Zmin2 = Float(DEFAULT_FLOAT, label="Zmin")
+    Zmax1 = Float(DEFAULT_FLOAT, label="Zmax")
+    Zmax2 = Float(DEFAULT_FLOAT, label="Zmax")
 
     # Panel 5: ParticleDetection
     Min_Corr_nx = Float(DEFAULT_FLOAT, label="min corr for ratio nx")
@@ -551,6 +552,7 @@ class Main_Params(HasTraits):
             Item(name="Existing_Target"),
             Item(name="HighPass", enabled_when="hp_enable_flag"),
             Item(name="Inverse"),
+            Item(name="Splitter"),
             orientation="horizontal",
         ),
         orientation="vertical",
