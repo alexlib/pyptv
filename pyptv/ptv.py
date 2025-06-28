@@ -503,7 +503,7 @@ def py_sequence_loop(exp) -> None:
                 # print(f'Image name {imname}')
 
                 if not imname.exists():
-                    print(f"{imname} does not exist")
+                    raise FileNotFoundError(f"{imname} does not exist")
                 else:
                     img = imread(imname)
                     if img.ndim > 2:
