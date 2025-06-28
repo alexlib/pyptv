@@ -1074,8 +1074,13 @@ After tracking, PyPTV provides tools for exporting and analyzing the results.
 Common export formats include:
 
 1. **Text/CSV Files:** Simple, human-readable format for track data.
-   - Easy to import into other software
-   - Columns typically include time, particle ID, 3D position, and possibly velocity
+  ```
+  # Example position data structure (text format)
+  frame_id particle_id x y z  # Header
+  1 1 x11 y11 z11            # Frame 1, Particle 1
+  1 2 x12 y12 z12            # Frame 1, Particle 2
+  ...
+  ```
 
 2. **HDF5:** A hierarchical data format for larger datasets.
    - More efficient for large experiments
@@ -1814,38 +1819,6 @@ For identifying transport barriers and mixing behaviors:
    - Implement pathline integration and property accumulation.
    - Useful for understanding mixing and transport phenomena.
 
-### Integration with External Tools
-
-Enhance PyPTV's capabilities by integrating with other software:
-
-#### Computational Fluid Dynamics (CFD)
-
-For comparison with numerical simulations:
-
-1. **Data Import/Export:**
-   - Implement parsers for common CFD formats (OpenFOAM, Fluent, etc.).
-   - Create tools for direct comparison between experimental and numerical results.
-   - Example: `compare_with_cfd(tracks, cfd_file, metrics=['velocity', 'vorticity'])`.
-
-2. **Combined Analysis:**
-   - Develop methods that leverage both experimental and numerical data.
-   - Implement data assimilation techniques for improved flow estimation.
-   - Could be a separate module or plugin system.
-
-#### Visualization Tools
-
-For advanced visualization beyond PyPTV's built-in capabilities:
-
-1. **ParaView/VisIt Integration:**
-   - Create exporters that generate native formats for these tools.
-   - Consider developing plugins that allow direct communication.
-   - Example: `export_to_paraview(tracks, filename, include_derived=True)`.
-
-2. **Web-based Visualization:**
-   - Implement exporters for web formats (WebGL, D3.js, etc.).
-   - Consider a lightweight web server component for interactive visualization.
-   - Could enable sharing and collaborative analysis of results.
-
 ### Implementing Advanced Features
 
 If you're interested in implementing any of these advanced features, here are some general guidelines:
@@ -1867,7 +1840,7 @@ If you're interested in implementing any of these advanced features, here are so
 
 4. **Testing and Validation:**
    - Create test cases with known results.
-   - Compare with existing methods when possible.
+   - Cross-check with existing methods when possible.
    - Consider synthetic data for controlled testing.
 
 5. **Performance Considerations:**
@@ -2154,7 +2127,7 @@ This section provides guidance for identifying and resolving common issues that 
 
 **Solutions:**
 1. **Reduce Epipolar Tolerance:**
-   Decrease tolerance to enforce stricter matching.
+   Decrease the maximum allowed distance to enforce stricter matching.
 
 2. **Increase Minimum Camera Requirement:**
    Require matches in more cameras for better reliability.
@@ -2785,6 +2758,9 @@ PyPTV uses various file formats for storing data at different stages of the PTV 
   cam1.%d    # Image name template for camera 1
   ...
   cam8.%d    # Image name template for camera 8
+  1000 1000
+  0 999
+  0 999
   ```
 
 - **Calibration Files (.cal):** Text files containing camera calibration parameters.
@@ -2829,9 +2805,9 @@ PyPTV uses various file formats for storing data at different stages of the PTV 
 
 #### Output Formats
 
-- **Position Data (.txt, .csv):** Text files containing 3D particle positions over time.
+- **Position Data (.txt, .csv):** Simple, human-readable format for track data.
   ```
-  # Example position data structure
+  # Example position data structure (text format)
   frame_id particle_id x y z  # Header
   1 1 x11 y11 z11            # Frame 1, Particle 1
   1 2 x12 y12 z12            # Frame 1, Particle 2
@@ -2916,13 +2892,9 @@ For users seeking a deeper understanding of PTV techniques and applications:
 
 3. Fuchs, T., Hain, R., & Kähler, C. J. (2016). "Non-iterative double-frame 2D/3D particle tracking velocimetry."
 
-#### Software and Implementation
+4. Kreizer, M., Ratner, D., & Liberzon, A. (2010). "Real-time image processing for particle tracking velocimetry."
 
-1. Elastomarans, W., & Adrian, R. J. (1991). "Evaluation of LDV performance using Cramer-Rao bound."
-
-2. Kreizer, M., Ratner, D., & Liberzon, A. (2010). "Real-time image processing for particle tracking velocimetry."
-
-3. Lüthi, B., Tsinober, A., & Kinzelbach, W. (2005). "Lagrangian measurement of vorticity dynamics in turbulent flow."
+5. Lüthi, B., Tsinober, A., & Kinzelbach, W. (2005). "Lagrangian measurement of vorticity dynamics in turbulent flow."
 
 ### Online Resources
 
@@ -2942,70 +2914,3 @@ For users seeking a deeper understanding of PTV techniques and applications:
    - ParaView (for visualization): [https://www.paraview.org/](https://www.paraview.org/)
    - OpenCV (for image processing): [https://opencv.org/](https://opencv.org/)
 
-### Version History
-
-A brief overview of major PyPTV versions and their key features:
-
-| Version | Release Date | Major Features |
-|---------|--------------|----------------|
-| 0.1.0   | [Date]       | Initial release with basic functionality |
-| 0.2.0   | [Date]       | Improved calibration, enhanced GUI |
-| ...     | ...          | ... |
-| Current | [Date]       | [Current major features] |
-
-*Note: Replace placeholder dates and features with actual information from the PyPTV project.*
-
-### Contributors and Acknowledgments
-
-PyPTV is the result of contributions from many individuals and organizations. Key contributors might include:
-
-1. **Core Development Team:**
-   - [Names of primary developers]
-
-2. **Contributors:**
-   - [Names of significant contributors]
-
-3. **Supporting Organizations:**
-   - [Names of universities, research institutes, or companies]
-
-4. **Funding Sources:**
-   - [Grants, sponsorships, or other funding acknowledgments]
-
-*Note: Replace placeholders with actual names and organizations from the PyPTV project.*
-
-### Example Parameter Files
-
-This section provides sample parameter files for common scenarios:
-
-#### Basic 4-Camera Setup
-
-```
-# cameras.par
-4
-cam1.%d
-cam2.%d
-cam3.%d
-cam4.%d
-1000 1000
-0 999
-0 999
-```
-
-#### Tracking Parameters
-
-```
-# tracking.par
-20.0      # Search radius
-2         # Prediction method (0=None, 1=Constant position, 2=Constant velocity)
-10        # Minimum track length
-0.1       # Acceleration limit
-5         # Maximum angle change
-```
-
-*Note: These are simplified examples; actual parameter files may contain more fields and differ in format.*
-
-By providing this comprehensive appendix, we aim to give users a quick reference for terminology, file formats, and parameters, as well as pointers to additional resources for learning more about PTV techniques and the PyPTV implementation.
-
----
-
-*This manual was generated for PyPTV: Python Particle Tracking Velocimetry software, which uses the OpenPTV C library and Cython bindings. For the latest information, please refer to the official repositories and documentation.*
