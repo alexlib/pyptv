@@ -133,3 +133,6 @@ class Sequence:
                 for pix, pt in enumerate(pos):
                     pt_args = (pix + 1,) + tuple(pt) + tuple(print_corresp[:, pix])
                     rt_is.write("%4d %9.3f %9.3f %9.3f %4d %4d %4d %4d\n" % pt_args)
+
+        
+        print("Sequence completed successfully")

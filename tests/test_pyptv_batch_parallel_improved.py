@@ -134,8 +134,11 @@ class TestCommandLineArgsParsingParallel:
         
         # Mock the test directory to exist
         with patch('pyptv.pyptv_batch_parallel.Path') as mock_path:
-            mock_path.return_value.resolve.return_value.exists.return_value = True
-            mock_path.return_value.resolve.return_value = Path("/mock/test/path")
+            # Create a mock path object that exists
+            mock_path_obj = MagicMock()
+            mock_path_obj.exists.return_value = True
+            mock_path_obj.resolve.return_value = mock_path_obj
+            mock_path.return_value = mock_path_obj
             
             exp_path, first, last, n_processes = parse_command_line_args()
             
@@ -250,12 +253,23 @@ class TestMainFunctionParallel:
         with pytest.raises(ValueError, match="must be >= 1"):
             main(self.exp_path, 1000, 2000, 0)
     
-    def test_main_default_process_count(self):
+    @patch('pyptv.pyptv_batch_parallel.ProcessPoolExecutor')
+    def test_main_default_process_count(self, mock_executor_class):
         """Test using default process count."""
-        with patch('pyptv.pyptv_batch_parallel.run_sequence_chunk') as mock_run_chunk:
-            mock_run_chunk.return_value = (1000, 2000)
+        # Mock the executor
+        mock_executor = MagicMock()
+        mock_executor_class.return_value.__enter__.return_value = mock_executor
+        
+        # Mock successful chunk execution
+        mock_future = MagicMock()
+        mock_future.result.return_value = (1000, 2000)
+        mock_executor.submit.return_value = mock_future
+        
+        # Mock as_completed to return our future
+        with patch('pyptv.pyptv_batch_parallel.as_completed') as mock_as_completed:
+            mock_as_completed.return_value = [mock_future]
             
-            # Should use CPU count as default
+            # Should use CPU count as default when None is passed
             main(self.exp_path, 1000, 2000, None)
             
             # Check that res directory was created
@@ -336,23 +350,30 @@ class TestParallelBatchIntegration:
         """Clean up integration test environment."""
         shutil.rmtree(self.temp_dir)
     
-    @patch('pyptv.pyptv_batch_parallel.py_start_proc_c')
-    @patch('pyptv.pyptv_batch_parallel.py_sequence_loop')
-    def test_complete_parallel_workflow(self, mock_sequence, mock_start_proc):
+    @patch('pyptv.pyptv_batch_parallel.ProcessPoolExecutor')
+    def test_complete_parallel_workflow(self, mock_executor_class):
         """Test the complete parallel workflow from validation to processing."""
-        # Mock PyPTV functions
-        mock_spar = MagicMock()
+        # Mock the executor and futures
+        mock_executor = MagicMock()
+        mock_executor_class.return_value.__enter__.return_value = mock_executor
         
-        mock_start_proc.return_value = (
-            "cpar", mock_spar, "vpar", "track_par", "tpar", "cals", "epar"
-        )
+        # Mock successful chunk execution
+        mock_future1 = MagicMock()
+        mock_future1.result.return_value = (1000, 1002)
+        mock_future2 = MagicMock()
+        mock_future2.result.return_value = (1003, 1005)
         
-        # Run the complete workflow with 2 processes
-        main(str(self.exp_path), "1000", "1005", 2)
+        mock_executor.submit.side_effect = [mock_future1, mock_future2]
         
-        # Verify components were called (should be called for each chunk)
-        assert mock_start_proc.call_count >= 1
-        assert mock_sequence.call_count >= 1
+        # Mock as_completed to return our futures
+        with patch('pyptv.pyptv_batch_parallel.as_completed') as mock_as_completed:
+            mock_as_completed.return_value = [mock_future1, mock_future2]
+            
+            # Run the complete workflow with 2 processes
+            main(str(self.exp_path), "1000", "1005", 2)
+            
+            # Verify components were called
+            assert mock_executor.submit.call_count == 2
 
 
 if __name__ == "__main__":

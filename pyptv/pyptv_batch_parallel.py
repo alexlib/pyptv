@@ -201,7 +201,7 @@ def main(
     exp_path: Union[str, Path], 
     first: Union[str, int], 
     last: Union[str, int], 
-    n_processes: Union[str, int] = None
+    n_processes: int = 2
 ) -> None:
     """Run PyPTV parallel batch processing.
     
