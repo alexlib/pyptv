@@ -74,3 +74,5 @@ pyptv/.vscode/launch.json
 # Wheels
 **/wheels/
 .vscode/*.json
+tests/test_splitter/parametersRun1/*
+tests/test_splitter/res/*

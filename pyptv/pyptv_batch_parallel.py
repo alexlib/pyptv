@@ -201,7 +201,7 @@ def main(
     exp_path: Union[str, Path], 
     first: Union[str, int], 
     last: Union[str, int], 
-    n_processes: Union[str, int] = None
+    n_processes: int = 2
 ) -> None:
     """Run PyPTV parallel batch processing.
     
@@ -287,7 +287,7 @@ def main(
         total_chunks = len(ranges)
         elapsed_time = time.time() - start_time
         
-        logger.info(f"Parallel processing completed:")
+        logger.info("Parallel processing completed:")
         logger.info(f"  Total chunks: {total_chunks}")
         logger.info(f"  Successful: {successful_chunks}")
         logger.info(f"  Failed: {failed_chunks}")

@@ -10,7 +10,7 @@ import shutil
 import re
 from pathlib import Path
 import numpy as np
-from skimage.io import imread
+from imageio.v3 import imread
 from skimage.util import img_as_ubyte
 from skimage.color import rgb2gray
 
@@ -22,8 +22,6 @@ from chaco.api import (
     Plot,
     ArrayPlotData,
     gray,
-    ArrayDataSource,
-    LinearMapper,
 )
 
 # from traitsui.menu import MenuBar, ToolBar, Menu, Action
@@ -33,7 +31,6 @@ from chaco.tools.better_zoom import BetterZoom as SimpleZoom
 # from chaco.tools.simple_zoom import SimpleZoom
 from pyptv.text_box_overlay import TextBoxOverlay
 from pyptv.code_editor import oriEditor, addparEditor
-from pyptv.quiverplot import QuiverPlot
 
 
 from optv.imgcoord import image_coordinates
@@ -46,7 +43,6 @@ from optv.tracking_framebuf import TargetArray
 
 from pyptv import ptv, parameter_gui, parameters as par
 
-from scipy.optimize import minimize
 
 # recognized names for the flags:
 NAMES = ["cc", "xh", "yh", "k1", "k2", "k3", "p1", "p2", "scale", "shear"]
@@ -198,9 +194,6 @@ class PlotWindow(HasTraits):
         """
         x1, y1, x2, y2 = self.remove_short_lines(x1c, y1c, x2c, y2c, min_length=0)
         if len(x1) > 0:
-            xs = ArrayDataSource(x1)
-            ys = ArrayDataSource(y1)
-
             # quiverplot = QuiverPlot(
             #     index=xs,
             #     value=ys,
@@ -318,6 +311,7 @@ class CalibrationGUI(HasTraits):
     button_edit_ori_files = Button()
     button_edit_addpar_files = Button()
     button_test = Button()
+    _cal_splitter = Bool(False)
 
     # ---------------------------------------------------
     # Constructor
@@ -359,6 +353,7 @@ class CalibrationGUI(HasTraits):
             self.camera[i].cameraN = i
             self.camera[i].py_rclick_delete = ptv.py_rclick_delete
             self.camera[i].py_get_pix_N = ptv.py_get_pix_N
+
 
     # Defines GUI view --------------------------
 
@@ -429,12 +424,6 @@ class CalibrationGUI(HasTraits):
                         enabled_when="pass_init",
                     ),
                     # Item(
-                    #     name="button_checkpoint",
-                    #     label="Checkpoints",
-                    #     show_label=False,
-                    #     enabled_when="pass_init_disabled",
-                    # ),
-                    # Item(
                     #     name="button_ap_figures",
                     #     label="Ap figures",
                     #     show_label=False,
@@ -468,9 +457,15 @@ class CalibrationGUI(HasTraits):
                         label="Orientation with particles",
                         show_label=False,
                         enabled_when="pass_init",
-                    ),
-                    show_left=False,
+                    ),                   
+                    show_left=False,                   
                 ),
+                Item(
+                    name="_cal_splitter",
+                    label="Split into 4?",
+                    show_label=True,
+                    padding=5,
+                ),                  
             ),
             Item(
                 "camera",
@@ -518,6 +513,7 @@ class CalibrationGUI(HasTraits):
         # Initialize what is needed, copy necessary things
 
         # copy parameters from active to default folder parameters/
+        # this is already done in the inital step and reload
         par.copy_params_dir(self.active_path, self.par_path)
 
         # print("\n Copying man_ori.dat \n")
@@ -554,16 +550,33 @@ class CalibrationGUI(HasTraits):
             self.pass_raw_orient = True
             self.status_text = "Multiplane calibration."
 
-        # read calibration images
-        self.cal_images = []
-        for i in range(len(self.camera)):
-            imname = self.calParams.img_cal_name[i]
-            im = imread(imname)
-            # im = ImageData.fromfile(imname).data
-            if im.ndim > 2:
-                im = rgb2gray(im[:, :, :3])
 
-            self.cal_images.append(img_as_ubyte(im))
+        # let's add here the _cal_splitter idea 
+        # if self._cal_splitter:
+        self.cal_images = []
+
+        if self._cal_splitter:
+            print("Using splitter in Calibration")
+            imname = self.calParams.img_cal_name[0]            
+            if Path(imname).exists():
+                print(f"Splitting calibration image: {imname}")
+                temp_img = imread(imname)
+                if temp_img.ndim > 2:
+                    im = rgb2gray(temp_img)                
+                splitted_images = ptv.image_split(temp_img)
+                for i in range(len(self.camera)):
+                    self.cal_images.append(img_as_ubyte(splitted_images[i]))         
+
+            # read calibration images directly as default
+        else:    
+            for i in range(len(self.camera)):
+                imname = self.calParams.img_cal_name[i]
+                im = imread(imname)
+                # im = ImageData.fromfile(imname).data
+                if im.ndim > 2:
+                    im = rgb2gray(im[:, :, :3])
+
+                self.cal_images.append(img_as_ubyte(im))
 
         self.reset_show_images()
 
@@ -588,8 +601,30 @@ class CalibrationGUI(HasTraits):
         print(" Detection procedure \n")
         self.status_text = "Detection procedure"
 
+        # import matplotlib.pyplot as plt
+        # fig, ax = plt.subplots(
+        #     nrows=1, ncols=self.n_cams, figsize=(15, 5), dpi=100
+        # )   
+        # for i in range(self.n_cams):
+        #     ax[i].imshow(self.cal_images[i], cmap="gray")
+        #     ax[i].set_title(f"Camera {i+1}")
+        #     ax[i].axis("off")
+
         if self.cpar.get_hp_flag():
-            self.cal_images = ptv.py_pre_processing_c(self.cal_images, self.cpar)
+            # self.cal_images = ptv.py_pre_processing_c(self.cal_images, self.cpar)
+            for i, im in enumerate(self.cal_images):
+                self.cal_images[i] = ptv.preprocess_image(im.copy(), 1, self.cpar, 25)
+
+        
+        # fig, ax = plt.subplots(
+        #     nrows=1, ncols=self.n_cams, figsize=(15, 5), dpi=100
+        # )   
+        # for i in range(self.n_cams):
+        #     ax[i].imshow(self.cal_images[i], cmap="gray")
+        #     ax[i].set_title(f"Camera {i+1}")
+        #     ax[i].axis("off")            
+
+        self.reset_show_images()
 
         self.detections, corrected = ptv.py_detection_proc_c(
             self.cal_images, self.cpar, self.tpar, self.cals

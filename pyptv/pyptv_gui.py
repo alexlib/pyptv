@@ -2,8 +2,7 @@ from traits.etsconfig.api import ETSConfig
 import os
 from pathlib import Path
 import sys
-import time
-import importlib
+import json
 import numpy as np
 import optv
 from traits.api import HasTraits, Int, Bool, Instance, List, Enum, Any
@@ -211,9 +210,12 @@ class CameraWindow(HasTraits):
         if is_float:
             self._plot_data.set_data("imagedata", image.astype(np.float32))
         else:
-            self._plot_data.set_data("imagedata", image.astype(np.uint8))
+            self._plot_data.set_data("imagedata", image)
 
-        self._plot.img_plot("imagedata", colormap=gray)[0]
+        # Seems that update data is already updating the content
+
+        # self._plot.img_plot("imagedata", colormap=gray)[0]
+        # self._plot.img_plot("imagedata", colormap=gray)
         self._plot.request_redraw()
 
     def drawcross(self, str_x, str_y, x, y, color, mrk_size, marker="plus"):
@@ -458,7 +460,7 @@ class TreeMenuHandler(Handler):
     def open_action(self, info):
         directory_dialog = DirectoryEditorDialog()
         directory_dialog.edit_traits()
-        exp_path = directory_dialog.dir_name
+        exp_path = str(directory_dialog.dir_name)
         print(f"Changing experimental path to {exp_path}")
         os.chdir(exp_path)
         info.object.exp1.populate_runs(exp_path)
@@ -471,7 +473,7 @@ class TreeMenuHandler(Handler):
 
     def init_action(self, info):
         """init_action - clears existing plots from the camera windows,
-        initializes C image arrays with mainGui.orig_image and
+        initializes C image arrays with mainGui.orig_images and
         calls appropriate start_proc_c
          by using ptv.py_start_proc_c()
         """
@@ -479,33 +481,46 @@ class TreeMenuHandler(Handler):
         # synchronize the active run params dir with the temp params dir
         mainGui.exp1.syncActiveDir()
 
-        for i in range(len(mainGui.camera_list)):
-            try:
-                im = imread(
-                    getattr(
-                        mainGui.exp1.active_params.m_params,
-                        f"Name_{i + 1}_Image",
-                    )
-                )
-                if im.ndim > 2:
-                    im = rgb2gray(im)
+        # if Splitter is True, we need to create a temporary image
+        # get first image:
+        if mainGui.exp1.active_params.m_params.Splitter:
+            print("Using Splitter, add plugins")
+            imname = getattr(mainGui.exp1.active_params.m_params, f"Name_{1}_Image")
+            if Path(imname).exists():
+                temp_img = imread(imname)
+                if temp_img.ndim > 2:
+                    im = rgb2gray(temp_img)                
+                splitted_images = ptv.image_split(temp_img)
+                for i in range(len(mainGui.camera_list)):
+                    mainGui.orig_images[i] = img_as_ubyte(splitted_images[i])
+        else: #not splitter, default case
+            for i in range(len(mainGui.camera_list)):
+                # check if file exists:
+                imname = getattr(mainGui.exp1.active_params.m_params, \
+                                 f"Name_{i + 1}_Image")
+                if Path(imname).exists():
+                    print(f"Reading image {imname}")
+                    im = imread(imname)
+                    if im.ndim > 2:
+                        im = rgb2gray(im)
+                else:
+                    print(f"Image {imname} does not exist, setting zero image")
+                    im = np.zeros(
+                        (mainGui.exp1.active_params.m_params.imy, 
+                        mainGui.exp1.active_params.m_params.imx),
+                            dtype=np.uint8
+                                )
+                    
+                mainGui.orig_images[i] = img_as_ubyte(im)
 
-                mainGui.orig_image[i] = img_as_ubyte(im)
-            except IOError:
-                print("Error reading image, setting zero image")
-                h_img = mainGui.exp1.active_params.m_params.imx
-                v_img = mainGui.exp1.active_params.m_params.imy
-                img_as_ubyte(np.zeros((v_img, h_img)))
-                # print(f"setting images of size {temp_img.shape}")
-                exec(f"mainGui.orig_image[{i}] = temp_img")
 
             if hasattr(mainGui.camera_list[i], "img_plot"):
                 del mainGui.camera_list[i].img_plot
         mainGui.clear_plots()
         print("\n Init action \n")
-        # mainGui.update_plots(mainGui.orig_image, is_float=False)
-        mainGui.create_plots(mainGui.orig_image, is_float=False)
-        # mainGui.set_images(mainGui.orig_image)
+        # mainGui.update_plots(mainGui.orig_images, is_float=False)
+        mainGui.create_plots(mainGui.orig_images, is_float=False)
+        # mainGui.set_images(mainGui.orig_images)
 
         (
             info.object.cpar,
@@ -531,20 +546,19 @@ class TreeMenuHandler(Handler):
 
     def highpass_action(self, info):
         """highpass_action - calls ptv.py_pre_processing_c() binding which
-        does highpass on working images (object.orig_image) that were set
+        does highpass on working images (object.orig_images) that were set
         with init action
         """
-        # I want to add here negative image if the parameter is set in the
-        # main parameters
+
         if info.object.exp1.active_params.m_params.Inverse:
-            # print("Invert image")
-            for i, im in enumerate(info.object.orig_image):
-                info.object.orig_image[i] = 255 - im
+            print("Invert image")
+            for i, im in enumerate(info.object.orig_images):
+                info.object.orig_images[i] = ptv.negative(im)
 
         if info.object.exp1.active_params.m_params.Subtr_Mask:
             print("Subtracting mask")
             try:
-                for i, im in enumerate(info.object.orig_image):
+                for i, im in enumerate(info.object.orig_images):
                     background_name = (
                         info.object.exp1.active_params.m_params.Base_Name_Mask.replace(
                             "#", str(i)
@@ -553,19 +567,19 @@ class TreeMenuHandler(Handler):
                     print(f"Subtracting {background_name}")
                     background = imread(background_name)
                     # im[mask] = 0
-                    info.object.orig_image[i] = np.clip(
-                        info.object.orig_image[i] - background, 0, 255
+                    info.object.orig_images[i] = np.clip(
+                        info.object.orig_images[i] - background, 0, 255
                     ).astype(np.uint8)
 
             except ValueError as exc:
                 raise ValueError("Failed subtracting mask") from exc
 
         print("highpass started")
-        info.object.orig_image = ptv.py_pre_processing_c(
-            info.object.orig_image, info.object.cpar
+        info.object.orig_images = ptv.py_pre_processing_c(
+            info.object.orig_images, info.object.cpar
         )
-        # info.object.update_plots(info.object.orig_image)
-        info.object.update_plots(info.object.orig_image)
+        # info.object.update_plots(info.object.orig_images)
+        info.object.update_plots(info.object.orig_images)
         print("highpass finished")
 
     def img_coord_action(self, info):
@@ -580,7 +594,7 @@ class TreeMenuHandler(Handler):
             info.object.detections,
             info.object.corrected,
         ) = ptv.py_detection_proc_c(
-            info.object.orig_image,
+            info.object.orig_images,
             info.object.cpar,
             info.object.tpar,
             info.object.cals,
@@ -680,7 +694,7 @@ class TreeMenuHandler(Handler):
 
         extern_sequence = info.object.plugins.sequence_alg
         if extern_sequence != "default":
-            ptv.run_plugin(info.object)
+            ptv.run_sequence_plugin(info.object)
         else:
             ptv.py_sequence_loop(info.object)
 
@@ -689,27 +703,32 @@ class TreeMenuHandler(Handler):
         call tracking without display"""
         extern_tracker = info.object.plugins.track_alg
         if extern_tracker != "default":
-            try:
-                os.chdir(info.exp1.object.software_path)
-                track = importlib.import_module(extern_tracker)
-            except BaseException:
-                print(
-                    "Error loading "
-                    + extern_tracker
-                    + ". Falling back to default tracker"
-                )
-                extern_tracker = "default"
-            os.chdir(info.exp1.object.exp_path)  # change back to working path
-        if extern_tracker == "default":
+            ptv.run_tracking_plugin(info.object)
+            print("After plugin tracker")
+        else:
+            # try:
+            #         # Get the plugin directory path
+            #     plugin_dir = Path(os.getcwd()) / "plugins"
+            #     print(f"Plugins directory: {plugin_dir}")
+            #     track = importlib.import_module(extern_tracker)
+            # except BaseException:
+            #     print(
+            #         "Error loading "
+            #         + extern_tracker
+            #         + ". Falling back to default tracker"
+            #     )
+            #     extern_tracker = "default"
+            # os.chdir(info.exp1.object.exp_path)  # change back to working path
+        # if extern_tracker == "default":
             print("Using default liboptv tracker")
             info.object.tracker = ptv.py_trackcorr_init(info.object)
             info.object.tracker.full_forward()
-        else:
-            print("Tracking by using " + extern_tracker)
-            tracker = track.Tracking(ptv=ptv, exp1=info.object.exp1)
-            tracker.do_tracking()
+        # else:
+        #     print("Tracking by using " + extern_tracker)
+        #     tracker = track.Tracking(ptv=ptv, exp1=info.object.exp1)
+        #     tracker.do_tracking()
 
-        print("tracking without display finished")
+            print("tracking without display finished")
 
     def track_disp_action(self, info):
         """tracking with display is handled by TrackThread which does
@@ -746,7 +765,8 @@ class TreeMenuHandler(Handler):
         2) ptv.py_get_mark_track_c(..)
         """
         info.object.clear_plots(remove_background=False)  # clear everything
-        info.object.update_plots(info.object.orig_image, is_float=False)
+        # Below we plot overlay of images, so we do not need to set these right now
+        # info.object.update_plots(info.object.orig_images, is_float=False)
 
         prm = info.object.exp1.active_params.m_params
         seq_first = prm.Seq_First  # get sequence parameters
@@ -759,8 +779,8 @@ class TreeMenuHandler(Handler):
         ]
 
         # load first image from sequence
-        info.object.load_set_seq_image(seq_first)
-        info.object.overlay_set_images(seq_first, seq_last)
+        # info.object.load_set_seq_image(seq_first)
+        info.object.overlay_set_images(base_names, seq_first, seq_last)
 
         print("Starting detect_part_track")
         x1_a, x2_a, y1_a, y2_a = [], [], [], []
@@ -772,14 +792,20 @@ class TreeMenuHandler(Handler):
 
         # imx, imy = info.object.cpar.get_image_size()
 
-        for i_img in range(info.object.n_cams):
+        for i_cam in range(info.object.n_cams):
             for i_seq in range(seq_first, seq_last + 1):  # loop over sequences
                 intx_green, inty_green = [], []
                 intx_blue, inty_blue = [], []
 
                 # read targets from the current sequence
-                # file_name = ptv.replace_format_specifiers(base_names[i_img])
-                targets = ptv.read_targets(base_names[i_img], i_seq)
+                # file_name = ptv.replace_format_specifiers(base_names[i_cam])
+                # we changed everywhere the base_name with the 
+                # default simple name
+                simple_base_name = str(Path(base_names[0]).parent / f'cam{i_cam + 1}')
+                print('Inside detected particles plot', simple_base_name)
+
+                targets = ptv.read_targets(simple_base_name, i_seq)
+                # targets = ptv.read_targets(base_names[i_cam], i_seq)
 
                 for t in targets:
                     if t.tnr() > -1:
@@ -789,23 +815,23 @@ class TreeMenuHandler(Handler):
                         intx_blue.append(t.pos()[0])
                         inty_blue.append(t.pos()[1])
 
-                x1_a[i_img] = (
-                    x1_a[i_img] + intx_green
+                x1_a[i_cam] = (
+                    x1_a[i_cam] + intx_green
                 )  # add current step to result array
-                x2_a[i_img] = x2_a[i_img] + intx_blue
-                y1_a[i_img] = y1_a[i_img] + inty_green
-                y2_a[i_img] = y2_a[i_img] + inty_blue
+                x2_a[i_cam] = x2_a[i_cam] + intx_blue
+                y1_a[i_cam] = y1_a[i_cam] + inty_green
+                y2_a[i_cam] = y2_a[i_cam] + inty_blue
 
         # plot result arrays
-        for i_img in range(info.object.n_cams):
-            info.object.camera_list[i_img].drawcross(
-                "x_tr_gr", "y_tr_gr", x1_a[i_img], y1_a[i_img], "green", 3
+        for i_cam in range(info.object.n_cams):
+            info.object.camera_list[i_cam].drawcross(
+                "x_tr_gr", "y_tr_gr", x1_a[i_cam], y1_a[i_cam], "green", 3
             )
-            info.object.camera_list[i_img].drawcross(
-                "x_tr_bl", "y_tr_bl", x2_a[i_img], y2_a[i_img], "blue", 2
+            info.object.camera_list[i_cam].drawcross(
+                "x_tr_bl", "y_tr_bl", x2_a[i_cam], y2_a[i_cam], "blue", 2
             )
 
-            info.object.camera_list[i_img]._plot.request_redraw()
+            info.object.camera_list[i_cam]._plot.request_redraw()
 
         print("Finished detect_part_track")
 
@@ -816,10 +842,19 @@ class TreeMenuHandler(Handler):
             info (_type_): _description_
         """
         info.object.clear_plots(remove_background=False)
-        seq_first = info.object.exp1.active_params.m_params.Seq_First
-        seq_last = info.object.exp1.active_params.m_params.Seq_Last
+        prm = info.object.exp1.active_params.m_params
+        seq_first = prm.Seq_First  # get sequence parameters
+        seq_last = prm.Seq_Last
+        base_names = [
+            prm.Basename_1_Seq,
+            prm.Basename_2_Seq,
+            prm.Basename_3_Seq,
+            prm.Basename_4_Seq,
+        ]
+        # base_names = [
+
         # info.object.load_set_seq_image(seq_first, display_only=True)
-        info.object.overlay_set_images(seq_first, seq_last)
+        info.object.overlay_set_images(base_names, seq_first, seq_last)
 
         from flowtracks.io import trajectories_ptvis
 
@@ -1100,48 +1135,60 @@ tree_editor_exp = TreeEditor(
     editable=False,
 )
 
-
 # -------------------------------------------------------------------------
 class Plugins(HasTraits):
-    track_list = List
-    seq_list = List
-    track_alg = Enum(values="track_list")
-    sequence_alg = Enum(values="seq_list")
+    track_alg = Enum('default')
+    sequence_alg = Enum('default')
+    
     view = View(
-        Group(
-            Item(name="track_alg", label="Choose tracking algorithm:"),
-            Item(name="sequence_alg", label="Choose sequence algorithm:"),
-        ),
+        Item(name="track_alg", label="Tracking:"),
+        Item(name="sequence_alg", label="Sequence:"),
         buttons=["OK"],
-        title="External plugins configuration",
+        title="Plugins",
     )
 
     def __init__(self):
         self.read()
 
     def read(self):
-        # reading external tracking
-        tracking_plugins = os.path.join(
-            os.path.abspath(os.curdir), "tracking_plugins.txt"
-        )
-        sequence_plugins = os.path.join(
-            os.path.abspath(os.curdir), "sequence_plugins.txt"
-        )
-        print("Reading external plugins lists")
-        print(f"Reading from {tracking_plugins}, {sequence_plugins}")
-
-        # Initialize with default
-        self.track_list = ["default"]
-        self.seq_list = ["default"]
-        # Add additional plugins if files exist
-        if os.path.exists(tracking_plugins):
-            with open(tracking_plugins, "r", encoding="utf8") as f:
-                self.track_list.extend(f.read().split("\n"))
-
-        if os.path.exists(sequence_plugins):
-            with open(sequence_plugins, "r", encoding="utf8") as f:
-                self.seq_list.extend(f.read().split("\n"))
-
+        config_file = Path.cwd() / "plugins.json"
+        
+        if config_file.exists():
+            try:
+                with open(config_file, 'r') as f:
+                    config = json.load(f)
+                
+                # Update enum values
+                track_options = config.get('tracking', ['default'])
+                seq_options = config.get('sequence', ['default'])
+                
+                # Dynamically update the Enum
+                self.add_trait('track_alg', Enum(*track_options))
+                self.add_trait('sequence_alg', Enum(*seq_options))
+                
+                # Set defaults
+                self.track_alg = track_options[0]
+                self.sequence_alg = seq_options[0]
+                
+            except (json.JSONDecodeError, KeyError) as e:
+                print(f"Error reading plugins.json: {e}")
+                self._set_defaults()
+        else:
+            self._create_default_json()
+    
+    def _set_defaults(self):
+        self.track_alg = 'default'
+        self.sequence_alg = 'default'
+    
+    def _create_default_json(self):
+        default_config = {
+            "tracking": ["default"],
+            "sequence": ["default"]
+        }
+        
+        with open('plugins.json', 'w') as f:
+            json.dump(default_config, f, indent=2)
+        
 
 # ----------------------------------------------
 class MainGUI(HasTraits):
@@ -1206,7 +1253,7 @@ class MainGUI(HasTraits):
         self.exp1.populate_runs(exp_path)
         self.plugins = Plugins()
         self.n_cams = self.exp1.active_params.m_params.Num_Cam
-        self.orig_image = self.n_cams * [[]]
+        self.orig_images = self.n_cams * [[]]
         self.current_camera = 0
         self.camera_list = [
             CameraWindow(colors[i], f"Camera {i + 1}") for i in range(self.n_cams)
@@ -1305,10 +1352,11 @@ class MainGUI(HasTraits):
             images (_type_): images to update
             is_float (bool, optional): _description_. Defaults to False.
         """
-        print("inside update plots, images changed\n")
-        for i in range(self.n_cams):
-            self.camera_list[i].update_image(images[i], is_float)
-            self.camera_list[i]._plot.request_redraw()
+        print("Update plots, images changed\n")
+        for cam, image in zip(self.camera_list, images):
+            cam.update_image(image, is_float)
+            # there is a requiest inside update_image
+            # self.camera_list[i]._plot.request_redraw()
 
     def drawcross_in_all_cams(self, str_x, str_y, x, y, color1, size1, marker="plus"):
         """
@@ -1345,92 +1393,92 @@ class MainGUI(HasTraits):
             self.camera_list[i].right_p_x1 = []
             self.camera_list[i].right_p_y1 = []
 
-    def _update_thread_plot_changed(self):
-        n_cams = len(self.camera_list)
+    # def _update_thread_plot_changed(self):
+    #     n_cams = len(self.camera_list)
 
-        if self.update_thread_plot and self.tr_thread:
-            print("updating plots..\n")
-            step = self.tr_thread.track_step
+    #     if self.update_thread_plot and self.tr_thread:
+    #         print("updating plots..\n")
+    #         step = self.tr_thread.track_step
 
-            x0, x1, x2, y0, y1, y2 = (
-                self.tr_thread.intx0,
-                self.tr_thread.intx1,
-                self.tr_thread.intx2,
-                self.tr_thread.inty0,
-                self.tr_thread.inty1,
-                self.tr_thread.inty2,
-            )
-            for i in range(n_cams):
-                self.camera_list[i].drawcross(
-                    str(step) + "x0",
-                    str(step) + "y0",
-                    x0[i],
-                    y0[i],
-                    "green",
-                    2,
-                )
-                self.camera_list[i].drawcross(
-                    str(step) + "x1",
-                    str(step) + "y1",
-                    x1[i],
-                    y1[i],
-                    "yellow",
-                    2,
-                )
-                self.camera_list[i].drawcross(
-                    str(step) + "x2",
-                    str(step) + "y2",
-                    x2[i],
-                    y2[i],
-                    "white",
-                    2,
-                )
-                self.camera_list[i].drawquiver(x0[i], y0[i], x1[i], y1[i], "orange")
-                self.camera_list[i].drawquiver(x1[i], y1[i], x2[i], y2[i], "white")
-            # for j in range (m_tr):
-            # str_plt=str(step)+"_"+str(j)
-            ##
-            # self.camera_list[i].drawline\
-            # (str_plt+"vec_x0",str_plt+"vec_y0",x0[i][j],y0[i][j],x1[i][j],y1[i][j],"orange")
-            # self.camera_list[i].drawline\
-            # (str_plt+"vec_x1",str_plt+"vec_y1",x1[i][j],y1[i][j],x2[i][j],y2[i][j],"white")
-            self.load_set_seq_image(step, update_all=False, display_only=True)
-            self.camera_list[self.current_camera]._plot.request_redraw()
-            time.sleep(0.1)
-            self.tr_thread.can_continue = True
-            self.update_thread_plot = False
+    #         x0, x1, x2, y0, y1, y2 = (
+    #             self.tr_thread.intx0,
+    #             self.tr_thread.intx1,
+    #             self.tr_thread.intx2,
+    #             self.tr_thread.inty0,
+    #             self.tr_thread.inty1,
+    #             self.tr_thread.inty2,
+    #         )
+    #         for i in range(n_cams):
+    #             self.camera_list[i].drawcross(
+    #                 str(step) + "x0",
+    #                 str(step) + "y0",
+    #                 x0[i],
+    #                 y0[i],
+    #                 "green",
+    #                 2,
+    #             )
+    #             self.camera_list[i].drawcross(
+    #                 str(step) + "x1",
+    #                 str(step) + "y1",
+    #                 x1[i],
+    #                 y1[i],
+    #                 "yellow",
+    #                 2,
+    #             )
+    #             self.camera_list[i].drawcross(
+    #                 str(step) + "x2",
+    #                 str(step) + "y2",
+    #                 x2[i],
+    #                 y2[i],
+    #                 "white",
+    #                 2,
+    #             )
+    #             self.camera_list[i].drawquiver(x0[i], y0[i], x1[i], y1[i], "orange")
+    #             self.camera_list[i].drawquiver(x1[i], y1[i], x2[i], y2[i], "white")
+    #         # for j in range (m_tr):
+    #         # str_plt=str(step)+"_"+str(j)
+    #         ##
+    #         # self.camera_list[i].drawline\
+    #         # (str_plt+"vec_x0",str_plt+"vec_y0",x0[i][j],y0[i][j],x1[i][j],y1[i][j],"orange")
+    #         # self.camera_list[i].drawline\
+    #         # (str_plt+"vec_x1",str_plt+"vec_y1",x1[i][j],y1[i][j],x2[i][j],y2[i][j],"white")
+    #         self.load_set_seq_image(step, update_all=False, display_only=True)
+    #         self.camera_list[self.current_camera]._plot.request_redraw()
+    #         time.sleep(0.1)
+    #         self.tr_thread.can_continue = True
+    #         self.update_thread_plot = False
 
-    def load_set_seq_image(self, seq: int, update_all=True, display_only=False):
-        """load and set sequence image
+    # def load_set_seq_image(self, seq: int, update_all=True, display_only=False):
+    #     """load and set sequence image
 
-        Args:
-            seq (_type_): sequance properties
-            update_all (bool, optional): _description_. Defaults to True.
-            display_only (bool, optional): _description_. Defaults to False.
-        """
-        n_cams = len(self.camera_list)
-        # if not hasattr(self, "base_name"):
-        self.base_name = [
-            getattr(self.exp1.active_params.m_params, f"Basename_{i + 1}_Seq")
-            for i in range(n_cams)
-        ]
+    #     Args:
+    #         seq (_type_): sequance properties
+    #         update_all (bool, optional): _description_. Defaults to True.
+    #         display_only (bool, optional): _description_. Defaults to False.
+    #     """
+    #     n_cams = len(self.camera_list)
+    #     # if not hasattr(self, "base_name"):
+    #     self.base_name = [
+    #         getattr(self.exp1.active_params.m_params, f"Basename_{i + 1}_Seq")
+    #         for i in range(n_cams)
+    #     ]
 
-        if update_all is False:
-            j = self.current_camera
-            # img_name = self.base_name[j] + seq_ch
-            # img_name = self.base_name[j].replace("#", seq_ch)
-            img_name = self.base_name[j] % seq  # works with jumps from 1 to 10
-            # print(f"Image name in load_set_seq is {img_name}")
-            self.load_disp_image(img_name, j, display_only)
-        else:
-            for j in range(n_cams):
-                # img_name = self.base_name[j] + seq_ch
-                # img_name = self.base_name[j].replace("#", seq_ch)
-                img_name = self.base_name[j] % seq  # works with jumps from 1 to 10
-                # print(f"Image name in load_set_seq is {img_name}")
-                self.load_disp_image(img_name, j, display_only)
+    #     if update_all is False:
+    #         j = self.current_camera
+    #         # img_name = self.base_name[j] + seq_ch
+    #         # img_name = self.base_name[j].replace("#", seq_ch)
+    #         img_name = self.base_name[j] % seq  # works with jumps from 1 to 10
+    #         # print(f"Image name in load_set_seq is {img_name}")
+    #         self.load_disp_image(img_name, j, display_only)
+    #     else:
+    #         for j in range(n_cams):
+    #             # img_name = self.base_name[j] + seq_ch
+    #             # img_name = self.base_name[j].replace("#", seq_ch)
+    #             img_name = self.base_name[j] % seq  # works with jumps from 1 to 10
+    #             # print(f"Image name in load_set_seq is {img_name}")
+    #             self.load_disp_image(img_name, j, display_only)
 
-    def overlay_set_images(self, seq_first: int, seq_last: int):
+    def overlay_set_images(self, base_names: List, seq_first: int, seq_last: int):
         """load and set sequence images and overlay them for tracking show
 
         Args:
@@ -1439,30 +1487,33 @@ class MainGUI(HasTraits):
             display_only (bool, optional): _description_. Defaults to False.
         """
 
-        n_cams = len(self.camera_list)
-        if not hasattr(self, "base_name"):
-            self.base_name = [
-                getattr(self.exp1.active_params.m_params, f"Basename_{i + 1}_Seq")
-                for i in range(len(self.camera_list))
-            ]
+        h_img = self.exp1.active_params.m_params.imx
+        v_img = self.exp1.active_params.m_params.imy
 
-        for cam_id in range(n_cams):
-            if os.path.exists(self.base_name[cam_id] % seq_first):
-                temp_img = []
+        if self.exp1.active_params.m_params.Splitter:
+            temp_img = img_as_ubyte(np.zeros((v_img*2, h_img*2)))
+            for seq in range(seq_first, seq_last):
+                _ = imread(base_names[0] % seq)
+                if _.ndim > 2:
+                    _ = rgb2gray(_)
+                temp_img = np.max([temp_img, _], axis=0)
+
+            # split the image into 4 quadrants
+            list_of_images = ptv.image_split(temp_img)
+            for cam_id in range(self.n_cams):
+                self.camera_list[cam_id].update_image(list_of_images[cam_id])
+        # --------------------------
+        else: 
+            for cam_id in range(self.n_cams):
+                temp_img = img_as_ubyte(np.zeros((v_img, h_img)))
                 for seq in range(seq_first, seq_last):
-                    _ = imread(self.base_name[cam_id] % seq)
+                    _ = imread(base_names[cam_id] % seq)
                     if _.ndim > 2:
                         _ = rgb2gray(_)
-                    temp_img.append(img_as_ubyte(_))
+                    temp_img = np.max([temp_img, _], axis=0)
 
-                temp_img = np.array(temp_img)
-                temp_img = np.max(temp_img, axis=0)
-            else:
-                h_img = self.exp1.active_params.m_params.imx
-                v_img = self.exp1.active_params.m_params.imy
-                temp_img = img_as_ubyte(np.zeros((v_img, h_img)))
 
-            self.camera_list[cam_id].update_image(temp_img)
+                self.camera_list[cam_id].update_image(temp_img)
 
     def load_disp_image(self, img_name: str, j: int, display_only: bool = False):
         """load and display image
@@ -1518,7 +1569,8 @@ def main():
         exp_path = Path(sys.argv[1]).resolve()
         print(f"Experimental path is {exp_path}")
     else:
-        exp_path = software_path.parent / "test_cavity"
+        # exp_path = software_path.parent / "test_cavity"
+        exp_path = software_path / "tests" / "test_splitter"
         # exp_path = Path('/home/user/Downloads/one-dot-example/working_folder')
         # exp_path = Path('/home/user/Downloads/test_crossing_particle')
         # exp_path = Path('/home/user/Documents/repos/test_cavity')

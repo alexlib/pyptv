@@ -13,7 +13,6 @@ def plot_3d_target(filename):
     d = np.loadtxt(filename)
 
     # %%
-    from mpl_toolkits.mplot3d import Axes3D
 
     ax = plt.figure(figsize=(12, 10)).add_subplot(projection="3d")
 

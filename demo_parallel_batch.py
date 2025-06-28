@@ -15,11 +15,9 @@ import logging
 
 # Import our improved pyptv_batch_parallel components
 from pyptv.pyptv_batch_parallel import (
-    main, 
     chunk_ranges,
     validate_experiment_directory, 
     ProcessingError,
-    AttrDict,
     logger
 )
 
@@ -83,11 +81,11 @@ def demonstrate_cpu_optimization():
     for description, n_processes in scenarios:
         logger.info(f"{description}: {n_processes} processes")
         if n_processes > cpu_count:
-            logger.warning(f"  ⚠️  Over-subscription may reduce performance")
+            logger.warning("  ⚠️  Over-subscription may reduce performance")
         elif n_processes == cpu_count:
-            logger.info(f"  ✓ Optimal for CPU-bound tasks")
+            logger.info("  ✓ Optimal for CPU-bound tasks")
         else:
-            logger.info(f"  ✓ Conservative, leaves resources for system")
+            logger.info("  ✓ Conservative, leaves resources for system")
     
     logger.info("")
 

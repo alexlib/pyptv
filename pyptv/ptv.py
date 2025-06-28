@@ -10,20 +10,20 @@ import os
 import sys
 import re
 from pathlib import Path
-from typing import List, Tuple, Dict, Optional, Union, Any, Callable
+from typing import List, Tuple
 
 # Third-party imports
 import numpy as np
 from scipy.optimize import minimize
-from skimage.io import imread
-from skimage import img_as_ubyte
+from imageio.v3 import imread
+from skimage.util import img_as_ubyte
 from skimage.color import rgb2gray
 
 # OptV imports
 from optv.calibration import Calibration
 from optv.correspondences import correspondences, MatchedCoords
 from optv.image_processing import preprocess_image
-from optv.orientation import point_positions, full_calibration
+from optv.orientation import point_positions
 from optv.parameters import (
     ControlParams,
     VolumeParams,
@@ -42,8 +42,31 @@ from pyptv import parameters as par
 NAMES = ["cc", "xh", "yh", "k1", "k2", "k3", "p1", "p2", "scale", "shear"]
 DEFAULT_FRAME_NUM = 123456789  # Default frame number instead of magic number 123456789
 DEFAULT_HIGHPASS_FILTER_SIZE = 25  # Default size for highpass filter
+DEFAULT_NO_FILTER = 0
 
 
+
+def image_split(img: np.ndarray, order = [0,1,3,2]) -> List[np.ndarray]:
+    """Split image into four quadrants.
+    """
+    # print(f"Splitting {img.shape} into four quadrants of size {img.shape[0] // 2, img.shape[1] // 2}")
+
+    # these specific images have white borders due to the cross in the original image
+    # we need to remove it for the highpass
+
+    list_of_images = [
+        img[: img.shape[0] // 2, : img.shape[1] // 2],  # Top-left
+        img[: img.shape[0] // 2, img.shape[1] // 2:],  # Top-right
+        img[img.shape[0] // 2:, : img.shape[1] // 2],  # Bottom-left
+        img[img.shape[0] // 2:, img.shape[1] // 2:],  # Bottom-right
+    ]
+
+
+    # Reorder the quadrants if needed
+    list_of_images = [list_of_images[i] for i in order]
+
+    return list_of_images
+    
 def negative(img: np.ndarray) -> np.ndarray:
     """Convert an 8-bit image to its negative.
 
@@ -66,7 +89,8 @@ def simple_highpass(img: np.ndarray, cpar: ControlParams) -> np.ndarray:
     Returns:
         Highpass filtered image
     """
-    return preprocess_image(img, 0, cpar, DEFAULT_HIGHPASS_FILTER_SIZE)
+    # return python_preproccess_image(img)
+    return preprocess_image(img, DEFAULT_NO_FILTER, cpar, DEFAULT_HIGHPASS_FILTER_SIZE)
 
 
 def _read_calibrations(cpar: ControlParams, n_cams: int) -> List[Calibration]:
@@ -173,7 +197,7 @@ def py_start_proc_c(
 
 
 def py_pre_processing_c(
-    list_of_images: List[np.ndarray], cpar: ControlParams
+    list_of_images: List[np.ndarray], cpar: ControlParams, 
 ) -> List[np.ndarray]:
     """Apply pre-processing to a list of images.
 
@@ -187,9 +211,12 @@ def py_pre_processing_c(
     Returns:
         List of processed images
     """
+    # for some reason we cannot take directly from the list
     processed_images = []
-    for img in list_of_images:
-        processed_images.append(simple_highpass(img, cpar))
+    for i, img in enumerate(list_of_images):
+        img_lp = img.copy() 
+        processed_images.append(simple_highpass(img_lp, cpar))
+
     return processed_images
 
 
@@ -298,7 +325,7 @@ def py_determination_proc_c(
     cpar, _, vpar, _, _, cals, _ = py_start_proc_c(n_cams)
 
     # Concatenate sorted positions (distinction between quad/trip irrelevant here)
-    sorted_pos = np.concatenate(sorted_pos, axis=1)
+    sorted_pos = np.concatenate(sorted_pos, axis=1) # type: ignore
     sorted_corresp = np.concatenate(sorted_corresp, axis=1)
 
     # Get corrected coordinates by point numbers
@@ -332,7 +359,7 @@ def py_determination_proc_c(
         print(f"Error writing to file {fname}: {e}")
 
 
-def run_plugin(exp) -> None:
+def run_sequence_plugin(exp) -> None:
     """Load and run plugins for sequence processing.
 
     This function searches for plugins in the 'plugins' directory and runs the
@@ -377,6 +404,52 @@ def run_plugin(exp) -> None:
                         print(f"Error running sequence plugin {plugin_name}: {e}")
 
 
+def run_tracking_plugin(exp) -> None:
+    """Load and run plugins for sequence processing.
+
+    This function searches for plugins in the 'plugins' directory and runs the
+    appropriate plugin based on the experiment configuration.
+
+    Args:
+        exp: Experiment object containing configuration
+    """
+    # Get the plugin directory path
+    plugin_dir = Path(os.getcwd()) / "plugins"
+    print(f"Plugin directory: {plugin_dir}")
+
+    # Add the plugins directory to sys.path so that Python can find the modules
+    if str(plugin_dir) not in sys.path:
+        sys.path.append(str(plugin_dir))
+
+    # Iterate over the files in the 'plugins' directory
+    for filename in os.listdir(plugin_dir):
+        if filename.endswith(".py") and filename != "__init__.py":
+            # Get the plugin name without the '.py' extension
+            plugin_name = filename[:-3]
+
+            # Check if the plugin name matches the sequence_alg
+            if plugin_name == exp.plugins.track_alg:
+                # Dynamically import the plugin
+                try:
+                    print(f"Loading plugin: {plugin_name}")
+                    plugin = importlib.import_module(plugin_name)
+                except ImportError as e:
+                    print(f"Error loading {plugin_name}: {e}")
+                    print("Check for missing packages or syntax errors.")
+                    return
+
+                # Check if the plugin has a Sequence class
+                if hasattr(plugin, "Tracking"):
+                    print(f"Running sequence plugin: {exp.plugins.track_alg}")
+                    try:
+                        # Create a Sequence instance and run it
+                        tracker = plugin.Tracking(exp=exp)
+                        tracker.do_tracking()
+                    except Exception as e:
+                        print(f"Error running sequence plugin {plugin_name}: {e}")
+
+
+
 def py_sequence_loop(exp) -> None:
     """Run a sequence of detection, stereo-correspondence, and determination.
 
@@ -405,7 +478,7 @@ def py_sequence_loop(exp) -> None:
 
     pftVersionParams = par.PftVersionParams(path=Path("parameters"))
     pftVersionParams.read()
-    Existing_Target = np.bool8(pftVersionParams.Existing_Target)
+    Existing_Target = np.bool_(pftVersionParams.Existing_Target)
 
     # sequence loop for all frames
     first_frame = spar.get_first()
@@ -429,7 +502,7 @@ def py_sequence_loop(exp) -> None:
                 # print(f'Image name {imname}')
 
                 if not imname.exists():
-                    print(f"{imname} does not exist")
+                    raise FileNotFoundError(f"{imname} does not exist")
                 else:
                     img = imread(imname)
                     if img.ndim > 2:
@@ -442,7 +515,7 @@ def py_sequence_loop(exp) -> None:
                 if "exp1" in exp.__dict__:
                     if exp.exp1.active_params.m_params.Inverse:
                         print("Invert image")
-                        img = 255 - img
+                        img = negative(img)
 
                     if exp.exp1.active_params.m_params.Subtr_Mask:
                         # print("Subtracting mask")
@@ -528,12 +601,13 @@ def py_trackcorr_init(exp):
     for cam_id in range(exp.cpar.get_num_cams()):
         img_base_name = exp.spar.get_img_base_name(cam_id)
         # print(img_base_name)
-        short_name = img_base_name.split("%")[0]
-        if short_name[-1] == "_":
-            short_name = short_name[:-1] + "."
+        # short_name = img_base_name.split("%")[0]
+        # if short_name[-1] == "_":
+        #     short_name = short_name[:-1] + "."
+        short_name = Path(img_base_name).parent / f'cam{cam_id+1}.'
         # print(short_name)
         print(f" Renaming {img_base_name} to {short_name} before C library tracker")
-        exp.spar.set_img_base_name(cam_id, short_name)
+        exp.spar.set_img_base_name(cam_id, str(short_name))
 
     tracker = Tracker(
         exp.cpar, exp.vpar, exp.track_par, exp.spar, exp.cals, default_naming
@@ -920,7 +994,6 @@ def read_rt_is_file(filename) -> List[List[float]]:
                 if len(values) != 8:
                     raise ValueError("Incorrect number of values in line")
 
-                row_number = int(values[0])
                 x = float(values[1])
                 y = float(values[2])
                 z = float(values[3])
@@ -942,7 +1015,6 @@ def full_scipy_calibration(
     cal: Calibration, XYZ: np.ndarray, targs: TargetArray, cpar: ControlParams, flags=[]
 ):
     """Full calibration using scipy.optimize"""
-    from scipy.optimize import minimize
     from optv.transforms import convert_arr_metric_to_pixel
     from optv.imgcoord import image_coordinates
 

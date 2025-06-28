@@ -1,11 +1,8 @@
 #!/usr/bin/env python
 import os
-import sys
-import numpy as np
 import optv
 from optv.calibration import Calibration
-from optv.parameters import ControlParams, VolumeParams, TrackingParams, SequenceParams
-from optv.tracking_framebuf import read_targets
+from optv.parameters import ControlParams
 
 
 def test_optv_functionality(test_data_dir):
@@ -23,10 +20,10 @@ def test_optv_functionality(test_data_dir):
         print(f"Control parameters file: {control_params_file}")
         if os.path.exists(control_params_file):
             control_params = ControlParams(control_params_file)
-            print(f"Successfully loaded control parameters")
+            print("Successfully loaded control parameters")
             print(f"Number of cameras: {control_params.get_num_cams()}")
         else:
-            print(f"Control parameters file not found")
+            print("Control parameters file not found")
     except Exception as e:
         print(f"Error loading control parameters: {str(e)}")
 
@@ -43,7 +40,7 @@ def test_optv_functionality(test_data_dir):
             print("Successfully loaded calibration")
             print(f"Calibration parameters: {cal.get_pos()}")
         else:
-            print(f"Calibration files not found")
+            print("Calibration files not found")
     except Exception as e:
         print(f"Error loading calibration: {str(e)}")
 

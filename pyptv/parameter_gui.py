@@ -1,4 +1,3 @@
-import os
 import json
 from pathlib import Path
 
@@ -445,6 +444,7 @@ class Main_Params(HasTraits):
     Base_Name_Mask = Str(DEFAULT_STRING, label="Base name for the mask")
     Existing_Target = Bool(False, label="Use existing_target files?")
     Inverse = Bool(False, label="Negative images?")
+    Splitter = Bool(False, label="Split images into 4?")
 
     # New panel 3: Sequence
     Seq_First = Int(DEFAULT_INT, label="First sequence image:")
@@ -455,12 +455,12 @@ class Main_Params(HasTraits):
     Basename_4_Seq = Str(DEFAULT_STRING, label="Basename for 4. sequence")
 
     # Panel 4: ObservationVolume
-    Xmin = Int(DEFAULT_FLOAT, label="Xmin")
-    Xmax = Int(DEFAULT_FLOAT, label="Xmax")
-    Zmin1 = Int(DEFAULT_FLOAT, label="Zmin")
-    Zmin2 = Int(DEFAULT_FLOAT, label="Zmin")
-    Zmax1 = Int(DEFAULT_FLOAT, label="Zmax")
-    Zmax2 = Int(DEFAULT_FLOAT, label="Zmax")
+    Xmin = Float(DEFAULT_FLOAT, label="Xmin")
+    Xmax = Float(DEFAULT_FLOAT, label="Xmax")
+    Zmin1 = Float(DEFAULT_FLOAT, label="Zmin")
+    Zmin2 = Float(DEFAULT_FLOAT, label="Zmin")
+    Zmax1 = Float(DEFAULT_FLOAT, label="Zmax")
+    Zmax2 = Float(DEFAULT_FLOAT, label="Zmax")
 
     # Panel 5: ParticleDetection
     Min_Corr_nx = Float(DEFAULT_FLOAT, label="min corr for ratio nx")
@@ -476,6 +476,7 @@ class Main_Params(HasTraits):
     Group1 = Group(
         Group(
             Item(name="Num_Cam", width=30),
+            Item(name="Splitter"),
             Item(name="Accept_OnlyAllCameras", enabled_when="all_enable_flag"),
             Item(name="pair_Flag", enabled_when="pair_enable_flag"),
             orientation="horizontal",
@@ -1096,7 +1097,7 @@ class Calib_Params(HasTraits):
         # read_calibration parameters
         calOriParams = par.CalOriParams(self.n_img, path=self.par_path)
         calOriParams.read()
-        (fixp_name, img_cal_name, img_ori, tiff_flag, pair_flag, chfield) = (
+        (fixp_name, _, _, tiff_flag, pair_flag, chfield) = (
             calOriParams.fixp_name,
             calOriParams.img_cal_name,
             calOriParams.img_ori,
@@ -1124,10 +1125,10 @@ class Calib_Params(HasTraits):
         detectPlateParams.read()
 
         (
-            gv_th1,
-            gv_th2,
-            gv_th3,
-            gv_th4,
+            _,
+            _,
+            _,
+            _,
             tolerable_discontinuity,
             min_npix,
             max_npix,
@@ -1315,7 +1316,7 @@ class Experiment(HasTraits):
 
     def syncActiveDir(self):
         default_parameters_path = Path(par.par_dir_prefix).resolve()
-        print(f" Syncing parameters between two folders: \n")
+        print(" Syncing parameters between two folders: \n")
         print(f"{self.active_params.par_path}, {default_parameters_path}")
         par.copy_params_dir(self.active_params.par_path, default_parameters_path)
 
@@ -1351,7 +1352,7 @@ class Experiment(HasTraits):
                 exp_name = str(dir_item.stem).rsplit("parameters", maxsplit=1)[-1]
 
                 print(f"Experiment name is: {exp_name}")
-                print(f" adding Parameter set\n")
+                print(" adding Parameter set\n")
                 self.addParamset(exp_name, dir_item)
 
         if not self.changed_active_params:

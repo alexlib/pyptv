@@ -10,7 +10,8 @@ Loads and saves RGB images from disk
 """
 
 # Standard library imports
-import os, sys
+import os
+import sys
 
 # Major library imports
 
@@ -186,7 +187,7 @@ class DemoController(Handler):
         Callback for the 'Save Image' menu option.
         """
         ui = self.view.edit_traits(view="save_file_view")
-        if ui.result == True:
+        if ui.result:
             self.view._save()
 
     def load(self, ui_info):
@@ -194,7 +195,7 @@ class DemoController(Handler):
         Callback for the 'Load Image' menu option.
         """
         ui = self.view.edit_traits(view="load_file_view")
-        if ui.result == True:
+        if ui.result:
             self.view._load()
 
 

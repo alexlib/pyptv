@@ -19,8 +19,6 @@ from traitsui.api import Item, View
 
 # Chaco imports
 from chaco.api import (
-    add_default_grids,
-    add_default_axes,
     ArrayPlotData,
     Plot,
     OverlayPlotContainer,

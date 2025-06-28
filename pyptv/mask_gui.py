@@ -6,8 +6,6 @@ http://opensource.org/licenses/MIT
 """
 
 import os
-import shutil
-import re
 from pathlib import Path
 import numpy as np
 from skimage.io import imread
@@ -22,8 +20,6 @@ from chaco.api import (
     Plot,
     ArrayPlotData,
     gray,
-    ArrayDataSource,
-    LinearMapper,
     PolygonPlot,
 )
 
@@ -33,19 +29,12 @@ from chaco.tools.better_zoom import BetterZoom as SimpleZoom
 
 # from chaco.tools.simple_zoom import SimpleZoom
 from pyptv.text_box_overlay import TextBoxOverlay
-from pyptv.code_editor import oriEditor, addparEditor
-from pyptv.quiverplot import QuiverPlot
 
 
-from optv.imgcoord import image_coordinates
-from optv.transforms import convert_arr_metric_to_pixel
-from optv.orientation import match_detection_to_ref
-from optv.tracking_framebuf import TargetArray
 
 
-from pyptv import ptv, parameter_gui, parameters as par
+from pyptv import ptv, parameters as par
 
-from scipy.optimize import minimize
 
 # recognized names for the flags:
 NAMES = ["cc", "xh", "yh", "k1", "k2", "k3", "p1", "p2", "scale", "shear"]
@@ -216,9 +205,6 @@ class PlotWindow(HasTraits):
         """
         x1, y1, x2, y2 = self.remove_short_lines(x1c, y1c, x2c, y2c, min_length=0)
         if len(x1) > 0:
-            xs = ArrayDataSource(x1)
-            ys = ArrayDataSource(y1)
-
             # quiverplot = QuiverPlot(
             #     index=xs,
             #     value=ys,
@@ -454,7 +440,7 @@ class MaskGUI(HasTraits):
                 )
                 self.camera[i].plot_data.set_data("px", np.array(self.camera[i]._x))
                 self.camera[i].plot_data.set_data("py", np.array(self.camera[i]._y))
-                p = self.camera[i]._plot.plot(
+                self.camera[i]._plot.plot(
                     ("px", "py"),
                     type="polygon",
                     face_color=(0, 0.8, 1),

@@ -28,7 +28,6 @@ plot_cal_err_histogram() function
 
 import numpy as np
 import matplotlib.pyplot as plt
-from mpl_toolkits.mplot3d import Axes3D
 
 
 def read_dt_lsq(file_path):
@@ -49,8 +48,8 @@ def read_dt_lsq(file_path):
     points = []
 
     for i in range(N_particles):
-        l = f.readline().strip().split()
-        point = np.array([l[1], l[2], l[3]], dtype=float)
+        line = f.readline().strip().split()
+        point = np.array([line[1], line[2], line[3]], dtype=float)
         points.append(point)
 
     f.close()
@@ -77,11 +76,11 @@ def read_calblock(file_path):
     points = []
 
     for i in range(len(a)):
-        l = a[i].strip().split()
+        line = a[i].strip().split()
         try:
-            point = np.array([l[1], l[2], l[3]], dtype=float)
-        except:
-            print("last data", l)
+            point = np.array([line[1], line[2], line[3]], dtype=float)
+        except Exception:
+            print("last data", line)
             raise ValueError("bad line in calblock file")
         points.append(point)
 
@@ -187,7 +186,7 @@ def plot_cal_err_histogram(pairs_list):
     lbls = [r"x", r"y", r"z"]
     for e, lst in enumerate([dx, dy, dz]):
         m, s = np.mean(lst), np.std(lst)
-        h = ax.hist(
+        ax.hist(
             lst,
             bins=8,
             histtype="step",

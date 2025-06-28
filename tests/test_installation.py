@@ -5,10 +5,7 @@ Test script to verify pyptv installation
 
 import os
 import sys
-import numpy as np
-import optv
 from optv.calibration import Calibration
-from optv.parameters import ControlParams
 
 
 def test_installation(test_data_dir):
@@ -44,7 +41,7 @@ def test_installation(test_data_dir):
             print("Successfully loaded calibration")
             print(f"Calibration parameters: {cal.get_pos()}")
         else:
-            print(f"Calibration files not found")
+            print("Calibration files not found")
             return False
     except Exception as e:
         print(f"Error loading calibration: {str(e)}")
