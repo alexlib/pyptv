@@ -477,6 +477,7 @@ class Main_Params(HasTraits):
     Group1 = Group(
         Group(
             Item(name="Num_Cam", width=30),
+            Item(name="Splitter"),
             Item(name="Accept_OnlyAllCameras", enabled_when="all_enable_flag"),
             Item(name="pair_Flag", enabled_when="pair_enable_flag"),
             orientation="horizontal",
@@ -552,7 +553,6 @@ class Main_Params(HasTraits):
             Item(name="Existing_Target"),
             Item(name="HighPass", enabled_when="hp_enable_flag"),
             Item(name="Inverse"),
-            Item(name="Splitter"),
             orientation="horizontal",
         ),
         orientation="vertical",
