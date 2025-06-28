@@ -608,8 +608,30 @@ class CalibrationGUI(HasTraits):
         print(" Detection procedure \n")
         self.status_text = "Detection procedure"
 
+        import matplotlib.pyplot as plt
+        fig, ax = plt.subplots(
+            nrows=1, ncols=self.n_cams, figsize=(15, 5), dpi=100
+        )   
+        for i in range(self.n_cams):
+            ax[i].imshow(self.cal_images[i], cmap="gray")
+            ax[i].set_title(f"Camera {i+1}")
+            ax[i].axis("off")
+
         if self.cpar.get_hp_flag():
-            self.cal_images = ptv.py_pre_processing_c(self.cal_images, self.cpar)
+            # self.cal_images = ptv.py_pre_processing_c(self.cal_images, self.cpar)
+            for i, im in enumerate(self.cal_images):
+                self.cal_images[i] = ptv.preprocess_image(im.copy(), 1, self.cpar, 25)
+
+        
+        fig, ax = plt.subplots(
+            nrows=1, ncols=self.n_cams, figsize=(15, 5), dpi=100
+        )   
+        for i in range(self.n_cams):
+            ax[i].imshow(self.cal_images[i], cmap="gray")
+            ax[i].set_title(f"Camera {i+1}")
+            ax[i].axis("off")            
+
+        self.reset_show_images()
 
         self.detections, corrected = ptv.py_detection_proc_c(
             self.cal_images, self.cpar, self.tpar, self.cals

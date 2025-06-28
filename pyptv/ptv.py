@@ -215,8 +215,8 @@ def py_pre_processing_c(
     # for some reason we cannot take directly from the list
     processed_images = []
     for i, img in enumerate(list_of_images):
-        # img_lp = img.copy() 
-        processed_images.append(simple_highpass(img.copy(), cpar))
+        img_lp = img.copy() 
+        processed_images.append(simple_highpass(img_lp, cpar))
 
     return processed_images
 
