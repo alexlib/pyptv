@@ -7,9 +7,7 @@ in practice with the improved pyptv_batch.py module.
 """
 
 import logging
-import sys
 import time
-from pathlib import Path
 from io import StringIO
 
 # Configure logging similar to pyptv_batch.py

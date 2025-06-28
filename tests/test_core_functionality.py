@@ -5,10 +5,9 @@ Test script to verify core functionality of pyptv and optv
 
 import os
 import sys
-import numpy as np
 import optv
 from optv.calibration import Calibration
-from optv.parameters import ControlParams, VolumeParams
+from optv.parameters import VolumeParams
 
 
 def test_core_functionality(test_data_dir):
@@ -36,7 +35,7 @@ def test_core_functionality(test_data_dir):
             print("Successfully loaded calibration")
             print(f"Calibration parameters: {cal.get_pos()}")
         else:
-            print(f"Calibration files not found")
+            print("Calibration files not found")
             return False
     except Exception as e:
         print(f"Error loading calibration: {str(e)}")

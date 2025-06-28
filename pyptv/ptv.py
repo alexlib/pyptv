@@ -10,7 +10,7 @@ import os
 import sys
 import re
 from pathlib import Path
-from typing import List, Tuple, Dict, Optional, Union, Any, Callable
+from typing import List, Tuple
 
 # Third-party imports
 import numpy as np
@@ -23,7 +23,7 @@ from skimage.color import rgb2gray
 from optv.calibration import Calibration
 from optv.correspondences import correspondences, MatchedCoords
 from optv.image_processing import preprocess_image
-from optv.orientation import point_positions, full_calibration
+from optv.orientation import point_positions
 from optv.parameters import (
     ControlParams,
     VolumeParams,
@@ -37,7 +37,6 @@ from optv.tracker import Tracker, default_naming
 
 # PyPTV imports
 from pyptv import parameters as par
-import numpy as np
 
 # Constants
 NAMES = ["cc", "xh", "yh", "k1", "k2", "k3", "p1", "p2", "scale", "shear"]
@@ -995,7 +994,6 @@ def read_rt_is_file(filename) -> List[List[float]]:
                 if len(values) != 8:
                     raise ValueError("Incorrect number of values in line")
 
-                row_number = int(values[0])
                 x = float(values[1])
                 y = float(values[2])
                 z = float(values[3])
@@ -1017,7 +1015,6 @@ def full_scipy_calibration(
     cal: Calibration, XYZ: np.ndarray, targs: TargetArray, cpar: ControlParams, flags=[]
 ):
     """Full calibration using scipy.optimize"""
-    from scipy.optimize import minimize
     from optv.transforms import convert_arr_metric_to_pixel
     from optv.imgcoord import image_coordinates
 

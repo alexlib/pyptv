@@ -1,6 +1,5 @@
 import pytest
 from pyptv import pyptv_batch
-from pathlib import Path
 
 
 def test_pyptv_batch(test_data_dir):

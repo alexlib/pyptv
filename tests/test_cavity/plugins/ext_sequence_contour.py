@@ -1,4 +1,3 @@
-import random
 
 import numpy as np
 from imageio.v3 import imread, imwrite
@@ -7,9 +6,7 @@ from pathlib import Path
 from skimage import img_as_ubyte
 from skimage import filters, measure, morphology
 from skimage.color import rgb2gray, label2rgb
-from skimage.segmentation import clear_border
 from skimage.morphology import binary_erosion, binary_dilation, disk
-from skimage.util import img_as_ubyte
 
 from optv.correspondences import correspondences, MatchedCoords
 from optv.tracker import default_naming
@@ -142,7 +139,7 @@ def mask_image(imname: Path, display: bool = False) -> np.ndarray:
         plt.figure()
         plt.imshow(labeled_frame, cmap="jet")
         plt.contour(smooth_contour_image, colors="red", linewidths=2)
-        plt.title(f"Segmented Object with Smooth Contour")
+        plt.title("Segmented Object with Smooth Contour")
         plt.show()
 
     # Convert the largest region to a black and white image
@@ -169,7 +166,7 @@ def mask_image(imname: Path, display: bool = False) -> np.ndarray:
     imwrite(imname.with_suffix(".jpg"), img_as_ubyte(external_contour))
 
     # Dilate the external contour for better visibility
-    dilated_external_contour = binary_dilation(external_contour, disk(3))
+    binary_dilation(external_contour, disk(3))
 
     # Create a masked image of the same size as the input image
     masked_image = np.zeros_like(img, dtype=np.uint8)

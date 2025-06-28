@@ -1,6 +1,5 @@
 import pytest
 import numpy as np
-from pyptv.ptv import py_start_proc_c, py_trackcorr_init, py_sequence_loop
 
 
 def test_numpy_array_compatibility():

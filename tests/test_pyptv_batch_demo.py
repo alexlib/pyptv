@@ -18,7 +18,6 @@ import logging
 
 # Import our improved pyptv_batch components
 from pyptv.pyptv_batch import (
-    main, 
     validate_experiment_directory, 
     ProcessingError,
     AttrDict,

@@ -8,6 +8,8 @@ import tempfile
 from pathlib import Path
 import shutil
 import numpy as np
+from pyptv.code_editor import codeEditor
+from pyptv.directory_editor import DirectoryEditorDialog
 
 # Import GUI components
 
@@ -15,10 +17,6 @@ import numpy as np
 pytestmark = pytest.mark.skipif(
     os.environ.get("DISPLAY") is None, reason="GUI tests require a display"
 )
-
-# Import components that don't require a display
-from pyptv.code_editor import codeEditor
-from pyptv.directory_editor import DirectoryEditorDialog
 
 # Define variables to hold GUI components
 CalibrationGUI = None

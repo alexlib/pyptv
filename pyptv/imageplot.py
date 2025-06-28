@@ -10,7 +10,6 @@ Draws a colormapped image plot
 """
 
 # Major library imports
-from numpy import exp, linspace, meshgrid
 
 # Enthought library imports
 from enable.api import Component, ComponentEditor

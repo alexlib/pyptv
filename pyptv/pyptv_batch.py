@@ -20,7 +20,7 @@ from pathlib import Path
 import os
 import sys
 import time
-from typing import Union, Optional
+from typing import Union
 
 from pyptv.ptv import py_start_proc_c, py_trackcorr_init, py_sequence_loop
 

@@ -287,7 +287,7 @@ def main(
         total_chunks = len(ranges)
         elapsed_time = time.time() - start_time
         
-        logger.info(f"Parallel processing completed:")
+        logger.info("Parallel processing completed:")
         logger.info(f"  Total chunks: {total_chunks}")
         logger.info(f"  Successful: {successful_chunks}")
         logger.info(f"  Failed: {failed_chunks}")

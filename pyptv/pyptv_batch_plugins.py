@@ -14,7 +14,7 @@ import sys
 import json
 import importlib
 
-from pyptv.ptv import py_start_proc_c, py_trackcorr_init, py_sequence_loop
+from pyptv.ptv import py_start_proc_c
 
 # Configure logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')

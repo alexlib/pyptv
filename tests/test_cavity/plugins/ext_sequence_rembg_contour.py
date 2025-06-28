@@ -1,15 +1,8 @@
-import random
 
 import numpy as np
-from imageio.v3 import imread, imwrite
+from imageio.v3 import imread
 from pathlib import Path
 
-from skimage import img_as_ubyte
-from skimage import filters, measure, morphology
-from skimage.color import rgb2gray, label2rgb, rgba2rgb
-from skimage.segmentation import clear_border
-from skimage.morphology import binary_erosion, binary_dilation, disk
-from skimage.util import img_as_ubyte
 
 from optv.correspondences import correspondences, MatchedCoords
 from optv.tracker import default_naming

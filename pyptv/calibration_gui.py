@@ -22,8 +22,6 @@ from chaco.api import (
     Plot,
     ArrayPlotData,
     gray,
-    ArrayDataSource,
-    LinearMapper,
 )
 
 # from traitsui.menu import MenuBar, ToolBar, Menu, Action
@@ -33,7 +31,6 @@ from chaco.tools.better_zoom import BetterZoom as SimpleZoom
 # from chaco.tools.simple_zoom import SimpleZoom
 from pyptv.text_box_overlay import TextBoxOverlay
 from pyptv.code_editor import oriEditor, addparEditor
-from pyptv.quiverplot import QuiverPlot
 
 
 from optv.imgcoord import image_coordinates
@@ -46,7 +43,6 @@ from optv.tracking_framebuf import TargetArray
 
 from pyptv import ptv, parameter_gui, parameters as par
 
-from scipy.optimize import minimize
 
 # recognized names for the flags:
 NAMES = ["cc", "xh", "yh", "k1", "k2", "k3", "p1", "p2", "scale", "shear"]
@@ -198,9 +194,6 @@ class PlotWindow(HasTraits):
         """
         x1, y1, x2, y2 = self.remove_short_lines(x1c, y1c, x2c, y2c, min_length=0)
         if len(x1) > 0:
-            xs = ArrayDataSource(x1)
-            ys = ArrayDataSource(y1)
-
             # quiverplot = QuiverPlot(
             #     index=xs,
             #     value=ys,

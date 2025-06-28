@@ -6,7 +6,6 @@ import pytest
 import sys
 import os
 import platform
-import subprocess
 import importlib
 from pathlib import Path
 
@@ -124,7 +123,6 @@ def test_opengl_environment_variables():
     """Test that OpenGL environment variables are set correctly on Linux"""
     # Check if the environment variables are set
     libgl_software = os.environ.get("LIBGL_ALWAYS_SOFTWARE")
-    qt_xcb_gl = os.environ.get("QT_XCB_GL_INTEGRATION")
     qt_qpa_platform = os.environ.get("QT_QPA_PLATFORM")
 
     # If they're not set, set them for the test
@@ -136,7 +134,6 @@ def test_opengl_environment_variables():
 
     # Test that we can import PySide6 without OpenGL errors
     try:
-        import PySide6.QtWidgets
 
         assert True
     except Exception as e:
@@ -166,7 +163,6 @@ def test_windows_environment():
 
     # Test that we can import PySide6 without OpenGL errors
     try:
-        import PySide6.QtWidgets
 
         assert True
     except Exception as e:

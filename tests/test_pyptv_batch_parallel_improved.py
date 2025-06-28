@@ -14,10 +14,8 @@ import pytest
 import tempfile
 import shutil
 import sys
-import os
-import multiprocessing
 from pathlib import Path
-from unittest.mock import patch, MagicMock, mock_open
+from unittest.mock import patch, MagicMock
 import logging
 from io import StringIO
 

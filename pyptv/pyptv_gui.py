@@ -2,8 +2,7 @@ from traits.etsconfig.api import ETSConfig
 import os
 from pathlib import Path
 import sys
-import time
-import importlib
+import json
 import numpy as np
 import optv
 from traits.api import HasTraits, Int, Bool, Instance, List, Enum, Any
@@ -1135,9 +1134,6 @@ tree_editor_exp = TreeEditor(
     ],
     editable=False,
 )
-
-import json
-from pathlib import Path
 
 # -------------------------------------------------------------------------
 class Plugins(HasTraits):

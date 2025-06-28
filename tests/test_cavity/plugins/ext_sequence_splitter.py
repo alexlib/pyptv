@@ -1,10 +1,8 @@
-import random
 
 import numpy as np
 from imageio.v3 import imread
 from pathlib import Path
 
-from skimage.util import img_as_ubyte
 from optv.correspondences import correspondences, MatchedCoords
 from optv.tracker import default_naming
 from optv.orientation import point_positions
@@ -36,7 +34,7 @@ class Sequence:
         """
         # Sequence parameters
 
-        n_cams, cpar, spar, vpar, tpar, cals = (
+        _, cpar, spar, vpar, tpar, cals = (
             self.exp.n_cams,
             self.exp.cpar,
             self.exp.spar,
