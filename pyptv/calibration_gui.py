@@ -318,6 +318,7 @@ class CalibrationGUI(HasTraits):
     button_edit_ori_files = Button()
     button_edit_addpar_files = Button()
     button_test = Button()
+    _cal_splitter = Bool(False)
 
     # ---------------------------------------------------
     # Constructor
@@ -359,6 +360,7 @@ class CalibrationGUI(HasTraits):
             self.camera[i].cameraN = i
             self.camera[i].py_rclick_delete = ptv.py_rclick_delete
             self.camera[i].py_get_pix_N = ptv.py_get_pix_N
+
 
     # Defines GUI view --------------------------
 
@@ -429,12 +431,6 @@ class CalibrationGUI(HasTraits):
                         enabled_when="pass_init",
                     ),
                     # Item(
-                    #     name="button_checkpoint",
-                    #     label="Checkpoints",
-                    #     show_label=False,
-                    #     enabled_when="pass_init_disabled",
-                    # ),
-                    # Item(
                     #     name="button_ap_figures",
                     #     label="Ap figures",
                     #     show_label=False,
@@ -468,9 +464,15 @@ class CalibrationGUI(HasTraits):
                         label="Orientation with particles",
                         show_label=False,
                         enabled_when="pass_init",
-                    ),
-                    show_left=False,
+                    ),                   
+                    show_left=False,                   
                 ),
+                Item(
+                    name="_cal_splitter",
+                    label="Split into 4?",
+                    show_label=True,
+                    padding=5,
+                ),                  
             ),
             Item(
                 "camera",
@@ -518,6 +520,7 @@ class CalibrationGUI(HasTraits):
         # Initialize what is needed, copy necessary things
 
         # copy parameters from active to default folder parameters/
+        # this is already done in the inital step and reload
         par.copy_params_dir(self.active_path, self.par_path)
 
         # print("\n Copying man_ori.dat \n")
@@ -554,16 +557,33 @@ class CalibrationGUI(HasTraits):
             self.pass_raw_orient = True
             self.status_text = "Multiplane calibration."
 
-        # read calibration images
-        self.cal_images = []
-        for i in range(len(self.camera)):
-            imname = self.calParams.img_cal_name[i]
-            im = imread(imname)
-            # im = ImageData.fromfile(imname).data
-            if im.ndim > 2:
-                im = rgb2gray(im[:, :, :3])
 
-            self.cal_images.append(img_as_ubyte(im))
+        # let's add here the _cal_splitter idea 
+        # if self._cal_splitter:
+        self.cal_images = []
+
+        if self._cal_splitter:
+            print("Using splitter in Calibration")
+            imname = self.calParams.img_cal_name[0]            
+            if Path(imname).exists():
+                print(f"Splitting calibration image: {imname}")
+                temp_img = imread(imname)
+                if temp_img.ndim > 2:
+                    im = rgb2gray(temp_img)                
+                splitted_images = ptv.image_split(temp_img)
+                for i in range(len(self.camera)):
+                    self.cal_images.append(img_as_ubyte(splitted_images[i]))         
+
+            # read calibration images directly as default
+        else:    
+            for i in range(len(self.camera)):
+                imname = self.calParams.img_cal_name[i]
+                im = imread(imname)
+                # im = ImageData.fromfile(imname).data
+                if im.ndim > 2:
+                    im = rgb2gray(im[:, :, :3])
+
+                self.cal_images.append(img_as_ubyte(im))
 
         self.reset_show_images()
 
