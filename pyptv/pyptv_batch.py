@@ -23,6 +23,7 @@ import time
 from typing import Union
 
 from pyptv.ptv import py_start_proc_c, py_trackcorr_init, py_sequence_loop
+from pyptv.parameter_manager import ParameterManager
 
 # Configure logging
 logging.basicConfig(
@@ -98,17 +99,11 @@ def run_batch(seq_first: int, seq_last: int, exp_path: Path) -> None:
         original_cwd = Path.cwd()
         os.chdir(exp_path)
         
-        # Read the number of cameras
-        ptv_par_path = exp_path / "parameters" / "ptv.par"
-        try:
-            with open(ptv_par_path, "r") as f:
-                n_cams = int(f.readline().strip())
-            logger.info(f"Number of cameras: {n_cams}")
-        except (ValueError, FileNotFoundError) as e:
-            raise ProcessingError(f"Error reading camera count from {ptv_par_path}: {e}")
-
+        pm = ParameterManager()
+        pm.from_directory(exp_path / "parameters")
+        
         # Initialize processing parameters
-        cpar, spar, vpar, track_par, tpar, cals, epar = py_start_proc_c(n_cams=n_cams)
+        cpar, spar, vpar, track_par, tpar, cals, epar = py_start_proc_c(pm.parameters)
 
         # Set sequence parameters
         spar.set_first(seq_first)
@@ -123,7 +118,8 @@ def run_batch(seq_first: int, seq_last: int, exp_path: Path) -> None:
             "tpar": tpar,
             "cals": cals,
             "epar": epar,
-            "n_cams": n_cams,
+            "n_cams": pm.get_parameter('ptv')['n_img'],
+            "pm": pm,
         })
 
         # Run processing

@@ -22,7 +22,6 @@ from chaco.api import (
     LinearMapper,
 )
 
-# from traitsui.menu import MenuBar, ToolBar, Menu, Action
 from chaco.tools.image_inspector_tool import ImageInspectorTool
 from chaco.tools.better_zoom import BetterZoom as SimpleZoom
 
@@ -30,10 +29,9 @@ from skimage.io import imread
 from skimage import img_as_ubyte
 from skimage.color import rgb2gray
 
-# from optv import segmentation
 from optv.segmentation import target_recognition
 from pyptv import ptv
-
+from pyptv.parameter_manager import ParameterManager
 from pyptv.text_box_overlay import TextBoxOverlay
 from pyptv.quiverplot import QuiverPlot
 
@@ -58,7 +56,6 @@ class ClickerTool(ImageInspectorTool):
             ndx = plot.map_index((event.x, event.y))
 
             x_index, y_index = ndx
-            # image_data = plot.value
             self.x = x_index
             self.y = y_index
             print(self.x)
@@ -72,7 +69,6 @@ class ClickerTool(ImageInspectorTool):
             ndx = plot.map_index((event.x, event.y))
 
             x_index, y_index = ndx
-            # image_data = plot.value
             self.x = x_index
             self.y = y_index
 
@@ -104,7 +100,6 @@ class PlotWindow(HasTraits):
 
     def __init__(self):
         super(HasTraits, self).__init__()
-        # -------------- Initialization of plot system ----------------
         padd = 25
         self._plot_data = ArrayPlotData()
         self._x = []
@@ -118,8 +113,6 @@ class PlotWindow(HasTraits):
         self._quiverplots = []
         self.py_rclick_delete = ptv.py_rclick_delete
         self.py_get_pix_N = ptv.py_get_pix_N
-
-        # -------------------------------------------------------------
 
     def left_clicked_event(self):
         """
@@ -178,7 +171,6 @@ class PlotWindow(HasTraits):
         """
         Draws crosses on images
         """
-        # self._plot.plotdata = ArrayPlotData(x=x[0], y=y[0])
         self._plot_data.set_data(str_x, x)
         self._plot_data.set_data(str_y, y)
         self._plot.plot(
@@ -197,19 +189,6 @@ class PlotWindow(HasTraits):
         self._plot.request_redraw()
 
     def drawquiver(self, x1c, y1c, x2c, y2c, color, linewidth=1.0, scale=1.0):
-        """drawquiver draws multiple lines at once on the screen x1,y1->x2,y2 in the current camera window
-        parameters:
-            x1c - array of x1 coordinates
-            y1c - array of y1 coordinates
-            x2c - array of x2 coordinates
-            y2c - array of y2 coordinates
-            color - color of the line
-            linewidth - linewidth of the line
-        example usage:
-            drawquiver ([100,200],[100,100],[400,400],[300,200],'red',linewidth=2.0)
-            draws 2 red lines with thickness = 2 :  100,100->400,300 and 200,100->400,200
-
-        """
         x1, y1, x2, y2 = self.remove_short_lines(x1c, y1c, x2c, y2c, min_length=0)
         if len(x1) > 0:
             xs = ArrayDataSource(x1)
@@ -228,24 +207,9 @@ class PlotWindow(HasTraits):
                 ep_value=np.array(y2) * scale,
             )
             self._plot.add(quiverplot)
-            # we need this to track how many quiverplots are in the current
-            # plot
             self._quiverplots.append(quiverplot)
-            # import pdb; pdb.set_trace()
 
     def remove_short_lines(self, x1, y1, x2, y2, min_length=2):
-        """removes short lines from the array of lines
-        parameters:
-            x1,y1,x2,y2 - start and end coordinates of the lines
-        returns:
-            x1f,y1f,x2f,y2f - start and end coordinates of the lines, with short lines removed
-        example usage:
-            x1,y1,x2,y2=remove_short_lines([100,200,300],[100,200,300],[100,200,300],[102,210,320])
-            3 input lines, 1 short line will be removed (100,100->100,102)
-            returned coordinates:
-            x1=[200,300]; y1=[200,300]; x2=[200,300]; y2=[210,320]
-        """
-        # dx, dy = 2, 2  # minimum allowable dx,dy
         x1f, y1f, x2f, y2f = [], [], [], []
         for i in range(len(x1)):
             if abs(x1[i] - x2[i]) > min_length or abs(y1[i] - y2[i]) > min_length:
@@ -285,66 +249,33 @@ class PlotWindow(HasTraits):
         self._plot.request_redraw()
 
 
-# ---------------------------------------------------------
-
-
 class DetectionGUI(HasTraits):
     """detection GUI"""
 
     status_text = Str(" status ")
-    # -------------------------------------------------------------
-
-    # grey_thresh= Range(1,255,5,mode='slider')
-
     size_of_crosses = Int(4, label="Size of crosses")
-    # button_edit_cal_parameters = Button()
     button_showimg = Button(label="Load image")
     hp_flag = Bool(False, label="highpass")
     inverse_flag = Bool(False, label="inverse")
     button_detection = Button(label="Detect dots")
     image_name = Str("cal/cam1.tif", label="Image file name")
 
-    # ---------------------------------------------------
-    # Constructor
-    # ---------------------------------------------------
     def __init__(self, par_path: pathlib.Path):
-        """Initialize DetectionGUI
-
-        Inputs:
-            active_path is the path to the folder of prameters
-            active_path is a subfolder of a working folder with a
-            structure of /parameters, /res, /cal, /img and so on
-        """
-
         super(DetectionGUI, self).__init__()
         self.need_reset = 0
 
-        # self.active_path = active_path
-        print(f"par_path is {par_path}")
         if not isinstance(par_path, pathlib.Path):
             par_path = pathlib.Path(par_path)
 
-        self.par_path = par_path
-        self.working_folder = self.par_path.parent
-        # self.par_path = os.path.join(self.working_folder, 'parameters')
-
-        # print('active path = %s' % self.active_path)
-        print(f"working_folder = {self.working_folder}")
-        print(f"par_path = {self.par_path}")
-
-        # par.copy_params_dir(self.active_path, self.par_path)
+        self.pm = ParameterManager()
+        self.pm.from_yaml(par_path / 'parameters.yaml')
+        
+        self.working_folder = par_path.parent
         os.chdir(self.working_folder)
         print(f"Inside a folder: {pathlib.Path()}")
-        # read parameters
-        with open((self.par_path / "ptv.par"), "r", encoding="utf-8") as f:
-            self.n_cams = int(f.readline())
+        
+        self.n_cams = self.pm.get_parameter('ptv')['n_img']
 
-        print(f"Loading images/parameters in {self.n_cams} cams \n")
-
-        # copy parameters from active to default folder parameters/
-        # par.copy_params_dir(self.active_path, self.par_path)
-
-        # read from parameters
         (
             self.cpar,
             self.spar,
@@ -364,7 +295,6 @@ class DetectionGUI(HasTraits):
         self.sum_grey = self.tpar.get_min_sum_grey()
         self.disco = self.tpar.get_max_discontinuity()
 
-        # self.add_trait("i_cam", Enum(range(1,self.n_cams+1)))
         self.add_trait("grey_thresh", Range(1, 255, self.thresholds[0], mode="slider"))
         self.add_trait(
             "min_npix",
@@ -447,17 +377,12 @@ class DetectionGUI(HasTraits):
             ),
         )
 
-        # Detection will work one by one for the beginning
         self.camera = [PlotWindow()]
-        # self.camera_name = 'Camera' + str(self.i_cam)
-
-    # Defines GUI view --------------------------
 
     view = View(
         HGroup(
             VGroup(
                 VGroup(
-                    # Item(name='i_cam'),
                     Item(name="image_name", width=150),
                     Item(name="button_showimg"),
                     Item(name="hp_flag"),
@@ -495,8 +420,6 @@ class DetectionGUI(HasTraits):
         statusbar="status_text",
     )
 
-    # --------------------------------------------------
-
     def _inverse_flag_changed(self):
         self._read_cal_image()
         self.status_text = "Negative image"
@@ -510,20 +433,16 @@ class DetectionGUI(HasTraits):
     def _grey_thresh_changed(self):
         self.thresholds[0] = self.grey_thresh
         self.tpar.set_grey_thresholds(self.thresholds)
-        # print(f"tpar is now {self.tpar.get_grey_thresholds()}")
-        # run detection again
         self._button_detection_fired()
 
     def _min_npix_changed(self):
         self.pixel_count_bounds[0] = self.min_npix
         self.tpar.set_pixel_count_bounds(self.pixel_count_bounds)
-        # print(f"set min {self.tpar.get_pixel_count_bounds()}")
         self._button_detection_fired()
 
     def _max_npix_changed(self):
         self.pixel_count_bounds[1] = self.max_npix
         self.tpar.set_pixel_count_bounds(self.pixel_count_bounds)
-        # print(f"set max {self.tpar.get_pixel_count_bounds()}")
         self._button_detection_fired()
 
     def _min_npix_x_changed(self):
@@ -539,7 +458,6 @@ class DetectionGUI(HasTraits):
     def _min_npix_y_changed(self):
         self.ysize_bounds[0] = self.min_npix_y
         self.tpar.set_ysize_bounds(self.ysize_bounds)
-        # self._button_detection_fired()
 
     def _max_npix_y_changed(self):
         self.ysize_bounds[1] = self.max_npix_y
@@ -552,7 +470,6 @@ class DetectionGUI(HasTraits):
 
     def _disco_changed(self):
         self.tpar.set_max_discontinuity(self.disco)
-        # print(f"set disco {self.tpar.get_max_discontinuity()}")
         self._button_detection_fired()
 
     def _button_showimg_fired(self):
@@ -560,14 +477,7 @@ class DetectionGUI(HasTraits):
         self.reset_show_images()
 
     def _read_cal_image(self):
-        # read Detection images
-        # imname = self.cpar.get_cal_img_base_name(self.i_cam-1)
-        #
-        # print(f'image name is {self.image_name}')# and \
-        # its string is {self.image_name.decode("utf-8")}')
-
         im = imread(self.image_name)
-        # print(f'image size is {im.shape}')
         if im.ndim > 2:
             im = rgb2gray(im)
 
@@ -584,26 +494,15 @@ class DetectionGUI(HasTraits):
         self.cal_image = im.copy()
 
     def _button_detection_fired(self):
-        # self.reset_show_images()
-        # self.need_reset = False
         self.status_text = " Detection procedure "
-
-        # self.detections, corrected = \
-        #     ptv.py_detection_proc_c([self.cal_image], self.cpar, self.tpar, self.cals)
-
         targs = target_recognition(self.cal_image, self.tpar, 0, self.cpar)
         targs.sort_y()
 
         x = [i.pos()[0] for i in targs]
         y = [i.pos()[1] for i in targs]
 
-        # print("n particles is %d " % len(x))
-
         self.camera[0].drawcross("x", "y", np.array(x), np.array(y), "orange", 8)
         self.camera[0]._right_click_avail = 1
-
-        # for i in range(self.n_cams):
-        #     self.camera[i]._right_click_avail = 1
 
     def reset_plots(self):
         """Resets all the images and overlays"""
@@ -625,14 +524,10 @@ class DetectionGUI(HasTraits):
         self.camera[0].attach_tools()
         self.camera[0]._plot.request_redraw()
 
-    # def update_plots(self, images, is_float=False):
-    #     self.camera[0].update_image(self.cal_image, is_float)
-
 
 if __name__ == "__main__":
     if len(sys.argv) == 1:
         par_path = pathlib.Path().absolute() / "tests" / "test_cavity" / "parameters"
-        # par_path = pathlib.Path('/home/user/Downloads/Test_8_with_50_pic/parameters')
     else:
         par_path = pathlib.Path(sys.argv[1]) / "parameters"
 

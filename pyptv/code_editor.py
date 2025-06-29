@@ -15,7 +15,7 @@ from traits.api import (
 from traitsui.api import Item, Group, View, ListEditor
 
 from pathlib import Path
-from pyptv import parameters as par
+from pyptv.parameter_manager import ParameterManager
 
 
 def get_path(filename):
@@ -89,17 +89,14 @@ class oriEditor(HasTraits):
 
     def __init__(self, path: Path):
         """Initialize by reading parameters and filling the editor windows"""
-        # load ptv_par
-        ptvParams = par.PtvParams(path=path)
-        ptvParams.read()
-        self.n_img = ptvParams.n_img
-
-        # load cal_ori
-        calOriParams = par.CalOriParams(self.n_img)
-        calOriParams.read()
+        pm = ParameterManager()
+        pm.from_yaml(path / 'parameters.yaml')
+        
+        self.n_img = pm.get_parameter('ptv')['n_img']
+        img_ori = pm.get_parameter('cal_ori')['img_ori']
 
         for i in range(self.n_img):
-            self.oriEditors.append(codeEditor(Path(calOriParams.img_ori[i])))
+            self.oriEditors.append(codeEditor(Path(img_ori[i])))
 
 
 class addparEditor(HasTraits):
@@ -127,16 +124,13 @@ class addparEditor(HasTraits):
 
     def __init__(self, path):
         """Initialize by reading parameters and filling the editor windows"""
-        # load ptv_par
-        ptvParams = par.PtvParams(path=path)
-        ptvParams.read()
-        self.n_img = ptvParams.n_img
-
-        # load cal_ori
-        calOriParams = par.CalOriParams(self.n_img, path=path)
-        calOriParams.read()
+        pm = ParameterManager()
+        pm.from_yaml(path / 'parameters.yaml')
+        
+        self.n_img = pm.get_parameter('ptv')['n_img']
+        img_ori = pm.get_parameter('cal_ori')['img_ori']
 
         for i in range(self.n_img):
             self.addparEditors.append(
-                codeEditor(Path(calOriParams.img_ori[i].replace("ori", "addpar")))
+                codeEditor(Path(img_ori[i].replace("ori", "addpar")))
             )

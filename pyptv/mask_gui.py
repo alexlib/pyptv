@@ -23,17 +23,12 @@ from chaco.api import (
     PolygonPlot,
 )
 
-# from traitsui.menu import MenuBar, ToolBar, Menu, Action
 from chaco.tools.image_inspector_tool import ImageInspectorTool
 from chaco.tools.better_zoom import BetterZoom as SimpleZoom
 
-# from chaco.tools.simple_zoom import SimpleZoom
 from pyptv.text_box_overlay import TextBoxOverlay
-
-
-
-
-from pyptv import ptv, parameters as par
+from pyptv import ptv
+from pyptv.parameter_manager import ParameterManager
 
 
 # recognized names for the flags:
@@ -97,9 +92,7 @@ class PlotWindow(HasTraits):
     )
 
     def __init__(self):
-        # super(HasTraits, self).__init__()
         super().__init__()
-        # -------------- Initialization of plot system ----------------
         padd = 25
         self.plot_data = ArrayPlotData(px=np.array([]), py=np.array([]))
         self._x, self._y = [], []
@@ -121,7 +114,7 @@ class PlotWindow(HasTraits):
         self.drawcross("coord_x", "coord_y", self._x, self._y, "red", 5)
 
         if self._plot.overlays is not None:
-            self._plot.overlays.clear()  # type: ignore
+            self._plot.overlays.clear()
 
         self.plot_num_overlay(self._x, self._y, self.man_ori)
 
@@ -135,7 +128,7 @@ class PlotWindow(HasTraits):
 
             self.drawcross("coord_x", "coord_y", self._x, self._y, "red", 5)
             if self._plot.overlays is not None:
-                self._plot.overlays.clear()  # type: ignore
+                self._plot.overlays.clear()
             self.plot_num_overlay(self._x, self._y, self.man_ori)
         else:
             if self._right_click_avail:
@@ -190,33 +183,8 @@ class PlotWindow(HasTraits):
         self._plot.request_redraw()
 
     def drawquiver(self, x1c, y1c, x2c, y2c, color, linewidth=1.0, scale=1.0):
-        """drawquiver draws multiple lines at once on the screen x1,y1->x2,y2 in the current camera window
-        parameters:
-            x1c - array of x1 coordinates
-            y1c - array of y1 coordinates
-            x2c - array of x2 coordinates
-            y2c - array of y2 coordinates
-            color - color of the line
-            linewidth - linewidth of the line
-        example usage:
-            drawquiver ([100,200],[100,100],[400,400],[300,200],'red',linewidth=2.0)
-            draws 2 red lines with thickness = 2 :  100,100->400,300 and 200,100->400,200
-
-        """
         x1, y1, x2, y2 = self.remove_short_lines(x1c, y1c, x2c, y2c, min_length=0)
         if len(x1) > 0:
-            # quiverplot = QuiverPlot(
-            #     index=xs,
-            #     value=ys,
-            #     index_mapper=LinearMapper(range=self._plot.index_mapper.range),
-            #     value_mapper=LinearMapper(range=self._plot.value_mapper.range),
-            #     origin=self._plot.origin,
-            #     arrow_size=0,
-            #     line_color=color,
-            #     line_width=linewidth,
-            #     ep_index=np.array(x2) * scale,
-            #     ep_value=np.array(y2) * scale,
-            # )
             vectors = np.array(
                 (
                     (np.array(x2) - np.array(x1)) / scale,
@@ -226,25 +194,11 @@ class PlotWindow(HasTraits):
             self.plot_data.set_data("index", x1)
             self.plot_data.set_data("value", y1)
             self.plot_data.set_data("vectors", vectors)
-            # self._quiverplots.append(quiverplot)
             self._plot.quiverplot(
                 ("index", "value", "vectors"), arrow_size=0, line_color="red"
             )
-            # self._plot.overlays.append(quiverplot)
 
     def remove_short_lines(self, x1, y1, x2, y2, min_length=2):
-        """removes short lines from the array of lines
-        parameters:
-            x1,y1,x2,y2 - start and end coordinates of the lines
-        returns:
-            x1f,y1f,x2f,y2f - start and end coordinates of the lines, with short lines removed
-        example usage:
-            x1,y1,x2,y2=remove_short_lines([100,200,300],[100,200,300],[100,200,300],[102,210,320])
-            3 input lines, 1 short line will be removed (100,100->100,102)
-            returned coordinates:
-            x1=[200,300]; y1=[200,300]; x2=[200,300]; y2=[210,320]
-        """
-        # dx, dy = 2, 2  # minimum allowable dx,dy
         x1f, y1f, x2f, y2f = [], [], [], []
         for i in range(len(x1)):
             if abs(x1[i] - x2[i]) > min_length or abs(y1[i] - y2[i]) > min_length:
@@ -284,13 +238,8 @@ class PlotWindow(HasTraits):
         else:
             self.plot_data.set_data("imagedata", image.astype(np.uint8))
 
-        # Alex added to plot the image here from update image
         self._img_plt = self._plot.img_plot("imagedata", colormap=gray)[0]
-
         self._plot.request_redraw()
-
-
-# ---------------------------------------------------------
 
 
 class MaskGUI(HasTraits):
@@ -301,53 +250,29 @@ class MaskGUI(HasTraits):
     pass_sortgrid = Bool(False)
     pass_raw_orient = Bool(False)
     pass_init_disabled = Bool(False)
-    # -------------------------------------------------------------
     button_showimg = Button()
     button_detection = Button()
     button_manual = Button()
 
-    # ---------------------------------------------------
-    # Constructor
-    # ---------------------------------------------------
     def __init__(self, active_path: Path):
-        """Initialize MaskGUI
-
-        Inputs:
-            active_path is the path to the folder of prameters
-            active_path is a subfolder of a working folder with a
-            structure of /parameters, /res, /cal, /img and so on
-        """
-
         super(MaskGUI, self).__init__()
         self.need_reset = 0
-
         self.active_path = active_path
         self.working_folder = self.active_path.parent
-        self.par_path = self.working_folder / "parameters"
-
-        self.man_ori_dat_path = self.working_folder / "man_ori.dat"
-
-        print(" Copying parameters inside Mask GUI: \n")
-        par.copy_params_dir(self.active_path, self.par_path)
-
+        
+        self.pm = ParameterManager()
+        self.pm.from_yaml(self.active_path / 'parameters.yaml')
+        
         os.chdir(self.working_folder)
         print(f"Inside a folder: {Path.cwd()}")
 
-        # read parameters
-        with open(self.par_path / "ptv.par", "r") as f:
-            self.n_cams = int(f.readline())
-
-        self.calParams = par.CalOriParams(self.n_cams, path=self.par_path)
-        self.calParams.read()
-
+        self.n_cams = self.pm.get_parameter('ptv')['n_img']
         self.camera = [PlotWindow() for i in range(self.n_cams)]
         for i in range(self.n_cams):
             self.camera[i].name = "Camera" + str(i + 1)
             self.camera[i].cameraN = i
             self.camera[i].py_rclick_delete = ptv.py_rclick_delete
             self.camera[i].py_get_pix_N = ptv.py_get_pix_N
-
-    # Defines GUI view --------------------------
 
     view = View(
         HGroup(
@@ -385,17 +310,8 @@ class MaskGUI(HasTraits):
         statusbar="status_text",
     )
 
-    # --------------------------------------------------
-
     def _button_showimg_fired(self):
         print("Loading images \n")
-
-        # Initialize what is needed, copy necessary things
-
-        # copy parameters from active to default folder parameters/
-        par.copy_params_dir(self.active_path, self.par_path)
-
-        # read from parameters
         (
             self.cpar,
             self.spar,
@@ -406,20 +322,16 @@ class MaskGUI(HasTraits):
             self.epar,
         ) = ptv.py_start_proc_c(self.n_cams)
 
-        # read Mask images
         self.images = []
         for i in range(len(self.camera)):
-            imname = self.cpar.get_img_base_name(i)
+            imname = self.pm.get_parameter('ptv')['img_name'][i]
             im = imread(imname)
-            # im = ImageData.fromfile(imname).data
             if im.ndim > 2:
                 im = rgb2gray(im[:, :, :3])
 
             self.images.append(img_as_ubyte(im))
 
         self.reset_show_images()
-
-        # Loading manual parameters here
         self.pass_init = True
         self.status_text = "Initialization finished."
 
@@ -462,19 +374,6 @@ class MaskGUI(HasTraits):
                 "Use left button to draw points on each image, avoid crossing lines"
             )
 
-        # Now draw the polygons for all cameras
-        # for i in range(self.n_cams):
-        #     apd = ArrayPlotData(px=self.camera[i]._x, py=self.camera[i]._y)
-        #     p = self._plot.plot(
-        #         ("px", "py"),
-        #         type="polygon",
-        #         face_color=(0, 0.8, 1) + (0.5,),
-        #         edge_color=(0, 0, 0) + (0.5,),
-        #         edge_style="solid",
-        #         alpha=0.5,
-        #     )
-        #     print(p[0])
-
     def reset_plots(self):
         for i in range(len(self.n_cams)):
             self.camera[i]._plot.delplot(*self.camera[i]._plot.plots.keys()[0:])
@@ -495,7 +394,6 @@ class MaskGUI(HasTraits):
             cam._plot.request_redraw()
 
     def drawcross(self, str_x, str_y, x, y, color1, size1, i_cam=None):
-        """Draw crosses on images"""
         if i_cam is None:
             for i in range(self.n_cams):
                 self.camera[i].drawcross(str_x, str_y, x[i], y[i], color1, size1)
