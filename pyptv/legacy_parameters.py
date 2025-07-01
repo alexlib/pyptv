@@ -6,7 +6,7 @@ import shutil
 from tqdm import tqdm
 from traits.api import HasTraits, Str, Float, Int, List, Bool
 
-import yaml
+# import yaml
 
 # Temporary path for parameters (active run will be copied here)
 par_dir_prefix = str("parameters")
@@ -53,24 +53,24 @@ class Parameters(HasTraits):
     def write(self):
         raise NotImplementedError()
 
-    def to_yaml(self):
-        """Creates YAML file"""
-        yaml_file = self.filepath().replace(".par", ".yaml")
-        with open(yaml_file, "w") as outfile:
-            yaml.dump(self.__dict__, outfile, default_flow_style=False)
+    # def to_yaml(self):
+    #     """Creates YAML file"""
+    #     yaml_file = self.filepath().replace(".par", ".yaml")
+    #     with open(yaml_file, "w") as outfile:
+    #         yaml.dump(self.__dict__, outfile, default_flow_style=False)
 
-    def from_yaml(self):
-        yaml_file = self.filepath().replace(".par", ".yaml")
-        with open(yaml_file) as f:
-            yaml_args = yaml.load(f)
+    # def from_yaml(self):
+    #     yaml_file = self.filepath().replace(".par", ".yaml")
+    #     with open(yaml_file) as f:
+    #         yaml_args = yaml.load(f)
 
-        for k, v in yaml_args.items():
-            if isinstance(v, list) and len(v) > 1:  # multi line
-                setattr(self, k, [])
-                tmp = [item for item in v]
-                setattr(self, k, tmp)
+    #     for k, v in yaml_args.items():
+    #         if isinstance(v, list) and len(v) > 1:  # multi line
+    #             setattr(self, k, [])
+    #             tmp = [item for item in v]
+    #             setattr(self, k, tmp)
 
-            setattr(self, k, v)
+    #         setattr(self, k, v)
 
     def istherefile(self, filename):
         """checks if the filename exists in the experimental path"""
@@ -1179,13 +1179,17 @@ class MultiPlaneParams(Parameters):
         self,
         n_img=Int,
         n_planes=Int,
-        plane_name=[],
+        plane_name=None,
         path=Parameters.default_path,
     ):
         Parameters.__init__(self, path)
+        if plane_name is None:
+            plane_name = []
         self.set(n_img, n_planes, plane_name)
 
-    def set(self, n_img=Int, n_planes=Int, plane_name=[]):
+    def set(self, n_img=Int, n_planes=Int, plane_name=None):
+        if plane_name is None:
+            plane_name = []
         self.n_img = n_img
         (self.n_planes, self.plane_name) = (n_planes, plane_name)
 
@@ -1196,6 +1200,7 @@ class MultiPlaneParams(Parameters):
         try:
             with open(self.filepath(), "r") as f:
                 self.n_planes = int(g(f))
+                self.plane_name = []
                 for i in range(self.n_planes):
                     self.plane_name.append(g(f))
 

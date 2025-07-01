@@ -1,4 +1,3 @@
-"""
 This module defines the ParameterManager class, which is responsible for
 loading, saving, and managing parameters, and converting between a single
 YAML file and a directory of parameter files.
