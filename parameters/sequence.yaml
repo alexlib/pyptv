@@ -1,0 +1,9 @@
+base_name:
+- img/cam1.
+- img/cam2.
+- img/cam3.
+- img/cam4.
+first: 10001
+last: 10004
+n_img: 4
+path: /Users/alex/Documents/OpenPTV/test_cavity/parameters

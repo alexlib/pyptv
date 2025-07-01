@@ -14,6 +14,7 @@ cal_ori:
   n_img: 4
   pair_flag: false
   tiff_flag: true
+  cal_splitter: false
 criteria:
   X_lay:
   - -40
@@ -29,7 +30,7 @@ criteria:
   cny: 0.02
   corrmin: 33.0
   csumg: 0.02
-  eps0: 0.2
+  eps0: 0.06
 detect_plate:
   gvth_1: 40
   gvth_2: 40
@@ -119,6 +120,7 @@ ptv:
   pix_x: 0.012
   pix_y: 0.012
   tiff_flag: true
+  splitter: false
 sequence:
   base_name:
   - img/cam1.%d

@@ -7,7 +7,7 @@ YAML file and a directory of parameter files.
 import yaml
 from pathlib import Path
 import argparse
-from pyptv import legacy_parameters as old_params
+from pyptv import legacy_parameters as legacy_params
 
 class ParameterManager:
     """
@@ -29,27 +29,27 @@ class ParameterManager:
         class_map = {}
 
         base_classes = [
-            old_params.PtvParams, old_params.CriteriaParams,
-            old_params.DetectPlateParams, old_params.OrientParams,
-            old_params.TrackingParams, old_params.PftVersionParams,
-            old_params.ExamineParams, old_params.DumbbellParams,
-            old_params.ShakingParams
+            legacy_params.PtvParams, legacy_params.CriteriaParams,
+            legacy_params.DetectPlateParams, legacy_params.OrientParams,
+            legacy_params.TrackingParams, legacy_params.PftVersionParams,
+            legacy_params.ExamineParams, legacy_params.DumbbellParams,
+            legacy_params.ShakingParams
         ]
         for cls in base_classes:
             instance = cls(path=dummy_path)
             class_map[instance.filename()] = cls
 
         n_img_classes = [
-            old_params.CalOriParams, old_params.SequenceParams,
-            old_params.TargRecParams, old_params.MultiPlaneParams,
-            old_params.SortGridParams
+            legacy_params.CalOriParams, legacy_params.SequenceParams,
+            legacy_params.TargRecParams, legacy_params.MultiPlaneParams,
+            legacy_params.SortGridParams
         ]
         for cls in n_img_classes:
             instance = cls(n_img=0, path=dummy_path)
             class_map[instance.filename()] = cls
 
-        instance = old_params.ManOriParams(n_img=0, nr=[], path=dummy_path)
-        class_map[instance.filename()] = old_params.ManOriParams
+        instance = legacy_params.ManOriParams(n_img=0, nr=[], path=dummy_path)
+        class_map[instance.filename()] = legacy_params.ManOriParams
 
         return class_map
 
@@ -68,7 +68,7 @@ class ParameterManager:
         ptv_par_path = dir_path / "ptv.par"
         n_img = 4
         if ptv_par_path.exists():
-            ptv_obj = old_params.PtvParams(path=dir_path)
+            ptv_obj = legacy_params.PtvParams(path=dir_path)
             ptv_obj.read()
             n_img = ptv_obj.n_img
 

@@ -964,12 +964,41 @@ class Paramset(HasTraits):
 
 
 class Experiment(HasTraits):
+    """
+    The Experiment is the MODEL - it owns all data and parameters
+    """
     active_params = Instance(Paramset)
-    paramsets = List(Paramset)
+    paramsets = List(Instance(Paramset))
 
     def __init__(self):
         HasTraits.__init__(self)
         self.changed_active_params = False
+        self.parameter_manager = ParameterManager()
+
+    def get_parameter(self, key):
+        """Get parameter with ParameterManager delegation"""
+        return self.parameter_manager.get_parameter(key)
+    
+    def save_parameters(self):
+        """Save current parameters to YAML"""
+        if self.active_params is not None:
+            yaml_path = self.active_params.par_path / 'parameters.yaml'
+            self.parameter_manager.to_yaml(yaml_path)
+            print(f"Parameters saved to {yaml_path}")
+
+    def load_parameters_for_active(self):
+        """Load parameters for the active parameter set"""
+        if self.active_params is not None:
+            yaml_path = self.active_params.par_path / 'parameters.yaml'
+            if yaml_path.exists():
+                print(f"Loading parameters from YAML: {yaml_path}")
+                self.parameter_manager.from_yaml(yaml_path)
+            else:
+                print(f"Creating parameters from directory: {self.active_params.par_path}")
+                self.parameter_manager.from_directory(self.active_params.par_path)
+                # Save as YAML for future use
+                self.parameter_manager.to_yaml(yaml_path)
+                print(f"Saved parameters as YAML: {yaml_path}")
 
     def getParamsetIdx(self, paramset):
         if isinstance(paramset, type(1)):
@@ -978,6 +1007,7 @@ class Experiment(HasTraits):
             return self.paramsets.index(paramset)
 
     def addParamset(self, name: str, par_path: Path):
+        # Create ParameterManager for this parameter set
         pm = ParameterManager()
         yaml_path = par_path / 'parameters.yaml'
         if yaml_path.exists():
@@ -986,13 +1016,14 @@ class Experiment(HasTraits):
             pm.from_directory(par_path)
             pm.to_yaml(yaml_path)
 
+        # Create a simplified Paramset without legacy GUI objects
         self.paramsets.append(
             Paramset(
                 name=name,
                 par_path=par_path,
-                m_params=Main_Params(param_manager=pm),
-                c_params=Calib_Params(param_manager=pm),
-                t_params=Tracking_Params(param_manager=pm),
+                m_params=None,  # No longer needed
+                c_params=None,  # No longer needed  
+                t_params=None,  # No longer needed
             )
         )
 
@@ -1009,27 +1040,28 @@ class Experiment(HasTraits):
         self.paramsets.pop(paramset_idx)
         self.paramsets.insert(0, self.active_params)
         self.syncActiveDir()
+        # Load parameters for the newly active set
+        self.load_parameters_for_active()
 
     def syncActiveDir(self):
         default_parameters_path = Path('parameters').resolve()
         if not default_parameters_path.exists():
             default_parameters_path.mkdir()
-        
-        src_yaml = self.active_params.par_path / 'parameters.yaml'
-        dest_yaml = default_parameters_path / 'parameters.yaml'
-        
-        if src_yaml.exists():
-            shutil.copy(src_yaml, dest_yaml)
-            print(f"Copied {src_yaml} to {dest_yaml}")
+
+        # Ensure active_params is set and has par_path attribute
+        if self.active_params is not None and hasattr(self.active_params, "par_path"):
+            src_dir = self.active_params.par_path
+            for ext in ('*.par', '*.yaml', '*.dat'):
+                for file in src_dir.glob(ext):
+                    dest_file = default_parameters_path / file.name
+                    shutil.copy(file, dest_file)
+                    print(f"Copied {file} to {dest_file}")
+        else:
+            print("No active parameter set or invalid active_params; skipping syncActiveDir.")
 
     def populate_runs(self, exp_path: Path):
         self.paramsets = []
-
-        dir_contents = [f for f in exp_path.iterdir() if (exp_path / f).is_dir()]
-
-        dir_contents = [
-            f for f in dir_contents if str(f.stem).startswith('parameters')
-        ]
+        dir_contents = [f for f in exp_path.iterdir() if f.is_dir() and f.stem.startswith('parameters')]
 
         if len(dir_contents) == 1 and str(dir_contents[0].stem) == 'parameters':
             exp_name = "Run1"

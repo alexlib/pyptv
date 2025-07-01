@@ -1,0 +1,24 @@
+allcam_flag: false
+chfield: 0
+hp_flag: true
+img_cal:
+- cal/cam1.tif
+- cal/cam2.tif
+- cal/cam3.tif
+- cal/cam4.tif
+img_name:
+- img/cam1.10002
+- img/cam2.10002
+- img/cam3.10002
+- img/cam4.10002
+imx: 1280
+imy: 1024
+mmp_d: 6.0
+mmp_n1: 1.0
+mmp_n2: 1.33
+mmp_n3: 1.46
+n_img: 4
+path: /Users/alex/Documents/OpenPTV/test_cavity/parameters
+pix_x: 0.012
+pix_y: 0.012
+tiff_flag: true

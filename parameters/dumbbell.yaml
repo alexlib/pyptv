@@ -1,0 +1,7 @@
+dumbbell_eps: 3.0
+dumbbell_gradient_descent: 0.05
+dumbbell_niter: 500
+dumbbell_penalty_weight: 1.0
+dumbbell_scale: 25.0
+dumbbell_step: 1
+path: /Users/alex/Documents/OpenPTV/test_cavity/parameters

@@ -1,0 +1,16 @@
+chfield: 0
+fixp_name: cal/target_on_a_side.txt
+img_cal_name:
+- cal/cam1.tif
+- cal/cam2.tif
+- cal/cam3.tif
+- cal/cam4.tif
+img_ori:
+- cal/cam1.tif.ori
+- cal/cam2.tif.ori
+- cal/cam3.tif.ori
+- cal/cam4.tif.ori
+n_img: 4
+pair_flag: false
+path: /Users/alex/Documents/OpenPTV/test_cavity/parameters
+tiff_flag: true

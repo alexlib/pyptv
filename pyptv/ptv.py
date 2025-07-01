@@ -250,7 +250,7 @@ def py_correspondences_proc_c(exp):
 def py_determination_proc_c(
     n_cams: int,
     sorted_pos: List[np.ndarray],
-    sorted_corresp: np.ndarray,
+    sorted_corresp: List[np.ndarray],
     corrected: List[MatchedCoords],
     cpar: ControlParams,
     vpar: VolumeParams,
@@ -258,20 +258,20 @@ def py_determination_proc_c(
 ) -> None:
     """Calculate 3D positions from 2D correspondences and save to file.
     """
-    sorted_pos = np.concatenate(sorted_pos, axis=1)
-    sorted_corresp = np.concatenate(sorted_corresp, axis=1)
+    concatenated_pos = np.concatenate(sorted_pos, axis=1)
+    concatenated_corresp = np.concatenate(sorted_corresp, axis=1)
 
     flat = np.array(
-        [corrected[i].get_by_pnrs(sorted_corresp[i]) for i in range(n_cams)]
+        [corrected[i].get_by_pnrs(concatenated_corresp[i]) for i in range(n_cams)]
     )
 
     pos, _ = point_positions(flat.transpose(1, 0, 2), cpar, cals, vpar)
 
     if n_cams < 4:
-        print_corresp = -1 * np.ones((4, sorted_corresp.shape[1]))
-        print_corresp[: len(cals), :] = sorted_corresp
+        print_corresp = -1 * np.ones((4, concatenated_corresp.shape[1]))
+        print_corresp[: len(cals), :] = concatenated_corresp
     else:
-        print_corresp = sorted_corresp
+        print_corresp = concatenated_corresp
 
     fname = (default_naming["corres"].decode() + "." + str(DEFAULT_FRAME_NUM)).encode()
 

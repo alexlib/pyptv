@@ -30,7 +30,7 @@ criteria:
   cny: 0.02
   corrmin: 33.0
   csumg: 0.02
-  eps0: 0.2
+  eps0: 0.06
 detect_plate:
   gvth_1: 40
   gvth_2: 40
