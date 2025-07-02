@@ -48,29 +48,42 @@ def test_core_functionality(test_data_dir):
         # Print the attributes of the VolumeParams class
         print("VolumeParams attributes:")
         print(dir(vol_params))
-        # Set some basic parameters using the correct methods
-        # Note: These methods might expect different types than what we're providing
-        # Let's try with different parameter types
+        
+        # Set volume parameters using the correct array format
+        # Based on the criteria.par format, these should be arrays
         try:
-            vol_params.set_Zmin_lay(-100.0)
+            # Z min layer expects an array of values (for multiple layers)
+            vol_params.set_Zmin_lay([-20.0, -20.0])
             print("set_Zmin_lay successful")
         except Exception as e:
             print(f"Error in set_Zmin_lay: {str(e)}")
 
         try:
-            vol_params.set_Zmax_lay(100.0)
+            # Z max layer expects an array of values (for multiple layers)
+            vol_params.set_Zmax_lay([25.0, 25.0])
             print("set_Zmax_lay successful")
         except Exception as e:
             print(f"Error in set_Zmax_lay: {str(e)}")
 
         try:
-            vol_params.set_cn(10)
+            # cn might be a single value
+            vol_params.set_cn(0.02)
             print("set_cn successful")
         except Exception as e:
             print(f"Error in set_cn: {str(e)}")
+            
+        try:
+            # Also set X layer bounds
+            vol_params.set_X_lay([-40.0, 40.0])
+            print("set_X_lay successful")
+        except Exception as e:
+            print(f"Error in set_X_lay: {str(e)}")
+            
         print("Successfully created volume parameters")
         print(f"Z min layer: {vol_params.get_Zmin_lay()}")
         print(f"Z max layer: {vol_params.get_Zmax_lay()}")
+        print(f"X layer: {vol_params.get_X_lay()}")
+        print(f"cn: {vol_params.get_cn()}")
     except Exception as e:
         print(f"Error creating volume parameters: {str(e)}")
         return False
@@ -80,5 +93,7 @@ def test_core_functionality(test_data_dir):
 
 
 if __name__ == "__main__":
-    success = test_core_functionality()
+    # Use the test_cavity directory when running directly
+    test_cavity_dir = os.path.join(os.path.dirname(__file__), "test_cavity")
+    success = test_core_functionality(test_cavity_dir)
     sys.exit(0 if success else 1)

@@ -34,6 +34,7 @@ class ParameterManager:
         Initializes the ParameterManager.
         """
         self.parameters = {}
+        self.n_cam = 4  # Global number of cameras - critical parameter that defines structure
         self._class_map = self._get_class_map()
         self.path = None
 
@@ -70,6 +71,7 @@ class ParameterManager:
     def from_directory(self, dir_path: Path):
         """
         Loads parameters from a directory of .par files.
+        First determines n_cam from ptv.par, then uses it globally.
         """
         if not isinstance(dir_path, Path):
             dir_path = Path(dir_path)
@@ -79,23 +81,28 @@ class ParameterManager:
             print(f"Error: Directory not found at {dir_path}")
             return
 
+        # First, read ptv.par to determine n_cam (global number of cameras)
         ptv_par_path = dir_path / "ptv.par"
-        n_img = 4
         if ptv_par_path.exists():
             ptv_obj = legacy_params.PtvParams(path=dir_path)
             ptv_obj.read()
-            n_img = ptv_obj.n_img
+            self.n_cam = ptv_obj.n_img  # Extract global n_cam from ptv.par
+            print(f"Global n_cam set to {self.n_cam} from ptv.par")
+        else:
+            print(f"Warning: ptv.par not found, using default n_cam = {self.n_cam}")
 
+        # Now load all parameter files using the global n_cam
         for par_file in sorted(dir_path.glob('*.par')):
             filename = par_file.name
             if filename in self._class_map:
                 param_class = self._class_map[filename]
                 
+                # Use global n_cam for classes that need it
                 if filename in ["cal_ori.par", "sequence.par", "targ_rec.par", "man_ori.par", "multi_planes.par", "sortgrid.par"]:
                     if filename == 'man_ori.par':
-                        param_obj = param_class(n_img=n_img, nr=[], path=dir_path)
+                        param_obj = param_class(n_img=self.n_cam, nr=[], path=dir_path)
                     else:
-                        param_obj = param_class(n_img=n_img, path=dir_path)
+                        param_obj = param_class(n_img=self.n_cam, path=dir_path)
                 else:
                     param_obj = param_class(path=dir_path)
 
@@ -109,15 +116,24 @@ class ParameterManager:
                        and key not in ['path', 'exp_path', 'trait_added', 'trait_modified', 'wrappers', 'default_path']
                        and not callable(getattr(param_obj, key))
                 }
+                
+                # Remove redundant n_img from individual parameter groups (except ptv)
+                if param_name != 'ptv' and 'n_img' in param_dict:
+                    del param_dict['n_img']
+                    print(f"Removed redundant n_img from {param_name} parameters")
+                
+                # For ptv parameters, rename n_img to n_cam for clarity
                 if param_name == 'ptv':
+                    if 'n_img' in param_dict:
+                        param_dict['n_cam'] = param_dict.pop('n_img')
                     param_dict['splitter'] = False
+                
                 if param_name == 'cal_ori':
                     param_dict['cal_splitter'] = False
+                    
                 self.parameters[param_name] = param_dict
         
         # Ensure default parameters for compatibility
-        self.ensure_default_parameters()
-
         self.ensure_default_parameters()
 
     def _clean_value(self, value):
@@ -197,9 +213,13 @@ class ParameterManager:
         if not isinstance(file_path, Path):
             file_path = Path(file_path)
 
+        # Create output data with global n_cam at the top
+        output_data = {'n_cam': self.n_cam}
+        output_data.update(self.parameters)
+
         with file_path.open('w') as f:
-            yaml.dump(self.parameters, f, default_flow_style=False, sort_keys=False)
-        print(f"Parameters consolidated and saved to {file_path}")
+            yaml.dump(output_data, f, default_flow_style=False, sort_keys=False)
+        print(f"Parameters consolidated and saved to {file_path} with global n_cam = {self.n_cam}")
 
     def from_yaml(self, file_path: Path):
         if not isinstance(file_path, Path):
@@ -208,10 +228,32 @@ class ParameterManager:
 
         try:
             with file_path.open('r') as f:
-                self.parameters = yaml.safe_load(f) or {}
+                data = yaml.safe_load(f) or {}
+            
+            # Extract global n_cam from the YAML structure
+            if 'n_cam' in data:
+                # Direct n_cam field (preferred new structure)
+                self.n_cam = data.pop('n_cam')  # Remove from data after extracting
+                print(f"Global n_cam set to {self.n_cam} from YAML")
+            elif 'ptv' in data and 'n_cam' in data['ptv']:
+                # n_cam within ptv section (fallback)
+                self.n_cam = data['ptv']['n_cam']
+                print(f"Global n_cam set to {self.n_cam} from ptv section")
+            elif 'ptv' in data and 'n_img' in data['ptv']:
+                # Legacy n_img in ptv section
+                self.n_cam = data['ptv']['n_img']
+                # Rename to n_cam for consistency
+                data['ptv']['n_cam'] = data['ptv'].pop('n_img')
+                print(f"Global n_cam set to {self.n_cam} from legacy ptv.n_img")
+            else:
+                print(f"Warning: n_cam not found in YAML, using default {self.n_cam}")
+                
+            self.parameters = data
             print(f"Parameters loaded from {file_path}")
+            
             # Ensure default parameters for compatibility
             self.ensure_default_parameters()
+            
         except FileNotFoundError:
             print(f"Warning: YAML file not found at {file_path}. Using empty parameters.")
             self.parameters = {}
@@ -227,26 +269,41 @@ class ParameterManager:
 
         dir_path.mkdir(parents=True, exist_ok=True)
 
-        n_img = self.parameters.get('ptv', {}).get('n_img', 4)
+        # Use global n_cam for all parameter objects that need it
+        print(f"Writing parameters to directory using global n_cam = {self.n_cam}")
 
         for name, data in self.parameters.items():
             filename = f"{name}.par"
             if filename in self._class_map:
                 param_class = self._class_map[filename]
                 
+                # Create parameter object with global n_cam
                 if filename in ["cal_ori.par", "sequence.par", "targ_rec.par", "man_ori.par", "multi_planes.par", "sortgrid.par"]:
                     if filename == 'man_ori.par':
-                        param_obj = param_class(n_img=n_img, nr=[], path=dir_path)
+                        param_obj = param_class(n_img=self.n_cam, nr=[], path=dir_path)
                     else:
-                        param_obj = param_class(n_img=n_img, path=dir_path)
+                        param_obj = param_class(n_img=self.n_cam, path=dir_path)
                 else:
                     param_obj = param_class(path=dir_path)
 
+                # Set parameter values, handling special cases
                 for key, value in data.items():
                     if hasattr(param_obj, key):
-                        setattr(param_obj, key, value)
+                        # For legacy compatibility, map n_cam back to n_img when writing to objects
+                        if key == 'n_cam' and hasattr(param_obj, 'n_img'):
+                            setattr(param_obj, 'n_img', value)
+                        else:
+                            setattr(param_obj, key, value)
                 
-                param_obj.write()
+                # Ensure n_img is set for objects that need it
+                if hasattr(param_obj, 'n_img') and not hasattr(data, 'n_img'):
+                    param_obj.n_img = self.n_cam
+                
+                try:
+                    param_obj.write()
+                except Exception as e:
+                    print(f"Exception caught, message: {e}")
+                    
         print(f"Parameters written to individual files in {dir_path}")
 
     def ensure_default_parameters(self):
@@ -271,10 +328,14 @@ class ParameterManager:
             }
             print("Info: Added default unsharp mask parameters")
         
-        # Ensure ptv parameters have splitter flag
-        if 'ptv' in self.parameters and 'splitter' not in self.parameters['ptv']:
-            self.parameters['ptv']['splitter'] = False
-            print("Info: Added default splitter flag to ptv parameters")
+        # Ensure ptv parameters have n_cam and splitter flag
+        if 'ptv' in self.parameters:
+            if 'n_cam' not in self.parameters['ptv']:
+                self.parameters['ptv']['n_cam'] = self.n_cam
+                print(f"Info: Added n_cam={self.n_cam} to ptv parameters")
+            if 'splitter' not in self.parameters['ptv']:
+                self.parameters['ptv']['splitter'] = False
+                print("Info: Added default splitter flag to ptv parameters")
         
         # Ensure cal_ori parameters have cal_splitter flag
         if 'cal_ori' in self.parameters and 'cal_splitter' not in self.parameters['cal_ori']:
@@ -305,7 +366,7 @@ class ParameterManager:
             },
             'ptv': {
                 'splitter': False,
-                'n_img': 4,
+                'n_cam': self.n_cam,  # Use global n_cam
                 'hp_flag': True,
                 'allcam_flag': False,
                 'tiff_flag': True,
@@ -333,6 +394,30 @@ class ParameterManager:
             return 1
         else:
             return None
+
+    def get_n_cam(self):
+        """
+        Get the global number of cameras.
+        
+        Returns:
+            int: The global number of cameras
+        """
+        return self.n_cam
+    
+    def set_n_cam(self, n_cam):
+        """
+        Set the global number of cameras.
+        
+        Args:
+            n_cam (int): The number of cameras
+        """
+        self.n_cam = n_cam
+        print(f"Global n_cam set to {self.n_cam}")
+        
+        # Update ptv parameters if they exist
+        if 'ptv' in self.parameters:
+            self.parameters['ptv']['n_cam'] = n_cam
+    
 def main():
     parser = argparse.ArgumentParser(
         description="Convert between a directory of .par files and a single YAML file.",
