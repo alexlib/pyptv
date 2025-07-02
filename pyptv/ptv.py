@@ -94,7 +94,7 @@ def _populate_cpar(ptv_params: dict) -> ControlParams:
 
 def _populate_spar(params: dict) -> SequenceParams:
     """Populate a SequenceParams object from a dictionary."""
-    seq_params = params.get('sequence', {})
+    
     spar = SequenceParams(num_cams=params.get('ptv', {}).get('n_img', 4))
     spar.set_first(seq_params.get('first', 0))
     spar.set_last(seq_params.get('last', 0))
@@ -171,13 +171,24 @@ def py_start_proc_c(
     """Read all parameters needed for processing.
     """
     try:
-        cpar = _populate_cpar(params)
-        spar = _populate_spar(params)
-        vpar = _populate_vpar(params)
-        track_par = _populate_track_par(params)
-        tpar = _populate_tpar(params)
+        ptv_params = params.get('ptv', {})
+        cpar = _populate_cpar(ptv_params)
+
+        seq_params = params.get('sequence', {})
+        spar = _populate_spar(seq_params)
+
+        volume_params = params.get('volume', {})
+        vpar = _populate_vpar(volume_params)
+
+        track_params = params.get('track', {})
+        track_par = _populate_track_par(track_params)
+
+        target_params = params.get('targ_rec', {})
+        tpar = _populate_tpar(target_params)
+
+
         epar = params.get('examine', {})
-        cals = _read_calibrations(cpar, params['ptv']['n_img'])
+        cals = _read_calibrations(cpar, ptv_params['n_img'])
 
         return cpar, spar, vpar, track_par, tpar, cals, epar
 
@@ -201,13 +212,15 @@ def py_pre_processing_c(
 
 def py_detection_proc_c(
     list_of_images: List[np.ndarray],
-    cpar: ControlParams,
-    tpar: TargetParams,
+    ptv_params: dict,
+    target_params: dict,
     cals: List[Calibration],
     existing_target: bool = False,
 ) -> Tuple[List[TargetArray], List[MatchedCoords]]:
-    """Detect targets in a list of images.
-    """
+    """Detect targets in a list of images."""
+    cpar = _populate_cpar(ptv_params)
+    tpar = _populate_tpar(target_params)
+
     detections = []
     corrected = []
 

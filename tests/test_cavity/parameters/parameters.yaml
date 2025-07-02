@@ -164,3 +164,10 @@ track:
   dvzmax: 15.5
   dvzmin: -15.5
   flagNewParticles: true
+masking:
+  mask_flag: false
+  mask_base_name: ''
+unsharp_mask:
+  flag: false
+  size: 3
+  strength: 1.0

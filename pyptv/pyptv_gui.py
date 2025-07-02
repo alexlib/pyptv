@@ -444,11 +444,11 @@ class TreeMenuHandler(Handler):
         mainGui = info.object
         mainGui.exp1.syncActiveDir()
 
-        ptv_params = mainGui.get_parameter('ptv')
+        self.ptv_params = mainGui.get_parameter('ptv')
         
-        if ptv_params.get('splitter', False):
+        if self.ptv_params.get('splitter', False):
             print("Using Splitter mode")
-            imname = ptv_params['img_name'][0]
+            imname = self.ptv_params['img_name'][0]
             if Path(imname).exists():
                 temp_img = imread(imname)
                 if temp_img.ndim > 2:
@@ -458,7 +458,7 @@ class TreeMenuHandler(Handler):
                     mainGui.orig_images[i] = img_as_ubyte(splitted_images[i])
         else:
             for i in range(len(mainGui.camera_list)):
-                imname = ptv_params['img_name'][i]
+                imname = self.ptv_params['img_name'][i]
                 if Path(imname).exists():
                     print(f"Reading image {imname}")
                     im = imread(imname)
@@ -466,8 +466,8 @@ class TreeMenuHandler(Handler):
                         im = rgb2gray(im)
                 else:
                     print(f"Image {imname} does not exist, setting zero image")
-                    h_img = ptv_params['imx']
-                    v_img = ptv_params['imy']
+                    h_img = self.ptv_params['imx']
+                    v_img = self.ptv_params['imy']
                     im = np.zeros((v_img, h_img), dtype=np.uint8)
                     
                 mainGui.orig_images[i] = img_as_ubyte(im)
@@ -531,14 +531,17 @@ class TreeMenuHandler(Handler):
 
     def img_coord_action(self, info):
         """img_coord_action - runs detection function"""
+        ptv_params = info.object.get_parameter('ptv')
+        target_params = info.object.get_parameter('target')
+
         print("Start detection")
         (
             info.object.detections,
             info.object.corrected,
         ) = ptv.py_detection_proc_c(
             info.object.orig_images,
-            info.object.cpar,
-            info.object.tpar,
+            ptv_params,
+            target_params,
             info.object.cals,
         )
         print("Detection finished")
