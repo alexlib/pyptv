@@ -1,0 +1,10 @@
+angle: 100.0
+dacc: 0.8
+dvxmax: 2.5
+dvxmin: -2.5
+dvymax: 2.5
+dvymin: -2.5
+dvzmax: 2.5
+dvzmin: -2.5
+flagNewParticles: true
+path: /Users/alex/Documents/OpenPTV/test_cavity/parameters

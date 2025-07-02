@@ -1,0 +1,5 @@
+path: /Users/alex/Documents/OpenPTV/test_cavity/parameters
+shaking_first_frame: 10000
+shaking_last_frame: 10004
+shaking_max_num_frames: 5
+shaking_max_num_points: 10

@@ -1,0 +1,3 @@
+n_img: !!python/name:traits.trait_types.Int ''
+path: /Users/alex/Documents/OpenPTV/test_cavity/parameters
+radius: 20

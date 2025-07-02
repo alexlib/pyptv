@@ -1,0 +1,7 @@
+n_img: !!python/name:traits.trait_types.Int ''
+n_planes: 3
+path: /Users/alex/Documents/OpenPTV/test_cavity/parameters
+plane_name:
+- img/calib_a_cam
+- img/calib_b_cam
+- img/calib_c_cam

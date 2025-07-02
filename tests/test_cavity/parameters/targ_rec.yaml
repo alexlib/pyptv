@@ -1,0 +1,16 @@
+cr_sz: 2
+disco: 100
+gvthres:
+- 9
+- 9
+- 9
+- 11
+n_img: 4
+nnmax: 500
+nnmin: 4
+nxmax: 100
+nxmin: 2
+nymax: 100
+nymin: 2
+path: /Users/alex/Documents/OpenPTV/test_cavity/parameters
+sumg_min: 150
