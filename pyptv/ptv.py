@@ -397,7 +397,7 @@ def py_sequence_loop(exp) -> None:
         exp.cals,
     )
 
-    existing_target = exp.pm.get_parameter('pft_version').get('Existing_Target', False)
+    existing_target = exp.parameter_manager.get_parameter('pft_version').get('Existing_Target', False)
 
     first_frame = spar.get_first()
     last_frame = spar.get_last()
@@ -422,11 +422,11 @@ def py_sequence_loop(exp) -> None:
                     if img.dtype != np.uint8:
                         img = img_as_ubyte(img)
 
-                if exp.pm.get_parameter('ptv').get('inverse', False):
+                if exp.parameter_manager.get_parameter('ptv').get('inverse', False):
                     print("Invert image")
                     img = negative(img)
 
-                masking_params = exp.pm.get_parameter('masking')
+                masking_params = exp.parameter_manager.get_parameter('masking')
                 if masking_params and masking_params.get('mask_flag', False):
                     try:
                         background_name = (
@@ -559,8 +559,8 @@ def py_calibration(selection, exp):
             for c in range(num_cams)
         ]
         
-        orient_params = exp.pm.get_parameter('orient')
-        shaking_params = exp.pm.get_parameter('shaking')
+        orient_params = exp.parameter_manager.get_parameter('orient')
+        shaking_params = exp.parameter_manager.get_parameter('shaking')
         
         flags = [name for name in NAMES if orient_params.get(name) == 1]
         all_known = []

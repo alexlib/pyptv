@@ -38,12 +38,7 @@ class ProcessingError(Exception):
     pass
 
 
-class AttrDict(dict):
-    """Dictionary that allows attribute-style access to its items."""
-    
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.__dict__ = self
+# AttrDict removed - using direct dictionary access with Experiment object
 
 
 def validate_experiment_directory(exp_path: Path) -> None:
@@ -114,22 +109,27 @@ def run_batch(seq_first: int, seq_last: int, exp_path: Path) -> None:
         spar.set_first(seq_first)
         spar.set_last(seq_last)
 
-        # Create experiment configuration
-        exp_config = AttrDict({
-            "cpar": cpar,
-            "spar": spar,
-            "vpar": vpar,
-            "track_par": track_par,
-            "tpar": tpar,
-            "cals": cals,
-            "epar": epar,
-            "n_cams": experiment.get_n_cam(),
-            "experiment": experiment,
-        })
+        # Create a simple object to hold processing parameters for ptv.py functions
+        class ProcessingExperiment:
+            def __init__(self, experiment, cpar, spar, vpar, track_par, tpar, cals, epar):
+                self.parameter_manager = experiment.parameter_manager
+                self.cpar = cpar
+                self.spar = spar
+                self.vpar = vpar
+                self.track_par = track_par
+                self.tpar = tpar
+                self.cals = cals
+                self.epar = epar
+                self.n_cams = experiment.get_n_cam()
+                # Initialize attributes that may be set during processing
+                self.detections = []
+                self.corrected = []
+        
+        proc_exp = ProcessingExperiment(experiment, cpar, spar, vpar, track_par, tpar, cals, epar)
 
         # Run processing
-        py_sequence_loop(exp_config)
-        tracker = py_trackcorr_init(exp_config)
+        py_sequence_loop(proc_exp)
+        tracker = py_trackcorr_init(proc_exp)
         tracker.full_forward()
         
         logger.info("Batch processing completed successfully")

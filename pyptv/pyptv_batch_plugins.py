@@ -1,6 +1,38 @@
 """PyPTV_BATCH: Batch processing script with plugin support
 
-Simple batch processing for PyPTV experiments that have been set up using the GUI.
+Si        # Create experiment and load parameters
+        experiment = Experiment()
+        experiment.populate_runs(exp_path)
+        
+        logger.info(f"Processing frames {seq_first}-{seq_last} with {experiment.get_n_cam()} cameras")
+        logger.info(f"Using plugins: tracking={tracking_plugin}, sequence={sequence_plugin}")
+        
+        # Initialize PyPTV with full parameters
+        all_params = experiment.parameter_manager.parameters.copy()
+        all_params['n_cam'] = experiment.get_n_cam()
+        
+        cpar, spar, vpar, track_par, tpar, cals, epar = py_start_proc_c(all_params)
+        # Set sequence parameters
+        spar.set_first(seq_first)
+        spar.set_last(seq_last)
+        
+        # Create a simple object to hold processing parameters for ptv.py functions
+        class ProcessingExperiment:
+            def __init__(self, experiment, cpar, spar, vpar, track_par, tpar, cals, epar):
+                self.parameter_manager = experiment.parameter_manager
+                self.cpar = cpar
+                self.spar = spar
+                self.vpar = vpar
+                self.track_par = track_par
+                self.tpar = tpar
+                self.cals = cals
+                self.epar = epar
+                self.n_cams = experiment.get_n_cam()
+                self.exp_path = str(exp_path.absolute())
+                self.detections = []
+                self.corrected = []
+        
+        exp_config = ProcessingExperiment(experiment, cpar, spar, vpar, track_par, tpar, cals, epar)g for PyPTV experiments that have been set up using the GUI.
 Supports custom tracking and sequence plugins.
 
 Example:
@@ -15,25 +47,41 @@ import json
 import importlib
 
 from pyptv.ptv import py_start_proc_c
+from pyptv.experiment import Experiment
 
 # Configure logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
 
 
-class AttrDict(dict):
-    """Dictionary that allows attribute-style access to its items."""
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.__dict__ = self
+# AttrDict removed - using direct dictionary access with Experiment object
 
 
 def load_plugins_config(exp_path: Path):
-    """Load available plugins from plugins.json"""
+    """Load available plugins from experiment parameters (YAML) with fallback to plugins.json"""
+    from pyptv.experiment import Experiment
+    
+    try:
+        # Primary source: YAML parameters
+        experiment = Experiment()
+        experiment.populate_runs(exp_path)
+        if experiment.nParamsets() > 0:
+            experiment.setActive(0)  # Use first parameter set
+            plugins_params = experiment.get_parameter('plugins')
+            if plugins_params is not None:
+                return {
+                    "tracking": plugins_params.get('available_tracking', ['default']),
+                    "sequence": plugins_params.get('available_sequence', ['default'])
+                }
+    except Exception as e:
+        print(f"Error loading plugins from YAML: {e}")
+    
+    # Fallback to plugins.json for backward compatibility
     plugins_file = exp_path / "plugins.json"
     if plugins_file.exists():
         with open(plugins_file, 'r') as f:
             return json.load(f)
+    
     return {"tracking": ["default"], "sequence": ["default"]}
 
 def run_batch(exp_path: Path, seq_first: int, seq_last: int, 
@@ -45,27 +93,39 @@ def run_batch(exp_path: Path, seq_first: int, seq_last: int,
     os.chdir(exp_path)
     
     try:
-        # Get number of cameras from ptv.par
-        with open("parameters/ptv.par", "r") as f:
-            n_cams = int(f.readline().strip())
+        # Create experiment and load parameters
+        experiment = Experiment()
+        experiment.populate_runs(exp_path)
         
-        logger.info(f"Processing frames {seq_first}-{seq_last} with {n_cams} cameras")
+        logger.info(f"Processing frames {seq_first}-{seq_last} with {experiment.get_n_cam()} cameras")
         logger.info(f"Using plugins: tracking={tracking_plugin}, sequence={sequence_plugin}")
         
-        # Initialize PyPTV
-        cpar, spar, vpar, track_par, tpar, cals, epar = py_start_proc_c(n_cams=n_cams)
+        # Initialize PyPTV with full parameters
+        all_params = experiment.parameter_manager.parameters.copy()
+        all_params['n_cam'] = experiment.get_n_cam()
+        
+        cpar, spar, vpar, track_par, tpar, cals, epar = py_start_proc_c(all_params)
         # Set sequence parameters
         spar.set_first(seq_first)
         spar.set_last(seq_last)
         
-
-        # Create config object
-        exp_config = AttrDict({
-            "n_cams": n_cams,
-            "cpar": cpar, "spar": spar, "vpar": vpar,
-            "track_par": track_par, "tpar": tpar, "cals": cals,
-            "epar": epar, "exp_path": str(exp_path.absolute()),
-        })
+        # Create a simple object to hold processing parameters for ptv.py functions
+        class ProcessingExperiment:
+            def __init__(self, experiment, cpar, spar, vpar, track_par, tpar, cals, epar):
+                self.parameter_manager = experiment.parameter_manager
+                self.cpar = cpar
+                self.spar = spar
+                self.vpar = vpar
+                self.track_par = track_par
+                self.tpar = tpar
+                self.cals = cals
+                self.epar = epar
+                self.n_cams = experiment.get_n_cam()
+                self.exp_path = str(exp_path.absolute())
+                self.detections = []
+                self.corrected = []
+        
+        exp_config = ProcessingExperiment(experiment, cpar, spar, vpar, track_par, tpar, cals, epar)
         
         # Add plugins directory to path we're inside exp_path
         plugins_dir = Path.cwd() / "plugins"

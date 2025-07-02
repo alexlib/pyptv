@@ -504,18 +504,22 @@ class CalibrationGUI(HasTraits):
                 print(f"Camera {i} has 4 points: {self.camera[i]._x}")
 
         if points_set:
-            man_ori_dat_path = self.active_path / "man_ori.dat"
-            with open(man_ori_dat_path, "w", encoding="utf-8") as f:
-                if f is None:
-                    self.status_text = f"Error saving {man_ori_dat_path}."
-                else:
-                    for i in range(self.n_cams):
-                        for j in range(4):
-                            f.write(
-                                "%f %f\n" % (self.camera[i]._x[j], self.camera[i]._y[j])
-                            )
-
-                    self.status_text = f"{man_ori_dat_path} saved."
+            # Save to YAML instead of man_ori.dat
+            man_ori_coords = {}
+            for i in range(self.n_cams):
+                cam_key = f'camera_{i}'
+                man_ori_coords[cam_key] = {}
+                for j in range(4):
+                    point_key = f'point_{j + 1}'
+                    man_ori_coords[cam_key][point_key] = {
+                        'x': float(self.camera[i]._x[j]),
+                        'y': float(self.camera[i]._y[j])
+                    }
+            
+            # Update the YAML parameters
+            self.experiment.parameter_manager.parameters['man_ori_coordinates'] = man_ori_coords
+            self.experiment.save_parameters()
+            self.status_text = "Manual orientation coordinates saved to YAML."
         else:
             self.status_text = (
                 "Click on 4 points on each calibration image for manual orientation"
@@ -526,17 +530,36 @@ class CalibrationGUI(HasTraits):
             self.reset_show_images()
             self.need_reset = 0
 
-        man_ori_dat_path = self.active_path / "man_ori.dat"
-        with open(man_ori_dat_path, "r") as f:
-            for i in range(self.n_cams):
-                self.camera[i]._x = []
-                self.camera[i]._y = []
+        # Load from YAML instead of man_ori.dat
+        man_ori_coords = self.experiment.parameter_manager.parameters.get('man_ori_coordinates', {})
+        
+        if not man_ori_coords:
+            self.status_text = "No manual orientation coordinates found in YAML parameters."
+            return
+        
+        for i in range(self.n_cams):
+            cam_key = f'camera_{i}'
+            self.camera[i]._x = []
+            self.camera[i]._y = []
+            
+            if cam_key in man_ori_coords:
                 for j in range(4):
-                    line = f.readline().split()
-                    self.camera[i]._x.append(float(line[0]))
-                    self.camera[i]._y.append(float(line[1]))
+                    point_key = f'point_{j + 1}'
+                    if point_key in man_ori_coords[cam_key]:
+                        point_data = man_ori_coords[cam_key][point_key]
+                        self.camera[i]._x.append(float(point_data['x']))
+                        self.camera[i]._y.append(float(point_data['y']))
+                    else:
+                        # Default values if point not found
+                        self.camera[i]._x.append(0.0)
+                        self.camera[i]._y.append(0.0)
+            else:
+                # Default values if camera not found
+                for j in range(4):
+                    self.camera[i]._x.append(0.0)
+                    self.camera[i]._y.append(0.0)
 
-        self.status_text = f"{man_ori_dat_path} loaded."
+        self.status_text = "Manual orientation coordinates loaded from YAML."
 
         man_ori_params = self.get_parameter('man_ori')
         for i in range(self.n_cams):
@@ -545,7 +568,7 @@ class CalibrationGUI(HasTraits):
             self.status_text = "man_ori.par loaded."
             self.camera[i].left_clicked_event()
 
-        self.status_text = "Loading orientation data from file finished."
+        self.status_text = "Loading orientation data from YAML finished."
 
     def _button_init_guess_fired(self):
         if self.need_reset:

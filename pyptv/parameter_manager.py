@@ -332,6 +332,16 @@ class ParameterManager:
             }
             print("Info: Added default unsharp mask parameters")
         
+        # Default plugins parameters
+        if 'plugins' not in self.parameters:
+            self.parameters['plugins'] = {
+                'available_tracking': ['default'],
+                'available_sequence': ['default'],
+                'selected_tracking': 'default',
+                'selected_sequence': 'default'
+            }
+            print("Info: Added default plugins parameters")
+        
         # Ensure ptv parameters have splitter flag (but NOT n_cam)
         if 'ptv' in self.parameters:
             if 'splitter' not in self.parameters['ptv']:
@@ -342,6 +352,20 @@ class ParameterManager:
         if 'cal_ori' in self.parameters and 'cal_splitter' not in self.parameters['cal_ori']:
             self.parameters['cal_ori']['cal_splitter'] = False
             print("Info: Added default cal_splitter flag to cal_ori parameters")
+        
+        # Default manual orientation coordinates section
+        if 'man_ori_coordinates' not in self.parameters:
+            # Create empty structure based on number of cameras
+            n_cam = self.get_n_cam()
+            self.parameters['man_ori_coordinates'] = {
+                f'camera_{i}': {
+                    'point_1': {'x': 0.0, 'y': 0.0},
+                    'point_2': {'x': 0.0, 'y': 0.0},
+                    'point_3': {'x': 0.0, 'y': 0.0},
+                    'point_4': {'x': 0.0, 'y': 0.0}
+                } for i in range(n_cam)
+            }
+            print("Info: Added default manual orientation coordinates structure")
 
     def get_default_value_for_parameter(self, param_group, param_key):
         """
@@ -415,6 +439,99 @@ class ParameterManager:
         print(f"Global n_cam set to {self.n_cam}")
         # Note: We do NOT update any subsections - n_cam only exists at top level
     
+    def migrate_plugins_json(self, plugins_json_path: Path = None):
+        """
+        Migrate plugins.json configuration into the YAML parameters.
+        
+        Args:
+            plugins_json_path: Path to plugins.json file. If None, looks in current directory.
+        """
+        if plugins_json_path is None:
+            plugins_json_path = Path.cwd() / "plugins.json"
+        
+        if plugins_json_path.exists():
+            try:
+                import json
+                with open(plugins_json_path, 'r') as f:
+                    plugins_config = json.load(f)
+                
+                # Migrate to YAML format
+                self.parameters['plugins'] = {
+                    'available_tracking': plugins_config.get('tracking', ['default']),
+                    'available_sequence': plugins_config.get('sequence', ['default']),
+                    'selected_tracking': plugins_config.get('tracking', ['default'])[0],
+                    'selected_sequence': plugins_config.get('sequence', ['default'])[0]
+                }
+                
+                print(f"Migrated plugins configuration from {plugins_json_path}")
+                print(f"Available tracking: {self.parameters['plugins']['available_tracking']}")
+                print(f"Available sequence: {self.parameters['plugins']['available_sequence']}")
+                
+            except (json.JSONDecodeError, KeyError) as e:
+                print(f"Error migrating plugins.json: {e}")
+        else:
+            print(f"No plugins.json found at {plugins_json_path}")
+
+    def migrate_man_ori_dat(self, source_dir):
+        """
+        Migrate man_ori.dat file data into the YAML parameters structure.
+        
+        Args:
+            source_dir (Path): Directory containing the man_ori.dat file
+        """
+        man_ori_dat_path = source_dir / "man_ori.dat"
+        
+        if not man_ori_dat_path.exists():
+            return  # No file to migrate
+        
+        print(f"Migrating man_ori.dat from {man_ori_dat_path}...")
+        
+        try:
+            with open(man_ori_dat_path, 'r') as f:
+                lines = f.readlines()
+            
+            # Ensure we have the right number of lines (n_cam * 4)
+            n_cam = self.get_n_cam()
+            expected_lines = n_cam * 4
+            
+            if len(lines) < expected_lines:
+                print(f"Warning: man_ori.dat has {len(lines)} lines, expected {expected_lines}")
+                return
+            
+            # Initialize the coordinates structure if needed
+            if 'man_ori_coordinates' not in self.parameters:
+                self.parameters['man_ori_coordinates'] = {}
+            
+            # Parse and migrate the coordinates
+            line_idx = 0
+            for cam_idx in range(n_cam):
+                cam_key = f'camera_{cam_idx}'
+                if cam_key not in self.parameters['man_ori_coordinates']:
+                    self.parameters['man_ori_coordinates'][cam_key] = {}
+                
+                for point_idx in range(4):
+                    point_key = f'point_{point_idx + 1}'
+                    
+                    if line_idx < len(lines):
+                        x_val, y_val = lines[line_idx].strip().split()
+                        self.parameters['man_ori_coordinates'][cam_key][point_key] = {
+                            'x': float(x_val),
+                            'y': float(y_val)
+                        }
+                        line_idx += 1
+                    else:
+                        # Fill with default if data is missing
+                        self.parameters['man_ori_coordinates'][cam_key][point_key] = {
+                            'x': 0.0,
+                            'y': 0.0
+                        }
+            
+            print(f"Successfully migrated {line_idx} coordinate pairs from man_ori.dat")
+            
+        except Exception as e:
+            print(f"Error migrating man_ori.dat: {e}")
+
+
 def main():
     parser = argparse.ArgumentParser(
         description="Convert between a directory of .par files and a single YAML file.",

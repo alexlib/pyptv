@@ -46,12 +46,7 @@ class ProcessingError(Exception):
     pass
 
 
-class AttrDict(dict):
-    """Dictionary that allows attribute-style access to its items."""
-    
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.__dict__ = self
+# AttrDict removed - using direct dictionary access with Experiment object
 
 def run_sequence_chunk(exp_path: Union[str, Path], seq_first: int, seq_last: int) -> Tuple[int, int]:
     """Run sequence processing for a chunk of frames in a separate process.
@@ -76,35 +71,39 @@ def run_sequence_chunk(exp_path: Union[str, Path], seq_first: int, seq_last: int
         original_cwd = Path.cwd()
         os.chdir(exp_path)
         
-        # Read the number of cameras
-        ptv_par_path = exp_path / "parameters" / "ptv.par"
-        try:
-            with open(ptv_par_path, "r") as f:
-                n_cams = int(f.readline().strip())
-        except (ValueError, FileNotFoundError) as e:
-            raise ProcessingError(f"Error reading camera count from {ptv_par_path}: {e}")
-
-        # Initialize processing parameters
-        cpar, spar, vpar, track_par, tpar, cals, epar = py_start_proc_c(n_cams=n_cams)
+        # Create experiment and load parameters
+        experiment = Experiment()
+        experiment.populate_runs(exp_path)
+        
+        # Initialize processing parameters using the experiment
+        all_params = experiment.parameter_manager.parameters.copy()
+        all_params['n_cam'] = experiment.get_n_cam()
+        
+        cpar, spar, vpar, track_par, tpar, cals, epar = py_start_proc_c(all_params)
         
         # Set sequence parameters
         spar.set_first(seq_first)
         spar.set_last(seq_last)
         
-        # Create experiment configuration
-        exp_config = AttrDict({
-            "cpar": cpar,
-            "spar": spar,
-            "vpar": vpar,
-            "track_par": track_par,
-            "tpar": tpar,
-            "cals": cals,
-            "epar": epar,
-            "n_cams": n_cams,
-        })
+        # Create a simple object to hold processing parameters for ptv.py functions
+        class ProcessingExperiment:
+            def __init__(self, experiment, cpar, spar, vpar, track_par, tpar, cals, epar):
+                self.parameter_manager = experiment.parameter_manager
+                self.cpar = cpar
+                self.spar = spar
+                self.vpar = vpar
+                self.track_par = track_par
+                self.tpar = tpar
+                self.cals = cals
+                self.epar = epar
+                self.n_cams = experiment.get_n_cam()
+                self.detections = []
+                self.corrected = []
+        
+        proc_exp = ProcessingExperiment(experiment, cpar, spar, vpar, track_par, tpar, cals, epar)
         
         # Run sequence processing
-        py_sequence_loop(exp_config)
+        py_sequence_loop(proc_exp)
         
         logger.info(f"Worker process completed: frames {seq_first} to {seq_last}")
         return (seq_first, seq_last)

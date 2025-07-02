@@ -753,7 +753,12 @@ class TreeMenuHandler(Handler):
     def plugin_action(self, info):
         """Configure plugins by using GUI"""
         info.object.plugins.read()
-        info.object.plugins.configure_traits()
+        result = info.object.plugins.configure_traits()
+        
+        # Save plugin selections back to parameters if user clicked OK
+        if result:
+            info.object.plugins.save()
+            print("Plugin configuration saved to parameters")
 
     def ptv_is_to_paraview(self, info):
         """Button that runs the ptv_is.# conversion to Paraview"""
@@ -969,10 +974,38 @@ class Plugins(HasTraits):
         title="Plugins",
     )
 
-    def __init__(self):
+    def __init__(self, experiment=None):
+        self.experiment = experiment
         self.read()
 
     def read(self):
+        """Read plugin configuration from experiment parameters (YAML) with fallback to plugins.json"""
+        if self.experiment is not None:
+            # Primary source: YAML parameters
+            plugins_params = self.experiment.get_parameter('plugins')
+            if plugins_params is not None:
+                try:
+                    track_options = plugins_params.get('available_tracking', ['default'])
+                    seq_options = plugins_params.get('available_sequence', ['default'])
+                    
+                    self.add_trait('track_alg', Enum(*track_options))
+                    self.add_trait('sequence_alg', Enum(*seq_options))
+                    
+                    # Set selected algorithms from YAML
+                    self.track_alg = plugins_params.get('selected_tracking', track_options[0])
+                    self.sequence_alg = plugins_params.get('selected_sequence', seq_options[0])
+                    
+                    print(f"Loaded plugins from YAML: tracking={self.track_alg}, sequence={self.sequence_alg}")
+                    return
+                    
+                except Exception as e:
+                    print(f"Error reading plugins from YAML: {e}")
+        
+        # Fallback to plugins.json for backward compatibility
+        self._read_from_json()
+    
+    def _read_from_json(self):
+        """Fallback method to read from plugins.json"""
         config_file = Path.cwd() / "plugins.json"
         
         if config_file.exists():
@@ -989,24 +1022,31 @@ class Plugins(HasTraits):
                 self.track_alg = track_options[0]
                 self.sequence_alg = seq_options[0]
                 
+                print(f"Loaded plugins from plugins.json: tracking={self.track_alg}, sequence={self.sequence_alg}")
+                
             except (json.JSONDecodeError, KeyError) as e:
                 print(f"Error reading plugins.json: {e}")
                 self._set_defaults()
         else:
-            self._create_default_json()
+            print("No plugins.json found, using defaults")
+            self._set_defaults()
+    
+    def save(self):
+        """Save plugin selections back to experiment parameters"""
+        if self.experiment is not None:
+            plugins_params = self.experiment.get_parameter('plugins', {})
+            plugins_params['selected_tracking'] = self.track_alg
+            plugins_params['selected_sequence'] = self.sequence_alg
+            
+            # Update the parameter manager
+            self.experiment.parameter_manager.parameters['plugins'] = plugins_params
+            print(f"Saved plugin selections: tracking={self.track_alg}, sequence={self.sequence_alg}")
     
     def _set_defaults(self):
+        self.add_trait('track_alg', Enum('default'))
+        self.add_trait('sequence_alg', Enum('default'))
         self.track_alg = 'default'
         self.sequence_alg = 'default'
-    
-    def _create_default_json(self):
-        default_config = {
-            "tracking": ["default"],
-            "sequence": ["default"]
-        }
-        
-        with open('plugins.json', 'w') as f:
-            json.dump(default_config, f, indent=2)
         
 
 # ----------------------------------------------
@@ -1068,7 +1108,7 @@ class MainGUI(HasTraits):
         colors = ["yellow", "green", "red", "blue"]
         self.exp1 = Experiment()
         self.exp1.populate_runs(exp_path)
-        self.plugins = Plugins()
+        self.plugins = Plugins(experiment=self.exp1)  # Pass experiment to plugins
         
         # Get configuration from Experiment's ParameterManager
         print("Loading parameters from experiment...")
