@@ -1,4 +1,4 @@
-n_cam: 6
+n_cam: 4
 cal_ori:
   chfield: 0
   fixp_name: cal/target_on_a_side.txt
@@ -12,7 +12,6 @@ cal_ori:
   - cal/cam2.tif.ori
   - cal/cam3.tif.ori
   - cal/cam4.tif.ori
-  n_img: 4
   pair_flag: false
   tiff_flag: true
   cal_splitter: false
@@ -57,7 +56,6 @@ examine:
   Combine_Flag: false
   Examine_Flag: false
 man_ori:
-  n_img: 4
   nr:
   - 3
   - 5
@@ -76,7 +74,6 @@ man_ori:
   - 71
   - 73
 multi_planes:
-  n_img: 4
   n_planes: 3
   plane_name:
   - img/calib_a_cam
@@ -120,8 +117,8 @@ ptv:
   pix_x: 0.012
   pix_y: 0.012
   tiff_flag: true
+  n_cam: 4
   splitter: false
-  n_cam: 6
 sequence:
   base_name:
   - img/cam1.%d
@@ -130,14 +127,12 @@ sequence:
   - img/cam4.%d
   first: 10001
   last: 10004
-  n_img: 4
 shaking:
   shaking_first_frame: 10000
   shaking_last_frame: 10004
   shaking_max_num_frames: 5
   shaking_max_num_points: 10
 sortgrid:
-  n_img: 4
   radius: 20
 targ_rec:
   cr_sz: 2
@@ -147,7 +142,6 @@ targ_rec:
   - 9
   - 9
   - 11
-  n_img: 4
   nnmax: 500
   nnmin: 4
   nxmax: 100

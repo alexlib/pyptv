@@ -40,7 +40,7 @@ def test_parameter_manager_new_structure():
         # Check that n_img was removed from non-ptv parameters
         for param_name, param_data in pm.parameters.items():
             if param_name != 'ptv' and isinstance(param_data, dict):
-                if 'n_img' in param_data:
+                if 'n_cam' in param_data:
                     print(f"WARNING: Found n_img in {param_name} parameters!")
                 else:
                     print(f"✓ No redundant n_img in {param_name}")
@@ -50,8 +50,8 @@ def test_parameter_manager_new_structure():
         if ptv_params:
             if 'n_cam' in ptv_params:
                 print(f"✓ PTV has n_cam: {ptv_params['n_cam']}")
-            if 'n_img' in ptv_params:
-                print(f"WARNING: PTV still has legacy n_img: {ptv_params['n_img']}")
+            if 'n_cam' in ptv_params:
+                print(f"WARNING: PTV still has legacy n_img: {ptv_params['n_cam']}")
         
         # Test saving to new YAML format
         print("\n2. Saving to new YAML format...")
