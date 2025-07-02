@@ -492,7 +492,7 @@ class TreeMenuHandler(Handler):
         info.object.pass_init = False
         print("Active parameters set")
         print(info.object.exp1.active_params.par_path)
-        mask_gui = MaskGUI(info.object.exp1.active_params.par_path)
+        mask_gui = MaskGUI(info.object.exp1)
         mask_gui.configure_traits()
 
     def highpass_action(self, info):
@@ -583,7 +583,7 @@ class TreeMenuHandler(Handler):
         info.object.pass_init = False
         print("Active parameters set")
         print(info.object.exp1.active_params.par_path)
-        calib_gui = CalibrationGUI(info.object.exp1.active_params.par_path)
+        calib_gui = CalibrationGUI(info.object.exp1)
         calib_gui.configure_traits()
 
     def detection_gui_action(self, info):
@@ -592,7 +592,7 @@ class TreeMenuHandler(Handler):
         info.object.pass_init = False
         print("Active parameters set")
         print(info.object.exp1.active_params.par_path)
-        detection_gui = DetectionGUI(info.object.exp1.active_params.par_path)
+        detection_gui = DetectionGUI(info.object.exp1)
         detection_gui.configure_traits()
 
     def sequence_action(self, info):
@@ -1084,7 +1084,7 @@ class MainGUI(HasTraits):
                 img_as_ubyte(np.zeros((1024, 1024))) for _ in range(self.n_cams)
             ]
         else:
-            self.n_cams = ptv_params['n_img']
+            self.n_cams = ptv_params['n_cam']
             self.orig_names = ptv_params['img_name']
             self.orig_images = [
                 img_as_ubyte(np.zeros((ptv_params['imy'], ptv_params['imx'])))
@@ -1103,10 +1103,6 @@ class MainGUI(HasTraits):
     def get_parameter(self, key):
         """Delegate parameter access to experiment"""
         return self.exp1.get_parameter(key)
-
-    def save_parameters(self):
-        """Delegate parameter saving to experiment"""
-        self.exp1.save_parameters()
 
     def right_click_process(self):
         """Shows a line in camera color code corresponding to a point on another camera's view plane"""
@@ -1274,9 +1270,8 @@ class MainGUI(HasTraits):
 
     def save_parameters(self):
         """Save current parameters to YAML"""
-        yaml_path = self.exp1.active_params.par_path / 'parameters.yaml'
-        self.pm.to_yaml(yaml_path)
-        print(f"Parameters saved to {yaml_path}")
+        self.exp1.save_parameters()
+        print("Parameters saved")
 
 
 def printException():

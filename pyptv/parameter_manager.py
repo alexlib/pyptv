@@ -418,6 +418,56 @@ class ParameterManager:
         if 'ptv' in self.parameters:
             self.parameters['ptv']['n_cam'] = n_cam
     
+class Experiment:
+    def __init__(self):
+        self.parameter_manager = ParameterManager()  # Single source of truth
+        self._parameter_cache = {}  # Optional performance cache
+        self._file_mtimes = {}      # File modification tracking
+    
+    def get_parameter(self, key, use_cache=True):
+        """Get parameter with optional caching for frequently accessed params"""
+        
+        # Check if file was modified (for manual edits)
+        if self._should_reload_from_file():
+            self.load_parameters_for_active()
+            self._parameter_cache.clear()
+        
+        # Use cache for frequently accessed parameters
+        if use_cache and key in self._parameter_cache:
+            return self._parameter_cache[key]
+        
+        # Get from ParameterManager
+        param = self.parameter_manager.get_parameter(key)
+        
+        # Cache frequently accessed parameters
+        if key in ['ptv', 'sequence', 'detection']:  # Hot parameters
+            self._parameter_cache[key] = param
+        
+        return param
+    
+    def set_parameter(self, key, value):
+        """Update parameter and invalidate cache"""
+        self.parameter_manager.parameters[key] = value
+        self._parameter_cache.pop(key, None)  # Invalidate cache
+        self._mark_as_modified()
+    
+    def _should_reload_from_file(self):
+        """Check if YAML file was modified externally"""
+        yaml_path = self.active_params.par_path / 'parameters.yaml'
+        if yaml_path.exists():
+            current_mtime = yaml_path.stat().st_mtime
+            cached_mtime = self._file_mtimes.get(str(yaml_path), 0)
+            return current_mtime > cached_mtime
+        return False
+    
+    def auto_reload_if_modified(self):
+        """Auto-reload parameters if file was modified externally"""
+        if self._should_reload_from_file():
+            print("Parameters file was modified externally, reloading...")
+            self.load_parameters_for_active()
+            return True
+        return False
+    
 def main():
     parser = argparse.ArgumentParser(
         description="Convert between a directory of .par files and a single YAML file.",

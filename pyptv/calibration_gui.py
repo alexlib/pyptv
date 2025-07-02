@@ -1,4 +1,3 @@
-
 """
 Copyright (c) 2008-2013, Tel Aviv University
 Copyright (c) 2013 - the OpenPTV team
@@ -41,7 +40,7 @@ from optv.tracking_framebuf import TargetArray
 
 
 from pyptv import ptv
-from pyptv.parameter_manager import ParameterManager
+from pyptv.experiment import Experiment
 
 
 # recognized names for the flags:
@@ -262,19 +261,20 @@ class CalibrationGUI(HasTraits):
     button_test = Button()
     _cal_splitter = Bool(False)
 
-    def __init__(self, active_path: Path):
+    def __init__(self, experiment: Experiment):
         super(CalibrationGUI, self).__init__()
         self.need_reset = 0
-        self.active_path = active_path
+        self.experiment = experiment
+        self.active_path = Path(experiment.active_params.par_path)
         self.working_folder = self.active_path.parent
-        
-        self.pm = ParameterManager()
-        self.pm.from_yaml(self.active_path / 'parameters.yaml')
         
         os.chdir(self.working_folder)
         print(f"Inside a folder: {Path.cwd()}")
 
-        self.n_cams = self.pm.get_parameter('ptv')['n_img']
+        ptv_params = experiment.get_parameter('ptv')
+        if ptv_params is None:
+            raise ValueError("Failed to load PTV parameters")
+        self.n_cams = ptv_params['n_cam']
         self.camera = [PlotWindow() for i in range(self.n_cams)]
         for i in range(self.n_cams):
             self.camera[i].name = "Camera" + str(i + 1)
@@ -405,7 +405,7 @@ class CalibrationGUI(HasTraits):
     )
 
     def _button_edit_cal_parameters_fired(self):
-        self.pm.to_yaml(self.active_path / 'parameters.yaml')
+        self.experiment.save_parameters()
 
     def _button_showimg_fired(self):
         print("Loading images/parameters \n")
@@ -425,7 +425,7 @@ class CalibrationGUI(HasTraits):
 
         if self.epar.Combine_Flag is True:
             print("Combine Flag is On")
-            self.MultiParams = self.pm.get_parameter('multi_planes')
+            self.MultiParams = self.get_parameter('multi_planes')
             for i in range(self.MultiParams['n_planes']):
                 print(self.MultiParams['plane_name'][i])
 
@@ -434,9 +434,9 @@ class CalibrationGUI(HasTraits):
 
         self.cal_images = []
 
-        if self.pm.get_parameter('cal_ori').get('cal_splitter', False):
+        if self.get_parameter('cal_ori').get('cal_splitter', False):
             print("Using splitter in Calibration")
-            imname = self.pm.get_parameter('cal_ori')['img_cal_name'][0]
+            imname = self.get_parameter('cal_ori')['img_cal_name'][0]
             if Path(imname).exists():
                 print(f"Splitting calibration image: {imname}")
                 temp_img = imread(imname)
@@ -447,7 +447,7 @@ class CalibrationGUI(HasTraits):
                     self.cal_images.append(img_as_ubyte(splitted_images[i]))         
         else:    
             for i in range(len(self.camera)):
-                imname = self.pm.get_parameter('cal_ori')['img_cal_name'][i]
+                imname = self.get_parameter('cal_ori')['img_cal_name'][i]
                 im = imread(imname)
                 if im.ndim > 2:
                     im = rgb2gray(im[:, :, :3])
@@ -456,7 +456,7 @@ class CalibrationGUI(HasTraits):
 
         self.reset_show_images()
 
-        man_ori_params = self.pm.get_parameter('man_ori')
+        man_ori_params = self.get_parameter('man_ori')
         for i in range(len(self.camera)):
             for j in range(4):
                 self.camera[i].man_ori[j] = man_ori_params['nr'][i*4+j]
@@ -538,7 +538,7 @@ class CalibrationGUI(HasTraits):
 
         self.status_text = f"{man_ori_dat_path} loaded."
 
-        man_ori_params = self.pm.get_parameter('man_ori')
+        man_ori_params = self.get_parameter('man_ori')
         for i in range(self.n_cams):
             for j in range(4):
                 self.camera[i].man_ori[j] = man_ori_params['nr'][i*4+j]
@@ -557,7 +557,7 @@ class CalibrationGUI(HasTraits):
         self.cals = []
         for i_cam in range(self.n_cams):
             cal = Calibration()
-            tmp = self.pm.get_parameter('cal_ori')['img_ori'][i_cam]
+            tmp = self.get_parameter('cal_ori')['img_ori'][i_cam]
             cal.from_file(tmp, tmp.replace(".ori", ".addpar"))
             self.cals.append(cal)
 
@@ -657,7 +657,7 @@ class CalibrationGUI(HasTraits):
 
         self.backup_ori_files()
 
-        orient_params = self.pm.get_parameter('orient')
+        orient_params = self.get_parameter('orient')
         flags = [name for name in NAMES if orient_params.get(name) == 1]
 
         for i_cam in range(self.n_cams):
@@ -667,16 +667,16 @@ class CalibrationGUI(HasTraits):
                 all_detected = []
 
                 for i in range(self.MultiParams['n_planes']):
-                    match = re.search(r"cam[_-]?(\d)", self.pm.get_parameter('cal_ori')['img_ori'][i_cam])
+                    match = re.search(r"cam[_-]?(\d)", self.get_parameter('cal_ori')['img_ori'][i_cam])
                     if match:
                         c = match.group(1)
                         print(
-                            f"Camera number found: {c} in {self.pm.get_parameter('cal_ori')['img_ori'][i_cam]}"
+                            f"Camera number found: {c} in {self.get_parameter('cal_ori')['img_ori'][i_cam]}"
                         )
                     else:
                         raise ValueError(
                             "Camera number not found in {}".format(
-                                self.pm.get_parameter('cal_ori')['img_ori'][i_cam]
+                                self.get_parameter('cal_ori')['img_ori'][i_cam]
                             )
                         )
 
@@ -836,7 +836,7 @@ class CalibrationGUI(HasTraits):
                 f"Calibration parameters for camera {i_cam} contain NaNs. Aborting write operation."
             )
 
-        ori = self.pm.get_parameter('cal_ori')['img_ori'][i_cam]
+        ori = self.get_parameter('cal_ori')['img_ori'][i_cam]
         if addpar_flag:
             addpar = ori.replace("ori", "addpar")
         else:
@@ -848,7 +848,7 @@ class CalibrationGUI(HasTraits):
             self.save_point_sets(i_cam)
 
     def save_point_sets(self, i_cam):
-        ori = self.pm.get_parameter('cal_ori')['img_ori'][i_cam]
+        ori = self.get_parameter('cal_ori')['img_ori'][i_cam]
         txt_detected = ori.replace("ori", "crd")
         txt_matched = ori.replace("ori", "fix")
 
@@ -870,7 +870,7 @@ class CalibrationGUI(HasTraits):
         self.backup_ori_files()
         targs_all, targ_ix_all, residuals_all = ptv.py_calibration(10, self)
 
-        shaking_params = self.pm.get_parameter('shaking')
+        shaking_params = self.get_parameter('shaking')
         seq_first = shaking_params['shaking_first_frame']
         seq_last = shaking_params['shaking_last_frame']
 
@@ -936,11 +936,11 @@ class CalibrationGUI(HasTraits):
             cam._plot.request_redraw()
 
     def _button_edit_ori_files_fired(self):
-        editor = oriEditor(path=self.active_path)
+        editor = oriEditor(experiment=self.experiment)
         editor.edit_traits(kind="livemodal")
 
     def _button_edit_addpar_files_fired(self):
-        editor = addparEditor(path=self.active_path)
+        editor = addparEditor(experiment=self.experiment)
         editor.edit_traits(kind="livemodal")
 
     def drawcross(self, str_x, str_y, x, y, color1, size1, i_cam=None):
@@ -951,21 +951,21 @@ class CalibrationGUI(HasTraits):
             self.camera[i_cam].drawcross(str_x, str_y, x, y, color1, size1)
 
     def backup_ori_files(self):
-        for f in self.pm.get_parameter('cal_ori')['img_ori'][: self.n_cams]:
+        for f in self.get_parameter('cal_ori')['img_ori'][: self.n_cams]:
             print(f"Backing up {f}")
             shutil.copyfile(f, f + ".bck")
             g = f.replace("ori", "addpar")
             shutil.copyfile(g, g + ".bck")
 
     def restore_ori_files(self):
-        for f in self.pm.get_parameter('cal_ori')['img_ori'][: self.n_cams]:
+        for f in self.get_parameter('cal_ori')['img_ori'][: self.n_cams]:
             print(f"Restoring {f}")
             shutil.copyfile(f + ".bck", f)
             g = f.replace("ori", "addpar")
             shutil.copyfile(g, g + ".bck")
 
     def protect_ori_files(self):
-        for f in self.pm.get_parameter('cal_ori')['img_ori'][: self.n_cams]:
+        for f in self.get_parameter('cal_ori')['img_ori'][: self.n_cams]:
             with open(f, "r") as d:
                 d.read().split()
                 if not np.all(
@@ -977,11 +977,19 @@ class CalibrationGUI(HasTraits):
     def _read_cal_points(self):
         return np.atleast_1d(
             np.loadtxt(
-                str(self.pm.get_parameter('cal_ori')['fixp_name']),
+                str(self.get_parameter('cal_ori')['fixp_name']),
                 dtype=[("id", "i4"), ("pos", "3f8")],
                 skiprows=0,
             )
         )
+
+    def get_parameter(self, key):
+        """Helper method to get parameters from experiment safely"""
+        params = self.experiment.get_parameter(key)
+        if params is None:
+            print(f"Warning: Parameter '{key}' not found, using empty dict")
+            return {}
+        return params
 
 
 if __name__ == "__main__":

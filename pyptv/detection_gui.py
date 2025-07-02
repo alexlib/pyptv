@@ -26,12 +26,12 @@ from chaco.tools.image_inspector_tool import ImageInspectorTool
 from chaco.tools.better_zoom import BetterZoom as SimpleZoom
 
 from skimage.io import imread
-from skimage import img_as_ubyte
+from skimage.util import img_as_ubyte
 from skimage.color import rgb2gray
 
 from optv.segmentation import target_recognition
 from pyptv import ptv
-from pyptv.parameter_manager import ParameterManager
+from pyptv.experiment import Experiment
 from pyptv.text_box_overlay import TextBoxOverlay
 from pyptv.quiverplot import QuiverPlot
 
@@ -260,21 +260,19 @@ class DetectionGUI(HasTraits):
     button_detection = Button(label="Detect dots")
     image_name = Str("cal/cam1.tif", label="Image file name")
 
-    def __init__(self, par_path: pathlib.Path):
+    def __init__(self, experiment: Experiment):
         super(DetectionGUI, self).__init__()
         self.need_reset = 0
 
-        if not isinstance(par_path, pathlib.Path):
-            par_path = pathlib.Path(par_path)
-
-        self.pm = ParameterManager()
-        self.pm.from_yaml(par_path / 'parameters.yaml')
-        
-        self.working_folder = par_path.parent
+        self.experiment = experiment
+        self.working_folder = pathlib.Path(experiment.active_params.par_path).parent
         os.chdir(self.working_folder)
         print(f"Inside a folder: {pathlib.Path()}")
         
-        self.n_cams = self.pm.get_parameter('ptv')['n_img']
+        ptv_params = experiment.get_parameter('ptv')
+        if ptv_params is None:
+            raise ValueError("Failed to load PTV parameters")
+        self.n_cams = ptv_params['n_cam']
 
         (
             self.cpar,
@@ -531,5 +529,8 @@ if __name__ == "__main__":
     else:
         par_path = pathlib.Path(sys.argv[1]) / "parameters"
 
-    detection_gui = DetectionGUI(par_path)
+    experiment = Experiment()
+    experiment.populate_runs(par_path)
+
+    detection_gui = DetectionGUI(experiment)
     detection_gui.configure_traits()

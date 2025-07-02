@@ -28,7 +28,7 @@ from chaco.tools.better_zoom import BetterZoom as SimpleZoom
 
 from pyptv.text_box_overlay import TextBoxOverlay
 from pyptv import ptv
-from pyptv.parameter_manager import ParameterManager
+from pyptv.experiment import Experiment
 
 
 # recognized names for the flags:
@@ -254,19 +254,20 @@ class MaskGUI(HasTraits):
     button_detection = Button()
     button_manual = Button()
 
-    def __init__(self, active_path: Path):
+    def __init__(self, experiment: Experiment):
         super(MaskGUI, self).__init__()
         self.need_reset = 0
-        self.active_path = active_path
+        self.experiment = experiment
+        self.active_path = Path(experiment.active_params.par_path)
         self.working_folder = self.active_path.parent
-        
-        self.pm = ParameterManager()
-        self.pm.from_yaml(self.active_path / 'parameters.yaml')
         
         os.chdir(self.working_folder)
         print(f"Inside a folder: {Path.cwd()}")
 
-        self.n_cams = self.pm.get_parameter('ptv')['n_img']
+        ptv_params = experiment.get_parameter('ptv')
+        if ptv_params is None:
+            raise ValueError("Failed to load PTV parameters")
+        self.n_cams = ptv_params['n_cam']
         self.camera = [PlotWindow() for i in range(self.n_cams)]
         for i in range(self.n_cams):
             self.camera[i].name = "Camera" + str(i + 1)
@@ -324,7 +325,8 @@ class MaskGUI(HasTraits):
 
         self.images = []
         for i in range(len(self.camera)):
-            imname = self.pm.get_parameter('ptv')['img_name'][i]
+            ptv_params = self.experiment.get_parameter('ptv')
+            imname = ptv_params['img_name'][i] if ptv_params else ""
             im = imread(imname)
             if im.ndim > 2:
                 im = rgb2gray(im[:, :, :3])

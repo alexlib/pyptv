@@ -23,7 +23,7 @@ import time
 from typing import Union
 
 from pyptv.ptv import py_start_proc_c, py_trackcorr_init, py_sequence_loop
-from pyptv.parameter_manager import ParameterManager
+from pyptv.experiment import Experiment
 
 # Configure logging
 logging.basicConfig(
@@ -99,11 +99,16 @@ def run_batch(seq_first: int, seq_last: int, exp_path: Path) -> None:
         original_cwd = Path.cwd()
         os.chdir(exp_path)
         
-        pm = ParameterManager()
-        pm.from_directory(exp_path / "parameters")
+        # Create experiment and load parameters
+        experiment = Experiment()
+        experiment.populate_runs(exp_path)
         
-        # Initialize processing parameters
-        cpar, spar, vpar, track_par, tpar, cals, epar = py_start_proc_c(pm.parameters)
+        # Initialize processing parameters using the experiment
+        ptv_params = experiment.get_parameter('ptv')
+        if ptv_params is None:
+            raise ValueError("Failed to load PTV parameters")
+            
+        cpar, spar, vpar, track_par, tpar, cals, epar = py_start_proc_c(ptv_params)
 
         # Set sequence parameters
         spar.set_first(seq_first)
@@ -118,8 +123,8 @@ def run_batch(seq_first: int, seq_last: int, exp_path: Path) -> None:
             "tpar": tpar,
             "cals": cals,
             "epar": epar,
-            "n_cams": pm.get_parameter('ptv')['n_img'],
-            "pm": pm,
+            "n_cams": ptv_params['n_cam'],
+            "experiment": experiment,
         })
 
         # Run processing

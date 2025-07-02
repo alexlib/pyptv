@@ -1,3 +1,4 @@
+n_cam: 6
 cal_ori:
   chfield: 0
   fixp_name: cal/target_on_a_side.txt
@@ -116,11 +117,11 @@ ptv:
   mmp_n1: 1.0
   mmp_n2: 1.33
   mmp_n3: 1.46
-  n_img: 4
   pix_x: 0.012
   pix_y: 0.012
   tiff_flag: true
   splitter: false
+  n_cam: 6
 sequence:
   base_name:
   - img/cam1.%d

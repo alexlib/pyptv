@@ -15,7 +15,7 @@ from traits.api import (
 from traitsui.api import Item, Group, View, ListEditor
 
 from pathlib import Path
-from pyptv.parameter_manager import ParameterManager
+from pyptv.experiment import Experiment
 
 
 def get_path(filename):
@@ -87,13 +87,16 @@ class oriEditor(HasTraits):
         title="Camera's orientation files",
     )
 
-    def __init__(self, path: Path):
+    def __init__(self, experiment: Experiment):
         """Initialize by reading parameters and filling the editor windows"""
-        pm = ParameterManager()
-        pm.from_yaml(path / 'parameters.yaml')
+        ptv_params = experiment.get_parameter('ptv')
+        cal_ori_params = experiment.get_parameter('cal_ori')
         
-        self.n_img = pm.get_parameter('ptv')['n_img']
-        img_ori = pm.get_parameter('cal_ori')['img_ori']
+        if ptv_params is None or cal_ori_params is None:
+            raise ValueError("Failed to load required parameters")
+            
+        self.n_img = ptv_params['n_cam']
+        img_ori = cal_ori_params['img_ori']
 
         for i in range(self.n_img):
             self.oriEditors.append(codeEditor(Path(img_ori[i])))
@@ -122,13 +125,16 @@ class addparEditor(HasTraits):
         title="Camera's additional parameters files",
     )
 
-    def __init__(self, path):
+    def __init__(self, experiment: Experiment):
         """Initialize by reading parameters and filling the editor windows"""
-        pm = ParameterManager()
-        pm.from_yaml(path / 'parameters.yaml')
+        ptv_params = experiment.get_parameter('ptv')
+        cal_ori_params = experiment.get_parameter('cal_ori')
         
-        self.n_img = pm.get_parameter('ptv')['n_img']
-        img_ori = pm.get_parameter('cal_ori')['img_ori']
+        if ptv_params is None or cal_ori_params is None:
+            raise ValueError("Failed to load required parameters")
+            
+        self.n_img = ptv_params['n_cam']
+        img_ori = cal_ori_params['img_ori']
 
         for i in range(self.n_img):
             self.addparEditors.append(
