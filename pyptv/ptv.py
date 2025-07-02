@@ -70,10 +70,18 @@ def simple_highpass(img: np.ndarray, cpar: ControlParams) -> np.ndarray:
     return preprocess_image(img, DEFAULT_NO_FILTER, cpar, DEFAULT_HIGHPASS_FILTER_SIZE)
 
 
-def _populate_cpar(ptv_params: dict) -> ControlParams:
-    """Populate a ControlParams object from a dictionary of ptv_params."""
-    # ptv_params = params.get('ptv', {})
-    cpar = ControlParams(ptv_params.get('n_img', 4))
+def _populate_cpar(params: dict) -> ControlParams:
+    """Populate a ControlParams object from a dictionary containing full parameters.
+    
+    Args:
+        params: Full parameter dictionary with global n_cam and ptv section
+    """
+    ptv_params = params.get('ptv', {})
+    
+    # Get global n_cam - the single source of truth
+    n_cam = params.get('n_cam', 4)
+    
+    cpar = ControlParams(n_cam)
     cpar.set_image_size((ptv_params.get('imx', 0), ptv_params.get('imy', 0)))
     cpar.set_pixel_size((ptv_params.get('pix_x', 0.0), ptv_params.get('pix_y', 0.0)))
     cpar.set_hp_flag(ptv_params.get('hp_flag', False))
@@ -88,18 +96,30 @@ def _populate_cpar(ptv_params: dict) -> ControlParams:
     mm_params.set_n1(ptv_params.get('mmp_n1', 1.0))
     mm_params.set_layers([ptv_params.get('mmp_n2', 1.0)], [ptv_params.get('mmp_d', 0.0)])
     mm_params.set_n3(ptv_params.get('mmp_n3', 1.0))
-    for i in range(ptv_params.get('n_img', 4)):
-        cpar.set_cal_img_base_name(i, ptv_params.get('img_cal', [])[i])
+    for i in range(n_cam):  # Use global n_cam
+        img_cal_list = ptv_params.get('img_cal', [])
+        if i < len(img_cal_list):
+            cpar.set_cal_img_base_name(i, img_cal_list[i])
+        else:
+            print(f"Warning: No calibration image specified for camera {i}")
     return cpar
 
 def _populate_spar(params: dict) -> SequenceParams:
     """Populate a SequenceParams object from a dictionary."""
+    seq_params = params.get('sequence', {})
     
-    spar = SequenceParams(num_cams=params.get('ptv', {}).get('n_img', 4))
+    # Get global n_cam - the single source of truth
+    n_cam = params.get('n_cam', 4)
+    
+    spar = SequenceParams(num_cams=n_cam)
     spar.set_first(seq_params.get('first', 0))
     spar.set_last(seq_params.get('last', 0))
-    for i in range(params.get('ptv', {}).get('n_img', 4)):
-        spar.set_img_base_name(i, seq_params.get('base_name', [])[i])
+    for i in range(n_cam):  # Use global n_cam
+        base_name_list = seq_params.get('base_name', [])
+        if i < len(base_name_list):
+            spar.set_img_base_name(i, base_name_list[i])
+        else:
+            print(f"Warning: No image base name specified for camera {i}")
     return spar
 
 def _populate_vpar(params: dict) -> VolumeParams:
@@ -129,7 +149,11 @@ def _populate_track_par(params: dict) -> TrackingParams:
 def _populate_tpar(params: dict) -> TargetParams:
     """Populate a TargetParams object from a dictionary."""
     targ_params = params.get('targ_rec', {})
-    tpar = TargetParams(params.get('ptv', {}).get('n_img', 4))
+    
+    # Get global n_cam - the single source of truth
+    n_cam = params.get('n_cam', 4)
+    
+    tpar = TargetParams(n_cam)
     tpar.set_grey_thresholds(targ_params.get('gvthres', []))
     tpar.set_pixel_count_bounds((targ_params.get('nnmin', 0), targ_params.get('nnmax', 0)))
     tpar.set_xsize_bounds((targ_params.get('nxmin', 0), targ_params.get('nxmax', 0)))
@@ -172,7 +196,7 @@ def py_start_proc_c(
     """
     try:
         ptv_params = params.get('ptv', {})
-        cpar = _populate_cpar(ptv_params)
+        cpar = _populate_cpar(params)  # Pass full params, not just ptv_params
 
         seq_params = params.get('sequence', {})
         spar = _populate_spar(seq_params)
@@ -188,7 +212,7 @@ def py_start_proc_c(
 
 
         epar = params.get('examine', {})
-        cals = _read_calibrations(cpar, ptv_params['n_img'])
+        cals = _read_calibrations(cpar, params.get('n_cam', 4))  # Use global n_cam
 
         return cpar, spar, vpar, track_par, tpar, cals, epar
 

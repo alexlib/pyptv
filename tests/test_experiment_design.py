@@ -112,9 +112,8 @@ def test_experiment_populate_runs(temp_experiment_dir):
         # Check that parameters can be accessed
         ptv_params = exp.get_parameter('ptv')
         assert ptv_params is not None
-        # n_img is now accessed via n_cam through the parameter manager
-        # But the ptv group now has n_cam from the global setting
-        assert ptv_params['n_cam'] == 4  # n_cam instead of n_img
+        # n_cam is now ONLY at the global level, not in ptv subsection
+        assert exp.get_n_cam() == 4  # n_cam from global level
         assert ptv_params['imx'] == 1280
         assert ptv_params['imy'] == 1024
         
@@ -152,7 +151,7 @@ def test_experiment_parameter_saving(temp_experiment_dir):
         
         ptv_params = exp2.parameter_manager.get_parameter('ptv')
         assert ptv_params is not None
-        assert ptv_params['n_cam'] == 4  # n_cam instead of n_img
+        assert exp2.get_n_cam() == 4  # n_cam from global level, not ptv section
         
     finally:
         os.chdir(original_dir)

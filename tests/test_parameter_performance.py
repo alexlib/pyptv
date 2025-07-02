@@ -134,12 +134,11 @@ def test_parameter_change_scenarios():
         original_n_cam = experiment.get_parameter('ptv').get('n_cam')
         print(f"Original n_cam: {original_n_cam}")
         
-        # Simulate changing n_cam in GUI
-        ptv_params = experiment.parameter_manager.parameters['ptv']
-        ptv_params['n_cam'] = 6  # Change directly in memory
+        # Simulate changing n_cam in GUI - using the GLOBAL n_cam only
         experiment.parameter_manager.set_n_cam(6)  # Update global n_cam
+        assert experiment.get_n_cam() == 6
         
-        new_n_cam = experiment.get_parameter('ptv').get('n_cam')
+        new_n_cam = experiment.get_n_cam()  # Get from global, not from ptv section
         print(f"After GUI change: {new_n_cam}")
         
         # Scenario 2: Save changes
@@ -149,7 +148,7 @@ def test_parameter_change_scenarios():
         # Scenario 3: Reload from file (simulating manual file edit)
         print("\n3. Reloading from file...")
         experiment.load_parameters_for_active()
-        reloaded_n_cam = experiment.get_parameter('ptv').get('n_cam')
+        reloaded_n_cam = experiment.get_n_cam()  # Get from global, not from ptv section
         print(f"After reload: {reloaded_n_cam}")
         
         # Scenario 4: File modification detection

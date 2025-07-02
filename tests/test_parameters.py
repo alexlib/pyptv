@@ -162,7 +162,8 @@ def test_parameter_manager(temp_params_dir):
     pm.from_directory(params_dir)
 
     assert 'ptv' in pm.parameters
-    assert pm.parameters['ptv']['n_cam'] == 2
+    # n_cam is now at global level, not in ptv section
+    assert pm.get_n_cam() == 2
     assert 'sequence' in pm.parameters
     assert pm.parameters['sequence']['first'] == 1
 
@@ -173,12 +174,16 @@ def test_parameter_manager(temp_params_dir):
 
     with open(yaml_path, 'r') as f:
         data = yaml.safe_load(f)
-    assert data['ptv']['n_cam'] == 2
+    # n_cam should be at top level, not in ptv section
+    assert data['n_cam'] == 2
+    assert 'n_cam' not in data['ptv']  # Ensure it's not in ptv section
 
     # Test from_yaml
     pm2 = ParameterManager()
     pm2.from_yaml(yaml_path)
-    assert pm2.parameters['ptv']['n_cam'] == 2
+    # n_cam should be accessible via get_n_cam(), not from ptv section
+    assert pm2.get_n_cam() == 2
+    assert 'n_cam' not in pm2.parameters['ptv']  # Ensure it's not in ptv section
 
     # Test to_directory
     new_params_dir = temp_params_dir / "new_params"

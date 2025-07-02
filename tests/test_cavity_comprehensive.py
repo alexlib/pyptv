@@ -76,7 +76,8 @@ def test_parameter_loading(test_cavity_setup):
     # Test PTV parameters
     ptv_params = experiment.get_parameter('ptv')
     assert ptv_params is not None, "PTV parameters not loaded"
-    assert ptv_params.get('n_cam') == 4, f"Expected 4 cameras, got {ptv_params.get('n_cam')}"
+    # n_cam is now at global level, not in ptv section
+    assert experiment.get_n_cam() == 4, f"Expected 4 cameras, got {experiment.get_n_cam()}"
     assert ptv_params.get('imx') == 1280, f"Expected image width 1280, got {ptv_params.get('imx')}"
     assert ptv_params.get('imy') == 1024, f"Expected image height 1024, got {ptv_params.get('imy')}"
     

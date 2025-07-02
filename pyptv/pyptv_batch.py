@@ -104,11 +104,11 @@ def run_batch(seq_first: int, seq_last: int, exp_path: Path) -> None:
         experiment.populate_runs(exp_path)
         
         # Initialize processing parameters using the experiment
-        ptv_params = experiment.get_parameter('ptv')
-        if ptv_params is None:
-            raise ValueError("Failed to load PTV parameters")
-            
-        cpar, spar, vpar, track_par, tpar, cals, epar = py_start_proc_c(ptv_params)
+        # Get ALL parameters for py_start_proc_c (it needs global n_cam)
+        all_params = experiment.parameter_manager.parameters.copy()
+        all_params['n_cam'] = experiment.get_n_cam()  # Ensure global n_cam is available
+        
+        cpar, spar, vpar, track_par, tpar, cals, epar = py_start_proc_c(all_params)
 
         # Set sequence parameters
         spar.set_first(seq_first)
@@ -123,7 +123,7 @@ def run_batch(seq_first: int, seq_last: int, exp_path: Path) -> None:
             "tpar": tpar,
             "cals": cals,
             "epar": epar,
-            "n_cams": ptv_params['n_cam'],
+            "n_cams": experiment.get_n_cam(),
             "experiment": experiment,
         })
 

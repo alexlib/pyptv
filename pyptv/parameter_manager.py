@@ -413,10 +413,7 @@ class ParameterManager:
         """
         self.n_cam = n_cam
         print(f"Global n_cam set to {self.n_cam}")
-        
-        # Update ptv parameters if they exist
-        if 'ptv' in self.parameters:
-            self.parameters['ptv']['n_cam'] = n_cam
+        # Note: We do NOT update any subsections - n_cam only exists at top level
     
 def main():
     parser = argparse.ArgumentParser(

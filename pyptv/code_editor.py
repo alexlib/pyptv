@@ -95,7 +95,7 @@ class oriEditor(HasTraits):
         if ptv_params is None or cal_ori_params is None:
             raise ValueError("Failed to load required parameters")
             
-        self.n_img = ptv_params['n_cam']
+        self.n_img = int(experiment.get_n_cam())
         img_ori = cal_ori_params['img_ori']
 
         for i in range(self.n_img):
@@ -133,7 +133,7 @@ class addparEditor(HasTraits):
         if ptv_params is None or cal_ori_params is None:
             raise ValueError("Failed to load required parameters")
             
-        self.n_img = ptv_params['n_cam']
+        self.n_img = int(experiment.get_n_cam())
         img_ori = cal_ori_params['img_ori']
 
         for i in range(self.n_img):

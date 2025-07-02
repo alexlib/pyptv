@@ -49,9 +49,17 @@ def test_parameter_manager_new_structure():
         ptv_params = pm.get_parameter('ptv')
         if ptv_params:
             if 'n_cam' in ptv_params:
-                print(f"✓ PTV has n_cam: {ptv_params['n_cam']}")
-            if 'n_cam' in ptv_params:
-                print(f"WARNING: PTV still has legacy n_img: {ptv_params['n_cam']}")
+                print(f"ERROR: PTV still has n_cam: {ptv_params['n_cam']}")
+            else:
+                print("✓ PTV section correctly has no n_cam")
+            if 'n_img' in ptv_params:
+                print(f"ERROR: PTV still has legacy n_img: {ptv_params['n_img']}")
+            else:
+                print("✓ PTV section correctly has no n_img")
+        
+        # Check that global n_cam is available
+        global_n_cam = pm.get_n_cam()
+        print(f"✓ Global n_cam: {global_n_cam}")
         
         # Test saving to new YAML format
         print("\n2. Saving to new YAML format...")

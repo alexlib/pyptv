@@ -100,7 +100,7 @@ def test_maingui_initialization_design(temp_experiment_dir):
                 # Test parameter access delegation
                 ptv_params = gui.get_parameter('ptv')
                 assert ptv_params is not None
-                assert ptv_params['n_cam'] == 4
+                assert gui.exp1.get_n_cam() == 4
                 
                 # Test that GUI uses experiment for parameters, not direct ParameterManager
                 assert not hasattr(gui, 'pm')  # Old direct ParameterManager reference should be gone
