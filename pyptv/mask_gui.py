@@ -258,7 +258,7 @@ class MaskGUI(HasTraits):
         super(MaskGUI, self).__init__()
         self.need_reset = 0
         self.experiment = experiment
-        self.active_path = Path(experiment.active_params.par_path)
+        self.active_path = Path(experiment.active_params.yaml_path).parent
         self.working_folder = self.active_path.parent
         
         os.chdir(self.working_folder)
@@ -267,7 +267,7 @@ class MaskGUI(HasTraits):
         ptv_params = experiment.get_parameter('ptv')
         if ptv_params is None:
             raise ValueError("Failed to load PTV parameters")
-        self.n_cams = ptv_params['n_cam']
+        self.n_cams = experiment.get_n_cam()
         self.camera = [PlotWindow() for i in range(self.n_cams)]
         for i in range(self.n_cams):
             self.camera[i].name = "Camera" + str(i + 1)
@@ -313,6 +313,7 @@ class MaskGUI(HasTraits):
 
     def _button_showimg_fired(self):
         print("Loading images \n")
+        ptv_params = self.experiment.get_parameter('ptv')
         (
             self.cpar,
             self.spar,
@@ -321,7 +322,7 @@ class MaskGUI(HasTraits):
             self.tpar,
             self.cals,
             self.epar,
-        ) = ptv.py_start_proc_c(self.n_cams)
+        ) = ptv.py_start_proc_c(ptv_params)
 
         self.images = []
         for i in range(len(self.camera)):
@@ -377,7 +378,7 @@ class MaskGUI(HasTraits):
             )
 
     def reset_plots(self):
-        for i in range(len(self.n_cams)):
+        for i in range(self.n_cams):
             self.camera[i]._plot.delplot(*self.camera[i]._plot.plots.keys()[0:])
             self.camera[i]._plot.overlays.clear()
 

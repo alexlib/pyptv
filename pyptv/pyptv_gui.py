@@ -1084,7 +1084,7 @@ class MainGUI(HasTraits):
                 img_as_ubyte(np.zeros((1024, 1024))) for _ in range(self.n_cams)
             ]
         else:
-            self.n_cams = ptv_params['n_cam']
+            self.n_cams = self.exp1.get_n_cam()
             self.orig_names = ptv_params['img_name']
             self.orig_images = [
                 img_as_ubyte(np.zeros((ptv_params['imy'], ptv_params['imx'])))

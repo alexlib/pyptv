@@ -117,15 +117,13 @@ class ParameterManager:
                        and not callable(getattr(param_obj, key))
                 }
                 
-                # Remove redundant n_img from individual parameter groups (except ptv)
-                if param_name != 'ptv' and 'n_img' in param_dict:
+                # Remove redundant n_img from all parameter groups
+                if 'n_img' in param_dict:
                     del param_dict['n_img']
                     print(f"Removed redundant n_img from {param_name} parameters")
                 
-                # For ptv parameters, rename n_img to n_cam for clarity
+                # Don't add n_cam to individual groups - use global only
                 if param_name == 'ptv':
-                    if 'n_img' in param_dict:
-                        param_dict['n_cam'] = param_dict.pop('n_img')
                     param_dict['splitter'] = False
                 
                 if param_name == 'cal_ori':
@@ -230,23 +228,16 @@ class ParameterManager:
             with file_path.open('r') as f:
                 data = yaml.safe_load(f) or {}
             
-            # Extract global n_cam from the YAML structure
+            # Extract global n_cam from the YAML structure - SINGLE SOURCE OF TRUTH
             if 'n_cam' in data:
-                # Direct n_cam field (preferred new structure)
+                # Direct n_cam field (the ONLY way n_cam should be stored)
                 self.n_cam = data.pop('n_cam')  # Remove from data after extracting
-                print(f"Global n_cam set to {self.n_cam} from YAML")
-            elif 'ptv' in data and 'n_cam' in data['ptv']:
-                # n_cam within ptv section (fallback)
-                self.n_cam = data['ptv']['n_cam']
-                print(f"Global n_cam set to {self.n_cam} from ptv section")
-            elif 'ptv' in data and 'n_img' in data['ptv']:
-                # Legacy n_img in ptv section
-                self.n_cam = data['ptv']['n_img']
-                # Rename to n_cam for consistency
-                data['ptv']['n_cam'] = data['ptv'].pop('n_img')
-                print(f"Global n_cam set to {self.n_cam} from legacy ptv.n_img")
+                print(f"Global n_cam set to {self.n_cam} from top-level YAML")
             else:
-                print(f"Warning: n_cam not found in YAML, using default {self.n_cam}")
+                print(f"Warning: n_cam not found at top level in YAML, using default {self.n_cam}")
+            
+            # Clean up any legacy n_cam/n_img in subsections - they should not exist
+            self._remove_legacy_n_cam_from_subsections(data)
                 
             self.parameters = data
             print(f"Parameters loaded from {file_path}")
@@ -262,6 +253,19 @@ class ParameterManager:
             print(f"Error: Failed to parse YAML file {file_path}: {e}")
             self.parameters = {}
             self.ensure_default_parameters()
+
+    def _remove_legacy_n_cam_from_subsections(self, data):
+        """Remove any legacy n_cam or n_img from parameter subsections."""
+        sections_to_clean = ['ptv', 'cal_ori', 'sequence', 'targ_rec', 'multi_planes', 'sortgrid']
+        
+        for section in sections_to_clean:
+            if section in data and isinstance(data[section], dict):
+                if 'n_cam' in data[section]:
+                    legacy_val = data[section].pop('n_cam')
+                    print(f"Removed legacy n_cam={legacy_val} from {section} section")
+                if 'n_img' in data[section]:
+                    legacy_val = data[section].pop('n_img')
+                    print(f"Removed legacy n_img={legacy_val} from {section} section")
 
     def to_directory(self, dir_path: Path):
         if not isinstance(dir_path, Path):
@@ -328,11 +332,8 @@ class ParameterManager:
             }
             print("Info: Added default unsharp mask parameters")
         
-        # Ensure ptv parameters have n_cam and splitter flag
+        # Ensure ptv parameters have splitter flag (but NOT n_cam)
         if 'ptv' in self.parameters:
-            if 'n_cam' not in self.parameters['ptv']:
-                self.parameters['ptv']['n_cam'] = self.n_cam
-                print(f"Info: Added n_cam={self.n_cam} to ptv parameters")
             if 'splitter' not in self.parameters['ptv']:
                 self.parameters['ptv']['splitter'] = False
                 print("Info: Added default splitter flag to ptv parameters")
@@ -366,7 +367,6 @@ class ParameterManager:
             },
             'ptv': {
                 'splitter': False,
-                'n_cam': self.n_cam,  # Use global n_cam
                 'hp_flag': True,
                 'allcam_flag': False,
                 'tiff_flag': True,
@@ -417,56 +417,6 @@ class ParameterManager:
         # Update ptv parameters if they exist
         if 'ptv' in self.parameters:
             self.parameters['ptv']['n_cam'] = n_cam
-    
-class Experiment:
-    def __init__(self):
-        self.parameter_manager = ParameterManager()  # Single source of truth
-        self._parameter_cache = {}  # Optional performance cache
-        self._file_mtimes = {}      # File modification tracking
-    
-    def get_parameter(self, key, use_cache=True):
-        """Get parameter with optional caching for frequently accessed params"""
-        
-        # Check if file was modified (for manual edits)
-        if self._should_reload_from_file():
-            self.load_parameters_for_active()
-            self._parameter_cache.clear()
-        
-        # Use cache for frequently accessed parameters
-        if use_cache and key in self._parameter_cache:
-            return self._parameter_cache[key]
-        
-        # Get from ParameterManager
-        param = self.parameter_manager.get_parameter(key)
-        
-        # Cache frequently accessed parameters
-        if key in ['ptv', 'sequence', 'detection']:  # Hot parameters
-            self._parameter_cache[key] = param
-        
-        return param
-    
-    def set_parameter(self, key, value):
-        """Update parameter and invalidate cache"""
-        self.parameter_manager.parameters[key] = value
-        self._parameter_cache.pop(key, None)  # Invalidate cache
-        self._mark_as_modified()
-    
-    def _should_reload_from_file(self):
-        """Check if YAML file was modified externally"""
-        yaml_path = self.active_params.par_path / 'parameters.yaml'
-        if yaml_path.exists():
-            current_mtime = yaml_path.stat().st_mtime
-            cached_mtime = self._file_mtimes.get(str(yaml_path), 0)
-            return current_mtime > cached_mtime
-        return False
-    
-    def auto_reload_if_modified(self):
-        """Auto-reload parameters if file was modified externally"""
-        if self._should_reload_from_file():
-            print("Parameters file was modified externally, reloading...")
-            self.load_parameters_for_active()
-            return True
-        return False
     
 def main():
     parser = argparse.ArgumentParser(

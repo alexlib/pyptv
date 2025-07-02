@@ -265,14 +265,14 @@ class DetectionGUI(HasTraits):
         self.need_reset = 0
 
         self.experiment = experiment
-        self.working_folder = pathlib.Path(experiment.active_params.par_path).parent
+        self.working_folder = pathlib.Path(experiment.active_params.yaml_path).parent
         os.chdir(self.working_folder)
         print(f"Inside a folder: {pathlib.Path()}")
         
         ptv_params = experiment.get_parameter('ptv')
         if ptv_params is None:
             raise ValueError("Failed to load PTV parameters")
-        self.n_cams = ptv_params['n_cam']
+        self.n_cams = experiment.get_n_cam()
 
         (
             self.cpar,
@@ -282,7 +282,7 @@ class DetectionGUI(HasTraits):
             self.tpar,
             self.cals,
             self.epar,
-        ) = ptv.py_start_proc_c(self.n_cams)
+        ) = ptv.py_start_proc_c(ptv_params)
 
         self.tpar.read("parameters/detect_plate.par")
 

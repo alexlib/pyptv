@@ -209,3 +209,7 @@ class Experiment(HasTraits):
         # Remove from list
         self.paramsets.remove(paramset_obj)
         print(f"Removed parameter set: {getattr(paramset_obj, 'name', str(paramset_obj))}")
+
+    def get_n_cam(self):
+        """Get the global number of cameras"""
+        return self.parameter_manager.get_n_cam()

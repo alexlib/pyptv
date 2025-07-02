@@ -1,4 +1,4 @@
-n_cam: 6
+n_cam: 4
 cal_ori:
   chfield: 0
   fixp_name: cal/target_on_a_side.txt

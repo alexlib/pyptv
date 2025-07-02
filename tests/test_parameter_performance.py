@@ -70,7 +70,7 @@ def test_parameter_access_performance():
         
         # Test 4: File I/O performance
         print("\n4. Testing file I/O performance...")
-        yaml_path = experiment.active_params.par_path / 'parameters.yaml'
+        yaml_path = experiment.active_params.yaml_path
         
         start_time = time.time()
         for i in range(10):  # Fewer iterations for I/O
@@ -154,7 +154,7 @@ def test_parameter_change_scenarios():
         
         # Scenario 4: File modification detection
         print("\n4. File modification detection...")
-        yaml_path = experiment.active_params.par_path / 'parameters.yaml'
+        yaml_path = experiment.active_params.yaml_path
         file_mtime = yaml_path.stat().st_mtime
         print(f"File modification time: {file_mtime}")
         

@@ -143,7 +143,7 @@ def test_experiment_parameter_saving(temp_experiment_dir):
         exp.save_parameters()
         
         # Check that YAML file was created
-        yaml_path = exp.active_params.par_path / 'parameters.yaml'
+        yaml_path = exp.active_params.yaml_path
         assert yaml_path.exists()
         
         # Check that parameters can be loaded from YAML
@@ -200,7 +200,7 @@ def test_experiment_parameter_updates(temp_experiment_dir):
         
         # Load in a new experiment instance
         exp2 = Experiment()
-        yaml_path = exp.active_params.par_path / 'parameters.yaml'
+        yaml_path = exp.active_params.yaml_path
         exp2.parameter_manager.from_yaml(yaml_path)
         
         reloaded_params = exp2.parameter_manager.get_parameter('ptv')

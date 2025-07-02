@@ -62,7 +62,7 @@ def test_experiment_initialization(test_cavity_setup):
     
     assert len(experiment.paramsets) >= 1, "No parameter sets found"
     assert experiment.active_params is not None, "No active parameters"
-    assert experiment.active_params.par_path.exists(), "Active parameter path does not exist"
+    assert experiment.active_params.yaml_path.exists(), "Active parameter YAML path does not exist"
 
 
 def test_parameter_loading(test_cavity_setup):
@@ -149,7 +149,7 @@ def test_legacy_parameter_conversion(test_cavity_setup):
     setup = test_cavity_setup
     experiment = setup['experiment']
     
-    par_path = experiment.active_params.par_path
+    par_path = experiment.active_params.yaml_path.parent
     
     # Convert ParameterManager parameters to legacy format
     experiment.parameter_manager.to_directory(par_path)
@@ -171,7 +171,7 @@ def test_pyptv_core_initialization(test_cavity_setup):
     setup = test_cavity_setup
     experiment = setup['experiment']
     
-    par_path = experiment.active_params.par_path
+    par_path = experiment.active_params.yaml_path.parent
     
     # Convert ParameterManager parameters to legacy format
     experiment.parameter_manager.to_directory(par_path)
@@ -218,7 +218,7 @@ def test_image_preprocessing(test_cavity_setup):
         orig_images.append(img)
     
     # Initialize PyPTV core
-    par_path = experiment.active_params.par_path
+    par_path = experiment.active_params.yaml_path.parent
     experiment.parameter_manager.to_directory(par_path)
     (cpar, spar, vpar, track_par, tpar, cals, epar) = ptv.py_start_proc_c(n_cams)
     
@@ -251,7 +251,7 @@ def test_particle_detection(test_cavity_setup):
         orig_images.append(img)
     
     # Initialize PyPTV core
-    par_path = experiment.active_params.par_path
+    par_path = experiment.active_params.yaml_path.parent
     experiment.parameter_manager.to_directory(par_path)
     (cpar, spar, vpar, track_par, tpar, cals, epar) = ptv.py_start_proc_c(n_cams)
     

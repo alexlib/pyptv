@@ -265,7 +265,7 @@ class CalibrationGUI(HasTraits):
         super(CalibrationGUI, self).__init__()
         self.need_reset = 0
         self.experiment = experiment
-        self.active_path = Path(experiment.active_params.par_path)
+        self.active_path = Path(experiment.active_params.yaml_path).parent
         self.working_folder = self.active_path.parent
         
         os.chdir(self.working_folder)
@@ -274,7 +274,7 @@ class CalibrationGUI(HasTraits):
         ptv_params = experiment.get_parameter('ptv')
         if ptv_params is None:
             raise ValueError("Failed to load PTV parameters")
-        self.n_cams = ptv_params['n_cam']
+        self.n_cams = experiment.get_n_cam()
         self.camera = [PlotWindow() for i in range(self.n_cams)]
         for i in range(self.n_cams):
             self.camera[i].name = "Camera" + str(i + 1)
