@@ -129,7 +129,7 @@ def test_no_circular_dependency_in_maingui():
     """Test that MainGUI doesn't create circular dependencies"""
     try:
         from pyptv.pyptv_gui import MainGUI
-        from pyptv.parameter_gui import Experiment
+        from pyptv.experiment import Experiment
         
         # The key principle: Experiment should not need to know about GUI
         exp = Experiment()

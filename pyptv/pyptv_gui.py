@@ -30,7 +30,7 @@ from pyptv import ptv
 from pyptv.calibration_gui import CalibrationGUI
 from pyptv.legacy_parameters import copy_params_dir
 from pyptv.directory_editor import DirectoryEditorDialog
-from pyptv.parameter_gui import Experiment, Paramset
+from pyptv.experiment import Experiment, Paramset
 from pyptv.quiverplot import QuiverPlot
 from pyptv.detection_gui import DetectionGUI
 from pyptv.mask_gui import MaskGUI

@@ -7,7 +7,7 @@ import numpy as np
 # Add pyptv to path
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from pyptv.parameter_gui import Experiment
+from pyptv.experiment import Experiment
 from pyptv import ptv
 from skimage.io import imread
 from skimage.color import rgb2gray

@@ -12,7 +12,7 @@ from pathlib import Path
 # Add pyptv to the path
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
-from pyptv.parameter_gui import Experiment
+from pyptv.experiment import Experiment
 # No longer importing or using pyptv.parameters or SequenceParams
 
 def test_image_path_resolution(test_data_dir):
