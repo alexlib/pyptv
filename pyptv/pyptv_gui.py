@@ -476,16 +476,12 @@ class TreeMenuHandler(Handler):
         print("Init action")
         mainGui.create_plots(mainGui.orig_images, is_float=False)
 
-        # Initialize PyPTV core
-        (
-            info.object.cpar,
-            info.object.spar,
-            info.object.vpar,
-            info.object.track_par,
-            info.object.tpar,
-            info.object.cals,
-            info.object.epar,
-        ) = ptv.py_start_proc_c(info.object.n_cams)
+        # No need to call py_start_proc_c here, as parameters are now managed dynamically.
+        # When Cython parameter objects are needed, create them on demand using mainGui.get_parameter().
+        # Example usage elsewhere:
+        #   ptv_params = mainGui.get_parameter('ptv')
+        #   cpar = ptv.CamPar(**ptv_params)
+        # This ensures always up-to-date parameters are used.
         
         mainGui.pass_init = True
         print("Read all the parameters and calibrations successfully")
@@ -511,25 +507,26 @@ class TreeMenuHandler(Handler):
                 info.object.orig_images[i] = ptv.negative(im)
 
         # Check mask flag
-        masking_params = mainGui.get_parameter('masking')
+        # masking_params = mainGui.get_parameter('masking')
+        masking_params = mainGui.get_parameter('masking') or {}
         if masking_params.get('mask_flag', False):
             print("Subtracting mask")
             try:
-                for i, im in enumerate(info.object.orig_images):
+                for i, im in enumerate(mainGui.orig_images):
                     background_name = masking_params['mask_base_name'].replace("#", str(i))
                     print(f"Subtracting {background_name}")
                     background = imread(background_name)
-                    info.object.orig_images[i] = np.clip(
-                        info.object.orig_images[i] - background, 0, 255
+                    mainGui.orig_images[i] = np.clip(
+                        mainGui.orig_images[i] - background, 0, 255
                     ).astype(np.uint8)
             except ValueError as exc:
                 raise ValueError("Failed subtracting mask") from exc
 
         print("highpass started")
-        info.object.orig_images = ptv.py_pre_processing_c(
-            info.object.orig_images, info.object.cpar
+        mainGui.orig_images = ptv.py_pre_processing_c(
+            mainGui.orig_images, ptv_params
         )
-        info.object.update_plots(info.object.orig_images)
+        mainGui.update_plots(mainGui.orig_images)
         print("highpass finished")
 
     def img_coord_action(self, info):

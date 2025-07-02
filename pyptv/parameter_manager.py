@@ -13,6 +13,20 @@ class ParameterManager:
     """
     A centralized manager for handling experiment parameters. It can convert
     a directory of .par files into a single YAML file and vice-versa.
+    
+    Features robust error handling for missing parameters:
+    
+    Example usage:
+        pm = ParameterManager()
+        pm.from_yaml('parameters.yaml')
+        
+        # Safe parameter access with defaults
+        masking_params = pm.get_parameter('masking', default={'mask_flag': False})
+        mask_flag = pm.get_parameter_value('masking', 'mask_flag', default=False)
+        
+        # Check parameter existence
+        if pm.has_parameter('masking'):
+            print("Masking parameters available")
     """
 
     def __init__(self):
@@ -100,6 +114,11 @@ class ParameterManager:
                 if param_name == 'cal_ori':
                     param_dict['cal_splitter'] = False
                 self.parameters[param_name] = param_dict
+        
+        # Ensure default parameters for compatibility
+        self.ensure_default_parameters()
+
+        self.ensure_default_parameters()
 
     def _clean_value(self, value):
         if isinstance(value, Path):
@@ -108,8 +127,71 @@ class ParameterManager:
             return [self._clean_value(v) for v in value]
         return value
 
-    def get_parameter(self, name):
-        return self.parameters.get(name)
+    def get_parameter(self, name, default=None, warn_if_missing=True):
+        """
+        Get a parameter by name with robust error handling.
+        
+        Args:
+            name (str): The parameter name to retrieve
+            default: Default value to return if parameter doesn't exist
+            warn_if_missing (bool): Whether to print a warning if parameter is missing
+            
+        Returns:
+            The parameter value if found, otherwise the default value
+        """
+        if name in self.parameters:
+            return self.parameters[name]
+        else:
+            if warn_if_missing:
+                print(f"Warning: Parameter '{name}' not found in configuration. Using default value: {default}")
+            return default
+    
+    def get_parameter_value(self, param_group, param_key, default=None, warn_if_missing=True):
+        """
+        Get a specific parameter value from a parameter group.
+        
+        Args:
+            param_group (str): The parameter group name (e.g., 'masking', 'ptv')
+            param_key (str): The specific parameter key within the group
+            default: Default value to return if parameter doesn't exist
+            warn_if_missing (bool): Whether to print a warning if parameter is missing
+            
+        Returns:
+            The parameter value if found, otherwise the default value
+        """
+        group = self.get_parameter(param_group, default={}, warn_if_missing=warn_if_missing)
+        if isinstance(group, dict) and param_key in group:
+            return group[param_key]
+        else:
+            if warn_if_missing and param_group in self.parameters:
+                print(f"Warning: Parameter '{param_key}' not found in group '{param_group}'. Using default value: {default}")
+            return default
+    
+    def has_parameter(self, name):
+        """
+        Check if a parameter exists.
+        
+        Args:
+            name (str): The parameter name to check
+            
+        Returns:
+            bool: True if parameter exists, False otherwise
+        """
+        return name in self.parameters
+    
+    def has_parameter_value(self, param_group, param_key):
+        """
+        Check if a specific parameter value exists in a parameter group.
+        
+        Args:
+            param_group (str): The parameter group name
+            param_key (str): The specific parameter key within the group
+            
+        Returns:
+            bool: True if parameter value exists, False otherwise
+        """
+        group = self.parameters.get(param_group, {})
+        return isinstance(group, dict) and param_key in group
 
     def to_yaml(self, file_path: Path):
         if not isinstance(file_path, Path):
@@ -124,9 +206,20 @@ class ParameterManager:
             file_path = Path(file_path)
         self.path = file_path.parent
 
-        with file_path.open('r') as f:
-            self.parameters = yaml.safe_load(f)
-        print(f"Parameters loaded from {file_path}")
+        try:
+            with file_path.open('r') as f:
+                self.parameters = yaml.safe_load(f) or {}
+            print(f"Parameters loaded from {file_path}")
+            # Ensure default parameters for compatibility
+            self.ensure_default_parameters()
+        except FileNotFoundError:
+            print(f"Warning: YAML file not found at {file_path}. Using empty parameters.")
+            self.parameters = {}
+            self.ensure_default_parameters()
+        except yaml.YAMLError as e:
+            print(f"Error: Failed to parse YAML file {file_path}: {e}")
+            self.parameters = {}
+            self.ensure_default_parameters()
 
     def to_directory(self, dir_path: Path):
         if not isinstance(dir_path, Path):
@@ -156,7 +249,90 @@ class ParameterManager:
                 param_obj.write()
         print(f"Parameters written to individual files in {dir_path}")
 
+    def ensure_default_parameters(self):
+        """
+        Ensure that commonly missing parameters have default values.
+        This helps maintain compatibility with older parameter files.
+        """
+        # Default masking parameters
+        if 'masking' not in self.parameters:
+            self.parameters['masking'] = {
+                'mask_flag': False,
+                'mask_base_name': ''
+            }
+            print("Info: Added default masking parameters")
+        
+        # Default unsharp mask parameters
+        if 'unsharp_mask' not in self.parameters:
+            self.parameters['unsharp_mask'] = {
+                'flag': False,
+                'size': 3,
+                'strength': 1.0
+            }
+            print("Info: Added default unsharp mask parameters")
+        
+        # Ensure ptv parameters have splitter flag
+        if 'ptv' in self.parameters and 'splitter' not in self.parameters['ptv']:
+            self.parameters['ptv']['splitter'] = False
+            print("Info: Added default splitter flag to ptv parameters")
+        
+        # Ensure cal_ori parameters have cal_splitter flag
+        if 'cal_ori' in self.parameters and 'cal_splitter' not in self.parameters['cal_ori']:
+            self.parameters['cal_ori']['cal_splitter'] = False
+            print("Info: Added default cal_splitter flag to cal_ori parameters")
 
+    def get_default_value_for_parameter(self, param_group, param_key):
+        """
+        Get a sensible default value for a known parameter.
+        
+        Args:
+            param_group (str): The parameter group name
+            param_key (str): The parameter key
+            
+        Returns:
+            A sensible default value based on the parameter type
+        """
+        # Define known defaults for common parameters
+        defaults = {
+            'masking': {
+                'mask_flag': False,
+                'mask_base_name': '',
+            },
+            'unsharp_mask': {
+                'flag': False,
+                'size': 3,
+                'strength': 1.0,
+            },
+            'ptv': {
+                'splitter': False,
+                'n_img': 4,
+                'hp_flag': True,
+                'allcam_flag': False,
+                'tiff_flag': True,
+            },
+            'cal_ori': {
+                'cal_splitter': False,
+                'pair_flag': False,
+                'tiff_flag': True,
+            }
+        }
+        
+        if param_group in defaults and param_key in defaults[param_group]:
+            return defaults[param_group][param_key]
+        
+        # Generic defaults based on common naming patterns
+        if param_key.endswith('_flag') or param_key.startswith('flag'):
+            return False
+        elif param_key.endswith('_name') or param_key.startswith('name'):
+            return ''
+        elif 'min' in param_key.lower():
+            return 0
+        elif 'max' in param_key.lower():
+            return 100
+        elif 'size' in param_key.lower():
+            return 1
+        else:
+            return None
 def main():
     parser = argparse.ArgumentParser(
         description="Convert between a directory of .par files and a single YAML file.",

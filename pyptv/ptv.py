@@ -70,9 +70,9 @@ def simple_highpass(img: np.ndarray, cpar: ControlParams) -> np.ndarray:
     return preprocess_image(img, DEFAULT_NO_FILTER, cpar, DEFAULT_HIGHPASS_FILTER_SIZE)
 
 
-def _populate_cpar(params: dict) -> ControlParams:
-    """Populate a ControlParams object from a dictionary."""
-    ptv_params = params.get('ptv', {})
+def _populate_cpar(ptv_params: dict) -> ControlParams:
+    """Populate a ControlParams object from a dictionary of ptv_params."""
+    # ptv_params = params.get('ptv', {})
     cpar = ControlParams(ptv_params.get('n_img', 4))
     cpar.set_image_size((ptv_params.get('imx', 0), ptv_params.get('imy', 0)))
     cpar.set_pixel_size((ptv_params.get('pix_x', 0.0), ptv_params.get('pix_y', 0.0)))
@@ -186,10 +186,11 @@ def py_start_proc_c(
 
 
 def py_pre_processing_c(
-    list_of_images: List[np.ndarray], cpar: ControlParams, 
+    list_of_images: List[np.ndarray], ptv_params: dict, 
 ) -> List[np.ndarray]:
     """Apply pre-processing to a list of images.
     """
+    cpar = _populate_cpar(ptv_params)
     processed_images = []
     for i, img in enumerate(list_of_images):
         img_lp = img.copy() 
