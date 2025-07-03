@@ -1,8 +1,0 @@
-n_cam: 4
-masking:
-  mask_flag: false
-  mask_base_name: ''
-unsharp_mask:
-  flag: false
-  size: 3
-  strength: 1.0

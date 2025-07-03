@@ -2,7 +2,7 @@
 """
 PyPTV Parameter Utilities
 
-T    print(f"🔄 Converting legacy parameters from {parameters_dir}")
+    print(f"🔄 Converting legacy parameters from {parameters_dir}")
     print(f"📁 Looking for .par files in: {parameters_dir}")
     print(f"📄 Output YAML file: {yaml_file}") module provides utilities for converting between legacy parameter formats
 (.par files, plugins.json, man_ori.dat) and the new YAML-based parameter system.
