@@ -199,16 +199,16 @@ def py_start_proc_c(
         cpar = _populate_cpar(params)  # Pass full params, not just ptv_params
 
         seq_params = params.get('sequence', {})
-        spar = _populate_spar(seq_params)
+        spar = _populate_spar(params)  # Pass full params, not just seq_params
 
-        volume_params = params.get('volume', {})
-        vpar = _populate_vpar(volume_params)
+        crit_params = params.get('criteria', {})
+        vpar = _populate_vpar(params)  # Pass full params, not just crit_params
 
         track_params = params.get('track', {})
-        track_par = _populate_track_par(track_params)
+        track_par = _populate_track_par(params)  # Pass full params, not just track_params
 
-        target_params = params.get('targ_rec', {})
-        tpar = _populate_tpar(target_params)
+        targ_params = params.get('targ_rec', {})
+        tpar = _populate_tpar(params)  # Pass full params, not just targ_params
 
 
         epar = params.get('examine', {})

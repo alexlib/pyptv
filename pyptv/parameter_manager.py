@@ -419,7 +419,7 @@ class ParameterManager:
         else:
             return None
 
-    def get_n_cam(self):
+    def get_n_cam(self)-> int:
         """
         Get the global number of cameras.
         

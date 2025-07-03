@@ -5,6 +5,7 @@
 ## Table of Contents
 - [Introduction](#introduction)
 - [Installation](#installation)
+- [YAML Parameters System](#yaml-parameters-system)
 - [Core Concepts: PyPTV, OpenPTV C Libraries, and Cython Bindings](#core-concepts)
 - [Getting Started: A Quick Tour with the Test Cavity Example](#getting-started)
 - [PyPTV GUI and Workflow Overview](#gui-workflow)
@@ -169,6 +170,109 @@ python -c "import optv; print(optv.__version__)"
 
 For more specific troubleshooting, consult the [PyPTV Issues](https://github.com/alexlib/pyptv/issues) page or the OpenPTV documentation.
 
+## YAML Parameters System {#yaml-parameters-system}
+
+*New in PyPTV 2025: Modern YAML-based parameter management*
+
+PyPTV has transitioned from the legacy `.par` file system to a modern, unified **YAML-based parameter format**. This represents a major improvement in how PyPTV manages configuration and experimental parameters.
+
+### What Changed
+
+**Before (Legacy System):**
+- Multiple `.par` files: `ptv.par`, `detect_plate.par`, `man_ori.par`, etc.
+- Separate `plugins.json` file for plugin configuration
+- Manual orientation data in `man_ori.dat`
+- Difficult to version control and share
+
+**Now (YAML System):**
+- **Single `parameters.yaml` file** containing all configuration
+- **Human-readable format** with comments and clear structure
+- **Complete parameter sets** including plugins and manual orientation
+- **Easy to edit, share, and version control**
+
+### Quick Start with YAML Parameters
+
+#### For New Users
+Create a new experiment with YAML parameters:
+
+```yaml
+# parameters.yaml - Complete PyPTV configuration
+n_cam: 4
+
+detect_plate:
+  gv_threshold_1: 80
+  gv_threshold_2: 40
+  gv_threshold_3: 20
+
+man_ori:
+  n_img: 4
+  name_img:
+    - "cam1.tif"
+    - "cam2.tif" 
+    - "cam3.tif"
+    - "cam4.tif"
+
+plugins:
+  selected_tracking: "default"
+  selected_sequence: "default"
+```
+
+#### For Existing Users (Migration)
+Convert your existing parameter folders to the new YAML format:
+
+```bash
+# Convert legacy parameters to YAML
+python -m pyptv.parameter_util legacy-to-yaml ./your_experiment/parameters/
+
+# This creates parameters.yaml and backs up your original files
+```
+
+#### Converting Back (If Needed)
+If you need legacy `.par` files (e.g., for older PyPTV versions):
+
+```bash
+# Convert YAML back to legacy format
+python -m pyptv.parameter_util yaml-to-legacy parameters.yaml legacy_output/
+```
+
+### Key Benefits
+
+✅ **Simplified Management**: One file instead of many  
+✅ **Version Control Friendly**: Text-based format works perfectly with Git  
+✅ **Easy Sharing**: Copy one file to share complete parameter sets  
+✅ **Better Documentation**: Comments and clear structure  
+✅ **Complete Configuration**: Includes everything in one place  
+
+### Detailed Documentation
+
+For comprehensive information about the YAML parameter system, including:
+- Complete file structure reference
+- Migration examples and troubleshooting
+- Parameter section explanations
+- Advanced usage and best practices
+
+**See: [YAML Parameters Guide](yaml_parameters_guide.md)**
+
+### Working with YAML Parameters in PyPTV
+
+The PyPTV GUI automatically detects and loads `parameters.yaml` files. You can:
+
+1. **Load YAML parameters** through the GUI File menu
+2. **Edit parameters** using the GUI controls (automatically saves to YAML)
+3. **Create parameter variants** by copying and modifying YAML files
+4. **Share parameter sets** by simply copying the `parameters.yaml` file
+
+### Migration Support
+
+PyPTV maintains full backward compatibility:
+
+- **Automatic detection**: PyPTV can still read legacy `.par` files
+- **Seamless conversion**: Built-in tools convert between formats
+- **No data loss**: All parameters and settings are preserved during conversion
+- **Backup safety**: Legacy files are automatically backed up during migration
+
+The parameter conversion utility handles all the complexity of migration, ensuring a smooth transition to the modern YAML system.
+
 ## Core Concepts: PyPTV, OpenPTV C Libraries, and Cython Bindings {#core-concepts}
 
 To effectively use PyPTV, it's essential to understand the relationship between the Python GUI (PyPTV), the underlying C libraries (OpenPTV's `liboptv`), and the Cython bindings (`optv` package) that connect them. This section aims to clarify these relationships and explain how they work together.
@@ -324,9 +428,11 @@ This should open the PyPTV GUI, typically showing a startup screen or an empty w
    - If creating a new project, you'll need to specify a directory where project files will be stored.
 
 2. **Configure Basic Settings:**
-   - Specify the number of cameras you're using (for the test_cavity example, this is typically 4).
+   - **YAML Parameters**: If you have a `parameters.yaml` file from a previous experiment, load it through File → Load Parameters. This will configure all settings at once.
+   - **Manual Setup**: For new projects, specify the number of cameras you're using (for the test_cavity example, this is typically 4).
    - Set the image naming convention (e.g., "cam%d.%d" where the first "%d" is the camera number and the second is the frame number).
    - Specify the range of frames you want to process.
+   - **Save Configuration**: Save your settings to a `parameters.yaml` file for future use and sharing.
 
 3. **Load or Create a Multi-Camera Calibration:**
    - For the test_cavity example, you might already have calibration files available.
