@@ -33,10 +33,10 @@ class ParameterManager:
         """
         Initializes the ParameterManager.
         """
-        self.parameters = {}
-        self.n_cam = 4  # Global number of cameras - critical parameter that defines structure
+        self.parameters: dict = {}
+        self.n_cam: int = 4  # Global number of cameras - critical parameter that defines structure
         self._class_map = self._get_class_map()
-        self.path = None
+        self.path: Path = Path('.')
 
     def _get_class_map(self):
         """Builds a map from parameter file names to their corresponding classes."""

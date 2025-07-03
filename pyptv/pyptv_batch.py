@@ -3,16 +3,22 @@
 This module provides batch processing capabilities for PyPTV, allowing users to
 process sequences of images without the GUI interface.
 
+The script expects:
+- A YAML parameter file (e.g., parameters_Run1.yaml)
+- img/ directory with image sequences (relative to YAML file location)  
+- cal/ directory with calibration files (relative to YAML file location)
+- res/ directory (created automatically if missing)
+
+To convert legacy parameters to YAML format:
+    python -m pyptv.parameter_util legacy-to-yaml /path/to/parameters/
+
 Example:
     Command line usage:
-    >>> python pyptv_batch.py experiments/exp1 10001 10022
+    >>> python pyptv_batch.py tests/test_cavity/parameters_Run1.yaml 10000 10004
 
     Python API usage:
     >>> from pyptv.pyptv_batch import main
-    >>> main("experiments/exp1", 10001, 10022)
-
-The script expects the experiment directory to contain the standard OpenPTV
-folder structure with /parameters, /img, /cal, and /res directories.
+    >>> main("tests/test_cavity/parameters_Run1.yaml", 10000, 10004)
 """
 
 import logging
@@ -41,23 +47,32 @@ class ProcessingError(Exception):
 # AttrDict removed - using direct dictionary access with Experiment object
 
 
-def validate_experiment_directory(exp_path: Path) -> None:
-    """Validate that the experiment directory has the required structure.
+def validate_experiment_setup(yaml_file: Path) -> Path:
+    """Validate that the YAML file exists and required directories are available.
     
     Args:
-        exp_path: Path to the experiment directory
+        yaml_file: Path to the YAML parameter file
+        
+    Returns:
+        Path to the experiment directory (parent of YAML file)
         
     Raises:
-        ProcessingError: If required directories or files are missing
+        ProcessingError: If required files or directories are missing
     """
-    if not exp_path.exists():
-        raise ProcessingError(f"Experiment directory does not exist: {exp_path}")
+    if not yaml_file.exists():
+        raise ProcessingError(f"YAML parameter file does not exist: {yaml_file}")
     
-    if not exp_path.is_dir():
-        raise ProcessingError(f"Path is not a directory: {exp_path}")
+    if not yaml_file.is_file():
+        raise ProcessingError(f"Path is not a file: {yaml_file}")
+        
+    if not yaml_file.suffix.lower() in ['.yaml', '.yml']:
+        raise ProcessingError(f"File must have .yaml or .yml extension: {yaml_file}")
     
-    # Check for required subdirectories
-    required_dirs = ["parameters", "img", "cal"]
+    # Get experiment directory (parent of YAML file)
+    exp_path = yaml_file.parent
+    
+    # Check for required subdirectories relative to YAML file location
+    required_dirs = ["img", "cal", "res"]
     missing_dirs = []
     
     for dir_name in required_dirs:
@@ -67,43 +82,46 @@ def validate_experiment_directory(exp_path: Path) -> None:
     
     if missing_dirs:
         raise ProcessingError(
-            f"Missing required directories in {exp_path}: {', '.join(missing_dirs)}"
+            f"Missing required directories relative to {yaml_file}: {', '.join(missing_dirs)}"
         )
     
-    # Check for required parameter file
-    ptv_par_file = exp_path / "parameters" / "ptv.par"
-    if not ptv_par_file.exists():
-        raise ProcessingError(f"Required file not found: {ptv_par_file}")
+    return exp_path
 
 
-def run_batch(seq_first: int, seq_last: int, exp_path: Path) -> None:
+def run_batch(yaml_file: Path, seq_first: int, seq_last: int) -> None:
     """Run batch processing for a sequence of frames.
     
     Args:
         seq_first: First frame number in the sequence
         seq_last: Last frame number in the sequence  
-        exp_path: Path to the experiment directory
+        yaml_file: Path to the YAML parameter file
         
     Raises:
         ProcessingError: If processing fails
     """
     logger.info(f"Starting batch processing: frames {seq_first} to {seq_last}")
+    logger.info(f"Using parameter file: {yaml_file}")
+    
+    # Get experiment directory (parent of YAML file)
+    exp_path = yaml_file.parent
+    
+    # Store original working directory
+    original_cwd = Path.cwd()
     
     try:
         # Change to experiment directory
-        original_cwd = Path.cwd()
         os.chdir(exp_path)
         
-        # Create experiment and load parameters
+        # Create experiment and load YAML parameters
         experiment = Experiment()
-        experiment.populate_runs(exp_path)
         
-        # Initialize processing parameters using the experiment
-        # Get ALL parameters for py_start_proc_c (it needs global n_cam)
-        all_params = experiment.parameter_manager.parameters.copy()
-        all_params['n_cam'] = experiment.get_n_cam()  # Ensure global n_cam is available
+        # Load parameters from YAML file
+        logger.info(f"Loading parameters from: {yaml_file}")
+        experiment.parameter_manager.from_yaml(yaml_file)
         
-        cpar, spar, vpar, track_par, tpar, cals, epar = py_start_proc_c(all_params)
+        
+        logger.info(f"Initializing processing with n_cam = {experiment.parameter_manager.n_cam}")
+        cpar, spar, vpar, track_par, tpar, cals, epar = py_start_proc_c(experiment.parameter_manager)
 
         # Set sequence parameters
         spar.set_first(seq_first)
@@ -120,7 +138,7 @@ def run_batch(seq_first: int, seq_last: int, exp_path: Path) -> None:
                 self.tpar = tpar
                 self.cals = cals
                 self.epar = epar
-                self.n_cams = experiment.get_n_cam()
+                self.n_cams = experiment.parameter_manager.n_cam  # Global number of cameras
                 # Initialize attributes that may be set during processing
                 self.detections = []
                 self.corrected = []
@@ -128,8 +146,13 @@ def run_batch(seq_first: int, seq_last: int, exp_path: Path) -> None:
         proc_exp = ProcessingExperiment(experiment, cpar, spar, vpar, track_par, tpar, cals, epar)
 
         # Run processing
+        logger.info("Running sequence loop...")
         py_sequence_loop(proc_exp)
+        
+        logger.info("Initializing tracker...")
         tracker = py_trackcorr_init(proc_exp)
+        
+        logger.info("Running tracking...")
         tracker.full_forward()
         
         logger.info("Batch processing completed successfully")
@@ -142,7 +165,7 @@ def run_batch(seq_first: int, seq_last: int, exp_path: Path) -> None:
 
 
 def main(
-    exp_path: Union[str, Path], 
+    yaml_file: Union[str, Path], 
     first: Union[str, int], 
     last: Union[str, int], 
     repetitions: int = 1
@@ -150,8 +173,7 @@ def main(
     """Run PyPTV batch processing.
     
     Args:
-        exp_path: Path to the experiment directory containing the required
-                 folder structure (/parameters, /img, /cal, /res)
+        yaml_file: Path to the YAML parameter file (e.g., parameters_Run1.yaml)
         first: First frame number in the sequence
         last: Last frame number in the sequence  
         repetitions: Number of times to repeat the processing (default: 1)
@@ -159,12 +181,16 @@ def main(
     Raises:
         ProcessingError: If processing fails
         ValueError: If parameters are invalid
+        
+    Note:
+        If you have legacy .par files, convert them first using:
+        python -m pyptv.parameter_util legacy-to-yaml /path/to/parameters/
     """
     start_time = time.time()
     
     try:
         # Validate and convert parameters
-        exp_path = Path(exp_path).resolve()
+        yaml_file = Path(yaml_file).resolve()
         seq_first = int(first)
         seq_last = int(last)
         
@@ -174,12 +200,13 @@ def main(
         if repetitions < 1:
             raise ValueError(f"Repetitions must be >= 1, got {repetitions}")
             
-        logger.info(f"Starting batch processing in directory: {exp_path}")
+        logger.info(f"Starting batch processing with YAML file: {yaml_file}")
         logger.info(f"Frame range: {seq_first} to {seq_last}")
         logger.info(f"Repetitions: {repetitions}")
         
-        # Validate experiment directory structure
-        validate_experiment_directory(exp_path)
+        # Validate YAML file and experiment setup
+        exp_path = validate_experiment_setup(yaml_file)
+        logger.info(f"Experiment directory: {exp_path}")
         
         # Create results directory if it doesn't exist
         res_path = exp_path / "res"
@@ -192,7 +219,7 @@ def main(
             if repetitions > 1:
                 logger.info(f"Starting repetition {i + 1} of {repetitions}")
             
-            run_batch(seq_first, seq_last, exp_path)
+            run_batch(yaml_file, seq_first, seq_last)
             
         elapsed_time = time.time() - start_time
         logger.info(f"Total processing time: {elapsed_time:.2f} seconds")
@@ -209,55 +236,55 @@ def parse_command_line_args() -> tuple[Path, int, int]:
     """Parse and validate command line arguments.
     
     Returns:
-        Tuple of (experiment_path, first_frame, last_frame)
+        Tuple of (yaml_file_path, first_frame, last_frame)
         
     Raises:
         ValueError: If arguments are invalid
     """
     if len(sys.argv) < 4:
         logger.warning("Insufficient command line arguments, using default test values")
-        logger.info("Usage: python pyptv_batch.py <exp_path> <first_frame> <last_frame>")
+        logger.info("Usage: python pyptv_batch.py <yaml_file> <first_frame> <last_frame>")
         
         # Default values for testing
-        exp_path = Path("tests/test_cavity").resolve()
+        yaml_file = Path("tests/test_cavity/parameters_Run1.yaml").resolve()
         first_frame = 10000
         last_frame = 10004
         
-        if not exp_path.exists():
+        if not yaml_file.exists():
             raise ValueError(
-                f"Default test directory not found: {exp_path}. "
+                f"Default test YAML file not found: {yaml_file}. "
                 "Please provide valid command line arguments."
             )
     else:
         try:
-            exp_path = Path(sys.argv[1]).resolve()
+            yaml_file = Path(sys.argv[1]).resolve()
             first_frame = int(sys.argv[2])
             last_frame = int(sys.argv[3])
         except (ValueError, IndexError) as e:
             raise ValueError(f"Invalid command line arguments: {e}")
     
-    return exp_path, first_frame, last_frame
+    return yaml_file, first_frame, last_frame
 
 
 if __name__ == "__main__":
     """Entry point for command line execution.
     
     Command line usage:
-        python pyptv_batch.py <exp_path> <first_frame> <last_frame>
+        python pyptv_batch.py <yaml_file> <first_frame> <last_frame>
         
     Example:
-        python pyptv_batch.py ~/test_cavity 10000 10004
+        python pyptv_batch.py tests/test_cavity/parameters_Run1.yaml 10000 10004
     
     Python API usage:
         from pyptv.pyptv_batch import main
-        main("experiments/exp1", 10001, 10022)
+        main("tests/test_cavity/parameters_Run1.yaml", 10000, 10004)
     """
     try:
         logger.info("Starting PyPTV batch processing")
         logger.info(f"Command line arguments: {sys.argv}")
         
-        exp_path, first_frame, last_frame = parse_command_line_args()
-        main(exp_path, first_frame, last_frame)
+        yaml_file, first_frame, last_frame = parse_command_line_args()
+        main(yaml_file, first_frame, last_frame)
         
         logger.info("Batch processing completed successfully")
         

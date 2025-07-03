@@ -70,16 +70,13 @@ def simple_highpass(img: np.ndarray, cpar: ControlParams) -> np.ndarray:
     return preprocess_image(img, DEFAULT_NO_FILTER, cpar, DEFAULT_HIGHPASS_FILTER_SIZE)
 
 
-def _populate_cpar(params: dict) -> ControlParams:
+def _populate_cpar(ptv_params: dict, n_cam: int) -> ControlParams:
     """Populate a ControlParams object from a dictionary containing full parameters.
     
     Args:
         params: Full parameter dictionary with global n_cam and ptv section
     """
-    ptv_params = params.get('ptv', {})
-    
-    # Get global n_cam - the single source of truth
-    n_cam = params.get('n_cam', 4)
+    # ptv_params = params.get('ptv', {})
     
     cpar = ControlParams(n_cam)
     cpar.set_image_size((ptv_params.get('imx', 0), ptv_params.get('imy', 0)))
@@ -88,28 +85,21 @@ def _populate_cpar(params: dict) -> ControlParams:
     cpar.set_allCam_flag(ptv_params.get('allcam_flag', False))
     cpar.set_tiff_flag(ptv_params.get('tiff_flag', False))
     cpar.set_chfield(ptv_params.get('chfield', 0))
-    multimedia_params = cpar.get_multimedia_params()
-    multimedia_params.set_n1(ptv_params.get('mmp_n1', 1.0))
-    multimedia_params.set_layers([ptv_params.get('mmp_n2', 1.0)], [ptv_params.get('mmp_d', 0.0)])
-    multimedia_params.set_n3(ptv_params.get('mmp_n3', 1.0))
+   
     mm_params = cpar.get_multimedia_params()
     mm_params.set_n1(ptv_params.get('mmp_n1', 1.0))
     mm_params.set_layers([ptv_params.get('mmp_n2', 1.0)], [ptv_params.get('mmp_d', 0.0)])
     mm_params.set_n3(ptv_params.get('mmp_n3', 1.0))
+
+    img_cal_list = ptv_params.get('img_cal', [])
+
     for i in range(n_cam):  # Use global n_cam
-        img_cal_list = ptv_params.get('img_cal', [])
-        if i < len(img_cal_list):
-            cpar.set_cal_img_base_name(i, img_cal_list[i])
-        else:
-            print(f"Warning: No calibration image specified for camera {i}")
+        cpar.set_cal_img_base_name(i, img_cal_list[i])
+
     return cpar
 
-def _populate_spar(params: dict) -> SequenceParams:
+def _populate_spar(seq_params: dict, n_cam: int) -> SequenceParams:
     """Populate a SequenceParams object from a dictionary."""
-    seq_params = params.get('sequence', {})
-    
-    # Get global n_cam - the single source of truth
-    n_cam = params.get('n_cam', 4)
     
     spar = SequenceParams(num_cams=n_cam)
     spar.set_first(seq_params.get('first', 0))
@@ -122,18 +112,16 @@ def _populate_spar(params: dict) -> SequenceParams:
             print(f"Warning: No image base name specified for camera {i}")
     return spar
 
-def _populate_vpar(params: dict) -> VolumeParams:
+def _populate_vpar(crit_params: dict) -> VolumeParams:
     """Populate a VolumeParams object from a dictionary."""
-    crit_params = params.get('criteria', {})
     vpar = VolumeParams()
     vpar.set_X_lay(crit_params.get('X_lay', [0,0]))
     vpar.set_Zmin_lay(crit_params.get('Zmin_lay', [0,0]))
     vpar.set_Zmax_lay(crit_params.get('Zmax_lay', [0,0]))
     return vpar
 
-def _populate_track_par(params: dict) -> TrackingParams:
+def _populate_track_par(track_params: dict) -> TrackingParams:
     """Populate a TrackingParams object from a dictionary."""
-    track_params = params.get('track', {})
     track_par = TrackingParams()
     track_par.set_dvxmin(track_params.get('dvxmin', 0.0))
     track_par.set_dvxmax(track_params.get('dvxmax', 0.0))
@@ -151,7 +139,7 @@ def _populate_tpar(params: dict) -> TargetParams:
     targ_params = params.get('targ_rec', {})
     
     # Get global n_cam - the single source of truth
-    n_cam = params.get('n_cam', 4)
+    n_cam = params.get('n_cam', 0)
     
     tpar = TargetParams(n_cam)
     tpar.set_grey_thresholds(targ_params.get('gvthres', []))
@@ -182,7 +170,7 @@ def _read_calibrations(cpar: ControlParams, n_cams: int) -> List[Calibration]:
 
 
 def py_start_proc_c(
-    params: dict,
+    parameter_manager: "ParameterManager",
 ) -> Tuple[
     ControlParams,
     SequenceParams,
@@ -192,27 +180,29 @@ def py_start_proc_c(
     List[Calibration],
     dict,
 ]:
-    """Read all parameters needed for processing.
-    """
+    """Read all parameters needed for processing using ParameterManager."""
     try:
+        params = parameter_manager.parameters
+        n_cam = parameter_manager.n_cam
+
         ptv_params = params.get('ptv', {})
-        cpar = _populate_cpar(params)  # Pass full params, not just ptv_params
+        cpar = _populate_cpar(ptv_params, n_cam)
 
-        seq_params = params.get('sequence', {})
-        spar = _populate_spar(params)  # Pass full params, not just seq_params
+        sequence_params = params.get('sequence', {})
+        spar = _populate_spar(sequence_params, n_cam)
 
-        crit_params = params.get('criteria', {})
-        vpar = _populate_vpar(params)  # Pass full params, not just crit_params
+        volume_params = params.get('criteria', {})
+        vpar = _populate_vpar(volume_params)
 
         track_params = params.get('track', {})
-        track_par = _populate_track_par(params)  # Pass full params, not just track_params
+        track_par = _populate_track_par(track_params)
 
-        targ_params = params.get('targ_rec', {})
-        tpar = _populate_tpar(params)  # Pass full params, not just targ_params
-
+        target_params = params.get('targ_rec', {})
+        tpar = _populate_tpar(target_params)
 
         epar = params.get('examine', {})
-        cals = _read_calibrations(cpar, params.get('n_cam', 4))  # Use global n_cam
+        
+        cals = _read_calibrations(cpar, n_cam)
 
         return cpar, spar, vpar, track_par, tpar, cals, epar
 
@@ -388,26 +378,26 @@ def run_tracking_plugin(exp) -> None:
 def py_sequence_loop(exp) -> None:
     """Run a sequence of detection, stereo-correspondence, and determination.
     """
-    n_cams, cpar, spar, vpar, tpar, cals = (
-        exp.n_cams,
-        exp.cpar,
-        exp.spar,
-        exp.vpar,
-        exp.tpar,
-        exp.cals,
-    )
+    # n_cams, cpar, spar, vpar, tpar, cals = (
+    #     exp.n_cams,
+    #     exp.cpar,
+    #     exp.spar,
+    #     exp.vpar,
+    #     exp.tpar,
+    #     exp.cals,
+    # )
 
     existing_target = exp.parameter_manager.get_parameter('pft_version').get('Existing_Target', False)
 
-    first_frame = spar.get_first()
-    last_frame = spar.get_last()
+    first_frame = exp.spar.get_first()
+    last_frame = exp.spar.get_last()
     print(f" From {first_frame = } to {last_frame = }")
 
     for frame in range(first_frame, last_frame + 1):
         detections = []
         corrected = []
-        for i_cam in range(n_cams):
-            base_image_name = spar.get_img_base_name(i_cam)
+        for i_cam in range(exp.n_cams):
+            base_image_name = exp.spar.get_img_base_name(i_cam)
             if existing_target:
                 targs = read_targets(base_image_name, frame)
             else:
@@ -439,21 +429,22 @@ def py_sequence_loop(exp) -> None:
                     except (ValueError, FileNotFoundError):
                         print("failed to read the mask")
 
-                high_pass = simple_highpass(img, cpar)
-                targs = target_recognition(high_pass, tpar, i_cam, cpar)
+                high_pass = simple_highpass(img, exp.cpar)
+                targs = target_recognition(high_pass, exp.tpar, i_cam, exp.cpar)
 
             targs.sort_y()
+            print(len(targs))
             detections.append(targs)
-            masked_coords = MatchedCoords(targs, cpar, cals[i_cam])
-            pos, _ = masked_coords.as_arrays()
-            corrected.append(masked_coords)
+            matched_coords = MatchedCoords(targs, exp.cpar, exp.cals[i_cam])
+            pos, _ = matched_coords.as_arrays()
+            corrected.append(matched_coords)
 
         sorted_pos, sorted_corresp, _ = correspondences(
-            detections, corrected, cals, vpar, cpar
+            detections, corrected, exp.cals, exp.vpar, exp.cpar
         )
 
-        for i_cam in range(n_cams):
-            base_name = spar.get_img_base_name(i_cam)
+        for i_cam in range(exp.n_cams):
+            base_name = exp.spar.get_img_base_name(i_cam)
             write_targets(detections[i_cam], base_name, frame)
 
         print(
