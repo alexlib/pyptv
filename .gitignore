@@ -76,3 +76,4 @@ pyptv/.vscode/launch.json
 .vscode/*.json
 tests/test_splitter/parametersRun1/*
 tests/test_splitter/res/*
+test_output/*
