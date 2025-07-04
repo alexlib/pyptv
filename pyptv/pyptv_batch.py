@@ -72,7 +72,8 @@ def validate_experiment_setup(yaml_file: Path) -> Path:
     exp_path = yaml_file.parent
     
     # Check for required subdirectories relative to YAML file location
-    required_dirs = ["img", "cal", "res"]
+    # Note: 'res' directory is created automatically if missing
+    required_dirs = ["img", "cal"]
     missing_dirs = []
     
     for dir_name in required_dirs:

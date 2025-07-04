@@ -1,0 +1,227 @@
+n_cam: 4
+cal_ori:
+  chfield: 0
+  fixp_name: cal/calblock_new.txt
+  img_cal_name:
+  - cal/C001H001S0001000001.tif
+  - '---'
+  - '---'
+  - '---'
+  img_ori:
+  - cal/cam_1.tif.ori
+  - cal/cam_2.tif.ori
+  - cal/cam_3.tif.ori
+  - cal/cam_4.tif.ori
+  pair_flag: false
+  tiff_flag: true
+  cal_splitter: false
+criteria:
+  X_lay:
+  - -30
+  - 50
+  Zmax_lay:
+  - -15
+  - -15
+  Zmin_lay:
+  - -80
+  - -80
+  cn: 0.02
+  cnx: 0.3
+  cny: 0.3
+  corrmin: 33.0
+  csumg: 0.02
+  eps0: 0.06
+detect_plate:
+  gvth_1: 50
+  gvth_2: 50
+  gvth_3: 50
+  gvth_4: 50
+  max_npix: 900
+  max_npix_x: 30
+  max_npix_y: 30
+  min_npix: 25
+  min_npix_x: 5
+  min_npix_y: 5
+  size_cross: 2
+  sum_grey: 20
+  tol_dis: 20
+dumbbell:
+  dumbbell_eps: 3.0
+  dumbbell_gradient_descent: 0.8
+  dumbbell_niter: 500
+  dumbbell_penalty_weight: 0.1
+  dumbbell_scale: 30.0
+  dumbbell_step: 1
+examine:
+  Combine_Flag: false
+  Examine_Flag: false
+man_ori:
+  nr:
+  - 1
+  - 16
+  - 32
+  - 46
+  - 1
+  - 16
+  - 32
+  - 46
+  - 1
+  - 16
+  - 32
+  - 46
+  - 1
+  - 16
+  - 32
+  - 46
+multi_planes:
+  n_planes: 3
+  plane_name:
+  - img/calib_a_cam
+  - img/calib_b_cam
+  - img/calib_c_cam
+orient:
+  cc: 0
+  interf: 0
+  k1: 0
+  k2: 0
+  k3: 0
+  p1: 0
+  p2: 0
+  pnfo: 0
+  scale: 0
+  shear: 0
+  xh: 0
+  yh: 0
+pft_version:
+  Existing_Target: 0
+ptv:
+  allcam_flag: false
+  chfield: 0
+  hp_flag: true
+  img_cal:
+  - cal/cam_1.tif
+  - cal/cam_2.tif
+  - cal/cam_3.tif
+  - cal/cam_4.tif
+  img_name:
+  - img/C001H001S0001000002.tif
+  - '---'
+  - '---'
+  - '---'
+  imx: 512
+  imy: 512
+  mmp_d: 7.5
+  mmp_n1: 1.0
+  mmp_n2: 1.49
+  mmp_n3: 1.41
+  pix_x: 0.02
+  pix_y: 0.02
+  tiff_flag: true
+  splitter: false
+sequence:
+  base_name:
+  - img/C001H001S000%d.tif
+  - --
+  - --
+  - --
+  first: 1000001
+  last: 1000005
+shaking:
+  shaking_first_frame: 100001
+  shaking_last_frame: 100005
+  shaking_max_num_frames: 5
+  shaking_max_num_points: 10
+sortgrid:
+  radius: 9
+targ_rec:
+  cr_sz: 2
+  disco: 50
+  gvthres:
+  - 10
+  - 10
+  - 10
+  - 10
+  nnmax: 200
+  nnmin: 2
+  nxmax: 15
+  nxmin: 1
+  nymax: 15
+  nymin: 2
+  sumg_min: 20
+track:
+  angle: 270.0
+  dacc: 1.9
+  dvxmax: 1.9
+  dvxmin: -1.9
+  dvymax: 1.9
+  dvymin: -1.9
+  dvzmax: 1.9
+  dvzmin: -1.9
+  flagNewParticles: true
+masking:
+  mask_flag: false
+  mask_base_name: ''
+unsharp_mask:
+  flag: false
+  size: 3
+  strength: 1.0
+plugins:
+  available_tracking:
+  - ext_tracker_splitter
+  available_sequence:
+  - ext_sequence_splitter
+  selected_tracking: ext_tracker_splitter
+  selected_sequence: ext_sequence_splitter
+man_ori_coordinates:
+  camera_0:
+    point_1:
+      x: 0.0
+      y: 0.0
+    point_2:
+      x: 0.0
+      y: 0.0
+    point_3:
+      x: 0.0
+      y: 0.0
+    point_4:
+      x: 0.0
+      y: 0.0
+  camera_1:
+    point_1:
+      x: 0.0
+      y: 0.0
+    point_2:
+      x: 0.0
+      y: 0.0
+    point_3:
+      x: 0.0
+      y: 0.0
+    point_4:
+      x: 0.0
+      y: 0.0
+  camera_2:
+    point_1:
+      x: 0.0
+      y: 0.0
+    point_2:
+      x: 0.0
+      y: 0.0
+    point_3:
+      x: 0.0
+      y: 0.0
+    point_4:
+      x: 0.0
+      y: 0.0
+  camera_3:
+    point_1:
+      x: 0.0
+      y: 0.0
+    point_2:
+      x: 0.0
+      y: 0.0
+    point_3:
+      x: 0.0
+      y: 0.0
+    point_4:
+      x: 0.0
+      y: 0.0

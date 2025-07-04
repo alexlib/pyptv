@@ -131,8 +131,14 @@ def test_parameter_change_scenarios():
         
         # Scenario 1: GUI parameter change
         print("\n1. GUI parameter change simulation...")
-        original_n_cam = experiment.get_parameter('ptv').get('n_cam')
+        # Get original n_cam from the global parameter manager, not from ptv section
+        original_n_cam = experiment.get_n_cam()
         print(f"Original n_cam: {original_n_cam}")
+        
+        # Store the original YAML content to restore later
+        yaml_path = experiment.active_params.yaml_path
+        with open(yaml_path, 'r') as f:
+            original_yaml_content = f.read()
         
         # Simulate changing n_cam in GUI - using the GLOBAL n_cam only
         experiment.parameter_manager.set_n_cam(6)  # Update global n_cam
@@ -153,14 +159,28 @@ def test_parameter_change_scenarios():
         
         # Scenario 4: File modification detection
         print("\n4. File modification detection...")
-        yaml_path = experiment.active_params.yaml_path
         file_mtime = yaml_path.stat().st_mtime
         print(f"File modification time: {file_mtime}")
+        
+        # RESTORE ORIGINAL STATE
+        print("\n5. Restoring original state...")
+        with open(yaml_path, 'w') as f:
+            f.write(original_yaml_content)
+        experiment.load_parameters_for_active()
+        restored_n_cam = experiment.get_n_cam()
+        print(f"Restored n_cam: {restored_n_cam}")
+        
+        # Only assert if original_n_cam was not None
+        if original_n_cam is not None:
+            assert restored_n_cam == original_n_cam, f"Failed to restore n_cam: expected {original_n_cam}, got {restored_n_cam}"
+        else:
+            print(f"Note: Original n_cam was None, restored to {restored_n_cam}")
         
         return {
             'original_n_cam': original_n_cam,
             'changed_n_cam': new_n_cam,
             'reloaded_n_cam': reloaded_n_cam,
+            'restored_n_cam': restored_n_cam,
             'file_mtime': file_mtime
         }
         

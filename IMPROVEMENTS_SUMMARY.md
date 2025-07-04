@@ -1,5 +1,66 @@
 # PyPTV Batch Processing Improvements Summary
 
+## Recent Updates (July 2025)
+
+### 🔄 **YAML-Centric Parameter System Refactoring**
+
+**Major refactoring completed to migrate PyPTV from legacy .par files to a unified YAML-based parameter system:**
+
+#### **Core Changes:**
+1. **`pyptv/ptv.py`** - Fixed parameter population functions to work with YAML parameters
+   - Updated `_populate_cpar`, `_populate_spar`, `_populate_vpar`, `_populate_tpar` functions
+   - Added robust error handling for missing/mismatched parameter arrays
+   - Fixed correspondence parameter population (eps0, cn, cnx, cny, csumg, corrmin)
+
+2. **`pyptv/pyptv_batch.py`** - Refactored to accept YAML file input only
+   - Now takes `yaml_file_path` instead of experiment directory
+   - Validates experiment structure before processing
+   - Works exclusively with YAML-centric parameter management
+
+3. **`pyptv/pyptv_batch_parallel.py`** - Updated for YAML-centric processing
+   - Refactored to use YAML file path as input
+   - Parallel processing now validates parameters consistently
+   - Improved error handling and validation
+
+4. **`pyptv/pyptv_batch_plugins.py`** - Fixed plugin system integration
+   - **Before:** Used deprecated `plugins.json` files
+   - **After:** Loads plugins from YAML parameters with fallback warning
+   - Fixed `py_start_proc_c` call to pass ParameterManager object instead of dictionary
+
+#### **Parameter Translation Improvements:**
+- **Error Handling:** All parameter population functions now raise `ValueError` with clear messages for length mismatches
+- **Robustness:** Fixed array length validation (img_cal, base_name lists must match n_cam)
+- **Correspondence Parameters:** Fixed vpar population to properly set all correspondence thresholds
+- **Calibration Loading:** Enhanced calibration file reading with proper error messages
+
+#### **Test Suite Enhancements:**
+- **`tests/test_populate_parameters.py`** - 30 comprehensive tests for parameter translation
+- **`tests/test_pyptv_batch.py`** - Updated for YAML-centric API 
+- **`tests/test_pyptv_batch_parallel.py`** - Updated for parallel YAML processing
+- **`tests/test_cavity_comprehensive.py`** - Full integration tests with real data
+- **`tests/test_parameter_performance.py`** - Performance tests with proper n_cam restoration
+
+#### **Plugin Migration:**
+- **Migrated:** `plugins.json` → YAML parameters structure
+- **Structure:** 
+  ```yaml
+  plugins:
+    available_tracking: ['default', 'ext_tracker_denis', 'ext_tracker_splitter']
+    available_sequence: ['default', 'ext_sequence_rembg', 'ext_sequence_contour']
+    selected_tracking: 'default'
+    selected_sequence: 'default'
+  ```
+- **Backward Compatibility:** Automatic migration from JSON with deprecation warnings
+
+#### **Test Results:**
+- **✅ 110 tests passed, 3 skipped**
+- **✅ All parameter translation functions working correctly**
+- **✅ Both sequential and parallel batch processing functional**
+- **✅ Plugin system integrated with YAML parameters**
+- **✅ No test interference issues (proper n_cam state management)**
+
+---
+
 ## Overview
 
 I have successfully improved both `pyptv_batch.py` and `pyptv_batch_parallel.py` to match the same high standards of code quality, error handling, logging, and maintainability.

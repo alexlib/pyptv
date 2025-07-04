@@ -123,6 +123,15 @@ def _populate_vpar(crit_params: dict) -> VolumeParams:
     vpar.set_X_lay(crit_params.get('X_lay', [0,0]))
     vpar.set_Zmin_lay(crit_params.get('Zmin_lay', [0,0]))
     vpar.set_Zmax_lay(crit_params.get('Zmax_lay', [0,0]))
+    
+    # Set correspondence parameters
+    vpar.set_eps0(crit_params.get('eps0', 0.1))
+    vpar.set_cn(crit_params.get('cn', 0.0))
+    vpar.set_cnx(crit_params.get('cnx', 0.0))
+    vpar.set_cny(crit_params.get('cny', 0.0))
+    vpar.set_csumg(crit_params.get('csumg', 0.0))
+    vpar.set_corrmin(crit_params.get('corrmin', 2))
+    
     return vpar
 
 def _populate_track_par(track_params: dict) -> TrackingParams:
@@ -444,7 +453,7 @@ def py_sequence_loop(exp) -> None:
                 targs = target_recognition(high_pass, exp.tpar, i_cam, exp.cpar)
 
             targs.sort_y()
-            print(len(targs))
+            # print(len(targs))
             detections.append(targs)
             matched_coords = MatchedCoords(targs, exp.cpar, exp.cals[i_cam])
             pos, _ = matched_coords.as_arrays()
@@ -470,13 +479,13 @@ def py_sequence_loop(exp) -> None:
         sorted_corresp = np.concatenate(sorted_corresp, axis=1)
 
         flat = np.array(
-            [corrected[i].get_by_pnrs(sorted_corresp[i]) for i in range(len(cals))]
+            [corrected[i].get_by_pnrs(sorted_corresp[i]) for i in range(len(exp.cals))]
         )
-        pos, _ = point_positions(flat.transpose(1, 0, 2), cpar, cals, vpar)
+        pos, _ = point_positions(flat.transpose(1, 0, 2), exp.cpar, exp.cals, exp.vpar)
 
-        if len(cals) < 4:
+        if len(exp.cals) < 4:
             print_corresp = -1 * np.ones((4, sorted_corresp.shape[1]))
-            print_corresp[: len(cals), :] = sorted_corresp
+            print_corresp[: len(exp.cals), :] = sorted_corresp
         else:
             print_corresp = sorted_corresp
 
