@@ -1,4 +1,4 @@
-from traits.etsconfig.api import ETSConfig
+from traits.etsconfig.etsconfig import ETSConfig
 import os
 from pathlib import Path
 import sys
@@ -28,7 +28,6 @@ from skimage.color import rgb2gray
 
 from pyptv import ptv
 from pyptv.calibration_gui import CalibrationGUI
-from pyptv.legacy_parameters import copy_params_dir
 from pyptv.directory_editor import DirectoryEditorDialog
 from pyptv.experiment import Experiment, Paramset
 from pyptv.quiverplot import QuiverPlot
@@ -38,6 +37,8 @@ from pyptv import __version__
 import optv.orientation
 import optv.epipolar
 from pyptv.parameter_manager import ParameterManager
+from pyptv.ptv import py_start_proc_c
+
 
 """PyPTV_GUI is the GUI for the OpenPTV (www.openptv.net) written in
 Python with Traits, TraitsUI, Numpy, Scipy and Chaco
@@ -357,8 +358,11 @@ class TreeMenuHandler(Handler):
         paramset = object
         print("Configure calibration parameters via ParameterManager")
         
-        cal_params = experiment.get_parameter('calibration')
-        print("Current calibration parameters:", cal_params)
+        # Calibration parameters are in cal_ori and orient sections
+        cal_ori_params = experiment.get_parameter('cal_ori')
+        orient_params = experiment.get_parameter('orient')
+        print("Current cal_ori parameters:", cal_ori_params)
+        print("Current orient parameters:", orient_params)
         # TODO: Implement parameter editing dialog that updates the dictionary
 
     def configure_track_par(self, editor, object):
@@ -366,7 +370,8 @@ class TreeMenuHandler(Handler):
         paramset = object
         print("Configure tracking parameters via ParameterManager")
         
-        track_params = experiment.get_parameter('tracking')
+        # Tracking parameters are in track section
+        track_params = experiment.get_parameter('track')
         print("Current tracking parameters:", track_params)
         # TODO: Implement parameter editing dialog that updates the dictionary
 
@@ -376,6 +381,10 @@ class TreeMenuHandler(Handler):
         paramset = object
         experiment.setActive(paramset)
         experiment.changed_active_params = True
+        
+        # Invalidate parameter cache since we switched parameter sets
+        # The main GUI will need to get a reference to invalidate its cache
+        # This could be done through the experiment or by adding a callback
 
     def copy_set_params(self, editor, object):
         experiment = editor.get_parent(object)
@@ -384,40 +393,41 @@ class TreeMenuHandler(Handler):
         print(f"paramset is {paramset.name}")
 
         # Find the next available run number above the largest one
-        parent_dir = paramset.par_path.parent
-        existing_runs = [d.name for d in parent_dir.iterdir() if d.is_dir() and d.name.startswith("parameters_")]
+        parent_dir = paramset.yaml_path.parent
+        existing_yamls = list(parent_dir.glob("parameters_*.yaml"))
         numbers = [
-            int(name.split("_")[-1]) for name in existing_runs
-            if name.split("_")[-1].isdigit()
+            int(yaml_file.stem.split("_")[-1]) for yaml_file in existing_yamls
+            if yaml_file.stem.split("_")[-1].isdigit()
         ]
         next_num = max(numbers, default=0) + 1
         new_name = f"{paramset.name}_{next_num}"
-        new_dir_path = parent_dir / f"parameters_{new_name}"
+        new_yaml_path = parent_dir / f"parameters_{new_name}.yaml"
 
-        print(f"New parameter set in: {new_name}, {new_dir_path}")
+        print(f"New parameter set: {new_name}, {new_yaml_path}")
         
-        # Copy directory and save YAML
-        copy_params_dir(paramset.par_path, new_dir_path)
-        
-        # Also save as YAML using experiment's ParameterManager
-        yaml_path = new_dir_path / 'parameters.yaml'
-        experiment.parameter_manager.to_yaml(yaml_path)
+        # Copy YAML file
+        import shutil
+        shutil.copy(paramset.yaml_path, new_yaml_path)
+        print(f"Copied {paramset.yaml_path} to {new_yaml_path}")
             
-        experiment.addParamset(new_name, new_dir_path)
+        experiment.addParamset(new_name, new_yaml_path)
 
     def rename_set_params(self, editor, object):
         print("Warning: This method is not implemented.")
         print("Please open a folder, copy/paste the parameters directory, and rename it manually.")
 
     def delete_set_params(self, editor, object):
-        """delete_set_params deletes the node and the folder of parameters"""
+        """delete_set_params deletes the node and the YAML file of parameters"""
+        experiment = editor.get_parent(object)
         paramset = object
-        editor._menu_delete_node()
-        [
-            os.remove(os.path.join(paramset.par_path, f))
-            for f in os.listdir(paramset.par_path)
-        ]
-        os.rmdir(paramset.par_path)
+        print(f"Deleting parameter set: {paramset.name}")
+        
+        # Use the experiment's delete method which handles YAML files
+        try:
+            experiment.delete_paramset(paramset)
+            editor._menu_delete_node()
+        except Exception as e:
+            print(f"Error deleting parameter set: {e}")
 
     # ------------------------------------------
     # Menubar actions
@@ -442,13 +452,21 @@ class TreeMenuHandler(Handler):
     def init_action(self, info):
         """init_action - initializes the system using ParameterManager"""
         mainGui = info.object
-        mainGui.exp1.syncActiveDir()
-
-        self.ptv_params = mainGui.get_parameter('ptv')
         
-        if self.ptv_params.get('splitter', False):
+        # Invalidate parameter cache when reinitializing
+        mainGui.invalidate_parameter_cache()
+        
+        mainGui.exp1.setActive(0)
+
+        ptv_params = mainGui.get_parameter('ptv')
+        
+        if ptv_params is None:
+            print("Error: Could not load PTV parameters")
+            return
+        
+        if ptv_params.get('splitter', False):
             print("Using Splitter mode")
-            imname = self.ptv_params['img_name'][0]
+            imname = ptv_params['img_name'][0]
             if Path(imname).exists():
                 temp_img = imread(imname)
                 if temp_img.ndim > 2:
@@ -458,7 +476,7 @@ class TreeMenuHandler(Handler):
                     mainGui.orig_images[i] = img_as_ubyte(splitted_images[i])
         else:
             for i in range(len(mainGui.camera_list)):
-                imname = self.ptv_params['img_name'][i]
+                imname = ptv_params['img_name'][i]
                 if Path(imname).exists():
                     print(f"Reading image {imname}")
                     im = imread(imname)
@@ -466,8 +484,8 @@ class TreeMenuHandler(Handler):
                         im = rgb2gray(im)
                 else:
                     print(f"Image {imname} does not exist, setting zero image")
-                    h_img = self.ptv_params['imx']
-                    v_img = self.ptv_params['imy']
+                    h_img = ptv_params['imx']
+                    v_img = ptv_params['imy']
                     im = np.zeros((v_img, h_img), dtype=np.uint8)
                     
                 mainGui.orig_images[i] = img_as_ubyte(im)
@@ -476,12 +494,9 @@ class TreeMenuHandler(Handler):
         print("Init action")
         mainGui.create_plots(mainGui.orig_images, is_float=False)
 
-        # No need to call py_start_proc_c here, as parameters are now managed dynamically.
-        # When Cython parameter objects are needed, create them on demand using mainGui.get_parameter().
-        # Example usage elsewhere:
-        #   ptv_params = mainGui.get_parameter('ptv')
-        #   cpar = ptv.CamPar(**ptv_params)
-        # This ensures always up-to-date parameters are used.
+        # Initialize Cython parameter objects on demand when needed for processing
+        # The parameter data is now managed centrally by ParameterManager
+        # Individual functions can call py_start_proc_c when they need C objects
         
         mainGui.pass_init = True
         print("Read all the parameters and calibrations successfully")
@@ -491,7 +506,7 @@ class TreeMenuHandler(Handler):
         print("Opening drawing mask GUI")
         info.object.pass_init = False
         print("Active parameters set")
-        print(info.object.exp1.active_params.par_path)
+        print(info.object.exp1.active_params.yaml_path)
         mask_gui = MaskGUI(info.object.exp1)
         mask_gui.configure_traits()
 
@@ -531,23 +546,30 @@ class TreeMenuHandler(Handler):
 
     def img_coord_action(self, info):
         """img_coord_action - runs detection function"""
-        ptv_params = info.object.get_parameter('ptv')
-        target_params = info.object.get_parameter('target')
+        mainGui = info.object
+        
+        # Ensure parameter objects are initialized
+        mainGui.ensure_parameter_objects()
+        
+        ptv_params = mainGui.get_parameter('ptv')
+        targ_rec_params = mainGui.get_parameter('targ_rec')
+        
+        # Format target_params correctly for _populate_tpar
+        target_params = {'targ_rec': targ_rec_params}
 
         print("Start detection")
         (
-            info.object.detections,
-            info.object.corrected,
+            mainGui.detections,
+            mainGui.corrected,
         ) = ptv.py_detection_proc_c(
-            info.object.orig_images,
+            mainGui.orig_images,
             ptv_params,
             target_params,
-            info.object.cals,
         )
         print("Detection finished")
-        x = [[i.pos()[0] for i in row] for row in info.object.detections]
-        y = [[i.pos()[1] for i in row] for row in info.object.detections]
-        info.object.drawcross_in_all_cams("x", "y", x, y, "blue", 3)
+        x = [[i.pos()[0] for i in row] for row in mainGui.detections]
+        y = [[i.pos()[1] for i in row] for row in mainGui.detections]
+        mainGui.drawcross_in_all_cams("x", "y", x, y, "blue", 3)
 
     def _clean_correspondences(self, tmp):
         """Clean correspondences array"""
@@ -560,20 +582,25 @@ class TreeMenuHandler(Handler):
 
     def corresp_action(self, info):
         """corresp_action calls ptv.py_correspondences_proc_c()"""
+        mainGui = info.object
+        
+        # Ensure parameter objects are initialized
+        mainGui.ensure_parameter_objects()
+        
         print("correspondence proc started")
         (
-            info.object.sorted_pos,
-            info.object.sorted_corresp,
-            info.object.num_targs,
-        ) = ptv.py_correspondences_proc_c(info.object)
+            mainGui.sorted_pos,
+            mainGui.sorted_corresp,
+            mainGui.num_targs,
+        ) = ptv.py_correspondences_proc_c(mainGui)
 
         names = ["pair", "tripl", "quad"]
         use_colors = ["yellow", "green", "red"]
 
-        if len(info.object.camera_list) > 1 and len(info.object.sorted_pos) > 0:
-            for i, subset in enumerate(reversed(info.object.sorted_pos)):
+        if len(mainGui.camera_list) > 1 and len(mainGui.sorted_pos) > 0:
+            for i, subset in enumerate(reversed(mainGui.sorted_pos)):
                 x, y = self._clean_correspondences(subset)
-                info.object.drawcross_in_all_cams(
+                mainGui.drawcross_in_all_cams(
                     names[i] + "_x", names[i] + "_y", x, y, use_colors[i], 3
                 )
 
@@ -582,7 +609,7 @@ class TreeMenuHandler(Handler):
         print("Starting calibration dialog")
         info.object.pass_init = False
         print("Active parameters set")
-        print(info.object.exp1.active_params.par_path)
+        print(info.object.exp1.active_params.yaml_path)
         calib_gui = CalibrationGUI(info.object.exp1)
         calib_gui.configure_traits()
 
@@ -591,28 +618,38 @@ class TreeMenuHandler(Handler):
         print("Starting detection GUI dialog")
         info.object.pass_init = False
         print("Active parameters set")
-        print(info.object.exp1.active_params.par_path)
+        print(info.object.exp1.active_params.yaml_path)
         detection_gui = DetectionGUI(info.object.exp1)
         detection_gui.configure_traits()
 
     def sequence_action(self, info):
         """sequence action - implements binding to C sequence function"""
-        extern_sequence = info.object.plugins.sequence_alg
+        mainGui = info.object
+        
+        # Ensure parameter objects are initialized
+        mainGui.ensure_parameter_objects()
+        
+        extern_sequence = mainGui.plugins.sequence_alg
         if extern_sequence != "default":
-            ptv.run_sequence_plugin(info.object)
+            ptv.run_sequence_plugin(mainGui)
         else:
-            ptv.py_sequence_loop(info.object)
+            ptv.py_sequence_loop(mainGui)
 
     def track_no_disp_action(self, info):
         """track_no_disp_action uses ptv.py_trackcorr_loop(..) binding"""
-        extern_tracker = info.object.plugins.track_alg
+        mainGui = info.object
+        
+        # Ensure parameter objects are initialized
+        mainGui.ensure_parameter_objects()
+        
+        extern_tracker = mainGui.plugins.track_alg
         if extern_tracker != "default":
-            ptv.run_tracking_plugin(info.object)
+            ptv.run_tracking_plugin(mainGui)
             print("After plugin tracker")
         else:
             print("Using default liboptv tracker")
-            info.object.tracker = ptv.py_trackcorr_init(info.object)
-            info.object.tracker.full_forward()
+            mainGui.tracker = ptv.py_trackcorr_init(mainGui)
+            mainGui.tracker.full_forward()
             print("tracking without display finished")
 
     def track_disp_action(self, info):
@@ -621,11 +658,18 @@ class TreeMenuHandler(Handler):
 
     def track_back_action(self, info):
         """tracking back action"""
+        mainGui = info.object
         print("Starting back tracking")
-        info.object.tracker.full_backward()
+        if hasattr(mainGui, 'tracker') and mainGui.tracker is not None:
+            mainGui.tracker.full_backward()
+        else:
+            print("No tracker initialized. Please run forward tracking first.")
 
     def three_d_positions(self, info):
         """Extracts and saves 3D positions from the list of correspondences"""
+        # Ensure parameter objects are available
+        info.object.ensure_parameter_objects()
+        
         ptv.py_determination_proc_c(
             info.object.n_cams,
             info.object.sorted_pos,
@@ -703,10 +747,14 @@ class TreeMenuHandler(Handler):
         info.object.overlay_set_images(base_names, seq_first, seq_last)
 
         from flowtracks.io import trajectories_ptvis
+        from pyptv.ptv import py_start_proc_c
 
         dataset = trajectories_ptvis(
             "res/ptv_is.%d", first=seq_first, last=seq_last, xuap=False, traj_min_len=3
         )
+
+        # Get parameter objects on demand
+        info.object.ensure_parameter_objects()
 
         heads_x, heads_y = [], []
         tails_x, tails_y = [], []
@@ -1137,23 +1185,83 @@ class MainGUI(HasTraits):
         ]
         self.software_path = software_path
         self.exp_path = exp_path
+        
+        # Initialize processing-related attributes
+        self.detections = None
+        self.corrected = None
+        self.sorted_pos = None
+        self.sorted_corresp = None
+        self.num_targs = None
+        self.tracker = None
+        
+        # Initialize parameter objects (will be created on-demand)
+        self.cpar = None
+        self.vpar = None
+        self.tpar = None
+        self.cals = None
+        self.spar = None
+        self.track_par = None
+        self.epar = None
+        
+        # Cache invalidation flag - set to True when parameters change
+        self._parameter_objects_dirty = True
+        
         for i in range(self.n_cams):
             self.camera_list[i].on_trait_change(self.right_click_process, "rclicked")
 
     def get_parameter(self, key):
         """Delegate parameter access to experiment"""
         return self.exp1.get_parameter(key)
+    
+    def ensure_parameter_objects(self):
+        """Ensure that Cython parameter objects are initialized and up-to-date
+        
+        Uses lazy initialization with cache invalidation for efficiency.
+        Only recreates parameter objects when they're None or when parameters have changed.
+        """
+        if (self._parameter_objects_dirty or 
+            self.cpar is None or self.vpar is None or 
+            self.tpar is None or self.cals is None):
+            
+            print("Initializing parameter objects from ParameterManager...")
+            
+            try:
+                (self.cpar, self.spar, self.vpar, self.track_par, 
+                 self.tpar, self.cals, self.epar) = py_start_proc_c(self.exp1.parameter_manager)
+                
+                # Clear the dirty flag - parameters are now up-to-date
+                self._parameter_objects_dirty = False
+                print("Parameter objects initialized successfully")
+                
+            except Exception as e:
+                print(f"Error initializing parameter objects: {e}")
+                # Keep objects as None if initialization fails
+                self.cpar = None
+                self.vpar = None
+                self.tpar = None
+                self.cals = None
+                self.spar = None
+                self.track_par = None
+                self.epar = None
+                raise
+    
+    def invalidate_parameter_cache(self):
+        """Mark parameter objects as dirty - they will be reloaded on next access
+        
+        Call this whenever parameters change (e.g., when loading new parameter sets,
+        editing parameters, or switching active parameter sets).
+        """
+        self._parameter_objects_dirty = True
+        print("Parameter cache invalidated - will reload on next access")
 
     def right_click_process(self):
         """Shows a line in camera color code corresponding to a point on another camera's view plane"""
         num_points = 2
 
-
         if hasattr(self, "sorted_pos") and self.sorted_pos is not None:
             plot_epipolar = True
         else:
             plot_epipolar = False
-
 
         if plot_epipolar:
             i = self.current_camera
@@ -1173,6 +1281,9 @@ class MainGUI(HasTraits):
                     point = pos_type[i][np.argmin(distances)]
 
             if not np.allclose(point, [0.0, 0.0]):
+                # Get parameter objects on demand for epipolar line calculation
+                self.ensure_parameter_objects()
+                
                 # mark the point with a circle
                 c = str(np.random.rand())[2:]
                 self.camera_list[i].drawcross(
@@ -1307,6 +1418,34 @@ class MainGUI(HasTraits):
 
         if len(temp_img) > 0:
             self.camera_list[j].update_image(temp_img)
+
+    def load_set_seq_image(self, seq_num: int, display_only: bool = False):
+        """Load and display sequence image for a specific sequence number"""
+        seq_params = self.get_parameter('sequence')
+        if seq_params is None:
+            print("No sequence parameters found")
+            return
+            
+        base_names = seq_params['base_name']
+        ptv_params = self.get_parameter('ptv')
+        
+        if ptv_params.get('splitter', False):
+            # Splitter mode - load one image and split it
+            imname = base_names[0] % seq_num
+            if Path(imname).exists():
+                temp_img = imread(imname)
+                if temp_img.ndim > 2:
+                    temp_img = rgb2gray(temp_img)
+                splitted_images = ptv.image_split(temp_img)
+                for i in range(self.n_cams):
+                    self.camera_list[i].update_image(img_as_ubyte(splitted_images[i]))
+            else:
+                print(f"Image {imname} does not exist")
+        else:
+            # Normal mode - load separate images for each camera
+            for i in range(self.n_cams):
+                imname = base_names[i] % seq_num
+                self.load_disp_image(imname, i, display_only)
 
     def save_parameters(self):
         """Save current parameters to YAML"""

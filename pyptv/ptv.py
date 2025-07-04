@@ -243,17 +243,24 @@ def py_pre_processing_c(
 
 
 def py_detection_proc_c(
-    list_of_images: List[np.ndarray],
-    ptv_params: dict,
-    target_params: dict,
-    cals: List[Calibration],
+    list_of_images: List[np.ndarray],  # Must match n_cam from parameters
+    ptv_params: dict,                  # PTV parameters from YAML
+    target_params: dict,               # Must be {'targ_rec': {...}}
     existing_target: bool = False,
 ) -> Tuple[List[TargetArray], List[MatchedCoords]]:
     """Detect targets in a list of images."""
-    n_cam = len(list_of_images)
+    n_images = len(list_of_images)
+    
+    # Get the global number of cameras from ptv_params
+    # This should match the number of calibration files defined
+    n_cam = len(ptv_params.get('img_cal', []))
+    
+    if n_images != n_cam:
+        raise ValueError(f"Number of images ({n_images}) must match number of cameras in parameters ({n_cam})")
 
     cpar = _populate_cpar(ptv_params, n_cam)
     tpar = _populate_tpar(target_params, n_cam)
+    cals = _read_calibrations(cpar, n_cam)
 
     detections = []
     corrected = []
@@ -262,9 +269,11 @@ def py_detection_proc_c(
         if existing_target:
             raise NotImplementedError("Existing targets are not implemented")
         else:
-            targs = target_recognition(img, tpar, i_cam, cpar)
+            im = img.copy()
+            targs = target_recognition(im, tpar, i_cam, cpar)
 
         targs.sort_y()
+        # print(f"Camera {i_cam} detected {len(targs)} targets.")
         detections.append(targs)
         mc = MatchedCoords(targs, cpar, cals[i_cam])
         corrected.append(mc)
@@ -276,13 +285,28 @@ def py_correspondences_proc_c(exp):
     """Provides correspondences
     """
     frame = 123456789
+
     sorted_pos, sorted_corresp, num_targs = correspondences(
         exp.detections, exp.corrected, exp.cals, exp.vpar, exp.cpar
     )
 
-    for i_cam in range(exp.n_cams):
-        base_name = exp.spar.get_img_base_name(i_cam)
-        write_targets(exp.detections[i_cam], base_name, frame)
+    # Get sequence parameters to write targets
+    if hasattr(exp, 'spar') and exp.spar is not None:
+        # Traditional experiment object with spar
+        for i_cam in range(exp.n_cams):
+            base_name = exp.spar.get_img_base_name(i_cam)
+            write_targets(exp.detections[i_cam], base_name, frame)
+    elif hasattr(exp, 'get_parameter'):
+        # MainGUI object - get sequence parameters from ParameterManager
+        seq_params = exp.get_parameter('sequence')
+        if seq_params and 'base_name' in seq_params:
+            for i_cam in range(exp.n_cams):
+                base_name = seq_params['base_name'][i_cam]
+                write_targets(exp.detections[i_cam], base_name, frame)
+        else:
+            print("Warning: No sequence parameters found, skipping target writing")
+    else:
+        print("Warning: No way to determine base names, skipping target writing")
 
     print(
         "Frame "
@@ -397,27 +421,46 @@ def run_tracking_plugin(exp) -> None:
 
 def py_sequence_loop(exp) -> None:
     """Run a sequence of detection, stereo-correspondence, and determination.
+    
+    Args:
+        exp: Either an Experiment object with parameter_manager attribute,
+             or a MainGUI object with exp1.parameter_manager and cached parameter objects
     """
-    # n_cams, cpar, spar, vpar, tpar, cals = (
-    #     exp.n_cams,
-    #     exp.cpar,
-    #     exp.spar,
-    #     exp.vpar,
-    #     exp.tpar,
-    #     exp.cals,
-    # )
+    
+    # Handle both Experiment objects and MainGUI objects
+    if hasattr(exp, 'parameter_manager'):
+        # Traditional experiment object
+        parameter_manager = exp.parameter_manager
+        n_cams = exp.n_cams
+        cpar = exp.cpar
+        spar = exp.spar
+        vpar = exp.vpar
+        tpar = exp.tpar
+        cals = exp.cals
+    elif hasattr(exp, 'exp1') and hasattr(exp.exp1, 'parameter_manager'):
+        # MainGUI object - ensure parameter objects are initialized
+        exp.ensure_parameter_objects()
+        parameter_manager = exp.exp1.parameter_manager
+        n_cams = exp.n_cams
+        cpar = exp.cpar
+        spar = exp.spar
+        vpar = exp.vpar
+        tpar = exp.tpar
+        cals = exp.cals
+    else:
+        raise ValueError("Object must have either parameter_manager or exp1.parameter_manager attribute")
 
-    existing_target = exp.parameter_manager.get_parameter('pft_version').get('Existing_Target', False)
+    existing_target = parameter_manager.get_parameter('pft_version', {}).get('Existing_Target', False)
 
-    first_frame = exp.spar.get_first()
-    last_frame = exp.spar.get_last()
+    first_frame = spar.get_first()
+    last_frame = spar.get_last()
     print(f" From {first_frame = } to {last_frame = }")
 
     for frame in range(first_frame, last_frame + 1):
         detections = []
         corrected = []
-        for i_cam in range(exp.n_cams):
-            base_image_name = exp.spar.get_img_base_name(i_cam)
+        for i_cam in range(n_cams):
+            base_image_name = spar.get_img_base_name(i_cam)
             if existing_target:
                 targs = read_targets(base_image_name, frame)
             else:
@@ -432,11 +475,11 @@ def py_sequence_loop(exp) -> None:
                     if img.dtype != np.uint8:
                         img = img_as_ubyte(img)
 
-                if exp.parameter_manager.get_parameter('ptv').get('inverse', False):
+                if parameter_manager.get_parameter('ptv', {}).get('inverse', False):
                     print("Invert image")
                     img = negative(img)
 
-                masking_params = exp.parameter_manager.get_parameter('masking')
+                masking_params = parameter_manager.get_parameter('masking')
                 if masking_params and masking_params.get('mask_flag', False):
                     try:
                         background_name = (
@@ -449,22 +492,22 @@ def py_sequence_loop(exp) -> None:
                     except (ValueError, FileNotFoundError):
                         print("failed to read the mask")
 
-                high_pass = simple_highpass(img, exp.cpar)
-                targs = target_recognition(high_pass, exp.tpar, i_cam, exp.cpar)
+                high_pass = simple_highpass(img, cpar)
+                targs = target_recognition(high_pass, tpar, i_cam, cpar)
 
             targs.sort_y()
             # print(len(targs))
             detections.append(targs)
-            matched_coords = MatchedCoords(targs, exp.cpar, exp.cals[i_cam])
+            matched_coords = MatchedCoords(targs, cpar, cals[i_cam])
             pos, _ = matched_coords.as_arrays()
             corrected.append(matched_coords)
 
         sorted_pos, sorted_corresp, _ = correspondences(
-            detections, corrected, exp.cals, exp.vpar, exp.cpar
+            detections, corrected, cals, vpar, cpar
         )
 
-        for i_cam in range(exp.n_cams):
-            base_name = exp.spar.get_img_base_name(i_cam)
+        for i_cam in range(n_cams):
+            base_name = spar.get_img_base_name(i_cam)
             write_targets(detections[i_cam], base_name, frame)
 
         print(
@@ -549,6 +592,11 @@ def py_get_pix(
 
 def py_calibration(selection, exp):
     """Calibration
+    
+    Args:
+        selection: Calibration selection type
+        exp: Either an Experiment object with parameter_manager attribute,
+             or a MainGUI object with exp1.parameter_manager and cached parameter objects
     """
     if selection == 1:
         pass
@@ -562,16 +610,31 @@ def py_calibration(selection, exp):
     if selection == 10:
         from optv.tracking_framebuf import Frame
         
-        num_cams = exp.cpar.get_num_cams()
-        calibs = _read_calibrations(exp.cpar, num_cams)
+        # Handle both Experiment objects and MainGUI objects
+        if hasattr(exp, 'parameter_manager'):
+            # Traditional experiment object
+            parameter_manager = exp.parameter_manager
+            cpar = exp.cpar
+            spar = exp.spar
+        elif hasattr(exp, 'exp1') and hasattr(exp.exp1, 'parameter_manager'):
+            # MainGUI object - ensure parameter objects are initialized
+            exp.ensure_parameter_objects()
+            parameter_manager = exp.exp1.parameter_manager
+            cpar = exp.cpar
+            spar = exp.spar
+        else:
+            raise ValueError("Object must have either parameter_manager or exp1.parameter_manager attribute")
+        
+        num_cams = cpar.get_num_cams()
+        calibs = _read_calibrations(cpar, num_cams)
 
         targ_files = [
-            exp.spar.get_img_base_name(c).split("%d")[0].encode('utf-8')
+            spar.get_img_base_name(c).split("%d")[0].encode('utf-8')
             for c in range(num_cams)
         ]
         
-        orient_params = exp.parameter_manager.get_parameter('orient')
-        shaking_params = exp.parameter_manager.get_parameter('shaking')
+        orient_params = parameter_manager.get_parameter('orient')
+        shaking_params = parameter_manager.get_parameter('shaking')
         
         flags = [name for name in NAMES if orient_params.get(name) == 1]
         all_known = []
@@ -579,7 +642,7 @@ def py_calibration(selection, exp):
 
         for frm_num in range(shaking_params['shaking_first_frame'], shaking_params['shaking_last_frame'] + 1):
             frame = Frame(
-                exp.cpar.get_num_cams(),
+                cpar.get_num_cams(),
                 corres_file_base=("res/rt_is").encode('utf-8'),
                 linkage_file_base=("res/ptv_is").encode('utf-8'),
                 target_file_base=targ_files,
