@@ -72,7 +72,7 @@ def test_full_gui_workflow():
     
     # Change to test_cavity directory
     original_cwd = Path.cwd()
-    test_dir = Path(__file__).parent / "tests" / "test_cavity"
+    test_dir = Path(__file__).parent.parent / "tests" / "test_cavity"
     
     # If we're already in test_cavity, don't change
     if original_cwd.name == "test_cavity":
