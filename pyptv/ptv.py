@@ -88,14 +88,16 @@ def _populate_cpar(ptv_params: dict, n_cam: int) -> ControlParams:
    
     mm_params = cpar.get_multimedia_params()
     mm_params.set_n1(ptv_params.get('mmp_n1', 1.0))
-    mm_params.set_layers([ptv_params.get('mmp_n2', 1.0)], [ptv_params.get('mmp_d', 0.0)])
+    mm_params.set_layers([ptv_params.get('mmp_n2', 1.0)], [ptv_params.get('mmp_d', 1.0)])
     mm_params.set_n3(ptv_params.get('mmp_n3', 1.0))
 
     img_cal_list = ptv_params.get('img_cal', [])
+    
+    if len(img_cal_list) != n_cam:
+        raise ValueError("img_cal_list length does not match n_cam; check your Yaml file.")
 
     for i in range(n_cam):  # Use global n_cam
         cpar.set_cal_img_base_name(i, img_cal_list[i])
-
     return cpar
 
 def _populate_spar(seq_params: dict, n_cam: int) -> SequenceParams:
@@ -104,12 +106,15 @@ def _populate_spar(seq_params: dict, n_cam: int) -> SequenceParams:
     spar = SequenceParams(num_cams=n_cam)
     spar.set_first(seq_params.get('first', 0))
     spar.set_last(seq_params.get('last', 0))
-    for i in range(n_cam):  # Use global n_cam
-        base_name_list = seq_params.get('base_name', [])
-        if i < len(base_name_list):
-            spar.set_img_base_name(i, base_name_list[i])
-        else:
-            print(f"Warning: No image base name specified for camera {i}")
+    
+    base_name_list = seq_params.get('base_name', [])
+    if len(base_name_list) != n_cam:
+        raise ValueError("base_name_list length does not match n_cam; check your Yaml file.")
+    
+    
+    for i in range(len(base_name_list)):
+        spar.set_img_base_name(i, base_name_list[i])
+    
     return spar
 
 def _populate_vpar(crit_params: dict) -> VolumeParams:
@@ -134,12 +139,12 @@ def _populate_track_par(track_params: dict) -> TrackingParams:
     track_par.set_add(track_params.get('flagNewParticles', False))
     return track_par
 
-def _populate_tpar(params: dict) -> TargetParams:
+def _populate_tpar(params: dict, n_cam: int) -> TargetParams:
     """Populate a TargetParams object from a dictionary."""
     targ_params = params.get('targ_rec', {})
     
     # Get global n_cam - the single source of truth
-    n_cam = params.get('n_cam', 0)
+    # n_cam = params.get('n_cam', 0)
     
     tpar = TargetParams(n_cam)
     tpar.set_grey_thresholds(targ_params.get('gvthres', []))
@@ -160,11 +165,13 @@ def _read_calibrations(cpar: ControlParams, n_cams: int) -> List[Calibration]:
         ori_file = base_name + ".ori"
         addpar_file = base_name + ".addpar"
 
-        try:
-            cal.from_file(ori_file, addpar_file)
-            cals.append(cal)
-        except IOError as e:
-            raise IOError(f"Failed to read calibration files for camera {i_cam}: {e}")
+        if not (os.path.isfile(ori_file) and os.access(ori_file, os.R_OK)):
+            raise IOError(f"Cannot read orientation file: {ori_file}")
+        if not (os.path.isfile(addpar_file) and os.access(addpar_file, os.R_OK)):
+            raise IOError(f"Cannot read addpar file: {addpar_file}")
+
+        cal.from_file(ori_file, addpar_file)
+        cals.append(cal)
 
     return cals
 
@@ -197,8 +204,9 @@ def py_start_proc_c(
         track_params = params.get('track', {})
         track_par = _populate_track_par(track_params)
 
-        target_params = params.get('targ_rec', {})
-        tpar = _populate_tpar(target_params)
+        # Create a dict that contains targ_rec for _populate_tpar
+        target_params_dict = {'targ_rec': params.get('targ_rec', {})}
+        tpar = _populate_tpar(target_params_dict, n_cam)
 
         epar = params.get('examine', {})
         
@@ -215,7 +223,8 @@ def py_pre_processing_c(
 ) -> List[np.ndarray]:
     """Apply pre-processing to a list of images.
     """
-    cpar = _populate_cpar(ptv_params)
+    n_cam = len(list_of_images)
+    cpar = _populate_cpar(ptv_params, n_cam)
     processed_images = []
     for i, img in enumerate(list_of_images):
         img_lp = img.copy() 
@@ -232,8 +241,10 @@ def py_detection_proc_c(
     existing_target: bool = False,
 ) -> Tuple[List[TargetArray], List[MatchedCoords]]:
     """Detect targets in a list of images."""
-    cpar = _populate_cpar(ptv_params)
-    tpar = _populate_tpar(target_params)
+    n_cam = len(list_of_images)
+
+    cpar = _populate_cpar(ptv_params, n_cam)
+    tpar = _populate_tpar(target_params, n_cam)
 
     detections = []
     corrected = []

@@ -60,7 +60,7 @@ def test_parameter_translation_pipeline():
         
         # Test TargetParams  
         print("   Creating TargetParams...")
-        tpar = _populate_tpar(targ_params)
+        tpar = _populate_tpar(targ_params, n_cam)
         print(f"   ✅ TargetParams: grey thresholds: {tpar.get_grey_thresholds()}")
         print(f"      Pixel bounds: {tpar.get_pixel_count_bounds()}")
         
