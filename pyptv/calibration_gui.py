@@ -261,22 +261,80 @@ class CalibrationGUI(HasTraits):
     button_test = Button()
     _cal_splitter = Bool(False)
 
-    def __init__(self, experiment: Experiment):
+    def __init__(self, experiment_or_path):
         super(CalibrationGUI, self).__init__()
         self.need_reset = 0
-        self.experiment = experiment
-        self.active_path = Path(experiment.active_params.yaml_path).parent
-        self.working_folder = self.active_path.parent
         
-        os.chdir(self.working_folder)
-        print(f"Inside a folder: {Path.cwd()}")
+        # Handle both Experiment object and path inputs
+        if isinstance(experiment_or_path, Experiment):
+            # Called from pyptv_gui.py - use existing experiment
+            self.experiment = experiment_or_path
+            self.standalone_mode = False
+            print(f"Working in directory: {Path.cwd()}")
+            print(f"Active parameter set: {self.experiment.active_params}")
+        else:
+            # Called standalone - create experiment from path
+            self.standalone_mode = True
+            path = Path(experiment_or_path).resolve()
+            
+            if path.is_file() and path.suffix == '.yaml':
+                # If it's a YAML file, use its parent directory and set it as active
+                experiment_dir = path.parent.parent  # Go up from parameters_Run1/ to experiment root
+                param_name = path.parent.name  # e.g., "parameters_Run1"
+                
+                print(f"Standalone mode: Using YAML file {path}")
+                print(f"Experiment directory: {experiment_dir}")
+                print(f"Parameter set: {param_name}")
+                
+                # Change to experiment directory for standalone mode
+                os.chdir(experiment_dir)
+                print(f"Changed working directory to: {Path.cwd()}")
+                
+                # Create experiment and set active parameter set
+                self.experiment = Experiment()
+                self.experiment.populate_runs(experiment_dir)
+                
+                # Find and set the matching parameter set as active
+                matching_paramset = None
+                for paramset in self.experiment.paramsets:
+                    if paramset.yaml_path == path:
+                        matching_paramset = paramset
+                        break
+                
+                if matching_paramset:
+                    self.experiment.setActive(matching_paramset)
+                    print(f"Set active parameter set: {matching_paramset.name}")
+                else:
+                    print(f"Warning: Could not find parameter set for {path}")
+                    # Use the first available parameter set
+                    if self.experiment.paramsets:
+                        self.experiment.setActive(self.experiment.paramsets[0])
+                        print(f"Using first available parameter set: {self.experiment.paramsets[0].name}")
+                    else:
+                        raise ValueError("No parameter sets found in experiment")
+                        
+            elif path.is_dir():
+                # If it's a directory, treat it as experiment directory
+                print(f"Standalone mode: Using directory {path}")
+                
+                # Change to experiment directory for standalone mode
+                os.chdir(path)
+                print(f"Changed working directory to: {Path.cwd()}")
+                
+                # Create experiment and use first available parameter set
+                self.experiment = Experiment()
+                self.experiment.populate_runs(path)
+                
+                if self.experiment.paramsets:
+                    self.experiment.setActive(self.experiment.paramsets[0])
+                    print(f"Using parameter set: {self.experiment.paramsets[0].name}")
+                else:
+                    raise ValueError("No parameter sets found in experiment directory")
+            else:
+                raise ValueError(f"Invalid path: {path}. Must be a YAML file or directory.")
 
-        ptv_params = experiment.get_parameter('ptv')
-        if ptv_params is None:
-            raise ValueError("Failed to load PTV parameters")
-        
-        # Set number of cameras from experiment (both instance var and Traits attribute)
-        self.n_cams = experiment.get_n_cam()
+        # Set number of cameras from experiment
+        self.n_cams = self.experiment.get_n_cam()
         
         # Create camera plot windows
         self.camera = [PlotWindow() for i in range(self.n_cams)]
@@ -285,6 +343,18 @@ class CalibrationGUI(HasTraits):
             self.camera[i].cameraN = i
             self.camera[i].py_rclick_delete = ptv.py_rclick_delete
             self.camera[i].py_get_pix_N = ptv.py_get_pix_N
+        
+        # Initialize parameter objects as None - will be loaded on demand
+        self.cpar = None
+        self.spar = None
+        self.vpar = None
+        self.track_par = None
+        self.tpar = None
+        self.cals = None
+        self.epar = None
+        
+        # Cache invalidation flag
+        self._parameter_objects_dirty = True
 
     view = View(
         HGroup(
@@ -409,25 +479,34 @@ class CalibrationGUI(HasTraits):
     )
 
     def _button_edit_cal_parameters_fired(self):
-        self.experiment.save_parameters()
+        """Open ParameterGUI for editing calibration parameters"""
+        try:
+            from pyptv.parameter_gui import ParameterGUI
+            param_gui = ParameterGUI(self.experiment, 'calibration')
+            result = param_gui.configure_traits()
+            
+            # If user clicked OK and parameters were saved, invalidate caches
+            if result:
+                print("Calibration parameters updated - invalidating caches")
+                self.invalidate_parameter_cache()
+                self.status_text = "Calibration parameters updated. Reinitialize to apply changes."
+        except Exception as e:
+            print(f"Error opening calibration parameters GUI: {e}")
+            import traceback
+            traceback.print_exc()
+            self.status_text = f"Error opening calibration parameters: {e}"
 
     def _button_showimg_fired(self):
         print("Loading images/parameters \n")
-        (
-            self.cpar,
-            self.spar,
-            self.vpar,
-            self.track_par,
-            self.tpar,
-            self.cals,
-            self.epar,
-        ) = ptv.py_start_proc_c(self.n_cams)
+        
+        # Ensure parameter objects are initialized and up-to-date
+        self.ensure_parameter_objects()
 
         print("reset grey scale thresholds for calibration:\n")
         self.tpar.read("parameters/detect_plate.par")
         print(self.tpar.get_grey_thresholds())
 
-        if self.epar.Combine_Flag is True:
+        if self.epar and self.epar.get('Combine_Flag', False):
             print("Combine Flag is On")
             self.MultiParams = self.get_parameter('multi_planes')
             for i in range(self.MultiParams['n_planes']):
@@ -475,14 +554,22 @@ class CalibrationGUI(HasTraits):
         print(" Detection procedure \n")
         self.status_text = "Detection procedure"
 
+        # Ensure parameter objects are available
+        self.ensure_parameter_objects()
+
         if self.cpar.get_hp_flag():
             for i, im in enumerate(self.cal_images):
                 self.cal_images[i] = ptv.preprocess_image(im.copy(), 1, self.cpar, 25)
 
         self.reset_show_images()
 
+        # Get parameters for detection
+        ptv_params = self.get_parameter('ptv')
+        targ_rec_params = self.get_parameter('targ_rec')
+        target_params = {'targ_rec': targ_rec_params}
+
         self.detections, corrected = ptv.py_detection_proc_c(
-            self.cal_images, self.cpar, self.tpar, self.cals
+            self.cal_images, ptv_params, target_params
         )
 
         x = [[i.pos()[0] for i in row] for row in self.detections]
@@ -579,6 +666,9 @@ class CalibrationGUI(HasTraits):
             self.reset_show_images()
             self.need_reset = 0
 
+        # Ensure parameter objects are available
+        self.ensure_parameter_objects()
+
         self.cal_points = self._read_cal_points()
 
         self.cals = []
@@ -614,6 +704,9 @@ class CalibrationGUI(HasTraits):
         if self.need_reset:
             self.reset_show_images()
             self.need_reset = 0
+
+        # Ensure parameter objects are available
+        self.ensure_parameter_objects()
 
         self.cal_points = self._read_cal_points()
         self.sorted_targs = []
@@ -682,13 +775,16 @@ class CalibrationGUI(HasTraits):
             self.reset_show_images()
             self.need_reset = 0
 
+        # Ensure parameter objects are available
+        self.ensure_parameter_objects()
+
         self.backup_ori_files()
 
         orient_params = self.get_parameter('orient')
         flags = [name for name in NAMES if orient_params.get(name) == 1]
 
         for i_cam in range(self.n_cams):
-            if self.epar.Combine_Flag:
+            if self.epar and self.epar.get('Combine_Flag', False):
                 self.status_text = "Multiplane calibration."
                 all_known = []
                 all_detected = []
@@ -847,6 +943,9 @@ class CalibrationGUI(HasTraits):
         return residuals
 
     def _write_ori(self, i_cam, addpar_flag=False):
+        # Ensure parameter objects are available
+        self.ensure_parameter_objects()
+        
         tmp = np.array(
             [
                 self.cals[i_cam].get_pos(),
@@ -858,7 +957,15 @@ class CalibrationGUI(HasTraits):
             dtype=object,
         )
 
-        if np.any(np.isnan(np.hstack(tmp))):
+        # Flatten the array for NaN checking
+        flat_values = []
+        for item in tmp:
+            if hasattr(item, '__iter__'):
+                flat_values.extend(item)
+            else:
+                flat_values.append(item)
+        
+        if np.any(np.isnan(flat_values)):
             raise ValueError(
                 f"Calibration parameters for camera {i_cam} contain NaNs. Aborting write operation."
             )
@@ -871,7 +978,7 @@ class CalibrationGUI(HasTraits):
 
         print("Saving:", ori, addpar)
         self.cals[i_cam].write(ori.encode(), addpar.encode())
-        if self.epar.Examine_Flag and not self.epar.Combine_Flag:
+        if self.epar and self.epar.get('Examine_Flag', False) and not self.epar.get('Combine_Flag', False):
             self.save_point_sets(i_cam)
 
     def save_point_sets(self, i_cam):
@@ -894,6 +1001,9 @@ class CalibrationGUI(HasTraits):
         np.savetxt(txt_matched, known, fmt="%10.5f")
 
     def _button_orient_part_fired(self):
+        # Ensure parameter objects are available
+        self.ensure_parameter_objects()
+        
         self.backup_ori_files()
         targs_all, targ_ix_all, residuals_all = ptv.py_calibration(10, self)
 
@@ -1018,20 +1128,70 @@ class CalibrationGUI(HasTraits):
             return {}
         return params
 
+    def ensure_parameter_objects(self):
+        """Ensure that Cython parameter objects are initialized and up-to-date
+        
+        Uses lazy initialization with cache invalidation for efficiency.
+        Only recreates parameter objects when they're None or when parameters have changed.
+        """
+        if (self._parameter_objects_dirty or 
+            self.cpar is None or self.vpar is None or 
+            self.tpar is None or self.cals is None):
+            
+            print("Initializing parameter objects from ParameterManager...")
+            
+            try:
+                (self.cpar, self.spar, self.vpar, self.track_par, 
+                 self.tpar, self.cals, self.epar) = ptv.py_start_proc_c(self.experiment.parameter_manager)
+                
+                # Clear the dirty flag - parameters are now up-to-date
+                self._parameter_objects_dirty = False
+                print("Parameter objects initialized successfully")
+                
+            except Exception as e:
+                print(f"Error initializing parameter objects: {e}")
+                # Keep objects as None if initialization fails
+                self.cpar = None
+                self.vpar = None
+                self.tpar = None
+                self.cals = None
+                self.spar = None
+                self.track_par = None
+                self.epar = None
+                raise
+    
+    def invalidate_parameter_cache(self):
+        """Mark parameter objects as dirty - they will be reloaded on next access
+        
+        Call this whenever parameters change (e.g., when loading new parameter sets,
+        editing parameters, or switching active parameter sets).
+        """
+        self._parameter_objects_dirty = True
+        print("Parameter cache invalidated - will reload on next access")
+
 
 if __name__ == "__main__":
     import sys
 
     if len(sys.argv) != 2:
-        print("Usage: python calibration_gui.py <parameters_file>")
+        print("Usage: python calibration_gui.py <path>")
+        print("  <path> can be:")
+        print("    - A YAML parameters file (e.g., parameters_Run1/parameters_Run1.yaml)")
+        print("    - An experiment directory containing parameter sets")
         sys.exit(1)
 
-    active_param_path = Path(sys.argv[1]).resolve()
-    if not active_param_path.exists():
-        print(f"Error: Parameter folder '{active_param_path}' does not exist.")
+    path = Path(sys.argv[1]).resolve()
+    if not path.exists():
+        print(f"Error: Path '{path}' does not exist.")
         sys.exit(1)
 
-    print(f"Using active path: {active_param_path}")
+    print(f"Starting CalibrationGUI with: {path}")
 
-    calib_gui = CalibrationGUI(active_param_path)
-    calib_gui.configure_traits()
+    try:
+        calib_gui = CalibrationGUI(path)
+        calib_gui.configure_traits()
+    except Exception as e:
+        print(f"Error initializing CalibrationGUI: {e}")
+        import traceback
+        traceback.print_exc()
+        sys.exit(1)

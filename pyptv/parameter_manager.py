@@ -91,6 +91,51 @@ class ParameterManager:
         group = self.parameters.get(param_group, {})
         return isinstance(group, dict) and param_key in group
 
+    def set_parameter(self, name: str, value: Any):
+        """
+        Set a parameter value.
+        
+        Args:
+            name: The parameter name
+            value: The parameter value
+        """
+        self.parameters[name] = value
+    
+    def set_parameter_value(self, param_group: str, param_key: str, value: Any):
+        """
+        Set a specific parameter value in a parameter group.
+        
+        Args:
+            param_group: The parameter group name (e.g., 'masking', 'ptv')
+            param_key: The specific parameter key within the group
+            value: The parameter value to set
+        """
+        if param_group not in self.parameters:
+            self.parameters[param_group] = {}
+        
+        if not isinstance(self.parameters[param_group], dict):
+            print(f"Warning: Parameter group '{param_group}' is not a dictionary, creating new dict")
+            self.parameters[param_group] = {}
+        
+        self.parameters[param_group][param_key] = value
+    
+    def update_parameter_group(self, param_group: str, updates: Dict[str, Any]):
+        """
+        Update multiple parameter values in a parameter group.
+        
+        Args:
+            param_group: The parameter group name (e.g., 'masking', 'ptv')
+            updates: Dictionary of parameter key-value pairs to update
+        """
+        if param_group not in self.parameters:
+            self.parameters[param_group] = {}
+        
+        if not isinstance(self.parameters[param_group], dict):
+            print(f"Warning: Parameter group '{param_group}' is not a dictionary, creating new dict")
+            self.parameters[param_group] = {}
+        
+        self.parameters[param_group].update(updates)
+
     def from_yaml(self, file_path: Path):
         """
         Load parameters from a YAML file.

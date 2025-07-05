@@ -346,34 +346,78 @@ class TreeMenuHandler(Handler):
     def configure_main_par(self, editor, object):
         experiment = editor.get_parent(object)
         paramset = object
-        print("Configure main parameters via ParameterManager")
+        print("Opening Main Parameters GUI...")
         
-        # Access parameters via experiment's ParameterManager
-        ptv_params = experiment.get_parameter('ptv')
-        print("Current PTV parameters:", ptv_params)
-        # TODO: Implement parameter editing dialog that updates the dictionary
+        try:
+            from pyptv.parameter_gui import ParameterGUI
+            param_gui = ParameterGUI(experiment, 'main')
+            result = param_gui.configure_traits()
+            
+            # If user clicked OK and parameters were saved, invalidate caches
+            if result:
+                print("Parameters updated - invalidating caches")
+                # Try to find and notify the MainGUI to invalidate its cache
+                # This is a bit of a hack, but works since there's typically one MainGUI instance
+                import gc
+                for obj in gc.get_objects():
+                    if hasattr(obj, 'invalidate_parameter_cache'):
+                        obj.invalidate_parameter_cache()
+                        print("Invalidated parameter cache for MainGUI")
+                        break
+        except Exception as e:
+            print(f"Error opening main parameters GUI: {e}")
+            import traceback
+            traceback.print_exc()
 
     def configure_cal_par(self, editor, object):
         experiment = editor.get_parent(object)
         paramset = object
-        print("Configure calibration parameters via ParameterManager")
+        print("Opening Calibration Parameters GUI...")
         
-        # Calibration parameters are in cal_ori and orient sections
-        cal_ori_params = experiment.get_parameter('cal_ori')
-        orient_params = experiment.get_parameter('orient')
-        print("Current cal_ori parameters:", cal_ori_params)
-        print("Current orient parameters:", orient_params)
-        # TODO: Implement parameter editing dialog that updates the dictionary
+        try:
+            from pyptv.parameter_gui import ParameterGUI
+            param_gui = ParameterGUI(experiment, 'calibration')
+            result = param_gui.configure_traits()
+            
+            # If user clicked OK and parameters were saved, invalidate caches
+            if result:
+                print("Parameters updated - invalidating caches")
+                # Try to find and notify the MainGUI to invalidate its cache
+                import gc
+                for obj in gc.get_objects():
+                    if hasattr(obj, 'invalidate_parameter_cache'):
+                        obj.invalidate_parameter_cache()
+                        print("Invalidated parameter cache for MainGUI")
+                        break
+        except Exception as e:
+            print(f"Error opening calibration parameters GUI: {e}")
+            import traceback
+            traceback.print_exc()
 
     def configure_track_par(self, editor, object):
         experiment = editor.get_parent(object)
         paramset = object
-        print("Configure tracking parameters via ParameterManager")
+        print("Opening Tracking Parameters GUI...")
         
-        # Tracking parameters are in track section
-        track_params = experiment.get_parameter('track')
-        print("Current tracking parameters:", track_params)
-        # TODO: Implement parameter editing dialog that updates the dictionary
+        try:
+            from pyptv.parameter_gui import ParameterGUI
+            param_gui = ParameterGUI(experiment, 'tracking')
+            result = param_gui.configure_traits()
+            
+            # If user clicked OK and parameters were saved, invalidate caches
+            if result:
+                print("Parameters updated - invalidating caches")
+                # Try to find and notify the MainGUI to invalidate its cache
+                import gc
+                for obj in gc.get_objects():
+                    if hasattr(obj, 'invalidate_parameter_cache'):
+                        obj.invalidate_parameter_cache()
+                        print("Invalidated parameter cache for MainGUI")
+                        break
+        except Exception as e:
+            print(f"Error opening tracking parameters GUI: {e}")
+            import traceback
+            traceback.print_exc()
 
     def set_active(self, editor, object):
         """sets a set of parameters as active"""
@@ -425,7 +469,10 @@ class TreeMenuHandler(Handler):
         # Use the experiment's delete method which handles YAML files
         try:
             experiment.delete_paramset(paramset)
-            editor._menu_delete_node()
+            # Force UI refresh by triggering a trait change event
+            # This will cause the tree editor to update its display
+            experiment.paramsets = experiment.paramsets[:]  # Create a copy to trigger change
+            print(f"Successfully deleted parameter set: {paramset.name}")
         except Exception as e:
             print(f"Error deleting parameter set: {e}")
 

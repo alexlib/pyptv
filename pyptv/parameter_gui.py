@@ -30,16 +30,17 @@ class ParamHandler(Handler):
         if is_ok:
             main_params = info.object
             experiment = main_params.experiment
+            param_mgr = experiment.parameter_manager
             
-            print("Updating parameters via Experiment...")
+            print("Updating parameters via ParameterManager...")
 
             # Update top-level n_cam
-            experiment.parameter_manager.parameters['n_cam'] = main_params.Num_Cam
+            param_mgr.set_n_cam(main_params.Num_Cam)
 
             # Update ptv.par
             img_name = [main_params.Name_1_Image, main_params.Name_2_Image, main_params.Name_3_Image, main_params.Name_4_Image]
             img_cal_name = [main_params.Cali_1_Image, main_params.Cali_2_Image, main_params.Cali_3_Image, main_params.Cali_4_Image]
-            experiment.parameter_manager.parameters['ptv'].update({
+            param_mgr.update_parameter_group('ptv', {
                 'img_name': img_name, 'img_cal': img_cal_name,
                 'hp_flag': main_params.HighPass, 'allcam_flag': main_params.Accept_OnlyAllCameras,
                 'tiff_flag': main_params.tiff_flag, 'imx': main_params.imx, 'imy': main_params.imy,
@@ -50,7 +51,7 @@ class ParamHandler(Handler):
             })
 
             # Update cal_ori.par
-            experiment.parameter_manager.parameters['cal_ori'].update({
+            param_mgr.update_parameter_group('cal_ori', {
                 'fixp_name': main_params.fixp_name,
                 'img_cal_name': main_params.img_cal_name, 'img_ori': main_params.img_ori,
                 'tiff_flag': main_params.tiff_flag, 'pair_flag': main_params.pair_Flag,
@@ -59,7 +60,7 @@ class ParamHandler(Handler):
 
             # Update targ_rec.par
             gvthres = [main_params.Gray_Tresh_1, main_params.Gray_Tresh_2, main_params.Gray_Tresh_3, main_params.Gray_Tresh_4]
-            experiment.parameter_manager.parameters['targ_rec'].update({
+            param_mgr.update_parameter_group('targ_rec', {
                 'gvthres': gvthres, 'disco': main_params.Tol_Disc,
                 'nnmin': main_params.Min_Npix, 'nnmax': main_params.Max_Npix,
                 'nxmin': main_params.Min_Npix_x, 'nxmax': main_params.Max_Npix_x,
@@ -68,13 +69,11 @@ class ParamHandler(Handler):
             })
 
             # Update pft_version.par
-            if 'pft_version' not in experiment.parameter_manager.parameters:
-                experiment.parameter_manager.parameters['pft_version'] = {}
-            experiment.parameter_manager.parameters['pft_version']['Existing_Target'] = main_params.Existing_Target
+            param_mgr.set_parameter_value('pft_version', 'Existing_Target', main_params.Existing_Target)
 
             # Update sequence.par
             base_name = [main_params.Basename_1_Seq, main_params.Basename_2_Seq, main_params.Basename_3_Seq, main_params.Basename_4_Seq]
-            experiment.parameter_manager.parameters['sequence'].update({
+            param_mgr.update_parameter_group('sequence', {
                 'base_name': base_name,
                 'first': main_params.Seq_First, 'last': main_params.Seq_Last
             })
@@ -83,7 +82,7 @@ class ParamHandler(Handler):
             X_lay = [main_params.Xmin, main_params.Xmax]
             Zmin_lay = [main_params.Zmin1, main_params.Zmin2]
             Zmax_lay = [main_params.Zmax1, main_params.Zmax2]
-            experiment.parameter_manager.parameters['criteria'].update({
+            param_mgr.update_parameter_group('criteria', {
                 'X_lay': X_lay, 'Zmin_lay': Zmin_lay, 'Zmax_lay': Zmax_lay,
                 'cnx': main_params.Min_Corr_nx, 'cny': main_params.Min_Corr_ny,
                 'cn': main_params.Min_Corr_npix, 'csumg': main_params.Sum_gv,
@@ -91,9 +90,7 @@ class ParamHandler(Handler):
             })
 
             # Update masking parameters
-            if 'masking' not in experiment.parameter_manager.parameters:
-                experiment.parameter_manager.parameters['masking'] = {}
-            experiment.parameter_manager.parameters['masking'].update({
+            param_mgr.update_parameter_group('masking', {
                 'mask_flag': main_params.Subtr_Mask,
                 'mask_base_name': main_params.Base_Name_Mask
             })
@@ -109,19 +106,27 @@ class CalHandler(Handler):
         if is_ok:
             calib_params = info.object
             experiment = calib_params.experiment
+            param_mgr = experiment.parameter_manager
             
-            print("Updating calibration parameters via Experiment...")
+            print("Updating calibration parameters via ParameterManager...")
 
             # Update top-level n_cam
-            experiment.parameter_manager.parameters['n_cam'] = calib_params.n_img
+            param_mgr.set_n_cam(calib_params.n_img)
+
+            # Convert chfield enum string back to integer for storage
+            chfield_int = 0  # Default to "Frame"
+            if calib_params.chfield == "Field odd":
+                chfield_int = 1
+            elif calib_params.chfield == "Field even":
+                chfield_int = 2
 
             # Update ptv.par
-            experiment.parameter_manager.parameters['ptv'].update({
+            param_mgr.update_parameter_group('ptv', {
                 'img_name': calib_params.img_name, 'img_cal': calib_params.img_cal,
                 'hp_flag': calib_params.hp_flag, 'allcam_flag': calib_params.allcam_flag,
                 'tiff_flag': calib_params.tiff_head, 'imx': calib_params.h_image_size,
                 'imy': calib_params.v_image_size, 'pix_x': calib_params.h_pixel_size,
-                'pix_y': calib_params.v_pixel_size, 'chfield': calib_params.chfield,
+                'pix_y': calib_params.v_pixel_size, 'chfield': chfield_int,
                 'mmp_n1': calib_params.mmp_n1, 'mmp_n2': calib_params.mmp_n2,
                 'mmp_n3': calib_params.mmp_n3, 'mmp_d': calib_params.mmp_d
             })
@@ -129,18 +134,17 @@ class CalHandler(Handler):
             # Update cal_ori.par
             img_cal_name = [calib_params.cam_1, calib_params.cam_2, calib_params.cam_3, calib_params.cam_4]
             img_ori = [calib_params.ori_cam_1, calib_params.ori_cam_2, calib_params.ori_cam_3, calib_params.ori_cam_4]
-            experiment.parameter_manager.parameters['cal_ori'].update({
+            
+            param_mgr.update_parameter_group('cal_ori', {
                 'fixp_name': calib_params.fixp_name,
                 'img_cal_name': img_cal_name, 'img_ori': img_ori,
                 'tiff_flag': calib_params.tiff_head, 'pair_flag': calib_params.pair_head,
-                'chfield': calib_params.chfield,
+                'chfield': chfield_int,
                 'cal_splitter': calib_params._cal_splitter
             })
 
             # Update detect_plate.par
-            if 'detect_plate' not in experiment.parameter_manager.parameters:
-                experiment.parameter_manager.parameters['detect_plate'] = {}
-            experiment.parameter_manager.parameters['detect_plate'].update({
+            param_mgr.update_parameter_group('detect_plate', {
                 'gvth_1': calib_params.grey_value_treshold_1, 'gvth_2': calib_params.grey_value_treshold_2,
                 'gvth_3': calib_params.grey_value_treshold_3, 'gvth_4': calib_params.grey_value_treshold_4,
                 'tol_dis': calib_params.tolerable_discontinuity, 'min_npix': calib_params.min_npix,
@@ -156,20 +160,16 @@ class CalHandler(Handler):
             nr3 = [calib_params.img_3_p1, calib_params.img_3_p2, calib_params.img_3_p3, calib_params.img_3_p4]
             nr4 = [calib_params.img_4_p1, calib_params.img_4_p2, calib_params.img_4_p3, calib_params.img_4_p4]
             nr = [nr1, nr2, nr3, nr4]
-            if 'man_ori' not in experiment.parameter_manager.parameters:
-                experiment.parameter_manager.parameters['man_ori'] = {}
-            experiment.parameter_manager.parameters['man_ori']['nr'] = nr
+            param_mgr.set_parameter_value('man_ori', 'nr', nr)
 
             # Update examine.par
-            if 'examine' not in experiment.parameter_manager.parameters:
-                experiment.parameter_manager.parameters['examine'] = {}
-            experiment.parameter_manager.parameters['examine']['Examine_Flag'] = calib_params.Examine_Flag
-            experiment.parameter_manager.parameters['examine']['Combine_Flag'] = calib_params.Combine_Flag
+            param_mgr.update_parameter_group('examine', {
+                'Examine_Flag': calib_params.Examine_Flag,
+                'Combine_Flag': calib_params.Combine_Flag
+            })
 
             # Update orient.par
-            if 'orient' not in experiment.parameter_manager.parameters:
-                experiment.parameter_manager.parameters['orient'] = {}
-            experiment.parameter_manager.parameters['orient'].update({
+            param_mgr.update_parameter_group('orient', {
                 'pnfo': calib_params.point_number_of_orientation, 'cc': calib_params.cc,
                 'xh': calib_params.xh, 'yh': calib_params.yh, 'k1': calib_params.k1,
                 'k2': calib_params.k2, 'k3': calib_params.k3, 'p1': calib_params.p1,
@@ -178,9 +178,7 @@ class CalHandler(Handler):
             })
 
             # Update shaking.par
-            if 'shaking' not in experiment.parameter_manager.parameters:
-                experiment.parameter_manager.parameters['shaking'] = {}
-            experiment.parameter_manager.parameters['shaking'].update({
+            param_mgr.update_parameter_group('shaking', {
                 'shaking_first_frame': calib_params.shaking_first_frame,
                 'shaking_last_frame': calib_params.shaking_last_frame,
                 'shaking_max_num_points': calib_params.shaking_max_num_points,
@@ -188,9 +186,7 @@ class CalHandler(Handler):
             })
 
             # Update dumbbell.par
-            if 'dumbbell' not in experiment.parameter_manager.parameters:
-                experiment.parameter_manager.parameters['dumbbell'] = {}
-            experiment.parameter_manager.parameters['dumbbell'].update({
+            param_mgr.update_parameter_group('dumbbell', {
                 'dumbbell_eps': calib_params.dumbbell_eps,
                 'dumbbell_scale': calib_params.dumbbell_scale,
                 'dumbbell_gradient_descent': calib_params.dumbbell_gradient_descent,
@@ -209,14 +205,12 @@ class TrackHandler(Handler):
         if is_ok:
             track_params = info.object
             experiment = track_params.experiment
+            param_mgr = experiment.parameter_manager
             
-            print("Updating tracking parameters via Experiment...")
+            print("Updating tracking parameters via ParameterManager...")
 
-            # Ensure track parameters section exists
-            if 'track' not in experiment.parameter_manager.parameters:
-                experiment.parameter_manager.parameters['track'] = {}
-                
-            experiment.parameter_manager.parameters['track'].update({
+            # Update track parameters
+            param_mgr.update_parameter_group('track', {
                 'dvxmin': track_params.dvxmin, 'dvxmax': track_params.dvxmax,
                 'dvymin': track_params.dvymin, 'dvymax': track_params.dvymax,
                 'dvzmin': track_params.dvzmin, 'dvzmax': track_params.dvzmax,
@@ -1016,3 +1010,32 @@ class Calib_Params(HasTraits):
 
 
 # Experiment and Paramset classes moved to experiment.py for better separation of concerns
+
+
+class ParameterGUI:
+    """Factory class to open the appropriate parameter dialog based on parameter type."""
+    
+    def __init__(self, experiment, param_type):
+        self.experiment = experiment
+        self.param_type = param_type
+        
+    def configure_traits(self):
+        """Open the appropriate parameter dialog."""
+        try:
+            if self.param_type == 'main':
+                main_params = Main_Params(self.experiment)
+                return main_params.configure_traits()
+            elif self.param_type == 'calibration':
+                calib_params = Calib_Params(self.experiment)
+                return calib_params.configure_traits()
+            elif self.param_type == 'tracking':
+                tracking_params = Tracking_Params(self.experiment)
+                return tracking_params.configure_traits()
+            else:
+                print(f"Unknown parameter type: {self.param_type}")
+                return False
+        except Exception as e:
+            print(f"Error opening {self.param_type} parameters GUI: {e}")
+            import traceback
+            traceback.print_exc()
+            return False
