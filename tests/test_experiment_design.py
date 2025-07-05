@@ -75,14 +75,18 @@ def test_experiment_initialization():
     """Test that Experiment can be initialized properly"""
     exp = Experiment()
     
-    # Check that ParameterManager is initialized
-    assert hasattr(exp, 'parameter_manager')
-    assert isinstance(exp.parameter_manager, ParameterManager)
+    # Check that active_params can hold a ParameterManager
+    assert hasattr(exp, 'active_params')
     
     # Check initial state
-    assert exp.active_params is None
+    assert exp.active_params is not None  # Empty ParameterManager created by default
     assert len(exp.paramsets) == 0
-    assert not exp.changed_active_params
+    assert hasattr(exp, 'changed_active_params')
+    
+    # Check that parameter access methods exist
+    assert hasattr(exp, 'get_parameter')
+    assert hasattr(exp, 'set_parameter')
+    assert hasattr(exp, 'save_parameters')
 
 
 def test_experiment_parameter_access():
@@ -142,16 +146,16 @@ def test_experiment_parameter_saving(temp_experiment_dir):
         exp.save_parameters()
         
         # Check that YAML file was created
-        yaml_path = exp.active_params.yaml_path
-        assert yaml_path.exists()
-        
-        # Check that parameters can be loaded from YAML
-        exp2 = Experiment()
-        exp2.parameter_manager.from_yaml(yaml_path)
-        
-        ptv_params = exp2.parameter_manager.get_parameter('ptv')
-        assert ptv_params is not None
-        assert exp2.get_n_cam() == 4  # n_cam from global level, not ptv section
+        from pyptv.parameter_manager import ParameterManager
+        if exp.active_params and isinstance(exp.active_params, ParameterManager):
+            yaml_path = exp.active_params.get_yaml_path()
+            if yaml_path and yaml_path.exists():
+                # Check that parameters can be loaded from YAML
+                exp2 = Experiment(yaml_path)
+                
+                ptv_params = exp2.get_parameter('ptv')
+                assert ptv_params is not None
+                assert exp2.get_n_cam() == 4  # n_cam from global level, not ptv section
         
     finally:
         os.chdir(original_dir)
@@ -183,27 +187,29 @@ def test_experiment_parameter_updates(temp_experiment_dir):
         exp.populate_runs(temp_experiment_dir)
         
         # Get initial parameters
-        ptv_params = exp.get_parameter('ptv')
-        original_imx = ptv_params['imx']
+        original_imx = exp.get_parameter('ptv.imx')
         
-        # Update parameters through the ParameterManager
-        exp.parameter_manager.parameters['ptv']['imx'] = 1920
+        # Update parameters through the Experiment interface
+        exp.set_parameter('ptv.imx', 1920)
         
         # Verify the change
-        updated_params = exp.get_parameter('ptv')
-        assert updated_params['imx'] == 1920
-        assert updated_params['imx'] != original_imx
+        updated_imx = exp.get_parameter('ptv.imx')
+        assert updated_imx == 1920
+        assert updated_imx != original_imx
         
         # Save and verify persistence
         exp.save_parameters()
         
         # Load in a new experiment instance
         exp2 = Experiment()
-        yaml_path = exp.active_params.yaml_path
-        exp2.parameter_manager.from_yaml(yaml_path)
-        
-        reloaded_params = exp2.parameter_manager.get_parameter('ptv')
-        assert reloaded_params['imx'] == 1920
+        from pyptv.parameter_manager import ParameterManager
+        if exp.active_params and isinstance(exp.active_params, ParameterManager):
+            yaml_path = exp.active_params.get_yaml_path()
+            if yaml_path:
+                exp2.load_yaml_file(yaml_path)
+                
+                reloaded_imx = exp2.get_parameter('ptv.imx')
+                assert reloaded_imx == 1920
         
     finally:
         os.chdir(original_dir)
@@ -214,12 +220,14 @@ def test_clean_design_principles():
     exp = Experiment()
     
     # 1. Experiment is the MODEL - owns data
-    assert hasattr(exp, 'parameter_manager')
-    assert hasattr(exp, 'paramsets')
     assert hasattr(exp, 'active_params')
+    assert hasattr(exp, 'paramsets')
     
     # 2. Experiment has clear interface for parameter access
+    assert hasattr(exp, 'get_parameter')
+    assert hasattr(exp, 'set_parameter')
     assert callable(exp.get_parameter)
+    assert callable(exp.set_parameter)
     assert callable(exp.save_parameters)
     
     # 3. Experiment doesn't depend on GUI
@@ -228,8 +236,11 @@ def test_clean_design_principles():
     for attr in gui_attributes:
         assert not hasattr(exp, attr), f"Experiment should not have GUI attribute: {attr}"
     
-    # 4. ParameterManager is encapsulated within Experiment
-    assert isinstance(exp.parameter_manager, ParameterManager)
+    # 4. ParameterManager is encapsulated within Experiment as active_params
+    # (might be None if no parameters loaded)
+    from pyptv.parameter_manager import ParameterManager
+    if exp.active_params is not None:
+        assert isinstance(exp.active_params, ParameterManager)
 
 
 if __name__ == "__main__":

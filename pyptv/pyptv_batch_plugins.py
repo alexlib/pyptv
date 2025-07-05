@@ -31,7 +31,7 @@ def load_plugins_config(exp_path: Path):
         experiment = Experiment()
         experiment.populate_runs(exp_path)
         if experiment.nParamsets() > 0:
-            experiment.setActive(0)  # Use first parameter set
+            experiment.set_active_paramset(0)  # Use first parameter set
             plugins_params = experiment.get_parameter('plugins')
             if plugins_params is not None:
                 return {

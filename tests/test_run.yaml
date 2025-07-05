@@ -1,0 +1,66 @@
+n_cam: 2
+ptv:
+  img_name:
+  - img/cam1.%04d
+  - img/cam2.%04d
+  imx: 1024
+  imy: 1024
+  pix_x: 0.01
+  pix_y: 0.01
+  chfield: 0
+  hp_flag: 1
+  allCam_flag: 0
+  tiff_flag: 1
+  imag_flag: 0
+  splitter: 0
+  inverse: 0
+cal_ori:
+  img_cal_name:
+  - cal/cam1_cal
+  - cal/cam2_cal
+  img_ori:
+  - cal/cam1.ori
+  - cal/cam2.ori
+  fixp_name: cal/fixp_name.dat
+  cal_splitter: 0
+sequence:
+  base_name:
+  - img/cam1.%04d
+  - img/cam2.%04d
+  first: 1
+  last: 100
+targ_rec:
+  gv_th_1: 50
+  gv_th_2: 10
+  gv_th_3: 5
+  min_npix: 4
+  max_npix: 20
+  min_npix_x: 2
+  max_npix_x: 10
+  min_npix_y: 2
+  max_npix_y: 10
+  sum_grey_value: 20
+  x_size:
+  - 0.2
+  - 0.2
+  y_size:
+  - 0.2
+  - 0.2
+  pixel_count_x:
+  - 3
+  - 3
+  pixel_count_y:
+  - 3
+  - 3
+tracking:
+  dvx_max: 20.0
+  dvy_max: 20.0
+  dvz_max: 20.0
+  angle_max: 30.0
+  dacc_max: 0.1
+calibration:
+  n_planes: 1
+  plane_name:
+  - plane1
+  examine_flag: 0
+  combine_flag: 0

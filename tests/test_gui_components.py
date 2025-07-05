@@ -224,8 +224,8 @@ detect_plate:
 
         # Create an Experiment object and add the parameter set
         experiment = Experiment()
-        experiment.addParamset("test", yaml_file)
-        experiment.setActive(0)
+        experiment.add_paramset("test", yaml_file)
+        experiment.set_active_paramset(0)
 
         # Create a CalibrationGUI instance with the Experiment object
         gui = CalibrationGUI(experiment)
@@ -327,8 +327,8 @@ track:
 
         # Create an Experiment object and add the parameter set
         experiment = Experiment()
-        experiment.addParamset("test", yaml_file)
-        experiment.setActive(0)
+        experiment.add_paramset("test", yaml_file)
+        experiment.set_active_paramset(0)
 
         # Create a Main_Params instance with the Experiment object
         gui = Main_Params(experiment)

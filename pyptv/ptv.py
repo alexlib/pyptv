@@ -186,7 +186,7 @@ def _read_calibrations(cpar: ControlParams, n_cams: int) -> List[Calibration]:
 
 
 def py_start_proc_c(
-    parameter_manager: "ParameterManager",
+    parameter_manager: ParameterManager
 ) -> Tuple[
     ControlParams,
     SequenceParams,
@@ -199,7 +199,7 @@ def py_start_proc_c(
     """Read all parameters needed for processing using ParameterManager."""
     try:
         params = parameter_manager.parameters
-        n_cam = parameter_manager.n_cam
+        n_cam = parameter_manager.get_n_cam()
 
         ptv_params = params.get('ptv', {})
         cpar = _populate_cpar(ptv_params, n_cam)

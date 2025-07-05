@@ -5,6 +5,7 @@ import sys
 import json
 import numpy as np
 import optv
+from typing import Optional, Union
 from traits.api import HasTraits, Int, Bool, Instance, List, Enum, Any
 from traitsui.api import (
     View,
@@ -423,7 +424,7 @@ class TreeMenuHandler(Handler):
         """sets a set of parameters as active"""
         experiment = editor.get_parent(object)
         paramset = object
-        experiment.setActive(paramset)
+        experiment.set_active_paramset(paramset)
         experiment.changed_active_params = True
         
         # Invalidate parameter cache since we switched parameter sets
@@ -454,7 +455,7 @@ class TreeMenuHandler(Handler):
         shutil.copy(paramset.yaml_path, new_yaml_path)
         print(f"Copied {paramset.yaml_path} to {new_yaml_path}")
             
-        experiment.addParamset(new_name, new_yaml_path)
+        experiment.add_paramset(new_name, new_yaml_path)
 
     def rename_set_params(self, editor, object):
         print("Warning: This method is not implemented.")
@@ -503,7 +504,7 @@ class TreeMenuHandler(Handler):
         # Invalidate parameter cache when reinitializing
         mainGui.invalidate_parameter_cache()
         
-        mainGui.exp1.setActive(0)
+        mainGui.exp1.set_active_paramset(0)
 
         ptv_params = mainGui.get_parameter('ptv')
         
@@ -1197,12 +1198,26 @@ class MainGUI(HasTraits):
     # ---------------------------------------------------
     # Constructor and Chaco windows initialization
     # ---------------------------------------------------
-    def __init__(self, exp_path: Path, software_path: Path):
+    def __init__(self, exp_path: Optional[Union[Path, str]] = None, yaml_file: Optional[Union[Path, str]] = None):
         super(MainGUI, self).__init__()
 
         colors = ["yellow", "green", "red", "blue"]
-        self.exp1 = Experiment()
-        self.exp1.populate_runs(exp_path)
+        
+        # Initialize experiment based on input
+        if yaml_file is not None:
+            # Direct YAML file provided
+            self.exp1 = Experiment(yaml_file)
+            print(f"Initialized with YAML file: {yaml_file}")
+        elif exp_path is not None:
+            # Directory provided - scan for YAML files
+            self.exp1 = Experiment()
+            self.exp1.populate_runs(exp_path)
+            print(f"Initialized with directory: {exp_path}")
+        else:
+            # No input - start empty
+            self.exp1 = Experiment()
+            print("Initialized empty experiment")
+        
         self.plugins = Plugins(experiment=self.exp1)  # Pass experiment to plugins
         
         # Get configuration from Experiment's ParameterManager
@@ -1230,8 +1245,17 @@ class MainGUI(HasTraits):
         self.camera_list = [
             CameraWindow(colors[i], f"Camera {i + 1}") for i in range(self.n_cams)
         ]
-        self.software_path = software_path
-        self.exp_path = exp_path
+        for i in range(self.n_cams):
+            self.camera_list[i].on_trait_change(self.right_click_process, "rclicked")
+
+        # Store paths for reference (optional, for backward compatibility)
+        self.software_path = Path.cwd()  # Default to current directory
+        if exp_path:
+            self.exp_path = Path(exp_path) 
+        elif yaml_file:
+            self.exp_path = Path(yaml_file).parent
+        else:
+            self.exp_path = Path.cwd()
         
         # Initialize processing-related attributes
         self.detections = None
@@ -1252,9 +1276,6 @@ class MainGUI(HasTraits):
         
         # Cache invalidation flag - set to True when parameters change
         self._parameter_objects_dirty = True
-        
-        for i in range(self.n_cams):
-            self.camera_list[i].on_trait_change(self.right_click_process, "rclicked")
 
     def get_parameter(self, key):
         """Delegate parameter access to experiment"""
@@ -1274,7 +1295,7 @@ class MainGUI(HasTraits):
             
             try:
                 (self.cpar, self.spar, self.vpar, self.track_par, 
-                 self.tpar, self.cals, self.epar) = py_start_proc_c(self.exp1.parameter_manager)
+                 self.tpar, self.cals, self.epar) = py_start_proc_c(self.exp1.active_params)
                 
                 # Clear the dirty flag - parameters are now up-to-date
                 self._parameter_objects_dirty = False
@@ -1512,29 +1533,44 @@ def printException():
 
 def main():
     """main function"""
-    software_path = Path.cwd().resolve()
-    print(f"Software path is {software_path}")
+    print(f"Software path is {Path.cwd()}")
 
     if len(sys.argv) > 1:
-        exp_path = Path(sys.argv[1]).resolve()
-        print(f"Experimental path is {exp_path}")
+        input_path = Path(sys.argv[1]).resolve()
+        
+        if input_path.suffix.lower() == '.yaml':
+            # YAML file provided
+            if not input_path.exists():
+                raise FileNotFoundError(f"YAML parameter file not found: {input_path}")
+            print(f"Using YAML parameter file: {input_path}")
+            main_gui = MainGUI(yaml_file=input_path)
+            
+        elif input_path.is_dir():
+            # Directory provided
+            print(f"Using experimental directory: {input_path}")
+            main_gui = MainGUI(exp_path=input_path)
+            
+        else:
+            raise ValueError(f"Input must be a directory or YAML file: {input_path}")
     else:
-        exp_path = software_path / "tests" / "test_cavity"
-        print(f"Without input, PyPTV fallbacks to a default {exp_path}")
+        # Default to test cavity
+        exp_path = Path.cwd() / "tests" / "test_cavity"
+        print(f"No input provided, using default: {exp_path}")
+        
+        if not exp_path.is_dir() or not exp_path.exists():
+            raise OSError(f"Default experimental directory not found: {exp_path}")
+        
+        main_gui = MainGUI(exp_path=exp_path)
 
-    if not exp_path.is_dir() or not exp_path.exists():
-        raise OSError(f"Wrong experimental directory {exp_path}")
-
-    os.chdir(exp_path)
+    # Change to working directory  
+    if main_gui.exp1.active_params and hasattr(main_gui.exp1.active_params, 'get_working_directory'):
+        os.chdir(main_gui.exp1.active_params.get_working_directory())
 
     try:
-        main_gui = MainGUI(exp_path, software_path)
         main_gui.configure_traits()
     except OSError:
-        print("something wrong with the software or folder")
+        print("Something wrong with the software or folder")
         printException()
-
-    os.chdir(software_path)  # get back to the original workdir
 
 
 if __name__ == "__main__":

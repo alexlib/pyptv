@@ -1,6 +1,15 @@
 """PyPTV_BATCH: Batch processing script for 3D-PTV (http://ptv.origo.ethz.ch)
 
-This module provides batch processing capabilities for PyPTV, allowing users to
+This module provides batch processin        # Create experiment and load YAML parameters
+        experiment = Experiment(yaml_file)
+        
+        logger.info(f"Initializing processing with n_cam = {experiment.get_n_cam()}")
+        
+        # Ensure we have an active parameter manager
+        if experiment.active_params is None:
+            raise ProcessingError("No active parameter manager after loading YAML")
+        
+        cpar, spar, vpar, track_par, tpar, cals, epar = py_start_proc_c(experiment.active_params)ties for PyPTV, allowing users to
 process sequences of images without the GUI interface.
 
 The script expects:
@@ -114,15 +123,15 @@ def run_batch(yaml_file: Path, seq_first: int, seq_last: int) -> None:
         os.chdir(exp_path)
         
         # Create experiment and load YAML parameters
-        experiment = Experiment()
-        
         # Load parameters from YAML file
-        logger.info(f"Loading parameters from: {yaml_file}")
-        experiment.parameter_manager.from_yaml(yaml_file)
+        logger.info(f"Loading parameters from: {yaml_file}")        
+        experiment = Experiment(yaml_file)
         
         
-        logger.info(f"Initializing processing with n_cam = {experiment.parameter_manager.n_cam}")
-        cpar, spar, vpar, track_par, tpar, cals, epar = py_start_proc_c(experiment.parameter_manager)
+        logger.info(f"Initializing processing with n_cam = {experiment.get_n_cam()}")
+        if experiment.active_params is None or not hasattr(experiment.active_params, "cpar"):
+            raise ProcessingError("No active parameter manager after loading YAML")
+        cpar, spar, vpar, track_par, tpar, cals, epar = py_start_proc_c(experiment.active_params)
 
         # Set sequence parameters
         spar.set_first(seq_first)
@@ -131,7 +140,9 @@ def run_batch(yaml_file: Path, seq_first: int, seq_last: int) -> None:
         # Create a simple object to hold processing parameters for ptv.py functions
         class ProcessingExperiment:
             def __init__(self, experiment, cpar, spar, vpar, track_par, tpar, cals, epar):
-                self.parameter_manager = experiment.parameter_manager
+                # For compatibility with existing PyPTV functions, provide parameter_manager
+                self.parameter_manager = experiment.active_params  # This is the ParameterManager
+                self.active_params = experiment.active_params
                 self.cpar = cpar
                 self.spar = spar
                 self.vpar = vpar
@@ -139,7 +150,7 @@ def run_batch(yaml_file: Path, seq_first: int, seq_last: int) -> None:
                 self.tpar = tpar
                 self.cals = cals
                 self.epar = epar
-                self.n_cams = experiment.parameter_manager.n_cam  # Global number of cameras
+                self.n_cams = experiment.get_n_cam()  # Get n_cam through experiment
                 # Initialize attributes that may be set during processing
                 self.detections = []
                 self.corrected = []

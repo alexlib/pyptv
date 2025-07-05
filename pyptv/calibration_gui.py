@@ -302,13 +302,13 @@ class CalibrationGUI(HasTraits):
                         break
                 
                 if matching_paramset:
-                    self.experiment.setActive(matching_paramset)
+                    self.experiment.set_active_paramset(matching_paramset)
                     print(f"Set active parameter set: {matching_paramset.name}")
                 else:
                     print(f"Warning: Could not find parameter set for {path}")
                     # Use the first available parameter set
                     if self.experiment.paramsets:
-                        self.experiment.setActive(self.experiment.paramsets[0])
+                        self.experiment.set_active_paramset(self.experiment.paramsets[0])
                         print(f"Using first available parameter set: {self.experiment.paramsets[0].name}")
                     else:
                         raise ValueError("No parameter sets found in experiment")
@@ -326,7 +326,7 @@ class CalibrationGUI(HasTraits):
                 self.experiment.populate_runs(path)
                 
                 if self.experiment.paramsets:
-                    self.experiment.setActive(self.experiment.paramsets[0])
+                    self.experiment.set_active_paramset(self.experiment.paramsets[0])
                     print(f"Using parameter set: {self.experiment.paramsets[0].name}")
                 else:
                     raise ValueError("No parameter sets found in experiment directory")

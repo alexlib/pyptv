@@ -20,32 +20,28 @@ def test_parameter_translation_pipeline():
         print("❌ No parameter sets found!")
         return False
     
-    experiment.active_params = experiment.paramsets[0]
+    experiment.set_active_paramset(experiment.paramsets[0])
     print(f"✅ Loaded experiment with {len(experiment.paramsets)} parameter sets")
-    print(f"   Active: {experiment.active_params.name}")
+    print(f"   Active: {experiment.paramsets[0].name}")
     
     # Step 2: Check raw YAML parameters
     print("\n2. Checking raw YAML parameters...")
-    params = experiment.parameter_manager.parameters
-    n_cam = experiment.parameter_manager.n_cam
+    n_cam = experiment.get_n_cam()
     
     print(f"   Global n_cam: {n_cam}")
-    print(f"   Available sections: {list(params.keys())}")
     
-    # Check critical sections
-    ptv_params = params.get('ptv', {})
-    targ_params = params.get('targ_rec', {})
-    # print targ_params grey thresholds: 
-    print(targ_params.get('gvthres','Mistake'))
-
-
-    seq_params = params.get('sequence', {})
+    # Check critical sections using experiment parameter access
+    ptv_imx = experiment.get_parameter('ptv.imx')
+    ptv_imy = experiment.get_parameter('ptv.imy')
+    gv_th_1 = experiment.get_parameter('detect_plate.gvth_1')  # Use correct parameter name
+    seq_first = experiment.get_parameter('sequence.first')
+    seq_last = experiment.get_parameter('sequence.last')
     
-    print(f"   PTV section keys: {list(ptv_params.keys())}")
-    print(f"   Target recognition keys: {list(targ_params.keys())}")
-    print(f"   Sequence section keys: {list(seq_params.keys())}")
+    print(f"   PTV imx: {ptv_imx}, imy: {ptv_imy}")
+    print(f"   Target recognition gvth_1: {gv_th_1}")
+    print(f"   Sequence first: {seq_first}, last: {seq_last}")
     
-    if not ptv_params or not targ_params:
+    if not ptv_imx or not gv_th_1:
         print("❌ Missing critical parameter sections!")
         return False
     
@@ -53,19 +49,22 @@ def test_parameter_translation_pipeline():
     print("\n3. Testing individual parameter object creation...")
     
     try:
-        # Test ControlParams
+        # Test ControlParams - get ptv parameters as dict for the function
         print("   Creating ControlParams...")
+        ptv_params = experiment.get_parameter('ptv', {})
         cpar = _populate_cpar(ptv_params, n_cam)
         print(f"   ✅ ControlParams: {cpar.get_num_cams()} cameras, image size: {cpar.get_image_size()}")
         
         # Test TargetParams  
         print("   Creating TargetParams...")
+        targ_params = experiment.get_parameter('detect_plate', {})  # Use correct section name
         tpar = _populate_tpar(targ_params, n_cam)
         print(f"   ✅ TargetParams: grey thresholds: {tpar.get_grey_thresholds()}")
         print(f"      Pixel bounds: {tpar.get_pixel_count_bounds()}")
         
         # Test SequenceParams
         print("   Creating SequenceParams...")
+        seq_params = experiment.get_parameter('sequence', {})
         spar = _populate_spar(seq_params, n_cam)
         print(f"   ✅ SequenceParams: frames {spar.get_first()}-{spar.get_last()}")
         
@@ -78,7 +77,15 @@ def test_parameter_translation_pipeline():
     # Step 4: Test full py_start_proc_c
     print("\n4. Testing complete parameter initialization...")
     try:
-        cpar, spar, vpar, track_par, tpar, cals, epar = py_start_proc_c(experiment.parameter_manager)
+        if experiment.active_params is None:
+            print("❌ No active parameter manager")
+            return False
+        
+        # Ensure we have a ParameterManager instance
+        from pyptv.parameter_manager import ParameterManager
+        assert isinstance(experiment.active_params, ParameterManager)
+        
+        cpar, spar, vpar, track_par, tpar, cals, epar = py_start_proc_c(experiment.active_params)
         print("   ✅ py_start_proc_c completed successfully")
         print(f"   ControlParams cameras: {cpar.get_num_cams()}")
         print(f"   Calibrations loaded: {len(cals)}")
@@ -147,7 +154,7 @@ def test_parameter_translation_pipeline():
             thresholds = tpar.get_grey_thresholds()
             if not thresholds or max(thresholds) > 250:
                 print("   ❌ Grey thresholds seem wrong!")
-                print(f"      Raw targ_rec params: {targ_params}")
+                print(f"      Raw detect_plate params: {experiment.get_parameter('detect_plate', {})}")
             
             return False
         else:
