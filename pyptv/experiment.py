@@ -168,16 +168,6 @@ class Experiment(HasTraits):
         if not self.changed_active_params and self.nParamsets() > 0:
             self.setActive(0)
             
-            # Check for plugins.json and migrate it to YAML if found
-            plugins_json_path = exp_path / "plugins.json"
-            if plugins_json_path.exists():
-                print(f"Found plugins.json, migrating to YAML parameters...")
-                self.parameter_manager.migrate_plugins_json(plugins_json_path)
-                # Save the updated parameters
-                if self.active_params is not None:
-                    self.save_parameters()
-                    print("Plugins configuration migrated and saved to YAML")
-            
             # Check for man_ori.dat and migrate it to YAML if found
             man_ori_dat_path = exp_path / "man_ori.dat"
             if man_ori_dat_path.exists():

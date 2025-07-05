@@ -39,17 +39,6 @@ def test_parameter_manager():
     nonexistent = pm.get_parameter_value('masking', 'nonexistent_key', default='N/A')
     print(f'   masking.nonexistent_key: {nonexistent}')
     
-    # Test default value generation
-    print('\n4. Testing default value generation')
-    default_flag = pm.get_default_value_for_parameter('some_group', 'enable_flag')
-    print(f'   default for enable_flag: {default_flag}')
-    
-    default_name = pm.get_default_value_for_parameter('some_group', 'base_name')
-    print(f'   default for base_name: {default_name}')
-    
-    default_size = pm.get_default_value_for_parameter('some_group', 'window_size')
-    print(f'   default for window_size: {default_size}')
-    
     print('\n=== Test completed successfully! ===')
 
 if __name__ == '__main__':

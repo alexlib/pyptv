@@ -173,8 +173,72 @@ def test_calibration_gui_creation(mock_experiment_dir, test_data_dir):
     if CalibrationGUI is None:
         pytest.skip("CalibrationGUI not available")
 
-    # Skip this test for now as it requires more complex setup
-    pytest.skip("CalibrationGUI test requires more complex setup")
+    try:
+        # Import the Experiment class
+        from pyptv.experiment import Experiment
+        
+        # Create a test YAML file in the mock experiment directory
+        yaml_file = mock_experiment_dir / "parameters_test.yaml"
+        yaml_content = """
+n_cam: 4
+ptv:
+  img_name: ['img1.tif', 'img2.tif', 'img3.tif', 'img4.tif']
+  img_cal: ['cal1.tif', 'cal2.tif', 'cal3.tif', 'cal4.tif']
+  hp_flag: true
+  allcam_flag: false
+  tiff_flag: true
+  imx: 1280
+  imy: 1024
+  pix_x: 17.0
+  pix_y: 17.0
+  chfield: 0
+  mmp_n1: 1.0
+  mmp_n2: 1.33
+  mmp_n3: 1.46
+  mmp_d: 1.0
+  splitter: false
+cal_ori:
+  fixp_name: 'fixp_file'
+  img_cal_name: ['cal1', 'cal2', 'cal3', 'cal4']
+  img_ori: ['ori1', 'ori2', 'ori3', 'ori4']
+  tiff_flag: true
+  pair_flag: false
+  chfield: 0
+detect_plate:
+  gvth_1: 25
+  gvth_2: 25
+  gvth_3: 25
+  gvth_4: 25
+  tol_dis: 5
+  min_npix: 1
+  max_npix: 20
+  min_npix_x: 1
+  max_npix_x: 20
+  min_npix_y: 1
+  max_npix_y: 20
+  sum_grey: 12
+  size_cross: 4
+"""
+        with open(yaml_file, 'w') as f:
+            f.write(yaml_content)
+
+        # Create an Experiment object and add the parameter set
+        experiment = Experiment()
+        experiment.addParamset("test", yaml_file)
+        experiment.setActive(0)
+
+        # Create a CalibrationGUI instance with the Experiment object
+        gui = CalibrationGUI(experiment)
+        assert gui is not None
+        assert gui.n_cams == 4  # Should get this from the experiment
+        print("✓ CalibrationGUI created successfully with Experiment object")
+        
+    except Exception as e:
+        # If there's an error related to the display, skip the test
+        if "display" in str(e).lower() or "qt" in str(e).lower() or "opengl" in str(e).lower():
+            pytest.skip(f"Display-related error: {str(e)}")
+        else:
+            raise
 
 
 @pytest.mark.skipif(
@@ -186,34 +250,101 @@ def test_parameters_gui_creation(mock_experiment_dir, test_data_dir):
     if Main_Params is None:
         pytest.skip("Main_Params not available")
 
-    # Create a parameters directory in the mock experiment directory
-    params_dir = mock_experiment_dir / "parameters"
-    params_dir.mkdir(exist_ok=True)
-
-    # Copy parameter files from test_cavity to the mock experiment directory
-    test_cavity_params_dir = test_data_dir / "parameters"
-    if test_cavity_params_dir.exists():
-        for param_file in test_cavity_params_dir.glob("*"):
-            shutil.copy(param_file, params_dir)
-
     try:
-        # Change to the mock experiment directory
-        original_dir = os.getcwd()
-        os.chdir(mock_experiment_dir)
+        # Import the Experiment class
+        from pyptv.experiment import Experiment
+        
+        # Create a test YAML file in the mock experiment directory
+        yaml_file = mock_experiment_dir / "parameters_test.yaml"
+        yaml_content = """
+n_cam: 4
+ptv:
+  img_name: ['img1.tif', 'img2.tif', 'img3.tif', 'img4.tif']
+  img_cal: ['cal1.tif', 'cal2.tif', 'cal3.tif', 'cal4.tif']
+  hp_flag: true
+  allcam_flag: false
+  tiff_flag: true
+  imx: 1280
+  imy: 1024
+  pix_x: 17.0
+  pix_y: 17.0
+  chfield: 0
+  mmp_n1: 1.0
+  mmp_n2: 1.33
+  mmp_n3: 1.46
+  mmp_d: 1.0
+  splitter: false
+cal_ori:
+  fixp_name: 'fixp_file'
+  img_cal_name: ['cal1', 'cal2', 'cal3', 'cal4']
+  img_ori: ['ori1', 'ori2', 'ori3', 'ori4']
+  tiff_flag: true
+  pair_flag: false
+  chfield: 0
+targ_rec:
+  gvthres: [25, 25, 25, 25]
+  disco: 5
+  nnmin: 1
+  nnmax: 20
+  nxmin: 1
+  nxmax: 20
+  nymin: 1
+  nymax: 20
+  sumg_min: 12
+  cr_sz: 4
+sequence:
+  base_name: ['seq1_', 'seq2_', 'seq3_', 'seq4_']
+  first: 1001
+  last: 1100
+criteria:
+  X_lay: [-100.0, 100.0]
+  Zmin_lay: [10.0, 20.0]
+  Zmax_lay: [50.0, 60.0]
+  cnx: 0.5
+  cny: 0.5
+  cn: 0.5
+  csumg: 12.0
+  corrmin: 0.5
+  eps0: 0.1
+masking:
+  mask_flag: false
+  mask_base_name: ''
+pft_version:
+  Existing_Target: false
+track:
+  dvxmin: -50.0
+  dvxmax: 50.0
+  dvymin: -50.0
+  dvymax: 50.0
+  dvzmin: -50.0
+  dvzmax: 50.0
+  angle: 0.5
+  dacc: 5.0
+  flagNewParticles: true
+"""
+        with open(yaml_file, 'w') as f:
+            f.write(yaml_content)
 
-        try:
-            # Create a Main_Params instance with the parameters path
-            gui = Main_Params(par_path=params_dir)
-            assert gui is not None
-        except TypeError:
-            # If Main_Params doesn't take par_path, skip the test
-            pytest.skip("Main_Params constructor doesn't match expected signature")
-        finally:
-            # Change back to the original directory
-            os.chdir(original_dir)
+        # Create an Experiment object and add the parameter set
+        experiment = Experiment()
+        experiment.addParamset("test", yaml_file)
+        experiment.setActive(0)
+
+        # Create a Main_Params instance with the Experiment object
+        gui = Main_Params(experiment)
+        assert gui is not None
+        assert gui.Num_Cam == 4
+        assert gui.Name_1_Image == 'img1.tif'
+        print("✓ Main_Params created successfully with Experiment object")
+        
     except Exception as e:
         # If there's an error related to the display, skip the test
         if "display" in str(e).lower() or "qt" in str(e).lower():
             pytest.skip(f"Display-related error: {str(e)}")
         else:
             raise
+
+
+if __name__ == "__main__":
+    # Run the tests if this script is executed directly
+    pytest.main([__file__, "-v", "--tb=short"])

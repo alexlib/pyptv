@@ -1,6 +1,7 @@
 import pytest
 from pathlib import Path
 import shutil
+import os
 
 
 @pytest.fixture(scope="session")
@@ -29,3 +30,40 @@ def clean_test_environment(test_data_dir):
     # Cleanup after tests
     if results_dir.exists():
         shutil.rmtree(results_dir)
+
+
+@pytest.fixture(autouse=True)
+def ensure_clean_working_directory():
+    """
+    Autouse fixture that ensures each test starts with a clean working directory.
+
+    This fixture runs before every test to ensure proper test isolation
+    by restoring the working directory to the project root.
+    """
+    # Store the original working directory
+    original_cwd = None
+    try:
+        original_cwd = os.getcwd()
+    except (OSError, FileNotFoundError):
+        # If current directory doesn't exist, default to project root
+        pass
+
+    # Ensure we're in the project root (where pyproject.toml is)
+    project_root = Path(__file__).parent.parent
+    if project_root.exists():
+        os.chdir(project_root)
+
+    # Run the test
+    yield
+
+    # Restore original directory if it still exists, otherwise stay in project root
+    if original_cwd:
+        try:
+            if Path(original_cwd).exists():
+                os.chdir(original_cwd)
+            else:
+                # Original directory was deleted, stay in project root
+                os.chdir(project_root)
+        except (OSError, FileNotFoundError):
+            # If restoration fails, ensure we're in project root
+            os.chdir(project_root)

@@ -90,13 +90,9 @@ def legacy_to_yaml(parameters_dir: Union[str, Path],
     experiment = Experiment()
     experiment.parameter_manager = manager
     
-    # Migrate plugins.json if it exists in the parameters folder
-    plugins_json = parameters_dir / "plugins.json"
-    if plugins_json.exists():
-        print(f"🔌 Migrating plugins from {plugins_json}")
-        manager.migrate_plugins_json(plugins_json)
-    else:
-        print("ℹ️  No plugins.json found - using defaults")
+    # Plugins configuration should be part of YAML structure
+    # No migration from plugins.json - users should configure plugins directly in YAML
+    print("ℹ️  Plugins should be configured directly in YAML parameters")
     
     # Migrate man_ori.dat if it exists in the parameters folder
     man_ori_dat = parameters_dir / "man_ori.dat"

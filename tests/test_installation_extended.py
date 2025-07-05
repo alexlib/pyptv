@@ -175,10 +175,13 @@ def test_windows_environment():
 
 def test_installation_scripts():
     """Test that installation scripts exist"""
+    # Get the project root directory
+    project_root = Path(__file__).parent.parent
+    
     # Check for Linux installation script
-    linux_script = Path("install_pyptv.sh")
+    linux_script = project_root / "install_pyptv.sh"
     assert linux_script.exists(), "Linux installation script not found"
 
     # Check for Windows installation script
-    windows_script = Path("install_pyptv.bat")
+    windows_script = project_root / "install_pyptv.bat"
     assert windows_script.exists(), "Windows installation script not found"

@@ -236,7 +236,7 @@ class CalibrationGUI(HasTraits):
     status_text = Str("")
     ori_cam_name = []
     ori_cam = []
-    num_cams = Int(0)
+    n_cams = Int(0)  # Number of cameras - will be set from experiment
     pass_init = Bool(False)
     pass_sortgrid = Bool(False)
     pass_raw_orient = Bool(False)
@@ -274,7 +274,11 @@ class CalibrationGUI(HasTraits):
         ptv_params = experiment.get_parameter('ptv')
         if ptv_params is None:
             raise ValueError("Failed to load PTV parameters")
+        
+        # Set number of cameras from experiment (both instance var and Traits attribute)
         self.n_cams = experiment.get_n_cam()
+        
+        # Create camera plot windows
         self.camera = [PlotWindow() for i in range(self.n_cams)]
         for i in range(self.n_cams):
             self.camera[i].name = "Camera" + str(i + 1)
