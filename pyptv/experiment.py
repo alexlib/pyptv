@@ -7,22 +7,22 @@ and experiment configuration for PyPTV.
 
 import shutil
 from pathlib import Path
-from traits.api import HasTraits, Instance, List, Str
+from traits.api import HasTraits, Instance, List, Str, Bool, Any
 from pyptv.parameter_manager import ParameterManager
 
 
-class Paramset:
+class Paramset(HasTraits):
     """A parameter set with a name and YAML file path"""
-    def __init__(self, name: str, yaml_path: Path):
+    name = Str()
+    yaml_path = Any()
+    
+    def __init__(self, name: str, yaml_path: Path, **traits):
+        super().__init__(**traits)
         self.name = name
         self.yaml_path = yaml_path
 
 
-# You do not have to use HasTraits unless you need Traits features (like dynamic notifications, validation, or GUI integration).
-# If you do not use Traits, you can use a plain Python class and standard attributes.
-# Here is a version of Experiment without HasTraits:
-
-class Experiment:
+class Experiment(HasTraits):
     """
     The Experiment class manages parameter sets and experiment configuration.
 
@@ -30,11 +30,15 @@ class Experiment:
     It delegates parameter management to ParameterManager while handling
     the organization of multiple parameter sets.
     """
-    def __init__(self):
-        self.active_params = None
-        self.paramsets = []
-        self.changed_active_params = False
-        self.parameter_manager = ParameterManager()
+    active_params = Any()  # Instance(Paramset, allow_none=True)
+    paramsets = List()     # List(Instance(Paramset))
+    changed_active_params = Bool(False)
+    parameter_manager = Any()  # Instance(ParameterManager)
+    
+    def __init__(self, **traits):
+        super().__init__(**traits)
+        if self.parameter_manager is None:
+            self.parameter_manager = ParameterManager()
 
     def get_parameter(self, key):
         """Get parameter with ParameterManager delegation"""
