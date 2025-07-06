@@ -261,20 +261,26 @@ class CalibrationGUI(HasTraits):
     button_test = Button()
     _cal_splitter = Bool(False)
 
-    def __init__(self, experiment: Experiment):
+    def __init__(self, yaml_path):
         super(CalibrationGUI, self).__init__()
         self.need_reset = 0
-        self.experiment = experiment
-        self.active_path = Path(experiment.active_params.yaml_path).parent
-        self.working_folder = self.active_path.parent
-        
+        self.yaml_path = Path(yaml_path).resolve()
+        self.working_folder = self.yaml_path.parent  # Use the folder containing the YAML as working dir
         os.chdir(self.working_folder)
-        print(f"Inside a folder: {Path.cwd()}")
+        print(f"Calibration GUI working directory: {Path.cwd()}")
 
-        ptv_params = experiment.get_parameter('ptv')
+        # Create Experiment using the YAML file
+        self.experiment = Experiment()
+        self.experiment.populate_runs(self.working_folder)
+        
+        ptv_params = self.experiment.get_parameter('ptv')
         if ptv_params is None:
             raise ValueError("Failed to load PTV parameters")
-        self.n_cams = experiment.get_n_cam()
+        self.n_cams = self.experiment.get_n_cam()
+        
+        # Initialize detections to prevent AttributeError
+        self.detections = None
+        
         self.camera = [PlotWindow() for i in range(self.n_cams)]
         for i in range(self.n_cams):
             self.camera[i].name = "Camera" + str(i + 1)
@@ -405,7 +411,11 @@ class CalibrationGUI(HasTraits):
     )
 
     def _button_edit_cal_parameters_fired(self):
-        self.experiment.save_parameters()
+        from pyptv.parameter_gui import Calib_Params
+        
+        # Create and show the calibration parameters GUI
+        calib_params_gui = Calib_Params(experiment=self.experiment)
+        calib_params_gui.edit_traits(view='Calib_Params_View', kind='livemodal')
 
     def _button_showimg_fired(self):
         print("Loading images/parameters \n")
@@ -417,13 +427,13 @@ class CalibrationGUI(HasTraits):
             self.tpar,
             self.cals,
             self.epar,
-        ) = ptv.py_start_proc_c(self.n_cams)
+        ) = ptv.py_start_proc_c(self.experiment.parameter_manager)
 
         print("reset grey scale thresholds for calibration:\n")
         self.tpar.read("parameters/detect_plate.par")
         print(self.tpar.get_grey_thresholds())
 
-        if self.epar.Combine_Flag is True:
+        if self.epar['Combine_Flag'] is True: # type: ignore
             print("Combine Flag is On")
             self.MultiParams = self.get_parameter('multi_planes')
             for i in range(self.MultiParams['n_planes']):
@@ -477,8 +487,12 @@ class CalibrationGUI(HasTraits):
 
         self.reset_show_images()
 
+        # Get parameter dictionaries for py_detection_proc_c
+        ptv_params = self.get_parameter('ptv')
+        targ_rec_params = self.get_parameter('targ_rec')
+        
         self.detections, corrected = ptv.py_detection_proc_c(
-            self.cal_images, self.cpar, self.tpar, self.cals
+            self.cal_images, ptv_params, targ_rec_params
         )
 
         x = [[i.pos()[0] for i in row] for row in self.detections]
@@ -611,6 +625,11 @@ class CalibrationGUI(HasTraits):
             self.reset_show_images()
             self.need_reset = 0
 
+        # Check if detections exist
+        if self.detections is None:
+            self.status_text = "Please run detection first"
+            return
+
         self.cal_points = self._read_cal_points()
         self.sorted_targs = []
 
@@ -684,7 +703,7 @@ class CalibrationGUI(HasTraits):
         flags = [name for name in NAMES if orient_params.get(name) == 1]
 
         for i_cam in range(self.n_cams):
-            if self.epar.Combine_Flag:
+            if self.epar.get('Combine_Flag', False):
                 self.status_text = "Multiplane calibration."
                 all_known = []
                 all_detected = []
@@ -867,7 +886,7 @@ class CalibrationGUI(HasTraits):
 
         print("Saving:", ori, addpar)
         self.cals[i_cam].write(ori.encode(), addpar.encode())
-        if self.epar.Examine_Flag and not self.epar.Combine_Flag:
+        if self.epar.get('Examine_Flag', False) and not self.epar.get('Combine_Flag', False):
             self.save_point_sets(i_cam)
 
     def save_point_sets(self, i_cam):

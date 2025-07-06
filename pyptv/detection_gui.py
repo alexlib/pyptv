@@ -282,7 +282,7 @@ class DetectionGUI(HasTraits):
             self.tpar,
             self.cals,
             self.epar,
-        ) = ptv.py_start_proc_c(ptv_params)
+        ) = ptv.py_start_proc_c(experiment.parameter_manager)
 
         self.tpar.read("parameters/detect_plate.par")
 

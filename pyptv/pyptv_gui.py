@@ -422,10 +422,18 @@ class TreeMenuHandler(Handler):
         paramset = object
         print(f"Deleting parameter set: {paramset.name}")
         
-        # Use the experiment's delete method which handles YAML files
+        # Use the experiment's delete method which handles YAML files and validation
         try:
             experiment.delete_paramset(paramset)
-            editor._menu_delete_node()
+            
+            # The tree view should automatically update when the paramsets list changes
+            # Force a trait change event to ensure the GUI updates
+            experiment.trait_set(paramsets=experiment.paramsets)
+            
+            print(f"Successfully deleted parameter set: {paramset.name}")
+        except ValueError as e:
+            # Handle case where we try to delete the active parameter set
+            print(f"Cannot delete parameter set: {e}")
         except Exception as e:
             print(f"Error deleting parameter set: {e}")
 
@@ -610,7 +618,7 @@ class TreeMenuHandler(Handler):
         info.object.pass_init = False
         print("Active parameters set")
         print(info.object.exp1.active_params.yaml_path)
-        calib_gui = CalibrationGUI(info.object.exp1)
+        calib_gui = CalibrationGUI(info.object.exp1.active_params.yaml_path)
         calib_gui.configure_traits()
 
     def detection_gui_action(self, info):
@@ -1102,10 +1110,10 @@ class MainGUI(HasTraits):
     """MainGUI is the main class under which the Model-View-Control
     (MVC) model is defined"""
 
-    camera_list = List
+    camera_list = List(Instance(CameraWindow))
     pass_init = Bool(False)
     update_thread_plot = Bool(False)
-    selected = Any
+    selected = Instance(CameraWindow)
 
     # Defines GUI view --------------------------
     view = View(

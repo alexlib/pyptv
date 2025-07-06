@@ -166,6 +166,9 @@ def _populate_tpar(params: dict, n_cam: int) -> TargetParams:
 
 def _read_calibrations(cpar: ControlParams, n_cams: int) -> List[Calibration]:
     """Read calibration files for all cameras.
+    
+    Returns empty/default calibrations if files don't exist, which is normal
+    for the calibration GUI before calibrations have been created.
     """
     cals = []
     for i_cam in range(n_cams):
@@ -174,12 +177,20 @@ def _read_calibrations(cpar: ControlParams, n_cams: int) -> List[Calibration]:
         ori_file = base_name + ".ori"
         addpar_file = base_name + ".addpar"
 
-        if not (os.path.isfile(ori_file) and os.access(ori_file, os.R_OK)):
-            raise IOError(f"Cannot read orientation file: {ori_file}")
-        if not (os.path.isfile(addpar_file) and os.access(addpar_file, os.R_OK)):
-            raise IOError(f"Cannot read addpar file: {addpar_file}")
-
-        cal.from_file(ori_file, addpar_file)
+        # Check if calibration files exist and are readable
+        ori_exists = os.path.isfile(ori_file) and os.access(ori_file, os.R_OK)
+        addpar_exists = os.path.isfile(addpar_file) and os.access(addpar_file, os.R_OK)
+        
+        if ori_exists and addpar_exists:
+            # Both files exist, load them
+            cal.from_file(ori_file, addpar_file)
+            print(f"Loaded calibration for camera {i_cam + 1} from {ori_file}")
+        else:
+            # Files don't exist yet - this is normal for calibration GUI
+            # Create default/empty calibration
+            print(f"Calibration files not found for camera {i_cam + 1} - using defaults")
+            print(f"  Missing: {ori_file if not ori_exists else ''} {addpar_file if not addpar_exists else ''}")
+            
         cals.append(cal)
 
     return cals
@@ -243,23 +254,23 @@ def py_pre_processing_c(
 
 
 def py_detection_proc_c(
-    list_of_images: List[np.ndarray],  # Must match n_cam from parameters
-    ptv_params: dict,                  # PTV parameters from YAML
-    target_params: dict,               # Must be {'targ_rec': {...}}
+    list_of_images: List[np.ndarray],
+    ptv_params: dict,
+    target_params: dict,
     existing_target: bool = False,
 ) -> Tuple[List[TargetArray], List[MatchedCoords]]:
     """Detect targets in a list of images."""
-    n_images = len(list_of_images)
-    
-    # Get the global number of cameras from ptv_params
-    # This should match the number of calibration files defined
     n_cam = len(ptv_params.get('img_cal', []))
     
-    if n_images != n_cam:
-        raise ValueError(f"Number of images ({n_images}) must match number of cameras in parameters ({n_cam})")
+    if len(list_of_images) != n_cam:
+        raise ValueError(f"Number of images ({len(list_of_images)}) must match number of cameras ({n_cam})")
 
     cpar = _populate_cpar(ptv_params, n_cam)
-    tpar = _populate_tpar(target_params, n_cam)
+    
+    # Create a dict that contains targ_rec for _populate_tpar
+    target_params_dict = {'targ_rec': target_params}
+    tpar = _populate_tpar(target_params_dict, n_cam)
+    
     cals = _read_calibrations(cpar, n_cam)
 
     detections = []

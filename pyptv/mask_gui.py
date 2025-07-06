@@ -322,7 +322,7 @@ class MaskGUI(HasTraits):
             self.tpar,
             self.cals,
             self.epar,
-        ) = ptv.py_start_proc_c(ptv_params)
+        ) = ptv.py_start_proc_c(self.experiment.parameter_manager)
 
         self.images = []
         for i in range(len(self.camera)):

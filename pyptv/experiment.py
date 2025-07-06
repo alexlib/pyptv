@@ -211,7 +211,7 @@ class Experiment(HasTraits):
         return yaml_file
 
     def delete_paramset(self, paramset):
-        """Delete a parameter set and its YAML file"""
+        """Delete a parameter set, its YAML file, and corresponding legacy directory"""
         paramset_idx = self.getParamsetIdx(paramset)
         paramset_obj = self.paramsets[paramset_idx]
 
@@ -228,9 +228,17 @@ class Experiment(HasTraits):
             yaml_path.unlink()
             print(f"Deleted YAML file: {yaml_path}")
 
+        # Delete corresponding legacy directory if it exists
+        paramset_name = getattr(paramset_obj, 'name', '')
+        if paramset_name and yaml_path:
+            legacy_dir = yaml_path.parent / f"parameters{paramset_name}"
+            if legacy_dir.exists() and legacy_dir.is_dir():
+                shutil.rmtree(legacy_dir)
+                print(f"Deleted legacy directory: {legacy_dir}")
+
         # Remove from list
         self.paramsets.remove(paramset_obj)
-        print(f"Removed parameter set: {getattr(paramset_obj, 'name', str(paramset_obj))}")
+        print(f"Removed parameter set: {paramset_name}")
 
     def get_n_cam(self):
         """Get the global number of cameras"""
