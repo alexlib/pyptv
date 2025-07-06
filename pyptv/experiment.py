@@ -11,30 +11,28 @@ from traits.api import HasTraits, Instance, List, Str
 from pyptv.parameter_manager import ParameterManager
 
 
-class Paramset(HasTraits):
+class Paramset:
     """A parameter set with a name and YAML file path"""
-    name = Str
-    yaml_path = Path
-    
     def __init__(self, name: str, yaml_path: Path):
-        super().__init__()
         self.name = name
         self.yaml_path = yaml_path
 
 
-class Experiment(HasTraits):
+# You do not have to use HasTraits unless you need Traits features (like dynamic notifications, validation, or GUI integration).
+# If you do not use Traits, you can use a plain Python class and standard attributes.
+# Here is a version of Experiment without HasTraits:
+
+class Experiment:
     """
     The Experiment class manages parameter sets and experiment configuration.
-    
+
     This is the main model class that owns all experiment data and parameters.
     It delegates parameter management to ParameterManager while handling
     the organization of multiple parameter sets.
     """
-    active_params = Instance(Paramset)
-    paramsets = List(Instance(Paramset))
-
     def __init__(self):
-        HasTraits.__init__(self)
+        self.active_params = None
+        self.paramsets = []
         self.changed_active_params = False
         self.parameter_manager = ParameterManager()
 
