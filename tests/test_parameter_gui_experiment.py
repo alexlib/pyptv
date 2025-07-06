@@ -42,7 +42,7 @@ def test_parameter_gui_with_experiment():
     try:
         calib_params = Calib_Params(experiment)
         print(f"  ✓ Calib_Params created successfully")
-        print(f"  ✓ Number of cameras: {calib_params.n_img}")
+        print(f"  ✓ Number of cameras: {calib_params.n_cam}")
         print(f"  ✓ Image size: {calib_params.h_image_size}x{calib_params.v_image_size}")
         print(f"  ✓ High pass flag: {calib_params.hp_flag}")
     except Exception as e:

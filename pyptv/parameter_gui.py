@@ -155,7 +155,8 @@ class CalHandler(Handler):
             nr2 = [calib_params.img_2_p1, calib_params.img_2_p2, calib_params.img_2_p3, calib_params.img_2_p4]
             nr3 = [calib_params.img_3_p1, calib_params.img_3_p2, calib_params.img_3_p3, calib_params.img_3_p4]
             nr4 = [calib_params.img_4_p1, calib_params.img_4_p2, calib_params.img_4_p3, calib_params.img_4_p4]
-            nr = [nr1, nr2, nr3, nr4]
+            # Flatten to 1D array as expected by legacy format: [cam1_p1, cam1_p2, cam1_p3, cam1_p4, cam2_p1, ...]
+            nr = nr1 + nr2 + nr3 + nr4
             if 'man_ori' not in experiment.parameter_manager.parameters:
                 experiment.parameter_manager.parameters['man_ori'] = {}
             experiment.parameter_manager.parameters['man_ori']['nr'] = nr
@@ -531,8 +532,8 @@ class Main_Params(HasTraits):
         self.Refr_Water = ptv_params.get('mmp_n3', 1.46)
         self.Thick_Glass = ptv_params.get('mmp_d', 1.0)
         self.Accept_OnlyAllCameras = bool(ptv_params.get('allcam_flag', False))
-        # Use global n_cam if available, otherwise ptv n_img, otherwise default to 4
-        self.Num_Cam = ptv_params.get('n_img', global_n_cam)
+        # Use global n_cam - don't look for n_img in ptv section anymore
+        self.Num_Cam = global_n_cam
         self.HighPass = bool(ptv_params.get('hp_flag', False))
         self.tiff_flag = bool(ptv_params.get('tiff_flag', False))
         self.imx = ptv_params.get('imx', DEFAULT_INT)
@@ -600,7 +601,7 @@ class Main_Params(HasTraits):
 class Calib_Params(HasTraits):
     # general and unsed variables
     pair_enable_flag = Bool(True)
-    n_img = Int(DEFAULT_INT)
+    n_cam = Int(DEFAULT_INT)
     img_name = List
     img_cal = List
     hp_flag = Bool(False, label="highpass")
@@ -928,8 +929,7 @@ class Calib_Params(HasTraits):
         else:
             self.pair_enable_flag = True
 
-        # Use global n_cam instead of looking for n_img in ptv section
-        self.n_img = global_n_cam
+        self.n_cam = global_n_cam
         self.img_name = ptv_params.get('img_name', [])
         self.hp_flag = bool(ptv_params.get('hp_flag', False))
         self.allcam_flag = bool(ptv_params.get('allcam_flag', False))
@@ -972,7 +972,7 @@ class Calib_Params(HasTraits):
 
         man_ori_params = params.get('man_ori', {})
         nr = man_ori_params.get('nr', [])
-        for i in range(self.n_img):
+        for i in range(global_n_cam):
             for j in range(4):
                 val = nr[i * 4 + j] if i * 4 + j < len(nr) else 0
                 setattr(self, f"img_{i + 1}_p{j + 1}", val)

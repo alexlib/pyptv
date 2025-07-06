@@ -66,7 +66,7 @@ def test_parameter_gui_experiment_integration():
         try:
             calib_params = Calib_Params(experiment)
             print(f"✓ Calib_Params created successfully")
-            print(f"  - Number of cameras: {calib_params.n_img}")
+            print(f"  - Number of cameras: {calib_params.n_cam}")
             print(f"  - Image size: {calib_params.h_image_size}x{calib_params.v_image_size}")
             print(f"  - Calibration images: {[calib_params.cam_1, calib_params.cam_2, calib_params.cam_3, calib_params.cam_4]}")
             print(f"  - Gray value thresholds: {[calib_params.grey_value_treshold_1, calib_params.grey_value_treshold_2, calib_params.grey_value_treshold_3, calib_params.grey_value_treshold_4]}")
