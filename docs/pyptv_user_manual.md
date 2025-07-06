@@ -190,33 +190,6 @@ PyPTV has transitioned from the legacy `.par` file system to a modern, unified *
 - **Complete parameter sets** including plugins and manual orientation
 - **Easy to edit, share, and version control**
 
-### Quick Start with YAML Parameters
-
-#### For New Users
-Create a new experiment with YAML parameters:
-
-```yaml
-# parameters.yaml - Complete PyPTV configuration
-n_cam: 4
-
-detect_plate:
-  gv_threshold_1: 80
-  gv_threshold_2: 40
-  gv_threshold_3: 20
-
-man_ori:
-  n_img: 4
-  name_img:
-    - "cam1.tif"
-    - "cam2.tif" 
-    - "cam3.tif"
-    - "cam4.tif"
-
-plugins:
-  selected_tracking: "default"
-  selected_sequence: "default"
-```
-
 #### For Existing Users (Migration)
 Convert your existing parameter folders to the new YAML format:
 

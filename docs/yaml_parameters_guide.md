@@ -32,52 +32,6 @@ PyPTV has transitioned from the legacy `.par` file system to a modern, unified Y
 
 A typical `parameters.yaml` file contains several main sections:
 
-```yaml
-# PyPTV Parameters File
-# Generated from legacy parameters on 2025-07-03
-
-# Global settings
-n_cam: 4                    # Number of cameras
-
-# Core parameter sections
-detect_plate:
-  gv_threshold_1: 80
-  gv_threshold_2: 40
-  gv_threshold_3: 20
-  # ... more detection parameters
-
-man_ori:
-  n_img: 4
-  name_img:
-    - "cam1.tif"
-    - "cam2.tif"
-    - "cam3.tif"
-    - "cam4.tif"
-  # ... manual orientation parameters
-
-orient:
-  point_precision: 0.02
-  angle_precision: 0.1
-  # ... orientation parameters
-
-# Plugin configuration
-plugins:
-  available_tracking:
-    - "default"
-    - "rembg_contour"
-  selected_tracking: "default"
-  available_sequence:
-    - "default"
-  selected_sequence: "default"
-
-# Manual orientation coordinates (if present)
-man_ori_coordinates:
-  camera_0:
-    point_1: {x: 100.5, y: 200.3}
-    point_2: {x: 150.2, y: 250.8}
-    # ... more points
-  # ... more cameras
-```
 
 ### File Naming Convention
 
@@ -309,42 +263,6 @@ yaml_file = legacy_to_yaml("./legacy_params/")
 legacy_dir = yaml_to_legacy("parameters.yaml", "./legacy_output/")
 ```
 
-## Working with YAML Parameters
-
-### Loading in PyPTV
-
-```python
-from pyptv.parameter_manager import ParameterManager
-
-# Load YAML parameters
-manager = ParameterManager()
-manager.from_yaml("parameters.yaml")
-
-# Access parameters
-detection_params = manager.get_parameter('detect_plate')
-n_cameras = manager.get_n_cam()
-```
-
-### Editing YAML Files
-
-YAML files can be edited with any text editor:
-
-```yaml
-# Comments are preserved and encouraged
-detect_plate:
-  gv_threshold_1: 85      # Increased for better detection
-  gv_threshold_2: 45      # Secondary threshold
-  
-# You can add your own comments
-man_ori:
-  n_img: 4
-  name_img:
-    - "cam1_001.tif"      # Updated filename
-    - "cam2_001.tif"
-    - "cam3_001.tif" 
-    - "cam4_001.tif"
-```
-
 ### Version Control Best Practices
 
 ```bash
@@ -461,17 +379,6 @@ manager.to_yaml("generated_parameters.yaml")
 ### Parameter Templates
 
 Create template files for common setups:
-
-```yaml
-# template_2cam.yaml
-n_cam: 2
-detect_plate:
-  gv_threshold_1: 80
-  gv_threshold_2: 40
-man_ori:
-  n_img: 2
-  name_img: ["cam1.tif", "cam2.tif"]
-```
 
 ```bash
 # Use template
