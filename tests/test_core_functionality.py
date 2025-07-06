@@ -1,6 +1,8 @@
 import os
 import optv
 import pytest
+import pyptv
+import numpy as np
 from optv.calibration import Calibration
 from optv.parameters import VolumeParams
 
@@ -12,7 +14,7 @@ def test_cavity_dir():
 def test_core_functionality(test_cavity_dir, capsys):
     """Test core functionality of pyptv and optv"""
 
-    import pyptv
+
 
     # Print versions
     print(f"PyPTV version: {pyptv.__version__}")
@@ -46,9 +48,15 @@ def test_core_functionality(test_cavity_dir, capsys):
     vol_params.set_X_lay([-40.0, 40.0])
 
     print("Successfully created volume parameters")
-    assert vol_params.get_Zmin_lay() == [-20.0, -20.0]
-    assert vol_params.get_Zmax_lay() == [25.0, 25.0]
-    assert vol_params.get_X_lay() == [-40.0, 40.0]
-    assert vol_params.get_cn() == 0.02
+    assert np.allclose(vol_params.get_Zmin_lay(), [-20.0, -20.0])
+    assert np.allclose(vol_params.get_Zmax_lay(), [25.0, 25.0])
+    assert np.allclose(vol_params.get_X_lay(), [-40.0, 40.0])
+    assert np.isclose(vol_params.get_cn(), 0.02)
 
     print("Core functionality test completed successfully!")
+
+
+if __name__ == "__main__":
+    pytest.main([__file__])
+    # Alternatively, you can run the test directly without pytest
+    # test_core_functionality(test_cavity_dir())

@@ -118,6 +118,7 @@ ptv:
   pix_y: 0.012
   tiff_flag: true
   splitter: false
+  n_img: 3
 sequence:
   base_name:
   - img/cam1.%d
