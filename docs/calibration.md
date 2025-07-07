@@ -59,11 +59,11 @@ cal_ori:
 Create a target coordinate file (`cal/target_coordinates.txt`) with known 3D points:
 
 ```
-# X     Y     Z     point_id
--25.0  -25.0  0.0   1
- 25.0  -25.0  0.0   2
- 25.0   25.0  0.0   3
--25.0   25.0  0.0   4
+# point_id   X      Y      Z
+1          -25.0  -25.0   0.0
+2           25.0  -25.0   0.0
+3           25.0   25.0   0.0
+4          -25.0   25.0   0.0
 ```
 
 ### 4. Run Calibration in GUI
