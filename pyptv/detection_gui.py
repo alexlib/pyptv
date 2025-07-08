@@ -7,7 +7,7 @@ http://opensource.org/licenses/MIT
 
 import os
 import sys
-import pathlib
+from pathlib import Path
 import numpy as np
 
 from traits.api import HasTraits, Str, Int, Bool, Instance, Button, Range
@@ -31,7 +31,6 @@ from skimage.color import rgb2gray
 
 from optv.segmentation import target_recognition
 from pyptv import ptv
-from pyptv.experiment import Experiment
 from pyptv.text_box_overlay import TextBoxOverlay
 from pyptv.quiverplot import QuiverPlot
 
@@ -253,105 +252,108 @@ class DetectionGUI(HasTraits):
     """detection GUI"""
 
     status_text = Str("Ready - Load parameters and image to start")
-    yaml_path = Str("tests/test_cavity/parameters_Run1.yaml", label="YAML parameters file")
     button_load_params = Button(label="Load Parameters")
     image_name = Str("cal/cam1.tif", label="Image file name")
     button_load_image = Button(label="Load Image")
     hp_flag = Bool(False, label="highpass")
     inverse_flag = Bool(False, label="inverse")
     button_detection = Button(label="Detect dots")
+    # Traits for detection parameters
+    grey_thresh = Range(
+        1, 255, 40, mode="slider", label="Grey threshold"
+    )
+    min_npix = Range(
+        1, 100, 25, mode="slider", label="Min pixels"
+    )
+    min_npix_x = Range(
+        1, 20, 5, mode="slider", label="min npix in x"
+    )
+    min_npix_y = Range(
+        1, 20, 5, mode="slider", label="min npix in y"
+    )
+    max_npix = Range(
+        1, 500, 400, mode="slider", label="max npix"
+    )
+    max_npix_x = Range(
+        1, 100, 50, mode="slider", label="max npix in x"
+    )
+    max_npix_y = Range(
+        1, 100, 50, mode="slider", label="max npix in y"
+    )
+    disco = Range(
+        0, 255, 500, mode="slider", label="Discontinuity"
+    )
+    sum_of_grey = Range(
+        50, 200, 100, mode="slider", label="Sum of greyvalue"
+    )
 
-    def __init__(self):
+    def __init__(self, working_directory=Path("tests/test_cavity")):
         super(DetectionGUI, self).__init__()
+
+        self.working_directory = Path(working_directory)
         
         # Initialize state variables
         self.parameters_loaded = False
         self.image_loaded = False
         self.raw_image = None
         self.processed_image = None
-        self.experiment = None
-        
-        # Working directory will be set when parameters are loaded
-        self.working_folder = None
         
         # Parameter structures (will be initialized when parameters are loaded)
         self.cpar = None
         self.tpar = None
         
-        # Detection parameters (will be loaded from YAML)
-        self.thresholds = [40]
+        # Detection parameters (hardcoded defaults)
+        self.thresholds = [40, 0, 0, 0]
         self.pixel_count_bounds = [25, 400]
         self.xsize_bounds = [5, 50]
         self.ysize_bounds = [5, 50]
         self.sum_grey = 100
-        self.disco = 500
+        self.disco = 100
 
         self.camera = [PlotWindow()]
 
-    def _button_load_params_fired(self):
-        """Load parameters from YAML file"""
+    def _button_load_params(self):
+        """Load parameters from working directory"""
+
         try:
-            yaml_file = pathlib.Path(self.yaml_path)
-            if not yaml_file.exists():
-                self.status_text = f"Error: YAML file {self.yaml_path} does not exist"
+            if not self.working_directory.exists():
+                self.status_text = f"Error: Working directory {self.working_directory} does not exist"
                 return
             
-            # Load experiment from YAML file
-            self.experiment = Experiment()
-            self.experiment.parameter_manager.from_yaml(self.yaml_path)
-            
-            # Set working directory to YAML file location
-            self.working_folder = yaml_file.parent
-            os.chdir(self.working_folder)
-            print(f"Working directory: {self.working_folder}")
-            
-            # Get parameters from YAML
-            ptv_params = self.experiment.get_parameter('ptv')
-            if ptv_params is None:
-                raise ValueError("Failed to load PTV parameters from YAML")
-            
-            # Initialize C parameter structures for single camera detection
-            self.n_cams = 1
-            self.cpar = ptv.ControlParams(self.n_cams)
-            
-            # Set basic camera parameters from YAML
-            self.cpar.set_image_size((ptv_params.get('imx', 1280), ptv_params.get('imy', 1024)))
-            self.cpar.set_pixel_size((ptv_params.get('pix_x', 0.012), ptv_params.get('pix_y', 0.012)))
-            self.cpar.set_hp_flag(ptv_params.get('hp_flag', False))
-            self.cpar.set_tiff_flag(ptv_params.get('tiff_flag', True))
-            
+            # Set working directory
+            os.chdir(self.working_directory)
+            print(f"Working directory: {self.working_directory}")
+
+            # 1. load the image using imread and self.image_name
+            self.image_loaded = False
+            try: 
+                self.raw_image = imread(self.image_name)
+                if self.raw_image.ndim > 2:
+                    self.raw_image = rgb2gray(self.raw_image) 
+                
+                self.raw_image = img_as_ubyte(self.raw_image)
+                self.image_loaded = True
+            except Exception as e:
+                self.status_text = f"Error reading image: {str(e)}"
+                print(f"Error reading image {self.image_name}: {e}")
+                return
+
+            # Set up control parameters for detection:
+            self.cpar = ptv.ControlParams(1)
+            self.cpar.set_image_size((self.raw_image.shape[1], self.raw_image.shape[0]))        
+            self.cpar.set_pixel_size((0.01, 0.01))  # Default pixel size, can be overridden later
+            self.cpar.set_hp_flag(self.hp_flag) 
+
             # Initialize target parameters for detection
             self.tpar = ptv.TargetParams()
             
-            # Get detection parameters from YAML
-            detect_params = self.experiment.get_parameter('detect_plate')
-            if detect_params is None:
-                raise ValueError("Failed to load detection parameters from YAML")
-            
-            # Load detection parameters from YAML
-            self.thresholds = [detect_params.get('gvth_1', 40)]
-            self.pixel_count_bounds = [
-                detect_params.get('min_npix', 25),
-                detect_params.get('max_npix', 400)
-            ]
-            self.xsize_bounds = [
-                detect_params.get('min_npix_x', 5),
-                detect_params.get('max_npix_x', 50)
-            ]
-            self.ysize_bounds = [
-                detect_params.get('min_npix_y', 5),
-                detect_params.get('max_npix_y', 50)
-            ]
-            self.sum_grey = detect_params.get('sum_grey', 100)
-            self.disco = detect_params.get('tol_dis', 500)
-            
-            # Apply parameters to C structures
-            self.tpar.set_grey_thresholds(self.thresholds)
-            self.tpar.set_pixel_count_bounds(self.pixel_count_bounds)
-            self.tpar.set_xsize_bounds(self.xsize_bounds)
-            self.tpar.set_ysize_bounds(self.ysize_bounds)
-            self.tpar.set_min_sum_grey(self.sum_grey)
-            self.tpar.set_max_discontinuity(self.disco)
+            # Set hardcoded detection parameters
+            self.tpar.set_grey_thresholds([10, 0, 0, 0])
+            self.tpar.set_pixel_count_bounds([1, 50])
+            self.tpar.set_xsize_bounds([1,15])
+            self.tpar.set_ysize_bounds([1,15])
+            self.tpar.set_min_sum_grey(100)
+            self.tpar.set_max_discontinuity(100)
             
             # Create dynamic traits for real-time parameter adjustment
             if not self.parameters_loaded:
@@ -361,7 +363,7 @@ class DetectionGUI(HasTraits):
                 self._update_trait_values()
             
             self.parameters_loaded = True
-            self.status_text = f"Parameters loaded from {self.yaml_path}"
+            self.status_text = f"Parameters loaded for working directory {self.working_directory}"
             
         except Exception as e:
             self.status_text = f"Error loading parameters: {str(e)}"
@@ -474,28 +476,10 @@ class DetectionGUI(HasTraits):
 
     def _button_load_image_fired(self):
         """Load raw image from file"""
-        if not self.parameters_loaded:
-            self.status_text = "Load parameters first"
-            return
+
+        self._button_load_params()
             
         try:
-            # Load raw image
-            image_path = pathlib.Path(self.image_name)
-            if not image_path.is_absolute():
-                if self.working_folder is not None:
-                    image_path = self.working_folder / self.image_name
-                else:
-                    self.status_text = "Error: Working folder is not set. Load parameters first."
-                    return
-
-            if not image_path.exists():
-                self.status_text = f"Error: Image {image_path} does not exist"
-                return
-                
-            self.raw_image = imread(str(image_path))
-            if self.raw_image.ndim > 2:
-                self.raw_image = rgb2gray(self.raw_image)
-            self.raw_image = img_as_ubyte(self.raw_image)
             
             # Process image with current filter settings
             self._update_processed_image()
@@ -527,12 +511,8 @@ class DetectionGUI(HasTraits):
                 im = 255 - im
             
             # Apply highpass filter if enabled
-            if self.hp_flag and self.experiment is not None:
-                ptv_params = self.experiment.get_parameter('ptv')
-                if ptv_params is not None:
-                    tmp = [im]
-                    tmp = ptv.py_pre_processing_c(tmp, ptv_params)
-                    im = tmp[0]
+            if self.hp_flag:
+                im = ptv.preprocess_image(im, 0, self.cpar, 25)
             
             self.processed_image = im.copy()
             
@@ -540,38 +520,19 @@ class DetectionGUI(HasTraits):
             self.status_text = f"Error processing image: {str(e)}"
             print(f"Error processing image: {e}")
 
-    def _inverse_flag_changed(self):
-        """Handle inverse flag change"""
-        if self.image_loaded:
-            self._update_processed_image()
-            self.reset_show_images()
-            self._run_detection()
-            self.status_text = "Inverse filter applied" if self.inverse_flag else "Inverse filter removed"
-
-    def _hp_flag_changed(self):
-        """Handle highpass flag change"""
-        if self.parameters_loaded:
-            self.cpar.set_hp_flag(self.hp_flag)
-        
-        if self.image_loaded:
-            self._update_processed_image()
-            self.reset_show_images()
-            self._run_detection()
-            self.status_text = "Highpass filter applied" if self.hp_flag else "Highpass filter removed"
-
     view = View(
         HGroup(
             VGroup(
                 VGroup(
-                    Item(name="yaml_path", width=300),
-                    Item(name="button_load_params"),
-                    "_",  # Separator
+                    # Item(name="yaml_path", width=300),
+                    # Item(name="button_load_params"),
+                    # "_",  # Separator
                     Item(name="image_name", width=200),
                     Item(name="button_load_image"),
                     "_",  # Separator
                     Item(name="hp_flag"),
                     Item(name="inverse_flag"),
-                    Item(name="button_detection"),
+                    Item(name="button_detection", enabled_when="image_loaded"),
                     "_",  # Separator
                     Item(name="grey_thresh", enabled_when="parameters_loaded"),
                     Item(name="min_npix", enabled_when="parameters_loaded"),
@@ -597,7 +558,7 @@ class DetectionGUI(HasTraits):
             ),
             orientation="horizontal",
         ),
-        title="Detection GUI - Load Parameters and Image",
+        title="Detection GUI - Load Image and Detect Particles",
         id="view1",
         width=1.0,
         height=1.0,
@@ -605,24 +566,19 @@ class DetectionGUI(HasTraits):
         statusbar="status_text",
     )
 
+
+
+    def _hp_flag_changed(self):
+        """Handle highpass flag change"""       
+        self._update_processed_image()
+        self.reset_show_images()
+
+
     def _inverse_flag_changed(self):
         """Handle inverse flag change"""
         if self.image_loaded:
             self._update_processed_image()
             self.reset_show_images()
-            self._run_detection()
-            self.status_text = "Inverse filter applied" if self.inverse_flag else "Inverse filter removed"
-
-    def _hp_flag_changed(self):
-        """Handle highpass flag change"""
-        if self.parameters_loaded:
-            self.cpar.set_hp_flag(self.hp_flag)
-        
-        if self.image_loaded:
-            self._update_processed_image()
-            self.reset_show_images()
-            self._run_detection()
-            self.status_text = "Highpass filter applied" if self.hp_flag else "Highpass filter removed"
 
     def _grey_thresh_changed(self):
         """Update grey threshold parameter"""
@@ -717,16 +673,16 @@ class DetectionGUI(HasTraits):
             self.status_text = f"Error loading image: {str(e)}"
             print(f"Error loading image {self.image_name}: {e}")
 
-    def _load_raw_image(self):
-        """Load the raw image from file (called only once per image)"""
-        try:
-            self.raw_image = imread(self.image_name)
-            if self.raw_image.ndim > 2:
-                self.raw_image = rgb2gray(self.raw_image)
-            self.raw_image = img_as_ubyte(self.raw_image)
-        except Exception as e:
-            self.status_text = f"Error reading image: {str(e)}"
-            raise
+    # def _load_raw_image(self):
+    #     """Load the raw image from file (called only once per image)"""
+    #     try:
+    #         self.raw_image = imread(self.image_name)
+    #         if self.raw_image.ndim > 2:
+    #             self.raw_image = rgb2gray(self.raw_image)
+    #         self.raw_image = img_as_ubyte(self.raw_image)
+    #     except Exception as e:
+    #         self.status_text = f"Error reading image: {str(e)}"
+    #         raise
 
     def _reprocess_current_image(self):
         """Reprocess the current raw image with current filter settings"""
@@ -742,26 +698,14 @@ class DetectionGUI(HasTraits):
                 im = 255 - im
 
             # Apply highpass filter if enabled
-            if self.hp_flag:
-                # Get ptv parameters as dictionary for preprocessing
-                ptv_params = self.experiment.get_parameter('ptv')
-                if ptv_params is None:
-                    self.status_text = "Error: PTV parameters not found"
-                    raise ValueError("PTV parameters not found")
-                tmp = [im]
-                tmp = ptv.py_pre_processing_c(tmp, ptv_params)
-                im = tmp[0]
+            if self.hp_flag and self.cpar is not None:
+                im = ptv.preprocess_image(im, 0, self.cpar, 25)
 
             self.processed_image = im.copy()
             
         except Exception as e:
             self.status_text = f"Error processing image: {str(e)}"
             raise
-
-    def _read_image(self):
-        """Legacy method - now just calls the new methods"""
-        self._load_raw_image()
-        self._reprocess_current_image()
 
     def _button_detection_fired(self):
         """Run particle detection on the current image"""
@@ -822,19 +766,13 @@ class DetectionGUI(HasTraits):
 
 if __name__ == "__main__":
     if len(sys.argv) == 1:
-        # Default to test_cavity YAML file
-        yaml_path = pathlib.Path().absolute() / "tests" / "test_cavity" / "parameters_Run1.yaml"
+        # Default to test_cavity directory
+        working_dir = Path().absolute() / "tests" / "test_cavity"
     else:
-        # Use provided YAML file path
-        yaml_path = pathlib.Path(sys.argv[1])
+        # Use provided working directory path
+        working_dir = Path(sys.argv[1])
     
-    print(f"Loading PyPTV Detection GUI")
+    print(f"Loading PyPTV Detection GUI with working directory: {working_dir}")
     
-    detection_gui = DetectionGUI()
-    if yaml_path.exists():
-        detection_gui.yaml_path = str(yaml_path)
-        print(f"Default YAML file: {yaml_path}")
-    else:
-        print(f"Warning: Default YAML file {yaml_path} does not exist")
-    
+    detection_gui = DetectionGUI(working_dir)
     detection_gui.configure_traits()

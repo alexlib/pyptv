@@ -36,7 +36,7 @@ def test_parameter_translation_pipeline():
     ptv_params = params.get('ptv', {})
     targ_params = params.get('targ_rec', {})
     # print targ_params grey thresholds: 
-    print(targ_params.get('gvthres','Mistake'))
+    print(targ_params.get('gvthres',[0,0,0,0]))
 
 
     seq_params = params.get('sequence', {})
@@ -60,7 +60,9 @@ def test_parameter_translation_pipeline():
         
         # Test TargetParams  
         print("   Creating TargetParams...")
-        tpar = _populate_tpar(targ_params, n_cam)
+        # _populate_tpar expects a dict with 'targ_rec' key, not the targ_rec section directly
+        target_params_dict = {'targ_rec': targ_params}
+        tpar = _populate_tpar(target_params_dict, n_cam)
         print(f"   ✅ TargetParams: grey thresholds: {tpar.get_grey_thresholds()}")
         print(f"      Pixel bounds: {tpar.get_pixel_count_bounds()}")
         
@@ -112,6 +114,10 @@ def test_parameter_translation_pipeline():
         
         if not img_path.exists():
             print(f"❌ No image found for pattern {img_base}")
+            # Let's check what files actually exist
+            img_dir = Path("img")
+            if img_dir.exists():
+                print(f"   Available files in img/: {list(img_dir.glob('cam1.*'))}")
             return False
             
         print(f"   Loading image: {img_path}")

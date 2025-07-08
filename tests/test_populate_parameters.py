@@ -298,15 +298,24 @@ class TestPopulateTpar:
 class TestReadCalibrations:
     """Test _read_calibrations function."""
     
-    def test_read_calibrations_missing_files(self, tmp_path: Path):
+    def test_read_calibrations_missing_files(self, tmp_path: Path, capsys):
         """Test behavior when calibration files are missing."""
         # Create a minimal ControlParams
         cpar = ControlParams(2)
         cpar.set_cal_img_base_name(0, str(tmp_path / "cal" / "cam1"))
         cpar.set_cal_img_base_name(1, str(tmp_path / "cal" / "cam2"))
         
-        with pytest.raises(IOError, match="Cannot read orientation file"):
-            _read_calibrations(cpar, 2)
+        # Should not raise an error, but return default calibrations
+        cals = _read_calibrations(cpar, 2)
+        
+        # Should return 2 default calibrations
+        assert len(cals) == 2
+        assert all(isinstance(cal, Calibration) for cal in cals)
+        
+        # Should print warning messages
+        captured = capsys.readouterr()
+        assert "Calibration files not found for camera 1" in captured.out
+        assert "Calibration files not found for camera 2" in captured.out
     
     @patch('pyptv.ptv.Calibration')
     def test_read_calibrations_success(self, mock_calibration, tmp_path: Path):

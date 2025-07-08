@@ -20,7 +20,7 @@ def test_detection_gui():
         print(f"Setting default YAML: {yaml_path}")
         
         # Test parameter loading
-        gui._button_load_params_fired()
+        gui._button_load_params()
         print(f"Parameters loaded: {gui.parameters_loaded}")
         
         if gui.parameters_loaded:
