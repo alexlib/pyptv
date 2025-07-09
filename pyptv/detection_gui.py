@@ -50,22 +50,21 @@ class ClickerTool(ImageInspectorTool):
         Fires the **new_value** event with the data (if any) from the event's
         position.
         """
-        plot = self.component
-        if plot is not None:
-            ndx = plot.map_index((event.x, event.y))
-
-            x_index, y_index = ndx
-            self.x = x_index
-            self.y = y_index
-            print(self.x)
-            print(self.y)
-            self.left_changed = 1 - self.left_changed
-            self.last_mouse_position = (event.x, event.y)
+        if self.component is not None:
+            if hasattr(self.component, "map_index"):
+                ndx = self.component.map_index((event.x, event.y)) # type: ignore
+                if ndx is not None:
+                    x_index, y_index = ndx
+                    self.x = x_index
+                    self.y = y_index
+                    print(self.x)
+                    print(self.y)
+                    self.left_changed = 1 - self.left_changed
+                    self.last_mouse_position = (event.x, event.y)
 
     def normal_right_down(self, event):
-        plot = self.component
-        if plot is not None:
-            ndx = plot.map_index((event.x, event.y))
+        if self.component is not None:
+            ndx = self.component.map_index((event.x, event.y)) # type: ignore
 
             x_index, y_index = ndx
             self.x = x_index
@@ -258,34 +257,32 @@ class DetectionGUI(HasTraits):
     hp_flag = Bool(False, label="highpass")
     inverse_flag = Bool(False, label="inverse")
     button_detection = Button(label="Detect dots")
-    # Traits for detection parameters
-    grey_thresh = Range(
-        1, 255, 40, mode="slider", label="Grey threshold"
-    )
-    min_npix = Range(
-        1, 100, 25, mode="slider", label="Min pixels"
-    )
-    min_npix_x = Range(
-        1, 20, 5, mode="slider", label="min npix in x"
-    )
-    min_npix_y = Range(
-        1, 20, 5, mode="slider", label="min npix in y"
-    )
-    max_npix = Range(
-        1, 500, 400, mode="slider", label="max npix"
-    )
-    max_npix_x = Range(
-        1, 100, 50, mode="slider", label="max npix in x"
-    )
-    max_npix_y = Range(
-        1, 100, 50, mode="slider", label="max npix in y"
-    )
-    disco = Range(
-        0, 255, 500, mode="slider", label="Discontinuity"
-    )
-    sum_of_grey = Range(
-        50, 200, 100, mode="slider", label="Sum of greyvalue"
-    )
+    
+    # Default traits that will be updated when parameters are loaded
+    grey_thresh = Range(1, 255, 40, mode="slider", label="Grey threshold")
+    min_npix = Range(1, 100, 25, mode="slider", label="Min pixels")
+    min_npix_x = Range(1, 20, 5, mode="slider", label="min npix in x")
+    min_npix_y = Range(1, 20, 5, mode="slider", label="min npix in y")
+    max_npix = Range(1, 500, 400, mode="slider", label="max npix")
+    max_npix_x = Range(1, 100, 50, mode="slider", label="max npix in x")
+    max_npix_y = Range(1, 100, 50, mode="slider", label="max npix in y")
+    disco = Range(0, 255, 100, mode="slider", label="Discontinuity")
+    sum_of_grey = Range(50, 200, 100, mode="slider", label="Sum of greyvalue")
+    
+    # Range control fields - allow users to adjust slider limits
+    # grey_thresh_min = Int(1, label="Min")
+#   # grey_thresh_max = Int(255, label="Max")
+    min_npix_min = Int(1, label="Min")
+    min_npix_max = Int(100, label="Max")
+    max_npix_min = Int(1, label="Min")
+    max_npix_max = Int(500, label="Max")
+    disco_min = Int(0, label="Min")
+    disco_max = Int(255, label="Max")
+    sum_of_grey_min = Int(10, label="Min")
+    sum_of_grey_max = Int(500, label="Max")
+    
+    # Buttons to apply range changes
+    button_update_ranges = Button(label="Update Slider Ranges")
 
     def __init__(self, working_directory=Path("tests/test_cavity")):
         super(DetectionGUI, self).__init__()
@@ -355,9 +352,9 @@ class DetectionGUI(HasTraits):
             self.tpar.set_min_sum_grey(100)
             self.tpar.set_max_discontinuity(100)
             
-            # Create dynamic traits for real-time parameter adjustment
+            # Update trait ranges for real-time parameter adjustment
             if not self.parameters_loaded:
-                self._create_parameter_traits()
+                self._update_parameter_trait_ranges()
             else:
                 # Update existing trait values
                 self._update_trait_values()
@@ -369,89 +366,55 @@ class DetectionGUI(HasTraits):
             self.status_text = f"Error loading parameters: {str(e)}"
             print(f"Error loading parameters: {e}")
 
-    def _create_parameter_traits(self):
-        """Create dynamic traits for parameter adjustment"""
-        self.add_trait("grey_thresh", Range(1, 255, self.thresholds[0], mode="slider"))
-        self.add_trait(
-            "min_npix",
-            Range(
-                0,
-                self.pixel_count_bounds[0] + 50,
-                self.pixel_count_bounds[0],
-                mode="slider",
-                label="min npix",
-            ),
-        )
-        self.add_trait(
-            "min_npix_x",
-            Range(
-                1,
-                self.xsize_bounds[0] + 20,
-                self.xsize_bounds[0],
-                mode="slider",
-                label="min npix in x",
-            ),
-        )
-        self.add_trait(
-            "min_npix_y",
-            Range(
-                1,
-                self.ysize_bounds[0] + 20,
-                self.ysize_bounds[0],
-                mode="slider",
-                label="min npix in y",
-            ),
-        )
-        self.add_trait(
-            "max_npix",
-            Range(
-                1,
-                self.pixel_count_bounds[1] + 100,
-                self.pixel_count_bounds[1],
-                mode="slider",
-                label="max npix",
-            ),
-        )
-        self.add_trait(
-            "max_npix_x",
-            Range(
-                1,
-                self.xsize_bounds[1] + 50,
-                self.xsize_bounds[1],
-                mode="slider",
-                label="max npix in x",
-            ),
-        )
-        self.add_trait(
-            "max_npix_y",
-            Range(
-                1,
-                self.ysize_bounds[1] + 50,
-                self.ysize_bounds[1],
-                mode="slider",
-                label="max npix in y",
-            ),
-        )
-        self.add_trait(
-            "disco",
-            Range(
-                0,
-                255,
-                self.disco,
-                mode="slider",
-                label="Discontinuity",
-            ),
-        )        
-        self.add_trait(
-            "sum_of_grey",
-            Range(
-                self.sum_grey // 2,
-                self.sum_grey * 2,
-                self.sum_grey,
-                mode="slider",
-                label="Sum of greyvalue",
-            ),
-        )
+    def _update_parameter_trait_ranges(self):
+        """Update dynamic traits for parameter adjustment based on loaded parameters"""
+        # Update existing trait ranges based on loaded parameter bounds
+        self.trait("grey_thresh").handler.low = 1
+        self.trait("grey_thresh").handler.high = 255
+        self.grey_thresh = self.thresholds[0]
+        # Update range control fields
+        self.grey_thresh_min = 1
+        self.grey_thresh_max = 255
+        
+        self.trait("min_npix").handler.low = 0
+        self.trait("min_npix").handler.high = self.pixel_count_bounds[0] + 50
+        self.min_npix = self.pixel_count_bounds[0]
+        self.min_npix_min = 1
+        self.min_npix_max = self.pixel_count_bounds[0] + 50
+        
+        self.trait("max_npix").handler.low = 1
+        self.trait("max_npix").handler.high = self.pixel_count_bounds[1] + 100
+        self.max_npix = self.pixel_count_bounds[1]
+        self.max_npix_min = 1
+        self.max_npix_max = self.pixel_count_bounds[1] + 100
+        
+        self.trait("min_npix_x").handler.low = 1
+        self.trait("min_npix_x").handler.high = self.xsize_bounds[0] + 20
+        self.min_npix_x = self.xsize_bounds[0]
+        
+        self.trait("max_npix_x").handler.low = 1
+        self.trait("max_npix_x").handler.high = self.xsize_bounds[1] + 50
+        self.max_npix_x = self.xsize_bounds[1]
+        
+        self.trait("min_npix_y").handler.low = 1
+        self.trait("min_npix_y").handler.high = self.ysize_bounds[0] + 20
+        self.min_npix_y = self.ysize_bounds[0]
+        
+        self.trait("max_npix_y").handler.low = 1
+        self.trait("max_npix_y").handler.high = self.ysize_bounds[1] + 50
+        self.max_npix_y = self.ysize_bounds[1]
+        
+        self.trait("disco").handler.low = 0
+        self.trait("disco").handler.high = 255
+        self.disco = self.disco
+        self.disco_min = 0
+        self.disco_max = 255
+        
+        self.trait("sum_of_grey").handler.low = self.sum_grey // 2
+        self.trait("sum_of_grey").handler.high = self.sum_grey * 2
+        self.sum_of_grey = self.sum_grey
+        self.sum_of_grey_min = self.sum_grey // 2
+        self.sum_of_grey_max = self.sum_grey * 2
 
     def _update_trait_values(self):
         """Update existing trait values when parameters are reloaded"""
@@ -524,9 +487,6 @@ class DetectionGUI(HasTraits):
         HGroup(
             VGroup(
                 VGroup(
-                    # Item(name="yaml_path", width=300),
-                    # Item(name="button_load_params"),
-                    # "_",  # Separator
                     Item(name="image_name", width=200),
                     Item(name="button_load_image"),
                     "_",  # Separator
@@ -534,15 +494,42 @@ class DetectionGUI(HasTraits):
                     Item(name="inverse_flag"),
                     Item(name="button_detection", enabled_when="image_loaded"),
                     "_",  # Separator
-                    Item(name="grey_thresh", enabled_when="parameters_loaded"),
-                    Item(name="min_npix", enabled_when="parameters_loaded"),
+                    # Detection parameter sliders
+                    HGroup(
+                        Item(name="grey_thresh", enabled_when="parameters_loaded"),
+                        # Item(name="grey_thresh_max", width=60),
+                    ),
+                    HGroup(
+                        Item(name="min_npix", enabled_when="parameters_loaded"),
+                        HGroup(Item(name="min_npix_min", width=20), Item(name="min_npix_max", width=60)),
+                    ),
                     Item(name="min_npix_x", enabled_when="parameters_loaded"),
                     Item(name="min_npix_y", enabled_when="parameters_loaded"),
-                    Item(name="max_npix", enabled_when="parameters_loaded"),
+                    HGroup(
+                        Item(name="max_npix", enabled_when="parameters_loaded"),
+                        VGroup(
+                            HGroup(Item(name="max_npix_min", width=60), Item(name="max_npix_max", width=60)),
+                            label="Range",
+                        ),
+                    ),
                     Item(name="max_npix_x", enabled_when="parameters_loaded"),
                     Item(name="max_npix_y", enabled_when="parameters_loaded"),
-                    Item(name="disco", enabled_when="parameters_loaded"),
-                    Item(name="sum_of_grey", enabled_when="parameters_loaded"),
+                    HGroup(
+                        Item(name="disco", enabled_when="parameters_loaded"),
+                        VGroup(
+                            HGroup(Item(name="disco_min", width=60), Item(name="disco_max", width=60)),
+                            label="Range",
+                        ),
+                    ),
+                    HGroup(
+                        Item(name="sum_of_grey", enabled_when="parameters_loaded"),
+                        VGroup(
+                            HGroup(Item(name="sum_of_grey_min", width=60), Item(name="sum_of_grey_max", width=60)),
+                            label="Range",
+                        ),
+                    ),
+                    "_",  # Separator
+                    Item(name="button_update_ranges", enabled_when="parameters_loaded"),
                 ),
             ),
             Item(
@@ -763,6 +750,54 @@ class DetectionGUI(HasTraits):
         self.camera[0].attach_tools()
         self.camera[0]._plot.request_redraw()
 
+    def _button_update_ranges_fired(self):
+        """Update slider ranges based on user input"""
+        try:
+            # Update grey threshold range
+            self.trait("grey_thresh").handler.low = self.grey_thresh_min
+            self.trait("grey_thresh").handler.high = self.grey_thresh_max
+            # Ensure current value is within new range
+            if self.grey_thresh < self.grey_thresh_min:
+                self.grey_thresh = self.grey_thresh_min
+            elif self.grey_thresh > self.grey_thresh_max:
+                self.grey_thresh = self.grey_thresh_max
+            
+            # Update min_npix range
+            self.trait("min_npix").handler.low = self.min_npix_min
+            self.trait("min_npix").handler.high = self.min_npix_max
+            if self.min_npix < self.min_npix_min:
+                self.min_npix = self.min_npix_min
+            elif self.min_npix > self.min_npix_max:
+                self.min_npix = self.min_npix_max
+            
+            # Update max_npix range
+            self.trait("max_npix").handler.low = self.max_npix_min
+            self.trait("max_npix").handler.high = self.max_npix_max
+            if self.max_npix < self.max_npix_min:
+                self.max_npix = self.max_npix_min
+            elif self.max_npix > self.max_npix_max:
+                self.max_npix = self.max_npix_max
+            
+            # Update disco range
+            self.trait("disco").handler.low = self.disco_min
+            self.trait("disco").handler.high = self.disco_max
+            if self.disco < self.disco_min:
+                self.disco = self.disco_min
+            elif self.disco > self.disco_max:
+                self.disco = self.disco_max
+            
+            # Update sum_of_grey range
+            self.trait("sum_of_grey").handler.low = self.sum_of_grey_min
+            self.trait("sum_of_grey").handler.high = self.sum_of_grey_max
+            if self.sum_of_grey < self.sum_of_grey_min:
+                self.sum_of_grey = self.sum_of_grey_min
+            elif self.sum_of_grey > self.sum_of_grey_max:
+                self.sum_of_grey = self.sum_of_grey_max
+            
+            self.status_text = "Slider ranges updated successfully"
+            
+        except Exception as e:
+            self.status_text = f"Error updating ranges: {str(e)}"
 
 if __name__ == "__main__":
     if len(sys.argv) == 1:
