@@ -5,7 +5,13 @@ import sys
 import json
 import numpy as np
 import optv
-from traits.api import HasTraits, Int, Bool, Instance, List, Enum, Any
+import io
+import threading
+import traceback
+import shutil
+import pandas as pd
+from datetime import datetime
+from traits.api import HasTraits, Int, Bool, Instance, List, Enum, Any, Property, Str, Button
 from traitsui.api import (
     View,
     Item,
@@ -14,7 +20,11 @@ from traitsui.api import (
     TreeEditor,
     TreeNode,
     Separator,
+    VGroup,
+    HGroup,
     Group,
+    CodeEditor,
+    VSplit,
 )
 
 from traitsui.menu import Action, Menu, MenuBar
@@ -38,7 +48,6 @@ from pyptv import __version__
 import optv.orientation
 import optv.epipolar
 from pyptv.parameter_manager import ParameterManager
-from pyptv.ptv import py_start_proc_c
 
 
 """PyPTV_GUI is the GUI for the OpenPTV (www.openptv.net) written in
@@ -327,6 +336,114 @@ class CameraWindow(HasTraits):
         self._plot_data.set_data(str_x, [x1, x2])
         self._plot_data.set_data(str_y, [y1, y2])
         self._plot.plot((str_x, str_y), type="line", color=color1)
+
+
+# ------------------------------------------
+# Message Window System for capturing print statements
+# ------------------------------------------
+
+class MessageCapture:
+    """Captures stdout/stderr and redirects to message window"""
+    
+    def __init__(self, message_window=None):
+        self.message_window = message_window
+        self.original_stdout = sys.stdout
+        self.original_stderr = sys.stderr
+        self.buffer = io.StringIO()
+        
+    def write(self, text):
+        """Write text to both original stdout and message window"""
+        self.original_stdout.write(text)  # Keep console output
+        self.original_stdout.flush()
+        
+        if self.message_window is not None:
+            self.message_window.add_message(text.strip())
+            
+    def flush(self):
+        """Flush both outputs"""
+        self.original_stdout.flush()
+        if hasattr(self.message_window, 'flush'):
+            self.message_window.flush()
+
+
+class MessageWindow(HasTraits):
+    """Message window for displaying captured print statements"""
+    
+    messages = Str("")
+    max_lines = Int(1000)  # Maximum number of lines to keep
+    auto_scroll = Bool(True)
+    
+    def add_message(self, message):
+        """Add a new message with timestamp and auto-scroll to end"""
+        if message.strip():  # Don't add empty messages
+            timestamp = datetime.now().strftime("%H:%M:%S")
+            formatted_message = f"[{timestamp}] {message}"
+            
+            # Add to messages
+            if self.messages:
+                self.messages += "\n" + formatted_message
+            else:
+                self.messages = formatted_message
+            
+            # Limit number of lines
+            lines = self.messages.split('\n')
+            if len(lines) > self.max_lines:
+                lines = lines[-self.max_lines:]
+                self.messages = '\n'.join(lines)
+            
+            # Auto-scroll to end is handled by CodeEditor automatically when text changes
+    
+    def clear_messages(self):
+        """Clear all messages"""
+        self.messages = ""
+    
+    # Button actions
+    clear_button = Button("Clear")
+    save_button = Button("Save Log")
+    
+    def _clear_button_fired(self):
+        self.clear_messages()
+    
+    def _save_button_fired(self):
+        self.save_log()
+    
+    def save_log(self):
+        """Save the current log to a timestamped file"""
+        from datetime import datetime
+        
+        if not self.messages:
+            print("No messages to save")
+            return
+            
+        # Create filename with timestamp
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        filename = f"pyptv_session_log_{timestamp}.txt"
+        
+        try:
+            with open(filename, 'w') as f:
+                f.write(f"PyPTV Session Log - {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n")
+                f.write("=" * 60 + "\n\n")
+                f.write(self.messages)
+                
+            print(f"Log saved to: {filename}")
+            
+        except Exception as e:
+            print(f"Error saving log: {e}")
+    
+    view = View(
+        HGroup(
+            Item('messages', 
+                 style='readonly',
+                 editor=CodeEditor(),
+                 show_label=False),
+            VGroup(
+                Item('clear_button', show_label=False, width=80),
+                Item('save_button', show_label=False, width=80),
+            ),
+        ),
+        resizable=True,
+        scrollable=True,  # Scrollable only for the overall view
+    )
 
 
 class TreeMenuHandler(Handler):
@@ -775,7 +892,6 @@ class TreeMenuHandler(Handler):
         info.object.overlay_set_images(base_names, seq_first, seq_last)
 
         from flowtracks.io import trajectories_ptvis
-        from pyptv.ptv import py_start_proc_c
 
         dataset = trajectories_ptvis(
             "res/ptv_is.%d", first=seq_first, last=seq_last, xuap=False, traj_min_len=3
@@ -867,7 +983,7 @@ class TreeMenuHandler(Handler):
         df_grouped = df.reset_index().groupby("frame")
         for index, group in df_grouped:
             group.to_csv(
-                f"./res/ptv_{int(index):05d}.txt",
+                f"./res/ptv_{index:05d}.txt",
                 mode="w",
                 columns=["particle", "x", "y", "z", "dx", "dy", "dz"],
                 index=False,
@@ -996,6 +1112,21 @@ menu_bar = MenuBar(
             enabled_when="pass_init",
         ),
         name="Drawing mask",
+    ),
+    Menu(
+        Action(
+            name="Start Message Capture",
+            action="_start_message_capture_action_fired",
+        ),
+        Action(
+            name="Stop Message Capture", 
+            action="_stop_message_capture_action_fired",
+        ),
+        Action(
+            name="Clear Messages",
+            action="_clear_messages_action_fired",
+        ),
+        name="Messages",
     ),
 )
 
@@ -1134,34 +1265,45 @@ class MainGUI(HasTraits):
     pass_init = Bool(False)
     update_thread_plot = Bool(False)
     selected = Instance(CameraWindow)
+    
+    # Message window for stdout capture
+    message_window = Instance(MessageWindow, ())
+    message_capture = Instance(MessageCapture)
+    show_messages = Bool(True)
 
     # Defines GUI view --------------------------
     view = View(
-        Group(
-            Group(
-                Item(
-                    name="exp1",
-                    editor=tree_editor_exp,
-                    show_label=False,
-                    width=-400,
-                    resizable=False,
-                ),
-                Item(
-                    "camera_list",
-                    style="custom",
-                    editor=ListEditor(
-                        use_notebook=True,
-                        deletable=False,
-                        dock_style="tab",
-                        page_name=".name",
-                        selected="selected",
+        VSplit(
+            VGroup(
+                HGroup(
+                    Item(
+                        name="exp1",
+                        editor=tree_editor_exp,
+                        show_label=False,
+                        width=-400,
+                        resizable=False,
                     ),
-                    show_label=False,
+                    Item(
+                        "camera_list",
+                        style="custom",
+                        editor=ListEditor(
+                            use_notebook=True,
+                            deletable=False,
+                            dock_style="tab",
+                            page_name=".name",
+                            selected="selected",
+                        ),
+                        show_label=False,
+                    ),
+                    show_left=False,
                 ),
-                orientation="horizontal",
-                show_left=False,
             ),
-            orientation="vertical",
+            Item(
+                'message_window',
+                style='custom',
+                show_label=False,
+                height=120,  # Fixed height for message area
+            ),
         ),
         title="pyPTV" + __version__,
         id="main_view",
@@ -1236,6 +1378,11 @@ class MainGUI(HasTraits):
         
         for i in range(self.n_cams):
             self.camera_list[i].on_trait_change(self.right_click_process, "rclicked")
+        
+        # Initialize message capture for stdout redirection
+        self.message_capture = MessageCapture(self.message_window)
+        # Start capturing stdout immediately
+        sys.stdout = self.message_capture
 
     def get_parameter(self, key):
         """Delegate parameter access to experiment"""
@@ -1255,7 +1402,7 @@ class MainGUI(HasTraits):
             
             try:
                 (self.cpar, self.spar, self.vpar, self.track_par, 
-                 self.tpar, self.cals, self.epar) = py_start_proc_c(self.exp1.parameter_manager)
+                 self.tpar, self.cals, self.epar) = ptv.py_start_proc_c(self.exp1.parameter_manager)
                 
                 # Clear the dirty flag - parameters are now up-to-date
                 self._parameter_objects_dirty = False
@@ -1479,6 +1626,31 @@ class MainGUI(HasTraits):
         """Save current parameters to YAML"""
         self.exp1.save_parameters()
         print("Parameters saved")
+
+    # Message capture actions
+    def _start_message_capture_action_fired(self, info):
+        """Start capturing stdout messages"""
+        gui = info.object
+        if hasattr(gui, 'message_capture') and gui.message_capture:
+            sys.stdout = gui.message_capture
+            gui.message_window.add_message("Started capturing print statements")
+    
+    def _stop_message_capture_action_fired(self, info):
+        """Stop capturing stdout messages"""
+        gui = info.object
+        if hasattr(gui, 'message_capture') and gui.message_capture:
+            sys.stdout = gui.message_capture.original_stdout
+            gui.message_window.add_message("Stopped capturing print statements")
+    
+    def _clear_messages_action_fired(self, info):
+        """Clear all messages from the message window"""
+        gui = info.object
+        if hasattr(gui, 'message_window') and gui.message_window:
+            gui.message_window.clear_messages()
+        """Clear all messages"""
+        gui = info.object
+        if hasattr(gui, 'message_window'):
+            gui.message_window.clear_messages()
 
 
 def printException():

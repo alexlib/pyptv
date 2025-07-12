@@ -8,7 +8,7 @@ import tempfile
 from pathlib import Path
 import shutil
 import numpy as np
-from pyptv.code_editor import codeEditor
+from pyptv.code_editor import CodeEditor
 from pyptv.directory_editor import DirectoryEditorDialog
 
 # Import GUI components
@@ -136,7 +136,7 @@ def test_code_editor_creation(tmp_path):
         f.write("Test content")
 
     try:
-        editor = codeEditor(file_path=test_file)
+        editor = CodeEditor(file_path=test_file)
         assert editor is not None
     except Exception as e:
         # If there's an error related to the display, skip the test

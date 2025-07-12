@@ -35,7 +35,7 @@ def get_code(path: Path):
     return retCode
 
 
-class codeEditor(HasTraits):
+class CodeEditor(HasTraits):
     file_Path = Path
     _Code = Code()
     save_button = Button(label="Save")
@@ -52,7 +52,7 @@ class codeEditor(HasTraits):
     )
 
     def _save_button_fired(self):
-        with open(self.file_Path, "w", encoding="utf-8") as f:
+        with open(str(self.file_Path), "w", encoding="utf-8") as f:
             # print(f"Saving to {self.file_Path}")
             # print(f"Code: {self._Code}")
             f.write(self._Code)
@@ -68,7 +68,7 @@ class oriEditor(HasTraits):
     # number of images
     n_img = Int()
 
-    oriEditors = List
+    oriEditors = List()
 
     # view
     traits_view = View(
@@ -99,7 +99,7 @@ class oriEditor(HasTraits):
         img_ori = cal_ori_params['img_ori']
 
         for i in range(self.n_img):
-            self.oriEditors.append(codeEditor(Path(img_ori[i])))
+            self.oriEditors.append(CodeEditor(Path(img_ori[i])))
 
 
 class addparEditor(HasTraits):
