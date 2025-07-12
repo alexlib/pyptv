@@ -543,8 +543,8 @@ class TreeMenuHandler(Handler):
         # Check invert setting
         if ptv_params.get('inverse', False):
             print("Invert image")
-            for i, im in enumerate(info.object.orig_images):
-                info.object.orig_images[i] = ptv.negative(im)
+            for i, im in enumerate(mainGui.orig_images):
+                mainGui.orig_images[i] = ptv.negative(im)
 
         # Check mask flag
         # masking_params = mainGui.get_parameter('masking')
@@ -564,7 +564,9 @@ class TreeMenuHandler(Handler):
 
         print("highpass started")
         mainGui.orig_images = ptv.py_pre_processing_c(
-            mainGui.orig_images, ptv_params
+            mainGui.n_cams,
+            mainGui.orig_images, 
+            ptv_params
         )
         mainGui.update_plots(mainGui.orig_images)
         print("highpass finished")
@@ -587,6 +589,7 @@ class TreeMenuHandler(Handler):
             mainGui.detections,
             mainGui.corrected,
         ) = ptv.py_detection_proc_c(
+            mainGui.n_cams,
             mainGui.orig_images,
             ptv_params,
             target_params,

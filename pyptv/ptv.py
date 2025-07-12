@@ -239,11 +239,13 @@ def py_start_proc_c(
 
 
 def py_pre_processing_c(
-    list_of_images: List[np.ndarray], ptv_params: dict, 
+        n_cam: int,
+        list_of_images: List[np.ndarray], 
+        ptv_params: dict, 
 ) -> List[np.ndarray]:
     """Apply pre-processing to a list of images.
     """
-    n_cam = len(list_of_images)
+    # n_cam = len(list_of_images)
     cpar = _populate_cpar(ptv_params, n_cam)
     processed_images = []
     for i, img in enumerate(list_of_images):
@@ -254,13 +256,14 @@ def py_pre_processing_c(
 
 
 def py_detection_proc_c(
+    n_cam: int,
     list_of_images: List[np.ndarray],
     ptv_params: dict,
     target_params: dict,
     existing_target: bool = False,
 ) -> Tuple[List[TargetArray], List[MatchedCoords]]:
     """Detect targets in a list of images."""
-    n_cam = len(ptv_params.get('img_cal', []))
+    # n_cam = len(ptv_params.get('img_cal', []))
     
     if len(list_of_images) != n_cam:
         raise ValueError(f"Number of images ({len(list_of_images)}) must match number of cameras ({n_cam})")
@@ -268,8 +271,8 @@ def py_detection_proc_c(
     cpar = _populate_cpar(ptv_params, n_cam)
     
     # Create a dict that contains targ_rec for _populate_tpar
-    target_params_dict = {'targ_rec': target_params}
-    tpar = _populate_tpar(target_params_dict, n_cam)
+    # target_params_dict = {'targ_rec': target_params}
+    tpar = _populate_tpar(target_params, n_cam)
     
     cals = _read_calibrations(cpar, n_cam)
 
