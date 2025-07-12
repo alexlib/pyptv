@@ -148,20 +148,45 @@ def _populate_track_par(track_params: dict) -> TrackingParams:
     track_par.set_add(track_params.get('flagNewParticles', False))
     return track_par
 
-def _populate_tpar(params: dict, n_cam: int) -> TargetParams:
+def _populate_tpar(targ_params: dict, n_cam: int) -> TargetParams:
     """Populate a TargetParams object from a dictionary."""
-    targ_params = params.get('targ_rec', {})
+    # targ_params = params.get('targ_rec', {})
     
     # Get global n_cam - the single source of truth
     # n_cam = params.get('n_cam', 0)
     
     tpar = TargetParams(n_cam)
-    tpar.set_grey_thresholds(targ_params.get('gvthres', []))
-    tpar.set_pixel_count_bounds((targ_params.get('nnmin', 0), targ_params.get('nnmax', 0)))
-    tpar.set_xsize_bounds((targ_params.get('nxmin', 0), targ_params.get('nxmax', 0)))
-    tpar.set_ysize_bounds((targ_params.get('nymin', 0), targ_params.get('nymax', 0)))
-    tpar.set_min_sum_grey(targ_params.get('sumg_min', 0))
-    tpar.set_max_discontinuity(targ_params.get('disco', 0))
+    # Handle both 'targ_rec' and 'detect_plate' parameter variants
+    if 'targ_rec' in targ_params:
+        params = targ_params['targ_rec']
+        tpar.set_grey_thresholds(params.get('gvthres', []))
+        tpar.set_pixel_count_bounds((params.get('nnmin', 0), params.get('nnmax', 0)))
+        tpar.set_xsize_bounds((params.get('nxmin', 0), params.get('nxmax', 0)))
+        tpar.set_ysize_bounds((params.get('nymin', 0), params.get('nymax', 0)))
+        tpar.set_min_sum_grey(params.get('sumg_min', 0))
+        tpar.set_max_discontinuity(params.get('disco', 0))
+    elif 'detect_plate' in targ_params:
+        params = targ_params['detect_plate']
+        # Convert detect_plate keys to TargetParams fields
+        tpar.set_grey_thresholds([
+            params.get('gvth_1', 0),
+            params.get('gvth_2', 0),
+            params.get('gvth_3', 0),
+            params.get('gvth_4', 0),
+        ])
+        tpar.set_pixel_count_bounds((params.get('min_npix', 0), params.get('max_npix', 0)))
+        tpar.set_xsize_bounds((params.get('min_npix_x', 0), params.get('max_npix_x', 0)))
+        tpar.set_ysize_bounds((params.get('min_npix_y', 0), params.get('max_npix_y', 0)))
+        tpar.set_min_sum_grey(params.get('sum_grey', 0))
+        tpar.set_max_discontinuity(params.get('tol_dis', 0))
+    else:
+        # Fallback: try original keys directly
+        tpar.set_grey_thresholds(targ_params.get('gvthres', []))
+        tpar.set_pixel_count_bounds((targ_params.get('nnmin', 0), targ_params.get('nnmax', 0)))
+        tpar.set_xsize_bounds((targ_params.get('nxmin', 0), targ_params.get('nxmax', 0)))
+        tpar.set_ysize_bounds((targ_params.get('nymin', 0), targ_params.get('nymax', 0)))
+        tpar.set_min_sum_grey(targ_params.get('sumg_min', 0))
+        tpar.set_max_discontinuity(targ_params.get('disco', 0))
     return tpar
 
 def _read_calibrations(cpar: ControlParams, n_cams: int) -> List[Calibration]:
@@ -225,7 +250,7 @@ def py_start_proc_c(
         track_par = _populate_track_par(track_params)
 
         # Create a dict that contains targ_rec for _populate_tpar
-        target_params_dict = {'targ_rec': params.get('targ_rec', {})}
+        target_params_dict = {'detect_plate': params.get('detect_plate', {})}
         tpar = _populate_tpar(target_params_dict, n_cam)
 
         epar = params.get('examine', {})

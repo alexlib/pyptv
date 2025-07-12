@@ -489,13 +489,13 @@ class CalibrationGUI(HasTraits):
 
         # Get parameter dictionaries for py_detection_proc_c
         ptv_params = self.get_parameter('ptv')
-        targ_rec_params = self.get_parameter('detect_plate')
+        target_params_dict = {'detect_plate': self.get_parameter('detect_plate')}
         
         self.detections, corrected = ptv.py_detection_proc_c(
             self.n_cams,
             self.cal_images, 
             ptv_params, 
-            targ_rec_params
+            target_params_dict
         )
 
         x = [[i.pos()[0] for i in row] for row in self.detections]
