@@ -511,11 +511,11 @@ class CalibrationGUI(HasTraits):
 
         import filecmp
 
-        print("Start manual orientation, use clicks and then press this button again")
+        print("Start manual orientation, click 4 times in 4 cameras and then press this button again")
         points_set = True
         for i in range(self.n_cams):
             if len(self.camera[i]._x) < 4:
-                print(f"Camera {i} less than 4 points: {self.camera[i]._x}")
+                print(f"Camera {i} not enough points: {self.camera[i]._x}")
                 points_set = False
             else:
                 print(f"Camera {i} has 4 points: {self.camera[i]._x}")
