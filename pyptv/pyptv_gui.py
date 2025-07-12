@@ -33,6 +33,7 @@ from pyptv.experiment import Experiment, Paramset
 from pyptv.quiverplot import QuiverPlot
 from pyptv.detection_gui import DetectionGUI
 from pyptv.mask_gui import MaskGUI
+from pyptv.parameter_gui import Main_Params, Calib_Params, Tracking_Params
 from pyptv import __version__
 import optv.orientation
 import optv.epipolar
@@ -348,32 +349,48 @@ class TreeMenuHandler(Handler):
         paramset = object
         print("Configure main parameters via ParameterManager")
         
-        # Access parameters via experiment's ParameterManager
-        ptv_params = experiment.get_parameter('ptv')
-        print("Current PTV parameters:", ptv_params)
-        # TODO: Implement parameter editing dialog that updates the dictionary
+        # Create Main_Params GUI with current experiment
+        main_params_gui = Main_Params(experiment=experiment)
+        
+        # Show the GUI in modal dialog
+        result = main_params_gui.edit_traits(view='Main_Params_View', kind='livemodal')
+        
+        if result:
+            print("Main parameters updated and saved to YAML")
+        else:
+            print("Main parameters dialog cancelled")
 
     def configure_cal_par(self, editor, object):
         experiment = editor.get_parent(object)
         paramset = object
         print("Configure calibration parameters via ParameterManager")
         
-        # Calibration parameters are in cal_ori and orient sections
-        cal_ori_params = experiment.get_parameter('cal_ori')
-        orient_params = experiment.get_parameter('orient')
-        print("Current cal_ori parameters:", cal_ori_params)
-        print("Current orient parameters:", orient_params)
-        # TODO: Implement parameter editing dialog that updates the dictionary
+        # Create Calib_Params GUI with current experiment
+        calib_params_gui = Calib_Params(experiment=experiment)
+        
+        # Show the GUI in modal dialog
+        result = calib_params_gui.edit_traits(view='Calib_Params_View', kind='livemodal')
+        
+        if result:
+            print("Calibration parameters updated and saved to YAML")
+        else:
+            print("Calibration parameters dialog cancelled")
 
     def configure_track_par(self, editor, object):
         experiment = editor.get_parent(object)
         paramset = object
         print("Configure tracking parameters via ParameterManager")
         
-        # Tracking parameters are in track section
-        track_params = experiment.get_parameter('track')
-        print("Current tracking parameters:", track_params)
-        # TODO: Implement parameter editing dialog that updates the dictionary
+        # Create Tracking_Params GUI with current experiment
+        tracking_params_gui = Tracking_Params(experiment=experiment)
+        
+        # Show the GUI in modal dialog
+        result = tracking_params_gui.edit_traits(view='Tracking_Params_View', kind='livemodal')
+        
+        if result:
+            print("Tracking parameters updated and saved to YAML")
+        else:
+            print("Tracking parameters dialog cancelled")
 
     def set_active(self, editor, object):
         """sets a set of parameters as active"""

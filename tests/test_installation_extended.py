@@ -182,3 +182,7 @@ def test_installation_scripts():
     # Check for Windows installation script
     windows_script = Path("install_pyptv.bat")
     assert windows_script.exists(), "Windows installation script not found"
+
+
+if __name__ == "__main__":
+    pytest.main([__file__, "-v", "--tb=short"])

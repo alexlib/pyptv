@@ -17,14 +17,14 @@ cal_ori:
   cal_splitter: false
 criteria:
   X_lay:
-  - -40
-  - 40
+  - -40.0
+  - 40.0
   Zmax_lay:
-  - 25
-  - 25
+  - 25.0
+  - 25.0
   Zmin_lay:
-  - -20
-  - -20
+  - -20.0
+  - -20.0
   cn: 0.02
   cnx: 0.02
   cny: 0.02
@@ -93,7 +93,7 @@ orient:
   xh: 0
   yh: 0
 pft_version:
-  Existing_Target: 0
+  Existing_Target: false
 ptv:
   allcam_flag: false
   chfield: 0
@@ -104,10 +104,10 @@ ptv:
   - cal/cam3.tif
   - cal/cam4.tif
   img_name:
-  - img/cam1.10002
-  - img/cam2.10002
-  - img/cam3.10002
-  - img/cam4.10002
+  - img/cam1.10001
+  - img/cam2.10001
+  - img/cam3.10001
+  - img/cam4.10001
   imx: 1280
   imy: 1024
   mmp_d: 6.0
