@@ -30,7 +30,7 @@ criteria:
   cny: 0.02
   corrmin: 33.0
   csumg: 0.02
-  eps0: 0.2
+  eps0: 0.06
 detect_plate:
   gvth_1: 40
   gvth_2: 40
@@ -112,8 +112,8 @@ ptv:
   imy: 1024
   mmp_d: 6.0
   mmp_n1: 1.0
-  mmp_n2: 1.33
-  mmp_n3: 1.46
+  mmp_n2: 1.46
+  mmp_n3: 1.33
   pix_x: 0.012
   pix_y: 0.012
   tiff_flag: true
@@ -149,14 +149,14 @@ targ_rec:
   nymin: 2
   sumg_min: 150
 track:
-  angle: 100.0
-  dacc: 2.8
-  dvxmax: 15.5
-  dvxmin: -15.5
-  dvymax: 15.5
-  dvymin: -15.5
-  dvzmax: 15.5
-  dvzmin: -15.5
+  angle: 220.0
+  dacc: 1.0
+  dvxmax: 1.0
+  dvxmin: -1.0
+  dvymax: 1.0
+  dvymin: -1.0
+  dvzmax: 1.0
+  dvzmin: -1.0
   flagNewParticles: true
 masking:
   mask_flag: false

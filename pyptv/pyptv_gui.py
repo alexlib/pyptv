@@ -764,7 +764,7 @@ class TreeMenuHandler(Handler):
         info.object.pass_init = False
         print("Active parameters set")
         print(info.object.exp1.active_params.yaml_path)
-        detection_gui = DetectionGUI(info.object.exp1)
+        detection_gui = DetectionGUI(info.object.exp_path)
         detection_gui.configure_traits()
 
     def sequence_action(self, info):
