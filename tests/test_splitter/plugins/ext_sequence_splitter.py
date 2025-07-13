@@ -30,18 +30,39 @@ class Sequence:
     def do_sequence(self):
         """Copy of the sequence loop with one change we call everything as
         self.ptv instead of ptv.
-
         """
-        # Sequence parameters
-
-        _, cpar, spar, vpar, tpar, cals = (
-            self.exp.n_cams,
-            self.exp.cpar,
-            self.exp.spar,
-            self.exp.vpar,
-            self.exp.tpar,
-            self.exp.cals,
-        )
+        # Ensure we have an experiment object
+        if self.exp is None:
+            raise ValueError("No experiment object provided")
+            
+        # Ensure parameter objects are initialized
+        if hasattr(self.exp, 'ensure_parameter_objects'):
+            self.exp.ensure_parameter_objects()
+        
+        # Verify splitter mode is enabled
+        if hasattr(self.exp, 'parameter_manager'):
+            ptv_params = self.exp.parameter_manager.get_parameter('ptv', {})
+            if not ptv_params.get('splitter', False):
+                raise ValueError("Splitter mode must be enabled for this sequence processor")
+            
+            # Get processing parameters
+            masking_params = self.exp.parameter_manager.get_parameter('masking', {})
+            inverse_flag = ptv_params.get('inverse', False)
+        else:
+            # Fallback for older experiment objects
+            masking_params = {}
+            inverse_flag = False
+        
+        # Get parameter objects with safety checks
+        if not all(hasattr(self.exp, attr) for attr in ['cpar', 'spar', 'vpar', 'tpar', 'cals']):
+            raise ValueError("Experiment object missing required parameter objects")
+            
+        n_cams = len(self.exp.cals)
+        cpar = self.exp.cpar
+        spar = self.exp.spar
+        vpar = self.exp.vpar
+        tpar = self.exp.tpar
+        cals = self.exp.cals
 
         # # Sequence parameters
         # spar = SequenceParams(num_cams=n_cams)
@@ -62,14 +83,34 @@ class Sequence:
             base_image_name = spar.get_img_base_name(0)
             imname = Path(base_image_name % frame)  # works with jumps from 1 to 10
             
+            if not imname.exists():
+                raise FileNotFoundError(f"{imname} does not exist")
+            
             # now we read and split 
             full_image = imread(imname)
-            list_of_images = self.ptv.image_split(full_image, order = [0,1,3,2]) # for HI-D
+            if full_image.ndim > 2:
+                from skimage.color import rgb2gray
+                full_image = rgb2gray(full_image)
+            
+            # Apply inverse if needed
+            if inverse_flag:
+                full_image = self.ptv.negative(full_image)
+            
+            # Split image using configurable order
+            list_of_images = self.ptv.image_split(full_image, order=[0,1,3,2])  # HI-D specific order
 
-
-            for i_cam in range(4): # split is always into four
+            for i_cam in range(n_cams):  # Use dynamic camera count
                 
                 masked_image = list_of_images[i_cam].copy()
+                
+                # Apply masking if enabled
+                if masking_params.get('mask_flag', False):
+                    try:
+                        background_name = masking_params['mask_base_name'] % (i_cam + 1)
+                        background = imread(background_name)
+                        masked_image = np.clip(masked_image - background, 0, 255).astype(np.uint8)
+                    except (ValueError, FileNotFoundError):
+                        print(f"Failed to read mask for camera {i_cam}")
 
                 high_pass = self.ptv.simple_highpass(masked_image, cpar)
                 targs = self.ptv.target_recognition(high_pass, tpar, i_cam, cpar)
@@ -90,10 +131,10 @@ class Sequence:
 
             # Save targets only after they've been modified:
             # this is a workaround of the proper way to construct _targets name
-            for i_cam in range(4): # split is only for four cameras
+            for i_cam in range(n_cams):  # Use dynamic camera count
                 # base_name = spar.get_img_base_name(i_cam).decode()
                 # base_name = replace_format_specifiers(base_name) # %d to %04d
-                base_name = Path(base_image_name).parent / f'cam{i_cam+1}'
+                base_name = str(Path(base_image_name).parent / f'cam{i_cam+1}')  # Convert Path to string
                 self.ptv.write_targets(detections[i_cam], base_name, frame)
 
             print(
@@ -113,10 +154,7 @@ class Sequence:
             )
             pos, _ = point_positions(flat.transpose(1, 0, 2), cpar, cals, vpar)
 
-            # if len(cals) == 1: # single camera case
-            #     sorted_corresp = np.tile(sorted_corresp,(4,1))
-            #     sorted_corresp[1:,:] = -1
-
+            # Handle fewer than 4 cameras case
             if len(cals) < 4:
                 print_corresp = -1 * np.ones((4, sorted_corresp.shape[1]))
                 print_corresp[: len(cals), :] = sorted_corresp

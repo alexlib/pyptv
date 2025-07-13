@@ -20,31 +20,53 @@ class Tracking:
     def do_tracking(self):
         """this function is callback for "tracking without display" """
         print("inside plugin tracker")
-
-        img_base_name = self.exp.spar.get_img_base_name(0)
-
+        
+        # Safety check
+        if self.exp is None:
+            print("Error: No experiment object available")
+            return
+            
+        # Validate required parameters
+        if not hasattr(self.exp, 'track_par') or self.exp.track_par is None:
+            print("Error: No tracking parameters available")
+            return
+            
+        print(f"Number of cameras: {self.exp.cpar.get_num_cams()}")
+            
+        # Rename base names for each camera individually (following ptv.py pattern)
         for cam_id in range(self.exp.cpar.get_num_cams()):
+            img_base_name = self.exp.spar.get_img_base_name(cam_id)
             short_name = Path(img_base_name).parent / f'cam{cam_id+1}.'
-            # print(short_name)
             print(f" Renaming {img_base_name} to {short_name} before C library tracker")
             self.exp.spar.set_img_base_name(cam_id, str(short_name))
 
-        tracker = Tracker(
-            self.exp.cpar, 
-            self.exp.vpar, 
-            self.exp.track_par, 
-            self.exp.spar, 
-            self.exp.cals, 
-            default_naming
-        )
+        try:
+            tracker = Tracker(
+                self.exp.cpar, 
+                self.exp.vpar, 
+                self.exp.track_par, 
+                self.exp.spar, 
+                self.exp.cals, 
+                default_naming
+            )
+            
+            # Execute tracking
+            tracker.full_forward()
+            print("Tracking completed successfully")
+        except Exception as e:
+            print(f"Error during tracking: {e}")
+            raise
 
-    # return tracker
-
-
+    def do_back_tracking(self):
+        """this function is callback for "tracking back" """
+        print("inside custom back tracking")
         
-        tracker.full_forward()
-
-    # def do_back_tracking(self):
-    #     """this function is callback for "tracking back" """
-    #     # do your back_tracking stuff here
-    #     print("inside custom back tracking")
+        # Safety check
+        if self.exp is None:
+            print("Error: No experiment object available")
+            return
+            
+        # Implement back tracking logic here
+        # This is a placeholder - actual back tracking implementation would go here
+        print("Back tracking functionality not yet implemented")
+        # TODO: Implement actual back tracking algorithm
