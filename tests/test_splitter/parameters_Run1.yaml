@@ -17,14 +17,14 @@ cal_ori:
   cal_splitter: false
 criteria:
   X_lay:
-  - -30
-  - 50
+  - -30.0
+  - 50.0
   Zmax_lay:
-  - -15
-  - -15
+  - -15.0
+  - -15.0
   Zmin_lay:
-  - -80
-  - -80
+  - -80.0
+  - -80.0
   cn: 0.02
   cnx: 0.3
   cny: 0.3
@@ -93,7 +93,7 @@ orient:
   xh: 0
   yh: 0
 pft_version:
-  Existing_Target: 0
+  Existing_Target: false
 ptv:
   allcam_flag: false
   chfield: 0
@@ -117,7 +117,7 @@ ptv:
   pix_x: 0.02
   pix_y: 0.02
   tiff_flag: true
-  splitter: false
+  splitter: true
 sequence:
   base_name:
   - img/C001H001S000%d.tif

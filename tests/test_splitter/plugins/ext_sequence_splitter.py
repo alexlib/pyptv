@@ -74,14 +74,34 @@ class Sequence:
         print(f" From {first_frame = } to {last_frame = }")
 
         for frame in range(first_frame, last_frame + 1):
-            # print(f"processing {frame = }")
+            print(f"Processing frame {frame}")
 
             detections = []
             corrected = []
 
             # when we work with splitter, we read only one image
             base_image_name = spar.get_img_base_name(0)
-            imname = Path(base_image_name % frame)  # works with jumps from 1 to 10
+            
+            # Handle bytes vs string issue
+            if isinstance(base_image_name, bytes):
+                base_image_name = base_image_name.decode('utf-8')
+            
+            print(f"Base image name: '{base_image_name}' (type: {type(base_image_name)}) for frame {frame}")
+            
+            # Safe string formatting - handle cases where format specifier might be missing
+            try:
+                imname = Path(base_image_name % frame)  # works with jumps from 1 to 10
+                print(f"Formatted image name: {imname}")
+            except (TypeError, ValueError) as e:
+                print(f"String formatting failed for '{base_image_name}' with frame {frame}: {e}")
+                # Fallback: assume base_image_name is already formatted or needs frame appended
+                if '%' not in base_image_name:
+                    # No format specifier, try appending frame number
+                    base_path = Path(base_image_name)
+                    imname = base_path.parent / f"{base_path.stem}_{frame:04d}{base_path.suffix}"
+                    print(f"Using fallback image name: {imname}")
+                else:
+                    raise ValueError(f"String formatting error with base_image_name '{base_image_name}': {e}")
             
             if not imname.exists():
                 raise FileNotFoundError(f"{imname} does not exist")
@@ -106,11 +126,25 @@ class Sequence:
                 # Apply masking if enabled
                 if masking_params.get('mask_flag', False):
                     try:
-                        background_name = masking_params['mask_base_name'] % (i_cam + 1)
+                        mask_base_name = masking_params.get('mask_base_name', '')
+                        if not mask_base_name:
+                            print(f"Warning: mask_flag is True but mask_base_name is empty")
+                            continue
+                            
+                        if '%' in mask_base_name:
+                            background_name = mask_base_name % (i_cam + 1)
+                        else:
+                            # Fallback: assume mask_base_name needs camera number appended
+                            mask_path = Path(mask_base_name)
+                            background_name = str(mask_path.parent / f"{mask_path.stem}_cam{i_cam + 1}{mask_path.suffix}")
+                        
                         background = imread(background_name)
+                        if background.ndim > 2:
+                            from skimage.color import rgb2gray
+                            background = rgb2gray(background)
                         masked_image = np.clip(masked_image - background, 0, 255).astype(np.uint8)
-                    except (ValueError, FileNotFoundError):
-                        print(f"Failed to read mask for camera {i_cam}")
+                    except (ValueError, FileNotFoundError, TypeError) as e:
+                        print(f"Failed to read/apply mask for camera {i_cam}: {e}")
 
                 high_pass = self.ptv.simple_highpass(masked_image, cpar)
                 targs = self.ptv.target_recognition(high_pass, tpar, i_cam, cpar)
@@ -167,8 +201,17 @@ class Sequence:
             with open(rt_is_filename, "w", encoding="utf8") as rt_is:
                 rt_is.write(str(pos.shape[0]) + "\n")
                 for pix, pt in enumerate(pos):
-                    pt_args = (pix + 1,) + tuple(pt) + tuple(print_corresp[:, pix])
-                    rt_is.write("%4d %9.3f %9.3f %9.3f %4d %4d %4d %4d\n" % pt_args)
+                    try:
+                        pt_args = (pix + 1,) + tuple(pt) + tuple(print_corresp[:, pix])
+                        # Debug: check if we have the right number of arguments
+                        if len(pt_args) != 8:
+                            print(f"Warning: pt_args has {len(pt_args)} elements, expected 8")
+                            print(f"pt_args = {pt_args}")
+                        rt_is.write("%4d %9.3f %9.3f %9.3f %4d %4d %4d %4d\n" % pt_args)
+                    except (TypeError, ValueError) as e:
+                        print(f"String formatting error at frame {frame}, pixel {pix}: {e}")
+                        print(f"pt = {pt}, print_corresp[:, {pix}] = {print_corresp[:, pix]}")
+                        raise
 
         
         print("Sequence completed successfully")
