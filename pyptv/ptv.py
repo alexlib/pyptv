@@ -79,19 +79,20 @@ def _populate_cpar(ptv_params: dict, n_cam: int) -> ControlParams:
     # ptv_params = params.get('ptv', {})
     
     cpar = ControlParams(n_cam)
-    cpar.set_image_size((ptv_params.get('imx', 0), ptv_params.get('imy', 0)))
-    cpar.set_pixel_size((ptv_params.get('pix_x', 0.0), ptv_params.get('pix_y', 0.0)))
-    cpar.set_hp_flag(ptv_params.get('hp_flag', False))
-    cpar.set_allCam_flag(ptv_params.get('allcam_flag', False))
-    cpar.set_tiff_flag(ptv_params.get('tiff_flag', False))
-    cpar.set_chfield(ptv_params.get('chfield', 0))
-   
-    mm_params = cpar.get_multimedia_params()
-    mm_params.set_n1(ptv_params.get('mmp_n1', 1.0))
-    mm_params.set_layers([ptv_params.get('mmp_n2', 1.0)], [ptv_params.get('mmp_d', 1.0)])
-    mm_params.set_n3(ptv_params.get('mmp_n3', 1.0))
+    # Set required parameters directly from the dictionary, no defaults
+    cpar.set_image_size((ptv_params['imx'], ptv_params['imy']))
+    cpar.set_pixel_size((ptv_params['pix_x'], ptv_params['pix_y']))
+    cpar.set_hp_flag(ptv_params['hp_flag'])
+    cpar.set_allCam_flag(ptv_params['allcam_flag'])
+    cpar.set_tiff_flag(ptv_params['tiff_flag'])
+    cpar.set_chfield(ptv_params['chfield'])
 
-    img_cal_list = ptv_params.get('img_cal', [])
+    mm_params = cpar.get_multimedia_params()
+    mm_params.set_n1(ptv_params['mmp_n1'])
+    mm_params.set_layers([ptv_params['mmp_n2']], [ptv_params['mmp_d']])
+    mm_params.set_n3(ptv_params['mmp_n3'])
+
+    img_cal_list = ptv_params['img_cal']
     
     if len(img_cal_list) != n_cam:
         raise ValueError("img_cal_list length does not match n_cam; check your Yaml file.")
@@ -120,32 +121,43 @@ def _populate_spar(seq_params: dict, n_cam: int) -> SequenceParams:
 def _populate_vpar(crit_params: dict) -> VolumeParams:
     """Populate a VolumeParams object from a dictionary."""
     vpar = VolumeParams()
-    vpar.set_X_lay(crit_params.get('X_lay', [0,0]))
-    vpar.set_Zmin_lay(crit_params.get('Zmin_lay', [0,0]))
-    vpar.set_Zmax_lay(crit_params.get('Zmax_lay', [0,0]))
+    vpar.set_X_lay(crit_params['X_lay'])
+    vpar.set_Zmin_lay(crit_params['Zmin_lay'])
+    vpar.set_Zmax_lay(crit_params['Zmax_lay'])
     
     # Set correspondence parameters
-    vpar.set_eps0(crit_params.get('eps0', 0.1))
-    vpar.set_cn(crit_params.get('cn', 0.0))
-    vpar.set_cnx(crit_params.get('cnx', 0.0))
-    vpar.set_cny(crit_params.get('cny', 0.0))
-    vpar.set_csumg(crit_params.get('csumg', 0.0))
-    vpar.set_corrmin(crit_params.get('corrmin', 2))
+    vpar.set_eps0(crit_params['eps0'])
+    vpar.set_cn(crit_params['cn'])
+    vpar.set_cnx(crit_params['cnx'])
+    vpar.set_cny(crit_params['cny'])
+    vpar.set_csumg(crit_params['csumg'])
+    vpar.set_corrmin(crit_params['corrmin'])
     
     return vpar
 
 def _populate_track_par(track_params: dict) -> TrackingParams:
-    """Populate a TrackingParams object from a dictionary."""
+    """Populate a TrackingParams object from a dictionary.
+    
+    Raises ValueError if required tracking parameters are missing.
+    No default values are provided to avoid silent tracking failures.
+    """
+    required_params = ['dvxmin', 'dvxmax', 'dvymin', 'dvymax', 'dvzmin', 'dvzmax', 'angle', 'dacc', 'flagNewParticles']
+    missing_params = [param for param in required_params if param not in track_params]
+    
+    if missing_params:
+        raise ValueError(f"Missing required tracking parameters: {missing_params}. "
+                        f"Available parameters: {list(track_params.keys())}")
+    
     track_par = TrackingParams()
-    track_par.set_dvxmin(track_params.get('dvxmin', 0.0))
-    track_par.set_dvxmax(track_params.get('dvxmax', 0.0))
-    track_par.set_dvymin(track_params.get('dvymin', 0.0))
-    track_par.set_dvymax(track_params.get('dvymax', 0.0))
-    track_par.set_dvzmin(track_params.get('dvzmin', 0.0))
-    track_par.set_dvzmax(track_params.get('dvzmax', 0.0))
-    track_par.set_dangle(track_params.get('angle', 0.0))
-    track_par.set_dacc(track_params.get('dacc', 0.0))
-    track_par.set_add(track_params.get('flagNewParticles', False))
+    track_par.set_dvxmin(track_params['dvxmin'])
+    track_par.set_dvxmax(track_params['dvxmax'])
+    track_par.set_dvymin(track_params['dvymin'])
+    track_par.set_dvymax(track_params['dvymax'])
+    track_par.set_dvzmin(track_params['dvzmin'])
+    track_par.set_dvzmax(track_params['dvzmax'])
+    track_par.set_dangle(track_params['angle'])
+    track_par.set_dacc(track_params['dacc'])
+    track_par.set_add(track_params['flagNewParticles'])
     return track_par
 
 def _populate_tpar(targ_params: dict, n_cam: int) -> TargetParams:
@@ -159,20 +171,25 @@ def _populate_tpar(targ_params: dict, n_cam: int) -> TargetParams:
     # Handle both 'targ_rec' and 'detect_plate' parameter variants
     if 'targ_rec' in targ_params:
         params = targ_params['targ_rec']
-        tpar.set_grey_thresholds(params.get('gvthres', []))
-        tpar.set_pixel_count_bounds((params.get('nnmin', 0), params.get('nnmax', 0)))
-        tpar.set_xsize_bounds((params.get('nxmin', 0), params.get('nxmax', 0)))
-        tpar.set_ysize_bounds((params.get('nymin', 0), params.get('nymax', 0)))
-        tpar.set_min_sum_grey(params.get('sumg_min', 0))
-        tpar.set_max_discontinuity(params.get('disco', 0))
+        tpar.set_grey_thresholds(params['gvthres'])
+        tpar.set_pixel_count_bounds((params['nnmin'], params['nnmax']))
+        tpar.set_xsize_bounds((params['nxmin'], params['nxmax']))
+        tpar.set_ysize_bounds((params['nymin'], params['nymax']))
+        tpar.set_min_sum_grey(params['sumg_min'])
+        tpar.set_max_discontinuity(params['disco'])
     elif 'detect_plate' in targ_params:
         params = targ_params['detect_plate']
         # Convert detect_plate keys to TargetParams fields
+        # Ensure all required grey thresholds are present
+        required_gvth_keys = ['gvth_1', 'gvth_2', 'gvth_3', 'gvth_4']
+        missing_keys = [k for k in required_gvth_keys if k not in params]
+        if missing_keys:
+            raise ValueError(f"Missing required grey threshold keys in detect_plate: {missing_keys}")
         tpar.set_grey_thresholds([
-            params.get('gvth_1', 0),
-            params.get('gvth_2', 0),
-            params.get('gvth_3', 0),
-            params.get('gvth_4', 0),
+            params['gvth_1'],
+            params['gvth_2'],
+            params['gvth_3'],
+            params['gvth_4'],
         ])
         tpar.set_pixel_count_bounds((params.get('min_npix', 0), params.get('max_npix', 0)))
         tpar.set_xsize_bounds((params.get('min_npix_x', 0), params.get('max_npix_x', 0)))
