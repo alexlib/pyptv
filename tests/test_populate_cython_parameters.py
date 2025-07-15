@@ -12,7 +12,7 @@ def test_parameter_translation_pipeline():
     
     # Step 1: Load experiment and get raw parameters
     print("1. Loading experiment and raw parameters...")
-    test_dir = Path("tests/test_cavity")
+    test_dir = Path(__file__).parent / "test_cavity"
     experiment = Experiment()
     experiment.populate_runs(test_dir)
     

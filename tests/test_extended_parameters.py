@@ -4,8 +4,10 @@ import subprocess
 import sys
 import math
 from pathlib import Path
+import pytest
 
 
+@pytest.mark.skip(reason="Too slow for regular test runs; intended for manual parameter analysis.")
 def test_extended_acceleration_range():
     """Test a much wider range of acceleration values"""
     
@@ -64,6 +66,7 @@ def test_extended_acceleration_range():
     return best_dacc, best_ratio
 
 
+@pytest.mark.skip(reason="Too slow for regular test runs; intended for manual parameter analysis.")
 def test_velocity_parameter_interaction():
     """Test if velocity constraints are interacting with acceleration"""
     

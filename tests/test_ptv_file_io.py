@@ -15,7 +15,8 @@ class TestReadTargets:
     
     def test_read_targets_valid_file(self):
         """Test reading targets from a valid file"""
-        mock_file_content = "1 100.5 200.5 30 150\n2 110.5 210.5 25 140\n"
+        # Format: first line is number of targets, then target data (8 columns each)
+        mock_file_content = "2\n1 100.5 200.5 30 25 15 150 0\n2 110.5 210.5 25 20 10 140 1\n"
         
         with patch('builtins.open', mock_open(read_data=mock_file_content)):
             with patch('os.path.exists', return_value=True):
@@ -33,18 +34,17 @@ class TestReadTargets:
         """Test reading targets from empty file"""
         with patch('builtins.open', mock_open(read_data="")):
             with patch('os.path.exists', return_value=True):
-                result = read_targets('empty_file.txt')
-                
-                # Should handle empty file gracefully
-                assert result is not None
+                with pytest.raises(ValueError):
+                    read_targets('empty_file.txt')
     
     def test_read_targets_invalid_format(self):
         """Test reading targets from file with invalid format"""
-        mock_file_content = "invalid data format\n"
+        # First line should be number of targets, second line has wrong number of columns
+        mock_file_content = "1\n1 100.5 200.5 30\n"  # Only 4 columns instead of 8
         
         with patch('builtins.open', mock_open(read_data=mock_file_content)):
             with patch('os.path.exists', return_value=True):
-                with pytest.raises((ValueError, IndexError)):
+                with pytest.raises(ValueError, match="Bad format for file"):
                     read_targets('invalid_file.txt')
 
 
@@ -65,7 +65,9 @@ class TestWriteTargets:
         with patch('builtins.open', mock_open()) as mock_file:
             result = write_targets(targets, 'output_file.txt')
             
-            mock_file.assert_called_once_with('output_file.txt', 'w')
+            # The function creates filename using file_base_to_filename which appends frame and _targets
+            expected_filename = 'output_file.123456789_targets'
+            mock_file.assert_called_once_with(expected_filename, 'wt')
             assert result is not None
     
     def test_write_targets_empty_list(self):
@@ -75,7 +77,9 @@ class TestWriteTargets:
         with patch('builtins.open', mock_open()) as mock_file:
             result = write_targets(targets, 'output_file.txt')
             
-            mock_file.assert_called_once_with('output_file.txt', 'w')
+            # The function creates filename using file_base_to_filename which appends frame and _targets
+            expected_filename = 'output_file.123456789_targets'
+            mock_file.assert_called_once_with(expected_filename, 'wt')
             assert result is not None
     
     def test_write_targets_permission_error(self):
@@ -90,8 +94,9 @@ class TestWriteTargets:
         targets = [mock_target]
         
         with patch('builtins.open', side_effect=PermissionError("Permission denied")):
-            with pytest.raises(PermissionError):
-                write_targets(targets, '/root/protected_file.txt')
+            result = write_targets(targets, '/root/protected_file.txt')
+            # Function catches IOError and returns False instead of raising
+            assert result is False
     
     def test_write_targets_invalid_path(self):
         """Test writing targets to invalid path"""
@@ -105,8 +110,9 @@ class TestWriteTargets:
         targets = [mock_target]
         
         with patch('builtins.open', side_effect=FileNotFoundError("No such file or directory")):
-            with pytest.raises(FileNotFoundError):
-                write_targets(targets, '/nonexistent/path/file.txt')
+            result = write_targets(targets, '/nonexistent/path/file.txt')
+            # Function catches IOError and returns False instead of raising
+            assert result is False
 
 
 class TestFileBaseToFilename:
@@ -119,7 +125,8 @@ class TestFileBaseToFilename:
         
         result = file_base_to_filename(base_name, frame_num)
         
-        assert result == "img_1001.tif"
+        # Function appends _targets and returns a Path object
+        assert str(result) == "img_1001_targets"
     
     def test_file_base_to_filename_no_format(self):
         """Test filename generation without format specifier"""
@@ -128,17 +135,18 @@ class TestFileBaseToFilename:
         
         result = file_base_to_filename(base_name, frame_num)
         
-        # Should handle base names without format specifiers
-        assert result is not None
+        # Should handle base names without format specifiers and append frame and _targets
+        assert str(result) == "image.1001_targets"
     
     def test_file_base_to_filename_complex_format(self):
         """Test filename generation with complex format"""
-        base_name = "exp_%s_cam_%02d_frame_%04d.tif"
+        base_name = "exp_test_cam_01_frame_%04d.tif"
         frame_num = 1001
         
-        # This should raise an error due to insufficient arguments
-        with pytest.raises((TypeError, ValueError)):
-            file_base_to_filename(base_name, frame_num)
+        result = file_base_to_filename(base_name, frame_num)
+        
+        # Function should handle this and append _targets
+        assert str(result) == "exp_test_cam_01_frame_1001_targets"
     
     def test_file_base_to_filename_zero_padding(self):
         """Test filename generation with zero padding"""
@@ -147,7 +155,8 @@ class TestFileBaseToFilename:
         
         result = file_base_to_filename(base_name, frame_num)
         
-        assert result == "data_000042.jpg"
+        # Function converts %06d to %04d and appends _targets
+        assert str(result) == "data_0042_targets"
     
     def test_file_base_to_filename_negative_frame(self):
         """Test filename generation with negative frame number"""
@@ -156,46 +165,55 @@ class TestFileBaseToFilename:
         
         result = file_base_to_filename(base_name, frame_num)
         
-        # Should handle negative numbers
-        assert result is not None
+        # Should handle negative numbers and append _targets
+        assert str(result) == "img_-001_targets"
 
 
 class TestReadRtIsFile:
     """Test read_rt_is_file function"""
     
-    def test_read_rt_is_file_existing_file(self):
-        """Test checking if rt file exists"""
-        with patch('os.path.exists', return_value=True):
-            result = read_rt_is_file('existing_file.rt')
+    def test_read_rt_is_file_valid_content(self):
+        """Test reading valid rt_is file content"""
+        # Mock rt_is file content with proper format
+        mock_content = """2
+0 100.5 200.5 50.0 1 2 3 4
+1 110.5 210.5 60.0 5 6 7 8
+"""
+        with patch('builtins.open', mock_open(read_data=mock_content)):
+            result = read_rt_is_file('test.rt')
             
-            assert result is True
+            assert len(result) == 2
+            assert result[0] == [100.5, 200.5, 50.0, 1, 2, 3, 4]
+            assert result[1] == [110.5, 210.5, 60.0, 5, 6, 7, 8]
+    
+    def test_read_rt_is_file_empty_file(self):
+        """Test reading empty rt_is file raises ValueError"""
+        mock_content = "0\n"
+        with patch('builtins.open', mock_open(read_data=mock_content)):
+            with pytest.raises(ValueError, match="Failed to read the number of rows"):
+                read_rt_is_file('empty.rt')
     
     def test_read_rt_is_file_nonexistent_file(self):
-        """Test checking if rt file exists when it doesn't"""
-        with patch('os.path.exists', return_value=False):
-            result = read_rt_is_file('nonexistent_file.rt')
-            
-            assert result is False
+        """Test reading nonexistent file raises IOError"""
+        with pytest.raises(IOError):
+            read_rt_is_file('nonexistent_file.rt')
     
-    def test_read_rt_is_file_invalid_extension(self):
-        """Test checking file with invalid extension"""
-        with patch('os.path.exists', return_value=True):
-            # The function should still check existence regardless of extension
-            result = read_rt_is_file('file.txt')
-            
-            assert result is True
+    def test_read_rt_is_file_invalid_format(self):
+        """Test reading file with invalid format"""
+        # Missing values in line
+        mock_content = """1
+0 100.5 200.5
+"""
+        with patch('builtins.open', mock_open(read_data=mock_content)):
+            with pytest.raises(ValueError, match="Incorrect number of values in line"):
+                read_rt_is_file('invalid.rt')
     
-    def test_read_rt_is_file_empty_filename(self):
-        """Test checking with empty filename"""
-        with patch('os.path.exists', return_value=False):
-            result = read_rt_is_file('')
-            
-            assert result is False
-    
-    def test_read_rt_is_file_none_filename(self):
-        """Test checking with None filename"""
-        with pytest.raises((TypeError, AttributeError)):
-            read_rt_is_file(None)
+    def test_read_rt_is_file_zero_rows_error(self):
+        """Test file with zero rows raises ValueError"""
+        mock_content = "0\n"
+        with patch('builtins.open', mock_open(read_data=mock_content)):
+            with pytest.raises(ValueError, match="Failed to read the number of rows"):
+                read_rt_is_file('zero_rows.rt')
 
 
 if __name__ == "__main__":

@@ -43,16 +43,39 @@ def test_detection_parameters_bug():
     print(f"   targ_rec parameters: {targ_rec_params}")
     if targ_rec_params is None:
         print("   ❌ GUI will fail - no 'targ_rec' section!")
-        # Create empty target_params as GUI would
-        target_params_gui = {'targ_rec': {}}
+        # Create empty target_params as GUI would - but we need to provide required params
+        # to avoid the KeyError we implemented for safety
+        target_params_gui = {
+            'targ_rec': {
+                'gvthres': [0, 0, 0, 0],  # Default/empty values
+                'nnmin': 1,
+                'nnmax': 1000,
+                'nxmin': 1,
+                'nxmax': 20,
+                'nymin': 1,
+                'nymax': 20,
+                'sumg_min': 0,
+                'disco': 10
+            }
+        }
+        try:
+            tpar_gui = _populate_tpar(target_params_gui, experiment.get_n_cam())
+            print(f"   GUI TargetParams created with default values (likely all zeros)")
+        except Exception as e:
+            print(f"   GUI TargetParams creation failed: {e}")
+    else:
+        target_params_gui = {'targ_rec': targ_rec_params}
         tpar_gui = _populate_tpar(target_params_gui, experiment.get_n_cam())
-        print(f"   GUI TargetParams will have default values (likely all zeros)")
+        print(f"   GUI TargetParams will have values from targ_rec")
     print()
     
     # Test sequence approach (correct)
     print("2. Sequence approach (looking for 'detect_plate'):")
     detect_plate_params = experiment.get_parameter('detect_plate')
     print(f"   detect_plate parameters: {detect_plate_params}")
+    target_params_seq = None
+    tpar_seq = None
+    
     if detect_plate_params is not None:
         print("   ✅ Sequence will work - 'detect_plate' section exists!")
         target_params_seq = {'detect_plate': detect_plate_params}
@@ -60,10 +83,16 @@ def test_detection_parameters_bug():
         print(f"   Sequence TargetParams will have proper values")
         print(f"   Grey thresholds: {[tpar_seq.get_grey_thresholds()[i] for i in range(4)]}")
         print(f"   Min/max pixels: {tpar_seq.get_pixel_count_bounds()}")
+    else:
+        print("   ❌ Sequence will also fail - no 'detect_plate' section!")
     print()
     
     # Test with an actual image if available
     ptv_params = experiment.get_parameter('ptv')
+    if ptv_params is None:
+        print("3. Cannot test actual detection - no 'ptv' parameters found")
+        return
+        
     img_path = Path(ptv_params['img_name'][0])
     
     if img_path.exists():
@@ -93,17 +122,20 @@ def test_detection_parameters_bug():
             print(f"   GUI detection failed: {e}")
         
         # Test sequence detection (with correct parameters)
-        try:
-            print("   Testing sequence detection (detect_plate - proper parameters):")
-            detections_seq, _ = py_detection_proc_c(
-                1,  # Just one camera for test
-                images,
-                ptv_params,
-                target_params_seq
-            )
-            print(f"   Sequence detections: {len(detections_seq[0])} targets")
-        except Exception as e:
-            print(f"   Sequence detection failed: {e}")
+        if target_params_seq is not None:
+            try:
+                print("   Testing sequence detection (detect_plate - proper parameters):")
+                detections_seq, _ = py_detection_proc_c(
+                    1,  # Just one camera for test
+                    images,
+                    ptv_params,
+                    target_params_seq
+                )
+                print(f"   Sequence detections: {len(detections_seq[0])} targets")
+            except Exception as e:
+                print(f"   Sequence detection failed: {e}")
+        else:
+            print("   Cannot test sequence detection - no detect_plate parameters")
             
     else:
         print(f"3. Cannot test actual detection - image not found: {img_path}")

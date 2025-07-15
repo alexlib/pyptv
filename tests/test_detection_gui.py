@@ -32,7 +32,7 @@ def experiment_with_test_data():
 @pytest.fixture
 def test_working_directory():
     """Create a test working directory with known structure"""
-    test_dir = Path("tests/test_cavity")
+    test_dir = Path("tests/test_cavity").resolve()  # Use absolute path
     if not test_dir.exists():
         pytest.skip(f"Test directory {test_dir} not found")
     return test_dir
@@ -154,14 +154,14 @@ class TestDetectionGUI:
             if (test_working_directory / test_image).exists():
                 gui.image_name = test_image
                 
-                # Before loading parameters, check traits don't exist
-                assert not hasattr(gui, 'grey_thresh')
+                # grey_thresh is now always defined as a class trait
+                assert hasattr(gui, 'grey_thresh')
                 
                 # Load parameters
                 gui._button_load_params()
                 
                 if gui.parameters_loaded:
-                    # After loading, dynamic traits should exist
+                    # After loading, all detection traits should be accessible
                     assert hasattr(gui, 'grey_thresh')
                     assert hasattr(gui, 'min_npix')
                     

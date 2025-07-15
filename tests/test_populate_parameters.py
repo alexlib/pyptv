@@ -23,19 +23,13 @@ class TestPopulateCpar:
     """Test _populate_cpar function."""
     
     def test_populate_cpar_minimal(self):
-        """Test with minimal parameters."""
-        ptv_params = {
-            'img_cal': ['cal/cam1', 'cal/cam2']  # Need to provide img_cal for n_cam
-        }
+        """Test with empty parameters - should raise KeyError for missing required params."""
+        ptv_params = {}
         n_cam = 2
         
-        cpar = _populate_cpar(ptv_params, n_cam)
-        
-        # Existing methods for spar (SequenceParams) include:
-        # get_first(), get_last(), get_img_base_name(i)
-        assert cpar.get_num_cams() == 2
-        assert cpar.get_image_size() == (0, 0)  # Default values
-        assert cpar.get_pixel_size() == (0.0, 0.0)
+        # Should raise KeyError for missing required parameters
+        with pytest.raises(KeyError):
+            _populate_cpar(ptv_params, n_cam)
     
     def test_populate_cpar_full_params(self):
         """Test with complete parameter set."""
@@ -81,7 +75,11 @@ class TestPopulateCpar:
     def test_populate_cpar_insufficient_cal_images(self):
         """Test behavior when not enough calibration images provided."""
         ptv_params = {
-            'img_cal': ['cal/cam1.tif', 'cal/cam2.tif']  # Only 2 images
+            'img_cal': ['cal/cam1.tif', 'cal/cam2.tif'],  # Only 2 images
+            'imx': 1024, 'imy': 1024,
+            'pix_x': 0.012, 'pix_y': 0.012,
+            'hp_flag': 1, 'allcam_flag': 0, 'tiff_flag': 0, 'chfield': 0,
+            'mmp_n1': 1.0, 'mmp_n2': 1.33, 'mmp_d': 1.0, 'mmp_n3': 1.0
         }
         n_cam = 4  # But 4 cameras
         
@@ -90,12 +88,12 @@ class TestPopulateCpar:
             _populate_cpar(ptv_params, n_cam)
     
     def test_populate_cpar_missing_img_cal(self):
-        """Test behavior when img_cal is completely missing."""
-        ptv_params = {}  # No img_cal provided
+        """Test behavior when required parameters are missing."""
+        ptv_params = {}  # No required parameters provided
         n_cam = 2
         
-        # Should raise ValueError due to length mismatch (empty list vs n_cam=2)
-        with pytest.raises(ValueError, match="img_cal_list length does not match n_cam"):
+        # Should raise KeyError for first missing required parameter
+        with pytest.raises(KeyError):
             _populate_cpar(ptv_params, n_cam)
 
 
@@ -103,28 +101,21 @@ class TestPopulateSpar:
     """Test _populate_spar function."""
     
     def test_populate_spar_minimal(self):
-        """Test with minimal parameters."""
-        seq_params = {"base_name": ["cam0.%d", "cam1.%d"]}  # Provide exactly n_cam base names
+        """Test with partial parameters - should raise ValueError for missing required params."""
+        seq_params = {"base_name": ["cam0.%d", "cam1.%d"]}  # Missing first and last
         n_cam = 2
         
-        spar = _populate_spar(seq_params, n_cam)
-        
-        # The OptV library returns bytes, so we need to decode or compare with bytes
-        for i in range(n_cam):
-            base_name = spar.get_img_base_name(i)
-            expected_name = seq_params["base_name"][i]
-            assert base_name == expected_name
-    
-        assert spar.get_first() == 0
-        assert spar.get_last() == 0
+        # Should raise ValueError for missing required parameters
+        with pytest.raises(ValueError, match="Missing required sequence parameters"):
+            _populate_spar(seq_params, n_cam)
     
     def test_populate_spar_no_base_names(self):
-        """Test with no base names provided."""
-        seq_params = {}  # No base_name provided
+        """Test with no parameters provided."""
+        seq_params = {}  # No parameters provided
         n_cam = 2
         
-        # Should raise ValueError due to empty base_name list vs n_cam=2
-        with pytest.raises(ValueError, match="base_name_list length does not match n_cam"):
+        # Should raise ValueError due to missing required parameters
+        with pytest.raises(ValueError, match="Missing required sequence parameters"):
             _populate_spar(seq_params, n_cam)
     
     def test_populate_spar_full_params(self):
@@ -155,12 +146,14 @@ class TestPopulateSpar:
     def test_populate_spar_insufficient_base_names(self):
         """Test behavior when not enough base names provided."""
         seq_params = {
-            'base_name': ['img/cam1_%04d.tif', 'img/cam2_%04d.tif']  # Only 2 names
+            'base_name': ['img/cam1_%04d.tif', 'img/cam2_%04d.tif'],  # Only 2 names
+            'first': 1,
+            'last': 10
         }
         n_cam = 4  # But 4 cameras
         
         # Should raise ValueError due to length mismatch
-        with pytest.raises(ValueError, match="base_name_list length does not match n_cam"):
+        with pytest.raises(ValueError, match="base_name_list length .* does not match n_cam"):
             _populate_spar(seq_params, n_cam)
 
 
@@ -168,21 +161,25 @@ class TestPopulateVpar:
     """Test _populate_vpar function."""
     
     def test_populate_vpar_minimal(self):
-        """Test with minimal parameters."""
+        """Test with empty parameters - should raise KeyError for missing required params."""
         crit_params = {}
         
-        vpar = _populate_vpar(crit_params)
-        
-        assert np.allclose(vpar.get_X_lay(),[0, 0])
-        assert np.allclose(vpar.get_Zmin_lay(),[0, 0])
-        assert np.allclose(vpar.get_Zmax_lay(),[0, 0])
+        # Should raise KeyError for missing required parameters
+        with pytest.raises(KeyError):
+            _populate_vpar(crit_params)
     
     def test_populate_vpar_full_params(self):
         """Test with complete parameter set."""
         crit_params = {
             'X_lay': [-10.0, 10.0],
             'Zmin_lay': [-5.0, -5.0],
-            'Zmax_lay': [15.0, 15.0]
+            'Zmax_lay': [15.0, 15.0],
+            'eps0': 0.1,
+            'cn': 0.5,
+            'cnx': 0.3,
+            'cny': 0.3,
+            'csumg': 0.2,
+            'corrmin': 0.8
         }
         
         vpar = _populate_vpar(crit_params)
@@ -190,20 +187,36 @@ class TestPopulateVpar:
         assert np.allclose(vpar.get_X_lay(), [-10.0, 10.0])
         assert np.allclose(vpar.get_Zmin_lay(), [-5.0, -5.0])
         assert np.allclose(vpar.get_Zmax_lay(), [15.0, 15.0])
+        assert vpar.get_eps0() == 0.1
+        assert vpar.get_cn() == 0.5
+        assert vpar.get_cnx() == 0.3
+        assert vpar.get_cny() == 0.3
+        assert vpar.get_csumg() == 0.2
+        assert vpar.get_corrmin() == 0.8
 
 
 class TestPopulateTrackPar:
     """Test _populate_track_par function."""
     
     def test_populate_track_par_minimal(self):
-        """Test with minimal parameters."""
+        """Test with empty parameters - should raise ValueError for missing required params."""
         track_params = {}
         
-        track_par = _populate_track_par(track_params)
+        # Should raise ValueError for missing required parameters
+        with pytest.raises(ValueError, match="Missing required tracking parameters"):
+            _populate_track_par(track_params)
+    
+    def test_populate_track_par_partial_params(self):
+        """Test with partial parameters - should raise ValueError for missing required params."""
+        track_params = {
+            'dvxmin': -10.0,
+            'dvxmax': 10.0,
+            # Missing other required parameters
+        }
         
-        assert track_par.get_dvxmin() == 0.0
-        assert track_par.get_dvxmax() == 0.0
-        assert track_par.get_add() == False
+        # Should raise ValueError for missing required parameters
+        with pytest.raises(ValueError, match="Missing required tracking parameters"):
+            _populate_track_par(track_params)
     
     def test_populate_track_par_full_params(self):
         """Test with complete parameter set."""
@@ -239,13 +252,23 @@ class TestPopulateTpar:
         """Test with minimal parameters."""
         params = {
             'n_cam': 4,
-            'targ_rec': {}
+            'targ_rec': {
+                'gvthres': [50, 50, 50, 50],
+                'nnmin': 1,
+                'nnmax': 1000,
+                'nxmin': 1,
+                'nxmax': 20,
+                'nymin': 1,
+                'nymax': 20,
+                'sumg_min': 200,
+                'disco': 10
+            }
         }
         
         tpar = _populate_tpar(params, n_cam=params.get('n_cam', 0))
         
-        assert np.allclose(tpar.get_grey_thresholds(),[0,0,0,0])
-        assert tpar.get_pixel_count_bounds() == (0, 0)
+        assert np.allclose(tpar.get_grey_thresholds(), [50, 50, 50, 50])
+        assert tpar.get_pixel_count_bounds() == (1, 1000)
     
     def test_populate_tpar_full_params(self):
         """Test with complete parameter set."""
@@ -278,7 +301,15 @@ class TestPopulateTpar:
         """Test behavior when n_cam is missing from params."""
         params = {
             'targ_rec': {
-                'gvthres': [9, 9, 9, 11]
+                'gvthres': [9, 9, 9, 11],
+                'nnmin': 1,
+                'nnmax': 1000,
+                'nxmin': 1,
+                'nxmax': 20,
+                'nymin': 1,
+                'nymax': 20,
+                'sumg_min': 200,
+                'disco': 10
             }
         }
 
@@ -415,6 +446,8 @@ class TestPyStartProcC:
         mock_pm.parameters = {
             'ptv': {
                 'imx': 1280, 'imy': 1024, 'pix_x': 0.012, 'pix_y': 0.012,
+                'hp_flag': 1, 'allcam_flag': 0, 'tiff_flag': 0, 'chfield': 0,
+                'mmp_n1': 1.0, 'mmp_n2': 1.33, 'mmp_d': 1.0, 'mmp_n3': 1.0,
                 'img_cal': ['cal/cam1', 'cal/cam2', 'cal/cam3', 'cal/cam4']
             },
             'sequence': {
@@ -422,13 +455,17 @@ class TestPyStartProcC:
                 'base_name': ['img/cam1_%04d', 'img/cam2_%04d', 'img/cam3_%04d', 'img/cam4_%04d']
             },
             'criteria': {
-                'X_lay': [-10, 10], 'Zmin_lay': [-5, -5], 'Zmax_lay': [15, 15]
+                'X_lay': [-10, 10], 'Zmin_lay': [-5, -5], 'Zmax_lay': [15, 15],
+                'eps0': 0.1, 'cn': 0.5, 'cnx': 0.3, 'cny': 0.3, 'csumg': 0.2, 'corrmin': 0.8
             },
             'track': {
-                'dvxmin': -10, 'dvxmax': 10, 'angle': 100.0
+                'dvxmin': -10, 'dvxmax': 10, 'dvymin': -8, 'dvymax': 8,
+                'dvzmin': -15, 'dvzmax': 15, 'angle': 100.0, 'dacc': 0.5, 'flagNewParticles': True
             },
             'targ_rec': {
-                'gvthres': [9, 9, 9, 11], 'nnmin': 4, 'nnmax': 500
+                'gvthres': [9, 9, 9, 11], 'nnmin': 4, 'nnmax': 500,
+                'nxmin': 5, 'nxmax': 50, 'nymin': 5, 'nymax': 50,
+                'sumg_min': 100, 'disco': 100
             },
             'examine': {},
             'n_cam': 4
@@ -461,11 +498,33 @@ class TestPyStartProcC:
         mock_pm = Mock()
         mock_pm.n_cam = 4
         mock_pm.parameters = {
-            'ptv': {'img_cal': ['cal/cam1', 'cal/cam2', 'cal/cam3', 'cal/cam4']},
-            'sequence': {'base_name': ['img1_%04d', 'img2_%04d', 'img3_%04d', 'img4_%04d']},
-            'criteria': {},
-            'track': {},
-            'targ_rec': {},
+            'ptv': {
+                'img_cal': ['cal/cam1', 'cal/cam2', 'cal/cam3', 'cal/cam4'],
+                'imx': 1024, 'imy': 1024,
+                'pix_x': 0.012, 'pix_y': 0.012,
+                'hp_flag': 1, 'allcam_flag': 0, 'tiff_flag': 0, 'chfield': 0,
+                'mmp_n1': 1.0, 'mmp_n2': 1.33, 'mmp_d': 1.0, 'mmp_n3': 1.0
+            },
+            'sequence': {
+                'base_name': ['img1_%04d', 'img2_%04d', 'img3_%04d', 'img4_%04d'],
+                'first': 1000, 'last': 1010
+            },
+            'criteria': {
+                'X_lay': [-10.0, 10.0], 'Zmin_lay': [-5.0, -5.0], 'Zmax_lay': [15.0, 15.0],
+                'eps0': 0.1, 'cn': 0.5, 'cnx': 0.3, 'cny': 0.3, 'csumg': 0.2, 'corrmin': 0.8
+            },
+            'track': {
+                'dvxmin': -10.0, 'dvxmax': 10.0, 'dvymin': -8.0, 'dvymax': 8.0,
+                'dvzmin': -15.5, 'dvzmax': 15.5, 'angle': 100.0, 'dacc': 0.5, 'flagNewParticles': True
+            },
+            'targ_rec': {
+                'gvthres': [40, 20, 10, 5],
+                'nnmin': 25, 'nnmax': 400,
+                'nxmin': 5, 'nxmax': 50,
+                'nymin': 5, 'nymax': 50,
+                'sumg_min': 100,
+                'disco': 100
+            },
             'examine': {}
         }
         
@@ -481,53 +540,78 @@ class TestParameterConsistency:
         n_cam = 3
         
         # Test that all functions respect n_cam parameter
-        ptv_params = {'img_cal': ['cal1', 'cal2', 'cal3']}
+        ptv_params = {
+            'img_cal': ['cal1', 'cal2', 'cal3'],
+            'imx': 1024,
+            'imy': 768,
+            'pix_x': 0.01,
+            'pix_y': 0.01,
+            'hp_flag': False,
+            'allcam_flag': False,
+            'tiff_flag': False,
+            'chfield': 0,
+            'mmp_n1': 1.0,
+            'mmp_n2': 1.0,
+            'mmp_d': 1.0,
+            'mmp_n3': 1.0
+        }
         cpar = _populate_cpar(ptv_params, n_cam)
         assert cpar.get_num_cams() == n_cam
         
-        seq_params = {'base_name': ['img1_%04d', 'img2_%04d', 'img3_%04d']}
+        seq_params = {
+            'base_name': ['img1_%04d', 'img2_%04d', 'img3_%04d'],
+            'first': 1,
+            'last': 10
+        }
         spar = _populate_spar(seq_params, n_cam)
         # SequenceParams doesn't have get_num_cams() but it was created with n_cam
         # Test that we can access all cameras
         for i in range(n_cam):
             spar.get_img_base_name(i)  # Should not raise an error
         
-        params = {'n_cam': n_cam, 'targ_rec': {}}
+        params = {
+            'n_cam': n_cam, 
+            'targ_rec': {
+                'gvthres': [50, 50, 50, 50],
+                'nnmin': 1,
+                'nnmax': 1000,
+                'nxmin': 1,
+                'nxmax': 20,
+                'nymin': 1,
+                'nymax': 20,
+                'sumg_min': 200,
+                'disco': 10
+            }
+        }
         tpar = _populate_tpar(params, n_cam)
         # TargetParams has a fixed internal array size of 4 for grey thresholds in Cython
         # regardless of n_cam value. Only the first n_cam values are meaningful.
         thresholds = tpar.get_grey_thresholds()
         assert len(thresholds) == 4, f"TargetParams always has 4 thresholds, got {len(thresholds)}"
-        # Check that default values are zeros
-        np.testing.assert_array_equal(thresholds, [0, 0, 0, 0])
+        # Check that the values match what we set
+        np.testing.assert_array_equal(thresholds, [50, 50, 50, 50])
     
     def test_parameter_default_values(self):
-        """Test that appropriate default values are used."""
-        # Test ControlParams defaults - need to provide img_cal
-        cpar = _populate_cpar({'img_cal': ['cal/cam1']}, 1)
-        assert cpar.get_image_size() == (0, 0)
-        assert cpar.get_pixel_size() == (0.0, 0.0)
-        assert cpar.get_hp_flag() == False
+        """Test error handling when required parameters are missing (no defaults)."""
+        # Test ControlParams - should raise error without required parameters
+        with pytest.raises(KeyError):
+            _populate_cpar({'img_cal': ['cal/cam1']}, 1)
         
-        # Test SequenceParams defaults - need to provide base_name
-        spar = _populate_spar({'base_name': ['img1_%04d']}, 1)
-        assert spar.get_first() == 0
-        assert spar.get_last() == 0
+        # Test SequenceParams - should raise error without required parameters  
+        with pytest.raises(ValueError):
+            _populate_spar({'base_name': ['img1_%04d']}, 1)
         
-        # Test VolumeParams defaults
-        vpar = _populate_vpar({})
-        assert np.allclose(vpar.get_X_lay(), [0, 0])
+        # Test VolumeParams - should raise error without required parameters
+        with pytest.raises(KeyError):
+            _populate_vpar({})
         
-        # Test TrackingParams defaults
-        track_par = _populate_track_par({})
-        assert track_par.get_add() == False
+        # Test TrackingParams - should raise error without required parameters
+        with pytest.raises(ValueError):
+            _populate_track_par({})
         
-        # Test TargetParams defaults
-        tpar = _populate_tpar({'targ_rec': {}}, n_cam = 0)
-        thresholds = tpar.get_grey_thresholds()
-        # TargetParams always returns array of size 4, regardless of n_cam
-        assert len(thresholds) == 4, f"TargetParams always has 4 thresholds, got {len(thresholds)}"
-        np.testing.assert_array_equal(thresholds, [0, 0, 0, 0])
+        # Test TargetParams - should raise error without required parameters
+        with pytest.raises(KeyError):
+            _populate_tpar({'targ_rec': {}}, n_cam=0)
 
 
 class TestCalibrationReadWrite:

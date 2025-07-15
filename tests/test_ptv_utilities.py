@@ -297,6 +297,7 @@ class TestRunTrackingPlugin:
         """Test tracking plugin with empty plugin directory"""
         from unittest.mock import Mock
         import tempfile
+        import os
         
         # Create a mock experiment object with plugin system
         exp = Mock()
@@ -305,6 +306,10 @@ class TestRunTrackingPlugin:
         
         # Mock an empty plugin directory
         with tempfile.TemporaryDirectory() as temp_dir:
+            # Create the plugins subdirectory
+            plugins_dir = os.path.join(temp_dir, "plugins")
+            os.makedirs(plugins_dir, exist_ok=True)
+            
             mock_getcwd.return_value = temp_dir
             mock_listdir.return_value = []  # Empty directory
             
