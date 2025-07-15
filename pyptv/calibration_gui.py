@@ -429,7 +429,7 @@ class CalibrationGUI(HasTraits):
         #     self.epar,
         # ) = ptv.py_start_proc_c(self.experiment.parameter_manager)
 
-        self.epar = self.get_parameter('examine', {})
+        self.epar = self.get_parameter('examine')
 
         if self.epar['Combine_Flag'] is True: # type: ignore
             print("Combine Flag is On")
@@ -1030,8 +1030,7 @@ class CalibrationGUI(HasTraits):
         """Helper method to get parameters from experiment safely"""
         params = self.experiment.get_parameter(key)
         if params is None:
-            print(f"Warning: Parameter '{key}' not found, using empty dict")
-            return {}
+            raise KeyError(f"Parameter '{key}' not found.")
         return params
 
 

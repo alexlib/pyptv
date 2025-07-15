@@ -102,16 +102,25 @@ def _populate_cpar(ptv_params: dict, n_cam: int) -> ControlParams:
     return cpar
 
 def _populate_spar(seq_params: dict, n_cam: int) -> SequenceParams:
-    """Populate a SequenceParams object from a dictionary."""
+    """Populate a SequenceParams object from a dictionary.
+    
+    Raises ValueError if required sequence parameters are missing.
+    No default values are provided to avoid silent failures.
+    """
+    required_params = ['first', 'last', 'base_name']
+    missing_params = [param for param in required_params if param not in seq_params]
+    
+    if missing_params:
+        raise ValueError(f"Missing required sequence parameters: {missing_params}. "
+                        f"Available parameters: {list(seq_params.keys())}")
     
     spar = SequenceParams(num_cams=n_cam)
-    spar.set_first(seq_params.get('first', 0))
-    spar.set_last(seq_params.get('last', 0))
+    spar.set_first(seq_params['first'])
+    spar.set_last(seq_params['last'])
     
-    base_name_list = seq_params.get('base_name', [])
+    base_name_list = seq_params['base_name']
     if len(base_name_list) != n_cam:
-        raise ValueError("base_name_list length does not match n_cam; check your Yaml file.")
-    
+        raise ValueError(f"base_name_list length ({len(base_name_list)}) does not match n_cam ({n_cam}); check your Yaml file.")
     
     for i in range(len(base_name_list)):
         spar.set_img_base_name(i, base_name_list[i])
@@ -191,11 +200,18 @@ def _populate_tpar(targ_params: dict, n_cam: int) -> TargetParams:
             params['gvth_3'],
             params['gvth_4'],
         ])
-        tpar.set_pixel_count_bounds((params.get('min_npix', 0), params.get('max_npix', 0)))
-        tpar.set_xsize_bounds((params.get('min_npix_x', 0), params.get('max_npix_x', 0)))
-        tpar.set_ysize_bounds((params.get('min_npix_y', 0), params.get('max_npix_y', 0)))
-        tpar.set_min_sum_grey(params.get('sum_grey', 0))
-        tpar.set_max_discontinuity(params.get('tol_dis', 0))
+        # Remove default values - all parameters must be explicitly provided
+        required_detect_keys = ['min_npix', 'max_npix', 'min_npix_x', 'max_npix_x', 
+                               'min_npix_y', 'max_npix_y', 'sum_grey', 'tol_dis']
+        missing_detect_keys = [k for k in required_detect_keys if k not in params]
+        if missing_detect_keys:
+            raise ValueError(f"Missing required detect_plate keys: {missing_detect_keys}")
+            
+        tpar.set_pixel_count_bounds((params['min_npix'], params['max_npix']))
+        tpar.set_xsize_bounds((params['min_npix_x'], params['max_npix_x']))
+        tpar.set_ysize_bounds((params['min_npix_y'], params['max_npix_y']))
+        tpar.set_min_sum_grey(params['sum_grey'])
+        tpar.set_max_discontinuity(params['tol_dis'])
     else:
         raise ValueError("Target parameters must contain either 'targ_rec' or 'detect_plate' section.")
     return tpar
