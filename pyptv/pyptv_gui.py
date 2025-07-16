@@ -342,111 +342,24 @@ class CameraWindow(HasTraits):
 # Message Window System for capturing print statements
 # ------------------------------------------
 
-class MessageCapture:
-    """Captures stdout/stderr and redirects to message window"""
-    
-    def __init__(self, message_window=None):
-        self.message_window = message_window
-        self.original_stdout = sys.stdout
-        self.original_stderr = sys.stderr
-        self.buffer = io.StringIO()
-        
-    def write(self, text):
-        """Write text to both original stdout and message window"""
-        self.original_stdout.write(text)  # Keep console output
-        self.original_stdout.flush()
-        
-        if self.message_window is not None:
-            self.message_window.add_message(text.strip())
-            
-    def flush(self):
-        """Flush both outputs"""
-        self.original_stdout.flush()
-        if hasattr(self.message_window, 'flush'):
-            self.message_window.flush()
-
-
-class MessageWindow(HasTraits):
-    """Message window for displaying captured print statements"""
-    
-    messages = Str("")
-    max_lines = Int(1000)  # Maximum number of lines to keep
-    auto_scroll = Bool(True)
-    
-    def add_message(self, message):
-        """Add a new message with timestamp and auto-scroll to end"""
-        if message.strip():  # Don't add empty messages
-            timestamp = datetime.now().strftime("%H:%M:%S")
-            formatted_message = f"[{timestamp}] {message}"
-            
-            # Add to messages
-            if self.messages:
-                self.messages += "\n" + formatted_message
-            else:
-                self.messages = formatted_message
-            
-            # Limit number of lines
-            lines = self.messages.split('\n')
-            if len(lines) > self.max_lines:
-                lines = lines[-self.max_lines:]
-                self.messages = '\n'.join(lines)
-            
-            # Auto-scroll to end is handled by CodeEditor automatically when text changes
-    
-    def clear_messages(self):
-        """Clear all messages"""
-        self.messages = ""
-    
-    # Button actions
-    clear_button = Button("Clear")
-    save_button = Button("Save Log")
-    
-    def _clear_button_fired(self):
-        self.clear_messages()
-    
-    def _save_button_fired(self):
-        self.save_log()
-    
-    def save_log(self):
-        """Save the current log to a timestamped file"""
-        from datetime import datetime
-        
-        if not self.messages:
-            print("No messages to save")
-            return
-            
-        # Create filename with timestamp
-        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-        filename = f"pyptv_session_log_{timestamp}.txt"
-        
-        try:
-            with open(filename, 'w') as f:
-                f.write(f"PyPTV Session Log - {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n")
-                f.write("=" * 60 + "\n\n")
-                f.write(self.messages)
-                
-            print(f"Log saved to: {filename}")
-            
-        except Exception as e:
-            print(f"Error saving log: {e}")
-    
-    view = View(
-        HGroup(
-            Item('messages', 
-                 style='readonly',
-                 editor=CodeEditor(),
-                 show_label=False),
-            VGroup(
-                Item('clear_button', show_label=False, width=80),
-                Item('save_button', show_label=False, width=80),
-            ),
-        ),
-        resizable=True,
-        scrollable=True,  # Scrollable only for the overall view
-    )
-
-
 class TreeMenuHandler(Handler):
+    def run_subprocess_and_capture(self, cmd, mainGui, description="Subprocess"):
+        """Run a subprocess and forward its stdout/stderr to the message window."""
+        import subprocess
+        try:
+            result = subprocess.run(cmd, capture_output=True, text=True, timeout=120)
+            output = result.stdout
+            error = result.stderr
+            if mainGui.message_window:
+                if output:
+                    mainGui.message_window.add_message(f"{description} output:\n{output}")
+                if error:
+                    mainGui.message_window.add_message(f"{description} error:\n{error}")
+            return result
+        except Exception as e:
+            if mainGui.message_window:
+                mainGui.message_window.add_message(f"{description} failed: {e}")
+            raise
     """TreeMenuHandler contains all the callback actions of menu bar,
     processing of tree editor, and reactions of the GUI to the user clicks
     possible function declarations:
@@ -782,6 +695,8 @@ class TreeMenuHandler(Handler):
 
     def track_no_disp_action(self, info):
         """track_no_disp_action uses ptv.py_trackcorr_loop(..) binding"""
+        import contextlib
+        import io
         mainGui = info.object
         
         # Ensure parameter objects are initialized
@@ -789,7 +704,13 @@ class TreeMenuHandler(Handler):
         
         extern_tracker = mainGui.plugins.track_alg
         if extern_tracker != "default":
-            ptv.run_tracking_plugin(mainGui)
+            # If plugin is a batch script, run as subprocess and capture output
+            plugin_script = getattr(mainGui.plugins, 'tracking_plugin_script', None)
+            if plugin_script:
+                cmd = [sys.executable, plugin_script]  # Add args as needed
+                self.run_subprocess_and_capture(cmd, mainGui, description="Tracking plugin")
+            else:
+                ptv.run_tracking_plugin(mainGui)
             print("After plugin tracker")
         else:
             print("Using default liboptv tracker")
@@ -1113,21 +1034,6 @@ menu_bar = MenuBar(
         ),
         name="Drawing mask",
     ),
-    Menu(
-        Action(
-            name="Start Message Capture",
-            action="_start_message_capture_action_fired",
-        ),
-        Action(
-            name="Stop Message Capture", 
-            action="_stop_message_capture_action_fired",
-        ),
-        Action(
-            name="Clear Messages",
-            action="_clear_messages_action_fired",
-        ),
-        name="Messages",
-    ),
 )
 
 # ----------------------------------------
@@ -1266,11 +1172,6 @@ class MainGUI(HasTraits):
     update_thread_plot = Bool(False)
     selected = Instance(CameraWindow)
     
-    # Message window for stdout capture
-    message_window = Instance(MessageWindow, ())
-    message_capture = Instance(MessageCapture)
-    show_messages = Bool(True)
-
     # Defines GUI view --------------------------
     view = View(
         VSplit(
@@ -1298,12 +1199,7 @@ class MainGUI(HasTraits):
                     show_left=False,
                 ),
             ),
-            Item(
-                'message_window',
-                style='custom',
-                show_label=False,
-                height=120,  # Fixed height for message area
-            ),
+            # Removed message_window from view
         ),
         title="pyPTV" + __version__,
         id="main_view",
@@ -1379,10 +1275,11 @@ class MainGUI(HasTraits):
         for i in range(self.n_cams):
             self.camera_list[i].on_trait_change(self.right_click_process, "rclicked")
         
+        # Removed message capture initialization and sys.stdout redirection
         # Initialize message capture for stdout redirection
-        self.message_capture = MessageCapture(self.message_window)
+        # self.message_capture = MessageCapture(self.message_window)
         # Start capturing stdout immediately
-        sys.stdout = self.message_capture
+        # sys.stdout = self.message_capture
 
     def get_parameter(self, key):
         """Delegate parameter access to experiment"""
