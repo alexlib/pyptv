@@ -108,6 +108,7 @@ def run_sequence_chunk(yaml_file: Union[str, Path], seq_first: int, seq_last: in
         # Run sequence processing
         py_sequence_loop(proc_exp)
         
+        # Only run sequence processing in parallel batch
         logger.info(f"Worker process completed: frames {seq_first} to {seq_last}")
         return (seq_first, seq_last)
         

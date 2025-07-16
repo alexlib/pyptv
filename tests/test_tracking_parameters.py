@@ -125,27 +125,30 @@ def test_tracking_parameters_in_batch_run():
     ]
     
     result = subprocess.run(cmd, capture_output=True, text=True, timeout=60)
-    
     assert result.returncode == 0, f"Batch run failed: {result.stderr}"
-    
-    # Check tracking output for reasonable link numbers
-    lines = result.stdout.split('\n')
-    tracking_lines = [line for line in lines if 'step:' in line and 'links:' in line]
-    
+
+    # Read tracking output from file written by pyptv_batch_parallel.py
+    import glob
+    res_dir = test_path / "res"
+    tracking_files = glob.glob(str(res_dir / "tracking_output_*.txt"))
+    assert tracking_files, "No tracking output files found"
+    tracking_lines = []
+    for tracking_file in tracking_files:
+        with open(tracking_file) as f:
+            for line in f:
+                if 'step:' in line and 'links:' in line:
+                    tracking_lines.append(line.strip())
+
     assert len(tracking_lines) > 0, "No tracking output found"
-    
+
     # Extract link numbers and verify they're reasonable (not 0 or very low)
     for line in tracking_lines:
         # Parse line like: "step: 1000001, curr: 2178, next: 2185, links: 208, lost: 1970, add: 0"
         parts = line.split(',')
         links_part = [p for p in parts if 'links:' in p][0]
         links_count = int(links_part.split(':')[1].strip())
-        
         print(f"Found tracking line: {line}")
         print(f"Links count: {links_count}")
-        
-        # With proper velocity parameters, we should get reasonable link numbers
-        # Previously it was very low (~208 links) which suggests tracking parameters weren't working
         assert links_count > 50, f"Very low link count {links_count} suggests tracking parameters may not be working"
     
     print("✅ Batch tracking run shows reasonable link numbers")
