@@ -442,25 +442,32 @@ class CalibrationGUI(HasTraits):
 
         self.cal_images = []
 
-        if self.get_parameter('cal_ori').get('cal_splitter', False):
+        if self.get_parameter('cal_ori').get('cal_splitter') or self._cal_splitter:
             print("Using splitter in Calibration")
             imname = self.get_parameter('cal_ori')['img_cal_name'][0]
             if Path(imname).exists():
                 print(f"Splitting calibration image: {imname}")
                 temp_img = imread(imname)
                 if temp_img.ndim > 2:
-                    im = rgb2gray(temp_img)                
+                    im = rgb2gray(temp_img)
                 splitted_images = ptv.image_split(temp_img)
                 for i in range(len(self.camera)):
-                    self.cal_images.append(img_as_ubyte(splitted_images[i]))         
-        else:    
+                    self.cal_images.append(img_as_ubyte(splitted_images[i]))
+            else:
+                print(f"Calibration image not found: {imname}")
+                for i in range(len(self.camera)):
+                    self.cal_images.append(img_as_ubyte(np.zeros((ptv_params['imy'], ptv_params['imx']), dtype=np.uint8)))
+        else:
             for i in range(len(self.camera)):
                 imname = self.get_parameter('cal_ori')['img_cal_name'][i]
-                im = imread(imname)
-                if im.ndim > 2:
-                    im = rgb2gray(im[:, :, :3])
-
-                self.cal_images.append(img_as_ubyte(im))
+                if Path(imname).exists():
+                    im = imread(imname)
+                    if im.ndim > 2:
+                        im = rgb2gray(im[:, :, :3])
+                    self.cal_images.append(img_as_ubyte(im))
+                else:
+                    print(f"Calibration image not found: {imname}")
+                    self.cal_images.append(img_as_ubyte(np.zeros((ptv_params['imy'], ptv_params['imx']), dtype=np.uint8)))
 
         self.reset_show_images()
 
