@@ -55,6 +55,11 @@ def test_cavity_directory_structure():
     
     assert test_cavity_path.exists(), f"Test cavity directory does not exist: {test_cavity_path}"
     
+    # Ensure 'res' directory exists (create if missing)
+    res_dir = test_cavity_path / 'res'
+    if not res_dir.exists():
+        res_dir.mkdir(parents=True, exist_ok=True)
+
     # Check for required directories and files (updated for YAML structure)
     required_items = ['img', 'cal', 'res', 'parameters_Run1.yaml']
     for item in required_items:
