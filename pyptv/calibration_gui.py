@@ -418,16 +418,16 @@ class CalibrationGUI(HasTraits):
         calib_params_gui.edit_traits(view='Calib_Params_View', kind='livemodal')
 
     def _button_showimg_fired(self):
-        # print("Loading images/parameters \n")
-        # (
-        #     self.cpar,
-        #     self.spar,
-        #     self.vpar,
-        #     self.track_par,
-        #     self.tpar,
-        #     self.cals,
-        #     self.epar,
-        # ) = ptv.py_start_proc_c(self.experiment.parameter_manager)
+        print("Loading images/parameters \n")
+        (
+            self.cpar,
+            self.spar,
+            self.vpar,
+            self.track_par,
+            self.tpar,
+            self.cals,
+            self.epar,
+        ) = ptv.py_start_proc_c(self.experiment.parameter_manager)
 
         self.epar = self.get_parameter('examine')
 

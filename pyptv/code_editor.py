@@ -138,5 +138,5 @@ class addparEditor(HasTraits):
 
         for i in range(self.n_img):
             self.addparEditors.append(
-                codeEditor(Path(img_ori[i].replace("ori", "addpar")))
+                CodeEditor(Path(img_ori[i].replace("ori", "addpar")))
             )
