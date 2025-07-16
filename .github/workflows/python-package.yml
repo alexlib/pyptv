@@ -50,9 +50,7 @@ jobs:
       - name: Install pyptv
         shell: bash -l {0}
         run: |
-          pip install pyptv \
-            --index-url https://pypi.fury.io/pyptv \
-            --extra-index-url https://pypi.org/simple
+          pip install pyptv
 
       - name: Setup test data
         shell: bash -l {0}
