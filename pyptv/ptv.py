@@ -433,6 +433,10 @@ def run_sequence_plugin(exp) -> None:
     plugin_dir = Path(os.getcwd()) / "plugins"
     print(f"Plugin directory: {plugin_dir}")
 
+    # Check if plugin directory exists
+    if not plugin_dir.exists():
+        raise FileNotFoundError(f"Plugin directory not found: {plugin_dir}")
+
     if str(plugin_dir) not in sys.path:
         sys.path.append(str(plugin_dir))
 

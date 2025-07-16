@@ -263,6 +263,7 @@ class TestRunSequencePlugin:
         """Test sequence plugin with empty plugin directory"""
         from unittest.mock import Mock
         import tempfile
+        import os
         
         # Create a mock experiment object with plugin system
         exp = Mock()
@@ -271,6 +272,10 @@ class TestRunSequencePlugin:
         
         # Mock an empty plugin directory
         with tempfile.TemporaryDirectory() as temp_dir:
+            # Create the plugins subdirectory
+            plugins_dir = os.path.join(temp_dir, "plugins")
+            os.makedirs(plugins_dir, exist_ok=True)
+            
             mock_getcwd.return_value = temp_dir
             mock_listdir.return_value = []  # Empty directory
             
@@ -279,13 +284,23 @@ class TestRunSequencePlugin:
     
     def test_run_sequence_plugin_no_plugin_error(self):
         """Test sequence plugin with missing plugin directory - expect error"""
+        import tempfile
+        import os
+        
         exp = Mock()
         exp.plugins = Mock()
         exp.plugins.sequence_alg = "nonexistent"
         
-        # Should raise FileNotFoundError when plugin directory doesn't exist
-        with pytest.raises(FileNotFoundError):
-            run_sequence_plugin(exp)
+        # Create a temporary directory without plugins subdirectory to ensure clean test
+        with tempfile.TemporaryDirectory() as temp_dir:
+            original_cwd = os.getcwd()
+            try:
+                os.chdir(temp_dir)
+                # Should raise FileNotFoundError when plugin directory doesn't exist
+                with pytest.raises(FileNotFoundError):
+                    run_sequence_plugin(exp)
+            finally:
+                os.chdir(original_cwd)
 
 
 class TestRunTrackingPlugin:
@@ -318,13 +333,23 @@ class TestRunTrackingPlugin:
     
     def test_run_tracking_plugin_no_plugin_error(self):
         """Test tracking plugin with missing plugin directory - expect error"""
+        import tempfile
+        import os
+        
         exp = Mock()
         exp.plugins = Mock()
         exp.plugins.track_alg = "nonexistent"
         
-        # Should raise FileNotFoundError when plugin directory doesn't exist
-        with pytest.raises(FileNotFoundError):
-            run_tracking_plugin(exp)
+        # Create a temporary directory without plugins subdirectory to ensure clean test
+        with tempfile.TemporaryDirectory() as temp_dir:
+            original_cwd = os.getcwd()
+            try:
+                os.chdir(temp_dir)
+                # Should raise FileNotFoundError when plugin directory doesn't exist
+                with pytest.raises(FileNotFoundError):
+                    run_tracking_plugin(exp)
+            finally:
+                os.chdir(original_cwd)
 
 
 class TestPySequenceLoop:
