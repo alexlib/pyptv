@@ -11,7 +11,8 @@ from unittest.mock import patch
 
 # Since GUI tests require display and can be problematic in CI
 pytestmark = pytest.mark.skipif(
-    os.environ.get("DISPLAY") is None, reason="GUI tests require a display"
+    os.environ.get("DISPLAY") is None or os.environ.get("QT_QPA_PLATFORM") == "offscreen",
+    reason="GUI/Qt tests require a display (DISPLAY or QT_QPA_PLATFORM)"
 )
 
 

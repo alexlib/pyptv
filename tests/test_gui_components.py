@@ -15,7 +15,8 @@ from pyptv.directory_editor import DirectoryEditorDialog
 
 # Skip all tests in this file if running in a headless environment
 pytestmark = pytest.mark.skipif(
-    os.environ.get("DISPLAY") is None, reason="GUI tests require a display"
+    os.environ.get("DISPLAY") is None or os.environ.get("QT_QPA_PLATFORM") == "offscreen",
+    reason="GUI/Qt tests require a display (DISPLAY or QT_QPA_PLATFORM)"
 )
 
 # Define variables to hold GUI components
