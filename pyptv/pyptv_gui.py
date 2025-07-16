@@ -493,9 +493,12 @@ class TreeMenuHandler(Handler):
     def open_action(self, info):
         directory_dialog = DirectoryEditorDialog()
         directory_dialog.edit_traits()
-        exp_path = str(directory_dialog.dir_name)
+        exp_path = directory_dialog.dir_name
         print(f"Changing experimental path to {exp_path}")
-        os.chdir(exp_path)
+        os.chdir(str(exp_path))
+        # Ensure exp_path is a Path object for populate_runs
+        if not isinstance(exp_path, Path):
+            exp_path = Path(str(exp_path))
         info.object.exp1.populate_runs(exp_path)
 
     def exit_action(self, info):
