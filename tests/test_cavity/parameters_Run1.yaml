@@ -124,7 +124,7 @@ sequence:
   - img/cam2.%d
   - img/cam3.%d
   - img/cam4.%d
-  first: 10001
+  first: 10000
   last: 10004
 shaking:
   shaking_first_frame: 10000
@@ -149,14 +149,14 @@ targ_rec:
   nymin: 2
   sumg_min: 150
 track:
-  angle: 220.0
-  dacc: 1.0
-  dvxmax: 1.0
-  dvxmin: -1.0
-  dvymax: 1.0
-  dvymin: -1.0
-  dvzmax: 1.0
-  dvzmin: -1.0
+  angle: 270.0
+  dacc: 5.0
+  dvxmax: 15.0
+  dvxmin: -15.0
+  dvymax: 15.0
+  dvymin: -15.0
+  dvzmax: 15.0
+  dvzmin: -15.0
   flagNewParticles: true
 masking:
   mask_flag: false
