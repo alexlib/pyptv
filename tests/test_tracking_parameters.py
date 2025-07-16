@@ -206,9 +206,85 @@ def test_parameter_propagation_with_corrupted_yaml():
     print("✅ Corrupted YAML correctly raises explicit error")
 
 
+
+
+# All tests below are pure pytest unit tests and do not use subprocess or CLI integration.
+
+def test_tracking_parameters_yaml_and_c_conversion():
+    """Test YAML tracking parameters and their conversion to C/Cython objects."""
+    test_path = Path(__file__).parent / "test_splitter"
+    if not test_path.exists():
+        pytest.skip(f"Test data not found: {test_path}")
+    from pyptv.experiment import Experiment
+    from pyptv.ptv import py_start_proc_c
+    experiment = Experiment()
+    experiment.populate_runs(test_path)
+    experiment.setActive(0)
+    track_params_yaml = experiment.parameter_manager.get_parameter('track', {})
+    expected_values = {
+        'dvxmin': -1.9,
+        'dvxmax': 1.9,
+        'dvymin': -1.9,
+        'dvymax': 1.9,
+        'dvzmin': -1.9,
+        'dvzmax': 1.9
+    }
+    for param, expected_value in expected_values.items():
+        assert param in track_params_yaml, f"Missing parameter {param} in YAML"
+        assert track_params_yaml[param] == expected_value, (
+            f"Wrong value for {param}: got {track_params_yaml[param]}, expected {expected_value}")
+    cpar, spar, vpar, track_par, tpar, cals, epar = py_start_proc_c(experiment.parameter_manager)
+    assert track_par.get_dvxmin() == expected_values['dvxmin']
+    assert track_par.get_dvxmax() == expected_values['dvxmax']
+    assert track_par.get_dvymin() == expected_values['dvymin']
+    assert track_par.get_dvymax() == expected_values['dvymax']
+    assert track_par.get_dvzmin() == expected_values['dvzmin']
+    assert track_par.get_dvzmax() == expected_values['dvzmax']
+
+
+def test_tracking_parameters_missing_raises():
+    """Test that missing tracking parameters raise ValueError."""
+    from pyptv.ptv import _populate_track_par
+    incomplete_params = {'dvxmin': -1.0, 'dvxmax': 1.0}
+    with pytest.raises(ValueError, match="Missing required tracking parameters"):
+        _populate_track_par(incomplete_params)
+    with pytest.raises(ValueError, match="Missing required tracking parameters"):
+        _populate_track_par({})
+
+
+def test_parameter_propagation_with_corrupted_yaml_unit():
+    """Test behavior when YAML has corrupted tracking parameters (unit test)."""
+    test_path = Path(__file__).parent / "test_splitter"
+    if not test_path.exists():
+        pytest.skip(f"Test data not found: {test_path}")
+    with tempfile.TemporaryDirectory() as temp_dir:
+        temp_test_path = Path(temp_dir) / "test_splitter"
+        shutil.copytree(test_path, temp_test_path)
+        yaml_file = temp_test_path / "parameters_Run1.yaml"
+        with open(yaml_file, 'r') as f:
+            content = f.read()
+        lines = content.split('\n')
+        filtered_lines = []
+        skip_tracking = False
+        for line in lines:
+            if line.strip().startswith('track:'):
+                skip_tracking = True
+                continue
+            elif skip_tracking and line.startswith(' ') and ':' in line:
+                continue
+            else:
+                skip_tracking = False
+                filtered_lines.append(line)
+        with open(yaml_file, 'w') as f:
+            f.write('\n'.join(filtered_lines))
+        from pyptv.experiment import Experiment
+        from pyptv.ptv import py_start_proc_c
+        experiment = Experiment()
+        experiment.populate_runs(temp_test_path)
+        experiment.setActive(0)
+        with pytest.raises(ValueError, match="Missing required tracking parameters"):
+            py_start_proc_c(experiment.parameter_manager)
+
+
 if __name__ == "__main__":
-    test_tracking_parameters_propagation()
-    test_tracking_parameters_missing_fail()
-    test_tracking_parameters_in_batch_run()
-    test_parameter_propagation_with_corrupted_yaml()
-    print("🎉 All tracking parameter tests passed!")
+    pytest.main([__file__, "-v", "--tb=short"])
