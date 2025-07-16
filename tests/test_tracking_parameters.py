@@ -6,6 +6,7 @@ import subprocess
 import sys
 import tempfile
 import shutil
+import os
 
 
 def test_tracking_parameters_propagation():
@@ -124,7 +125,11 @@ def test_tracking_parameters_in_batch_run():
         "--tracking", "ext_tracker_splitter"
     ]
     
-    result = subprocess.run(cmd, capture_output=True, text=True, timeout=60)
+    # Set up environment for subprocess
+    env = os.environ.copy()
+    env["PYTHONPATH"] = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "pyptv")) + os.pathsep + env.get("PYTHONPATH", "")
+    
+    result = subprocess.run(cmd, env=env, capture_output=True, text=True, timeout=60)
     assert result.returncode == 0, f"Batch run failed: {result.stderr}"
 
     # Read tracking output from file written by pyptv_batch_parallel.py
