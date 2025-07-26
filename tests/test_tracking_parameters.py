@@ -7,6 +7,8 @@ import sys
 import tempfile
 import shutil
 import os
+import yaml
+from pyptv.pyptv_batch_plugins import run_batch
 
 
 def test_tracking_parameters_propagation():
@@ -102,48 +104,57 @@ def test_tracking_parameters_missing_fail():
 
 
 def test_tracking_parameters_in_batch_run():
-    """Test tracking parameters in actual batch run with detailed output"""
-    
+    """Test tracking parameters in actual batch run using pyptv_batch_splitter functions with detailed output"""
     test_path = Path(__file__).parent / "test_splitter"
-    
-    script_path = Path(__file__).parent.parent / "pyptv" / "pyptv_batch_plugins.py"
-    
-    if not script_path.exists():
-        pytest.skip(f"Batch script not found: {script_path}")
-    
-    yaml_file = test_path / "parameters_Run1.yaml"
-    if not yaml_file.exists():
-        pytest.skip(f"YAML file not found: {yaml_file}")
-    # Run batch with tracking and capture detailed output
-    cmd = [
-        sys.executable, 
-        str(script_path), 
-        str(yaml_file), 
-        "1000001", 
-        "1000004",  # Just 2 frames
-        "--mode", "sequence"
-    ]
-    
-    # Set up environment for subprocess
-    env = os.environ.copy()
-    env["PYTHONPATH"] = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "pyptv")) + os.pathsep + env.get("PYTHONPATH", "")
-    
-    result = subprocess.run(cmd, env=env, capture_output=True, text=True, timeout=60)
-    assert result.returncode == 0, f"Batch run failed: {result.stderr}"
+    if not test_path.exists():
+        pytest.skip(f"Test data not found: {test_path}")
 
-    # Check for tracking output in stdout
-    tracking_lines = [line for line in result.stdout.splitlines() if 'step:' in line and 'links:' in line]
-    assert len(tracking_lines) > 0, "No tracking output found in stdout"
+    # Prepare a temporary copy of test_splitter
+    with tempfile.TemporaryDirectory() as temp_dir:
+        temp_test_path = Path(temp_dir) / "test_splitter"
+        shutil.copytree(test_path, temp_test_path)
+        yaml_file = temp_test_path / "parameters_Run1.yaml"
+        if not yaml_file.exists():
+            pytest.skip(f"YAML file not found: {yaml_file}")
 
-    # Extract link numbers and verify they're reasonable (not 0 or very low)
-    for line in tracking_lines:
-        # Parse line like: "step: 1000001, curr: 2178, next: 2185, links: 208, lost: 1970, add: 0"
-        parts = line.split(',')
-        links_part = [p for p in parts if 'links:' in p][0]
-        links_count = int(links_part.split(':')[1].strip())
-        print(f"Found tracking line: {line}")
-        print(f"Links count: {links_count}")
-        assert links_count > 50, f"Very low link count {links_count} suggests tracking parameters may not be working"
+        # Patch YAML if needed (optional, but can ensure splitter mode)
+        with open(yaml_file, "r") as f:
+            params = yaml.safe_load(f)
+        if "ptv" not in params:
+            params["ptv"] = {}
+        params["ptv"]["splitter"] = True
+        with open(yaml_file, "w") as f:
+            yaml.safe_dump(params, f)
+
+        # Import and run batch function directly
+
+        # Run batch with tracking mode
+        run_batch(
+            yaml_file,
+            1000001,
+            1000004,
+            mode="tracking",
+            tracking_plugin = "ext_tracker_splitter",
+        )
+
+        # Check for tracking output in res directory
+        res_dir = temp_test_path / "res"
+        tracking_lines = []
+        for frame in range(1000001, 1000005):
+            output_file = res_dir / f"tracking_output_{frame}.txt"
+            if output_file.exists():
+                with open(output_file, "r") as f:
+                    for line in f:
+                        if "step:" in line and "links:" in line:
+                            tracking_lines.append(line.strip())
+        assert len(tracking_lines) > 0, "No tracking output found in batch run"
+        for line in tracking_lines:
+            parts = line.split(',')
+            links_part = [p for p in parts if 'links:' in p][0]
+            links_count = int(links_part.split(':')[1].strip())
+            print(f"Found tracking line: {line}")
+            print(f"Links count: {links_count}")
+            assert links_count > 50, f"Very low link count {links_count} suggests tracking parameters may not be working"
     print("✅ Batch tracking run shows reasonable link numbers")
 
 
@@ -277,6 +288,59 @@ def test_parameter_propagation_with_corrupted_yaml_unit():
         experiment.set_active(0)
         with pytest.raises(KeyError):
             py_start_proc_c(experiment.pm)
+
+
+def test_tracking_parameters_in_batch_run_plugin():
+    """Test tracking parameters in actual batch run using plugin with detailed output"""
+    
+    test_path = Path(__file__).parent / "test_splitter"
+    
+    if not test_path.exists():
+        pytest.skip(f"Test data not found: {test_path}")
+    
+    # Prepare a temporary copy of test_splitter and patch YAML for plugin usage
+    import yaml
+    with tempfile.TemporaryDirectory() as temp_dir:
+        temp_test_path = Path(temp_dir) / "test_splitter"
+        shutil.copytree(test_path, temp_test_path)
+        yaml_file = temp_test_path / "parameters_Run1.yaml"
+        # Patch YAML: ensure ptv section has splitter: True
+        with open(yaml_file, "r") as f:
+            params = yaml.safe_load(f)
+        if "ptv" not in params:
+            params["ptv"] = {}
+        params["ptv"]["splitter"] = True
+        # Ensure plugins section requests splitter tracking
+        if "plugins" not in params:
+            params["plugins"] = {}
+        params["plugins"]["available_tracking"] = ["ext_tracker_splitter"]
+        params["plugins"]["available_sequence"] = ["ext_sequence_splitter"]
+        with open(yaml_file, "w") as f:
+            yaml.safe_dump(params, f)
+        # Import and run batch function directly
+        from pyptv.pyptv_batch_plugins import run_batch
+
+        # Run batch with tracking mode
+        run_batch(yaml_file, 1000001, 1000004, tracking_plugin="ext_tracker_splitter", sequence_plugin="ext_sequence_splitter", mode="tracking")
+        # Check for tracking output in res directory
+        res_dir = temp_test_path / "res"
+        tracking_lines = []
+        for frame in range(1000001, 1000005):
+            output_file = res_dir / f"tracking_output_{frame}.txt"
+            if output_file.exists():
+                with open(output_file, "r") as f:
+                    for line in f:
+                        if "step:" in line and "links:" in line:
+                            tracking_lines.append(line.strip())
+        assert len(tracking_lines) > 0, "No tracking output found in plugin batch run"
+        for line in tracking_lines:
+            parts = line.split(',')
+            links_part = [p for p in parts if 'links:' in p][0]
+            links_count = int(links_part.split(':')[1].strip())
+            print(f"Found tracking line: {line}")
+            print(f"Links count: {links_count}")
+            assert links_count > 50, f"Very low link count {links_count} suggests tracking parameters may not be working"
+    print("✅ Plugin batch tracking run shows reasonable link numbers")
 
 
 if __name__ == "__main__":
