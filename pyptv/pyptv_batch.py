@@ -21,7 +21,6 @@ Example:
     >>> main("tests/test_cavity/parameters_Run1.yaml", 10000, 10004)
 """
 
-import logging
 from pathlib import Path
 import os
 import sys
@@ -31,12 +30,6 @@ from typing import Union
 from pyptv.ptv import py_start_proc_c, py_trackcorr_init, py_sequence_loop
 from pyptv.experiment import Experiment
 
-# Configure logging
-logging.basicConfig(
-    level=logging.INFO,
-    format='%(asctime)s - %(levelname)s - %(message)s'
-)
-logger = logging.getLogger(__name__)
 
 
 class ProcessingError(Exception):
@@ -73,23 +66,23 @@ def validate_experiment_setup(yaml_file: Path) -> Path:
     
     # Check for required subdirectories relative to YAML file location
     # Note: 'res' directory is created automatically if missing
-    required_dirs = ["img", "cal"]
-    missing_dirs = []
+    # required_dirs = ["img", "cal"]
+    # missing_dirs = []
     
-    for dir_name in required_dirs:
-        dir_path = exp_path / dir_name
-        if not dir_path.exists():
-            missing_dirs.append(dir_name)
+    # for dir_name in required_dirs:
+    #     dir_path = exp_path / dir_name
+    #     if not dir_path.exists():
+    #         missing_dirs.append(dir_name)
     
-    if missing_dirs:
-        raise ProcessingError(
-            f"Missing required directories relative to {yaml_file}: {', '.join(missing_dirs)}"
-        )
+    # if missing_dirs:
+    #     raise ProcessingError(
+    #         f"Missing required directories relative to {yaml_file}: {', '.join(missing_dirs)}"
+    #     )
     
     return exp_path
 
 
-def run_batch(yaml_file: Path, seq_first: int, seq_last: int) -> None:
+def run_batch(yaml_file: Path, seq_first: int, seq_last: int, mode: str = "both") -> None:
     """Run batch processing for a sequence of frames.
     
     Args:
@@ -100,29 +93,28 @@ def run_batch(yaml_file: Path, seq_first: int, seq_last: int) -> None:
     Raises:
         ProcessingError: If processing fails
     """
-    logger.info(f"Starting batch processing: frames {seq_first} to {seq_last}")
-    logger.info(f"Using parameter file: {yaml_file}")
-    
-    # Get experiment directory (parent of YAML file)
-    exp_path = yaml_file.parent
-    
+    print(f"Starting batch processing: frames {seq_first} to {seq_last}")
+    print(f"Using parameter file: {yaml_file}")
+
+    # Validate experiment setup and get experiment directory
+    exp_path = validate_experiment_setup(yaml_file)
+
     # Store original working directory
     original_cwd = Path.cwd()
-    
+
     try:
         # Change to experiment directory
         os.chdir(exp_path)
-        
+
         # Create experiment and load YAML parameters
         experiment = Experiment()
-        
+
         # Load parameters from YAML file
-        logger.info(f"Loading parameters from: {yaml_file}")
-        experiment.parameter_manager.from_yaml(yaml_file)
-        
-        
-        logger.info(f"Initializing processing with n_cam = {experiment.parameter_manager.n_cam}")
-        cpar, spar, vpar, track_par, tpar, cals, epar = py_start_proc_c(experiment.parameter_manager)
+        print(f"Loading parameters from: {yaml_file}")
+        experiment.pm.from_yaml(yaml_file)
+
+        print(f"Initializing processing with num_cams = {experiment.pm.num_cams}")
+        cpar, spar, vpar, track_par, tpar, cals, epar = py_start_proc_c(experiment.pm)
 
         # Set sequence parameters
         spar.set_first(seq_first)
@@ -131,7 +123,7 @@ def run_batch(yaml_file: Path, seq_first: int, seq_last: int) -> None:
         # Create a simple object to hold processing parameters for ptv.py functions
         class ProcessingExperiment:
             def __init__(self, experiment, cpar, spar, vpar, track_par, tpar, cals, epar):
-                self.parameter_manager = experiment.parameter_manager
+                self.pm = experiment.pm
                 self.cpar = cpar
                 self.spar = spar
                 self.vpar = vpar
@@ -139,25 +131,34 @@ def run_batch(yaml_file: Path, seq_first: int, seq_last: int) -> None:
                 self.tpar = tpar
                 self.cals = cals
                 self.epar = epar
-                self.n_cams = experiment.parameter_manager.n_cam  # Global number of cameras
+                self.num_cams = experiment.pm.num_cams  # Global number of cameras
                 # Initialize attributes that may be set during processing
                 self.detections = []
                 self.corrected = []
-        
+
         proc_exp = ProcessingExperiment(experiment, cpar, spar, vpar, track_par, tpar, cals, epar)
 
-        # Run processing
-        logger.info("Running sequence loop...")
-        py_sequence_loop(proc_exp)
-        
-        logger.info("Initializing tracker...")
-        tracker = py_trackcorr_init(proc_exp)
-        
-        logger.info("Running tracking...")
-        tracker.full_forward()
-        
-        logger.info("Batch processing completed successfully")
-        
+        # Run processing according to mode
+        if mode == "both":
+            print("Running sequence loop...")
+            py_sequence_loop(proc_exp)
+            print("Initializing tracker...")
+            tracker = py_trackcorr_init(proc_exp)
+            print("Running tracking...")
+            tracker.full_forward()
+        elif mode == "sequence":
+            print("Running sequence loop only...")
+            py_sequence_loop(proc_exp)
+        elif mode == "tracking":
+            print("Initializing tracker only (skipping sequence)...")
+            tracker = py_trackcorr_init(proc_exp)
+            print("Running tracking only...")
+            tracker.full_forward()
+        else:
+            raise ProcessingError(f"Unknown mode: {mode}. Use 'both', 'sequence', or 'tracking'.")
+
+        print("Batch processing completed successfully")
+
     except Exception as e:
         raise ProcessingError(f"Batch processing failed: {e}")
     finally:
@@ -169,7 +170,8 @@ def main(
     yaml_file: Union[str, Path], 
     first: Union[str, int], 
     last: Union[str, int], 
-    repetitions: int = 1
+    repetitions: int = 1,
+    mode: str = "both"
 ) -> None:
     """Run PyPTV batch processing.
     
@@ -194,6 +196,8 @@ def main(
         yaml_file = Path(yaml_file).resolve()
         seq_first = int(first)
         seq_last = int(last)
+
+        exp_path = yaml_file.parent
         
         if seq_first > seq_last:
             raise ValueError(f"First frame ({seq_first}) must be <= last frame ({seq_last})")
@@ -201,35 +205,31 @@ def main(
         if repetitions < 1:
             raise ValueError(f"Repetitions must be >= 1, got {repetitions}")
             
-        logger.info(f"Starting batch processing with YAML file: {yaml_file}")
-        logger.info(f"Frame range: {seq_first} to {seq_last}")
-        logger.info(f"Repetitions: {repetitions}")
-        
+        print(f"Starting batch processing with YAML file: {yaml_file}")
+        print(f"Frame range: {seq_first} to {seq_last}")
+        print(f"Repetitions: {repetitions}")
         # Validate YAML file and experiment setup
-        exp_path = validate_experiment_setup(yaml_file)
-        logger.info(f"Experiment directory: {exp_path}")
-        
+        # exp_path = validate_experiment_setup(yaml_file)
+        print(f"Experiment directory: {exp_path}")
         # Create results directory if it doesn't exist
         res_path = exp_path / "res"
         if not res_path.exists():
-            logger.info("Creating 'res' directory")
+            print("Creating 'res' directory")
             res_path.mkdir(parents=True, exist_ok=True)
         
         # Run processing for specified repetitions
         for i in range(repetitions):
             if repetitions > 1:
-                logger.info(f"Starting repetition {i + 1} of {repetitions}")
-            
-            run_batch(yaml_file, seq_first, seq_last)
-            
+                print(f"Starting repetition {i + 1} of {repetitions}")
+            run_batch(yaml_file, seq_first, seq_last, mode=mode)
         elapsed_time = time.time() - start_time
-        logger.info(f"Total processing time: {elapsed_time:.2f} seconds")
+        print(f"Total processing time: {elapsed_time:.2f} seconds")
         
     except (ValueError, ProcessingError) as e:
-        logger.error(f"Processing failed: {e}")
+        print(f"Processing failed: {e}")
         raise
     except Exception as e:
-        logger.error(f"Unexpected error during processing: {e}")
+        print(f"Unexpected error during processing: {e}")
         raise ProcessingError(f"Unexpected error: {e}")
 
 
@@ -242,29 +242,37 @@ def parse_command_line_args() -> tuple[Path, int, int]:
     Raises:
         ValueError: If arguments are invalid
     """
-    if len(sys.argv) < 4:
-        logger.warning("Insufficient command line arguments, using default test values")
-        logger.info("Usage: python pyptv_batch.py <yaml_file> <first_frame> <last_frame>")
-        
-        # Default values for testing
-        yaml_file = Path("tests/test_cavity/parameters_Run1.yaml").resolve()
-        first_frame = 10000
-        last_frame = 10004
-        
-        if not yaml_file.exists():
-            raise ValueError(
-                f"Default test YAML file not found: {yaml_file}. "
-                "Please provide valid command line arguments."
-            )
+    import argparse
+    parser = argparse.ArgumentParser(description="PyPTV batch processing")
+    parser.add_argument("yaml_file", type=str, help="YAML parameter file")
+    parser.add_argument("first_frame", type=int, nargs="?", help="First frame number")
+    parser.add_argument("last_frame", type=int, nargs="?", help="Last frame number")
+    parser.add_argument("--mode", choices=["both", "sequence", "tracking"], default="both", help="Which steps to run: both (default), sequence, or tracking")
+    args = parser.parse_args()
+
+    yaml_file = Path(args.yaml_file).resolve()
+    from pyptv.parameter_manager import ParameterManager
+    pm = ParameterManager()
+    pm.from_yaml(yaml_file)
+
+
+    if args.first_frame is not None:
+        first_frame = args.first_frame
     else:
-        try:
-            yaml_file = Path(sys.argv[1]).resolve()
-            first_frame = int(sys.argv[2])
-            last_frame = int(sys.argv[3])
-        except (ValueError, IndexError) as e:
-            raise ValueError(f"Invalid command line arguments: {e}")
+        first_frame = pm.parameters.get("sequence").get("first")
+
+    if args.last_frame is not None:
+        last_frame = args.last_frame
+    else:
+        last_frame = pm.parameters.get("sequence").get("last")
     
-    return yaml_file, first_frame, last_frame
+    if mode is not None:
+        mode = args.mode
+    else:
+        mode = "both"
+
+
+    return yaml_file, first_frame, last_frame, mode
 
 
 if __name__ == "__main__":
@@ -281,20 +289,20 @@ if __name__ == "__main__":
         main("tests/test_cavity/parameters_Run1.yaml", 10000, 10004)
     """
     try:
-        logger.info("Starting PyPTV batch processing")
-        logger.info(f"Command line arguments: {sys.argv}")
+        print("Starting batch processing")
+        print(f"Command line arguments: {sys.argv}")
         
-        yaml_file, first_frame, last_frame = parse_command_line_args()
-        main(yaml_file, first_frame, last_frame)
+        yaml_file, first_frame, last_frame, mode = parse_command_line_args()
+        main(yaml_file, first_frame, last_frame, mode=mode)
         
-        logger.info("Batch processing completed successfully")
+        print("Batch processing completed successfully")
         
     except (ValueError, ProcessingError) as e:
-        logger.error(f"Batch processing failed: {e}")
+        print(f"Batch processing failed: {e}")
         sys.exit(1)
     except KeyboardInterrupt:
-        logger.info("Processing interrupted by user")
+        print("Processing interrupted by user")
         sys.exit(1)
     except Exception as e:
-        logger.error(f"Unexpected error: {e}")
+        print(f"Unexpected error: {e}")
         sys.exit(1)

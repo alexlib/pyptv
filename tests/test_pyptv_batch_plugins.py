@@ -11,51 +11,48 @@ def test_batch_plugins_runs():
     # Path to the script
     script_path = Path(__file__).parent.parent / "pyptv" / "pyptv_batch_plugins.py"
     test_exp_path = Path(__file__).parent.parent / "tests" / "test_splitter"
+    yaml_file = test_exp_path / "parameters_Run1.yaml"
     
     # Check if test experiment exists
     if not test_exp_path.exists():
         print(f"❌ Test experiment not found: {test_exp_path}")
         return False
     
-    # Run the actual command
-    cmd = [
-        sys.executable, 
-        str(script_path), 
-        str(test_exp_path), 
-        "1000001", 
-        "1000005"
-    ]
-    
-    print(f"Running command: {' '.join(cmd)}")
-    
-    try:
-        result = subprocess.run(
-            cmd, 
-            capture_output=True, 
-            text=True, 
-            timeout=60
-        )
-        
-        print("STDOUT:")
-        print(result.stdout)
-        
-        if result.stderr:
-            print("STDERR:")
-            print(result.stderr)
-        
-        if result.returncode == 0:
-            print("✅ Batch processing completed successfully")
-            return True
-        else:
-            print(f"❌ Process failed with return code: {result.returncode}")
+    modes = ["both", "sequence", "tracking"]
+    for mode in modes:
+        cmd = [
+            sys.executable,
+            str(script_path),
+            str(yaml_file),
+            "1000001",
+            "1000005",
+            "--mode", mode
+        ]
+        print(f"Running command: {' '.join(cmd)}")
+        try:
+            result = subprocess.run(
+                cmd,
+                capture_output=True,
+                text=True,
+                timeout=60
+            )
+            print("STDOUT:")
+            print(result.stdout)
+            if result.stderr:
+                print("STDERR:")
+                print(result.stderr)
+            if result.returncode == 0:
+                print(f"✅ Batch processing completed successfully for mode: {mode}")
+            else:
+                print(f"❌ Process failed with return code: {result.returncode} for mode: {mode}")
+                return False
+        except subprocess.TimeoutExpired:
+            print(f"❌ Process timed out for mode: {mode}")
             return False
-            
-    except subprocess.TimeoutExpired:
-        print("❌ Process timed out")
-        return False
-    except Exception as e:
-        print(f"❌ Error running process: {e}")
-        return False
+        except Exception as e:
+            print(f"❌ Error running process for mode {mode}: {e}")
+            return False
+    return True
 
 
 if __name__ == "__main__":

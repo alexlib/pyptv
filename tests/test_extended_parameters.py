@@ -163,15 +163,14 @@ def run_tracking_test(test_path, test_name):
     """Run a single tracking test and return the link ratio"""
     
     script_path = Path(__file__).parent.parent / "pyptv" / "pyptv_batch_plugins.py"
-    
+    yaml_file = test_path / "parameters_Run1.yaml"
     cmd = [
         sys.executable, 
         str(script_path), 
-        str(test_path), 
+        str(yaml_file), 
         "1000001", 
         "1000003",  # 3 frames for tracking analysis
-        "--sequence", "ext_sequence_splitter",
-        "--tracking", "ext_tracker_splitter"
+        "--mode", "sequence"
     ]
     
     try:

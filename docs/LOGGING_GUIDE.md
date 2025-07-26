@@ -45,7 +45,7 @@ logger.warning("Insufficient command line arguments, using defaults")
 logger.error("Processing failed: invalid directory structure")
 
 # Debug messages (detailed diagnostic info)
-logger.debug(f"Camera count read from file: {n_cams}")
+logger.debug(f"Camera count read from file: {num_cams}")
 
 # Critical messages (severe problems)
 logger.critical("System resources exhausted, cannot continue")
@@ -149,7 +149,7 @@ logger.info(f"Command line arguments: {sys.argv}")
 # Progress tracking
 logger.info(f"Starting batch processing in directory: {exp_path}")
 logger.info(f"Frame range: {seq_first} to {seq_last}")
-logger.info(f"Number of cameras: {n_cams}")
+logger.info(f"Number of cameras: {num_cams}")
 
 # Directory operations
 logger.info("Creating 'res' directory")

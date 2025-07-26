@@ -34,6 +34,19 @@ from optv.parameters import (
 from optv.segmentation import target_recognition
 from optv.tracking_framebuf import TargetArray
 from optv.tracker import Tracker, default_naming
+"""
+example from Tracker documentation: 
+        dict naming - a dictionary with naming rules for the frame buffer 
+            files. Keys: 'corres', 'linkage', 'prio'. Values can be either
+            strings or bytes. Strings will be automatically encoded to UTF-8 bytes.
+            If None, uses default_naming.
+
+    default_naming = {
+        'corres': b'res/rt_is',
+        'linkage': b'res/ptv_is',
+        'prio': b'res/added'
+    }            
+"""
 
 # PyPTV imports
 from pyptv.parameter_manager import ParameterManager
@@ -43,6 +56,7 @@ NAMES = ["cc", "xh", "yh", "k1", "k2", "k3", "p1", "p2", "scale", "shear"]
 DEFAULT_FRAME_NUM = 123456789
 DEFAULT_HIGHPASS_FILTER_SIZE = 25
 DEFAULT_NO_FILTER = 0
+SHORT_BASE = "cam"  # Use this as the short base for camera file naming
 
 
 
@@ -70,15 +84,19 @@ def simple_highpass(img: np.ndarray, cpar: ControlParams) -> np.ndarray:
     return preprocess_image(img, DEFAULT_NO_FILTER, cpar, DEFAULT_HIGHPASS_FILTER_SIZE)
 
 
-def _populate_cpar(ptv_params: dict, n_cam: int) -> ControlParams:
+def _populate_cpar(ptv_params: dict, num_cams: int) -> ControlParams:
     """Populate a ControlParams object from a dictionary containing full parameters.
     
     Args:
-        params: Full parameter dictionary with global n_cam and ptv section
+        params: Full parameter dictionary with global num_cams and ptv section
     """
     # ptv_params = params.get('ptv', {})
+
+    img_cal_list = ptv_params.get('img_cal', [])
+    if len([x for x in img_cal_list if x is not None]) < num_cams:
+        raise ValueError("img_cal_list is too short")
     
-    cpar = ControlParams(n_cam)
+    cpar = ControlParams(num_cams)
     # Set required parameters directly from the dictionary, no defaults
     cpar.set_image_size((ptv_params['imx'], ptv_params['imy']))
     cpar.set_pixel_size((ptv_params['pix_x'], ptv_params['pix_y']))
@@ -94,14 +112,11 @@ def _populate_cpar(ptv_params: dict, n_cam: int) -> ControlParams:
 
     img_cal_list = ptv_params['img_cal']
     
-    if len(img_cal_list) != n_cam:
-        raise ValueError("img_cal_list length does not match n_cam; check your Yaml file.")
-
-    for i in range(n_cam):  # Use global n_cam
+    for i in range(num_cams):  # Use global num_cams
         cpar.set_cal_img_base_name(i, img_cal_list[i])
     return cpar
 
-def _populate_spar(seq_params: dict, n_cam: int) -> SequenceParams:
+def _populate_spar(seq_params: dict, num_cams: int) -> SequenceParams:
     """Populate a SequenceParams object from a dictionary.
     
     Raises ValueError if required sequence parameters are missing.
@@ -114,15 +129,17 @@ def _populate_spar(seq_params: dict, n_cam: int) -> SequenceParams:
         raise ValueError(f"Missing required sequence parameters: {missing_params}. "
                         f"Available parameters: {list(seq_params.keys())}")
     
-    spar = SequenceParams(num_cams=n_cam)
+    base_name_list = seq_params['base_name']
+
+    if len([x for x in base_name_list if x is not None]) < num_cams:
+        raise ValueError(f"base_name_list length ({len(base_name_list)}) does not match num_cams ({num_cams})")
+
+    spar = SequenceParams(num_cams=num_cams)
     spar.set_first(seq_params['first'])
     spar.set_last(seq_params['last'])
     
-    base_name_list = seq_params['base_name']
-    if len(base_name_list) != n_cam:
-        raise ValueError(f"base_name_list length ({len(base_name_list)}) does not match n_cam ({n_cam}); check your Yaml file.")
-    
-    for i in range(len(base_name_list)):
+    # Set base names for each camera
+    for i in range(num_cams):
         spar.set_img_base_name(i, base_name_list[i])
     
     return spar
@@ -169,14 +186,14 @@ def _populate_track_par(track_params: dict) -> TrackingParams:
     track_par.set_add(track_params['flagNewParticles'])
     return track_par
 
-def _populate_tpar(targ_params: dict, n_cam: int) -> TargetParams:
+def _populate_tpar(targ_params: dict, num_cams: int) -> TargetParams:
     """Populate a TargetParams object from a dictionary."""
     # targ_params = params.get('targ_rec', {})
     
-    # Get global n_cam - the single source of truth
-    # n_cam = params.get('n_cam', 0)
+    # Get global num_cams - the single source of truth
+    # num_cams = params.get('num_cams', 0)
     
-    tpar = TargetParams(n_cam)
+    tpar = TargetParams(num_cams)
     # Handle both 'targ_rec' and 'detect_plate' parameter variants
     if 'targ_rec' in targ_params:
         params = targ_params['targ_rec']
@@ -216,14 +233,14 @@ def _populate_tpar(targ_params: dict, n_cam: int) -> TargetParams:
         raise ValueError("Target parameters must contain either 'targ_rec' or 'detect_plate' section.")
     return tpar
 
-def _read_calibrations(cpar: ControlParams, n_cams: int) -> List[Calibration]:
+def _read_calibrations(cpar: ControlParams, num_cams: int) -> List[Calibration]:
     """Read calibration files for all cameras.
     
     Returns empty/default calibrations if files don't exist, which is normal
     for the calibration GUI before calibrations have been created.
     """
     cals = []
-    for i_cam in range(n_cams):
+    for i_cam in range(num_cams):
         cal = Calibration()
         base_name = cpar.get_cal_img_base_name(i_cam)
         ori_file = base_name + ".ori"
@@ -249,7 +266,7 @@ def _read_calibrations(cpar: ControlParams, n_cams: int) -> List[Calibration]:
 
 
 def py_start_proc_c(
-    parameter_manager: "ParameterManager",
+    pm: ParameterManager,
 ) -> Tuple[
     ControlParams,
     SequenceParams,
@@ -261,29 +278,22 @@ def py_start_proc_c(
 ]:
     """Read all parameters needed for processing using ParameterManager."""
     try:
-        params = parameter_manager.parameters
-        n_cam = parameter_manager.n_cam
+        params = pm.parameters
+        num_cams = pm.num_cams
 
-        ptv_params = params.get('ptv', {})
-        cpar = _populate_cpar(ptv_params, n_cam)
-
-        sequence_params = params.get('sequence', {})
-        spar = _populate_spar(sequence_params, n_cam)
-
-        volume_params = params.get('criteria', {})
-        vpar = _populate_vpar(volume_params)
-
-        track_params = params.get('track', {})
-        track_par = _populate_track_par(track_params)
+        cpar = _populate_cpar(params['ptv'], num_cams)
+        spar = _populate_spar(params['sequence'], num_cams)
+        vpar = _populate_vpar(params['criteria'])
+        track_par = _populate_track_par(params['track'])
 
         # Create a dict that contains targ_rec for _populate_tpar
         # Use targ_rec instead of detect_plate to match manual GUI operations
-        target_params_dict = {'targ_rec': params.get('targ_rec', {})}
-        tpar = _populate_tpar(target_params_dict, n_cam)
+        target_params_dict = {'targ_rec': params['targ_rec']}
+        tpar = _populate_tpar(target_params_dict, num_cams)
 
-        epar = params.get('examine', {})
+        epar = params.get('examine')
         
-        cals = _read_calibrations(cpar, n_cam)
+        cals = _read_calibrations(cpar, num_cams)
 
         return cpar, spar, vpar, track_par, tpar, cals, epar
 
@@ -292,14 +302,14 @@ def py_start_proc_c(
 
 
 def py_pre_processing_c(
-        n_cam: int,
+        num_cams: int,
         list_of_images: List[np.ndarray], 
         ptv_params: dict, 
 ) -> List[np.ndarray]:
     """Apply pre-processing to a list of images.
     """
-    # n_cam = len(list_of_images)
-    cpar = _populate_cpar(ptv_params, n_cam)
+    # num_cams = len(list_of_images)
+    cpar = _populate_cpar(ptv_params, num_cams)
     processed_images = []
     for i, img in enumerate(list_of_images):
         img_lp = img.copy() 
@@ -309,25 +319,25 @@ def py_pre_processing_c(
 
 
 def py_detection_proc_c(
-    n_cam: int,
+    num_cams: int,
     list_of_images: List[np.ndarray],
     ptv_params: dict,
     target_params: dict,
     existing_target: bool = False,
 ) -> Tuple[List[TargetArray], List[MatchedCoords]]:
     """Detect targets in a list of images."""
-    # n_cam = len(ptv_params.get('img_cal', []))
+    # num_cams = len(ptv_params.get('img_cal', []))
     
-    if len(list_of_images) != n_cam:
-        raise ValueError(f"Number of images ({len(list_of_images)}) must match number of cameras ({n_cam})")
+    if len(list_of_images) != num_cams:
+        raise ValueError(f"Number of images ({len(list_of_images)}) must match number of cameras ({num_cams})")
 
-    cpar = _populate_cpar(ptv_params, n_cam)
+    cpar = _populate_cpar(ptv_params, num_cams)
     
     # Create a dict that contains targ_rec for _populate_tpar
     # target_params_dict = {'targ_rec': target_params}
-    tpar = _populate_tpar(target_params, n_cam)
+    tpar = _populate_tpar(target_params, num_cams)
     
-    cals = _read_calibrations(cpar, n_cam)
+    cals = _read_calibrations(cpar, num_cams)
 
     detections = []
     corrected = []
@@ -353,27 +363,20 @@ def py_correspondences_proc_c(exp):
     """
     frame = 123456789
 
+
+
     sorted_pos, sorted_corresp, num_targs = correspondences(
         exp.detections, exp.corrected, exp.cals, exp.vpar, exp.cpar
     )
 
-    # Get sequence parameters to write targets
-    if hasattr(exp, 'spar') and exp.spar is not None:
-        # Traditional experiment object with spar
-        for i_cam in range(exp.n_cams):
-            base_name = exp.spar.get_img_base_name(i_cam)
-            write_targets(exp.detections[i_cam], base_name, frame)
-    elif hasattr(exp, 'get_parameter'):
-        # MainGUI object - get sequence parameters from ParameterManager
-        seq_params = exp.get_parameter('sequence')
-        if seq_params and 'base_name' in seq_params:
-            for i_cam in range(exp.n_cams):
-                base_name = seq_params['base_name'][i_cam]
-                write_targets(exp.detections[i_cam], base_name, frame)
-        else:
-            print("Warning: No sequence parameters found, skipping target writing")
+    img_base_names = [exp.spar.get_img_base_name(i) for i in range(exp.num_cams)]
+    short_file_bases = generate_short_file_bases(img_base_names)
+    print(f"short_file_bases: {short_file_bases}")
+
+    for i_cam in range(exp.num_cams):
+        write_targets(exp.detections[i_cam], short_file_bases[i_cam], frame)
     else:
-        print("Warning: No way to determine base names, skipping target writing")
+        print("Warning: No sequence parameters found, skipping target writing")
 
     print(
         "Frame "
@@ -382,12 +385,12 @@ def py_correspondences_proc_c(exp):
         + repr([s.shape[1] for s in sorted_pos])
         + " correspondences."
     )
-
+    
     return sorted_pos, sorted_corresp, num_targs
 
 
 def py_determination_proc_c(
-    n_cams: int,
+    num_cams: int,
     sorted_pos: List[np.ndarray],
     sorted_corresp: List[np.ndarray],
     corrected: List[MatchedCoords],
@@ -401,12 +404,12 @@ def py_determination_proc_c(
     concatenated_corresp = np.concatenate(sorted_corresp, axis=1)
 
     flat = np.array(
-        [corrected[i].get_by_pnrs(concatenated_corresp[i]) for i in range(n_cams)]
+        [corrected[i].get_by_pnrs(concatenated_corresp[i]) for i in range(num_cams)]
     )
 
     pos, _ = point_positions(flat.transpose(1, 0, 2), cpar, cals, vpar)
 
-    if n_cams < 4:
+    if num_cams < 4:
         print_corresp = -1 * np.ones((4, concatenated_corresp.shape[1]))
         print_corresp[: len(cals), :] = concatenated_corresp
     else:
@@ -498,63 +501,60 @@ def py_sequence_loop(exp) -> None:
     """Run a sequence of detection, stereo-correspondence, and determination.
     
     Args:
-        exp: Either an Experiment object with parameter_manager attribute,
-             or a MainGUI object with exp1.parameter_manager and cached parameter objects
+        exp: Either an Experiment object with pm attribute,
+             or a MainGUI object with exp1.pm and cached parameter objects
     """
     
     # Handle both Experiment objects and MainGUI objects
-    if hasattr(exp, 'parameter_manager'):
+    if hasattr(exp, 'pm'):
         # Traditional experiment object
-        parameter_manager = exp.parameter_manager
-        n_cams = exp.n_cams
+        pm = exp.pm
+        num_cams = pm.num_cams
         cpar = exp.cpar
         spar = exp.spar
         vpar = exp.vpar
         tpar = exp.tpar
         cals = exp.cals
-    elif hasattr(exp, 'exp1') and hasattr(exp.exp1, 'parameter_manager'):
+    elif hasattr(exp, 'exp1') and hasattr(exp.exp1, 'pm'):
         # MainGUI object - ensure parameter objects are initialized
-        exp.ensure_parameter_objects()
-        parameter_manager = exp.exp1.parameter_manager
-        n_cams = exp.n_cams
+        pm = exp.exp1.pm
+        num_cams = exp.num_cams
         cpar = exp.cpar
         spar = exp.spar
         vpar = exp.vpar
         tpar = exp.tpar
         cals = exp.cals
     else:
-        raise ValueError("Object must have either parameter_manager or exp1.parameter_manager attribute")
+        raise ValueError("Object must have either pm or exp1.pm attribute")
 
-    existing_target = parameter_manager.get_parameter('pft_version', {}).get('Existing_Target', False)
+    existing_target = pm.get_parameter('pft_version').get('Existing_Target', False)
 
     first_frame = spar.get_first()
     last_frame = spar.get_last()
-    print(f" From {first_frame = } to {last_frame = }")
+    # Generate short_file_bases once per experiment
+    img_base_names = [spar.get_img_base_name(i) for i in range(num_cams)]
+    short_file_bases = generate_short_file_bases(img_base_names)
 
     for frame in range(first_frame, last_frame + 1):
         detections = []
         corrected = []
-        for i_cam in range(n_cams):
-            base_image_name = spar.get_img_base_name(i_cam)
+        for i_cam in range(num_cams):
             if existing_target:
-                targs = read_targets(base_image_name, frame)
+                targs = read_targets(short_file_bases[i_cam], frame)
             else:
-                imname = Path(base_image_name % frame)
+                imname = Path(img_base_names[i_cam] % frame)
                 if not imname.exists():
                     raise FileNotFoundError(f"{imname} does not exist")
                 else:
                     img = imread(imname)
                     if img.ndim > 2:
                         img = rgb2gray(img)
-
                     if img.dtype != np.uint8:
                         img = img_as_ubyte(img)
-
-                if parameter_manager.get_parameter('ptv', {}).get('inverse', False):
+                if pm.get_parameter('ptv').get('inverse', False):
                     print("Invert image")
                     img = negative(img)
-
-                masking_params = parameter_manager.get_parameter('masking')
+                masking_params = pm.get_parameter('masking')
                 if masking_params and masking_params.get('mask_flag', False):
                     try:
                         background_name = (
@@ -563,28 +563,25 @@ def py_sequence_loop(exp) -> None:
                         )
                         background = imread(background_name)
                         img = np.clip(img - background, 0, 255).astype(np.uint8)
-
                     except (ValueError, FileNotFoundError):
                         print("failed to read the mask")
-
                 high_pass = simple_highpass(img, cpar)
                 targs = target_recognition(high_pass, tpar, i_cam, cpar)
 
-            targs.sort_y()
-            # print(len(targs))
+            if len(targs) > 0:
+                targs.sort_y()
+
             detections.append(targs)
             matched_coords = MatchedCoords(targs, cpar, cals[i_cam])
             pos, _ = matched_coords.as_arrays()
             corrected.append(matched_coords)
 
+        # AFter we finished all targs, we can move to correspondences    
         sorted_pos, sorted_corresp, _ = correspondences(
             detections, corrected, cals, vpar, cpar
         )
-
-        for i_cam in range(n_cams):
-            base_name = spar.get_img_base_name(i_cam)
-            write_targets(detections[i_cam], base_name, frame)
-
+        for i_cam in range(num_cams):
+            write_targets(detections[i_cam], short_file_bases[i_cam], frame)
         print(
             "Frame "
             + str(frame)
@@ -592,15 +589,12 @@ def py_sequence_loop(exp) -> None:
             + repr([s.shape[1] for s in sorted_pos])
             + " correspondences."
         )
-
         sorted_pos = np.concatenate(sorted_pos, axis=1)
         sorted_corresp = np.concatenate(sorted_corresp, axis=1)
-
         flat = np.array(
             [corrected[i].get_by_pnrs(sorted_corresp[i]) for i in range(len(exp.cals))]
         )
         pos, _ = point_positions(flat.transpose(1, 0, 2), exp.cpar, exp.cals, exp.vpar)
-
         if len(exp.cals) < 4:
             print_corresp = -1 * np.ones((4, sorted_corresp.shape[1]))
             print_corresp[: len(exp.cals), :] = sorted_corresp
@@ -615,32 +609,32 @@ def py_sequence_loop(exp) -> None:
                 pt_args = (pix + 1,) + tuple(pt) + tuple(print_corresp[:, pix])
                 rt_is.write("%4d %9.3f %9.3f %9.3f %4d %4d %4d %4d\n" % pt_args)
 
-
 def py_trackcorr_init(exp):
     """Reads all the necessary stuff into Tracker"""
 
-    for cam_id in range(exp.cpar.get_num_cams()):
-        img_base_name = exp.spar.get_img_base_name(cam_id)
-        short_name = Path(img_base_name).parent / f'cam{cam_id+1}.'
-        print(f" Renaming {img_base_name} to {short_name} before C library tracker")
-        exp.spar.set_img_base_name(cam_id, str(short_name))
+    # Generate short_file_bases once per experiment
+    img_base_names = [exp.spar.get_img_base_name(i) for i in range(exp.cpar.get_num_cams())]
+    exp.short_file_bases = generate_short_file_bases(img_base_names)
+    for cam_id, short_name in enumerate(exp.short_file_bases):
+        # print(f"Setting tracker image base name for cam {cam_id+1}: {Path(short_name).resolve()}")
+        exp.spar.set_img_base_name(cam_id, str(Path(short_name).resolve())+'.')
 
+    # print("exp.spar.img_base_names:", [exp.spar.get_img_base_name(i) for i in range(exp.cpar.get_num_cams())])
+
+    # print(
+    #     exp.track_par.get_dvxmin(), exp.track_par.get_dvxmax(),
+    #     exp.track_par.get_dvymin(), exp.track_par.get_dvymax(),
+    #     exp.track_par.get_dvzmin(), exp.track_par.get_dvzmax(),
+    #     exp.track_par.get_dangle(), exp.track_par.get_dacc(),
+    #     exp.track_par.get_add()
+    # )
+    
+    print("Initializing Tracker with parameters:")
     tracker = Tracker(
         exp.cpar, exp.vpar, exp.track_par, exp.spar, exp.cals, default_naming
     )
 
     return tracker
-
-
-def py_trackcorr_loop():
-    """Supposedly returns some lists of the linked targets at every step of a tracker"""
-    pass
-
-
-def py_traject_loop():
-    """Used to plot trajectories after the full run
-    """
-
 
 # ------- Utilities ----------#
 
@@ -670,8 +664,8 @@ def py_calibration(selection, exp):
     
     Args:
         selection: Calibration selection type
-        exp: Either an Experiment object with parameter_manager attribute,
-             or a MainGUI object with exp1.parameter_manager and cached parameter objects
+        exp: Either an Experiment object with pm attribute,
+             or a MainGUI object with exp1.pm and cached parameter objects
     """
     if selection == 1:
         pass
@@ -686,19 +680,18 @@ def py_calibration(selection, exp):
         from optv.tracking_framebuf import Frame
         
         # Handle both Experiment objects and MainGUI objects
-        if hasattr(exp, 'parameter_manager'):
+        if hasattr(exp, 'pm'):
             # Traditional experiment object
-            parameter_manager = exp.parameter_manager
+            pm = exp.pm
             cpar = exp.cpar
             spar = exp.spar
-        elif hasattr(exp, 'exp1') and hasattr(exp.exp1, 'parameter_manager'):
+        elif hasattr(exp, 'exp1') and hasattr(exp.exp1, 'pm'):
             # MainGUI object - ensure parameter objects are initialized
-            exp.ensure_parameter_objects()
-            parameter_manager = exp.exp1.parameter_manager
+            pm = exp.exp1.pm
             cpar = exp.cpar
             spar = exp.spar
         else:
-            raise ValueError("Object must have either parameter_manager or exp1.parameter_manager attribute")
+            raise ValueError("Object must have either pm or exp1.pm attribute")
         
         num_cams = cpar.get_num_cams()
         calibs = _read_calibrations(cpar, num_cams)
@@ -708,8 +701,8 @@ def py_calibration(selection, exp):
             for c in range(num_cams)
         ]
         
-        orient_params = parameter_manager.get_parameter('orient')
-        shaking_params = parameter_manager.get_parameter('shaking')
+        orient_params = pm.get_parameter('orient')
+        shaking_params = pm.get_parameter('shaking')
         
         flags = [name for name in NAMES if orient_params.get(name) == 1]
         all_known = []
@@ -772,10 +765,42 @@ def py_calibration(selection, exp):
         return targs_all, targ_ix_all, residuals_all
 
 
-def read_targets(file_base: str, frame: int = 123456789) -> TargetArray:
+def write_targets(targets: TargetArray, short_file_base: str, frame: int) -> bool:
+    """Write targets to a file."""
+    filename = f"{short_file_base}.{frame:04d}_targets"
+    num_targets = len(targets)
+    success = False
+    if num_targets == 0:
+        with open(filename, "w", encoding="utf-8") as file:
+            file.write("0\n")
+        return True  # No targets to write, but file created successfully
+
+    try:
+        target_arr = np.array(
+            [
+                ([t.pnr(), *t.pos(), *t.count_pixels(), t.sum_grey_value(), t.tnr()])
+                for t in targets
+            ]
+        )
+        np.savetxt(
+            filename,
+            target_arr,
+            fmt="%4d %9.4f %9.4f %5d %5d %5d %5d %5d",
+            header=f"{num_targets}",
+            comments="",
+        )
+        success = True
+    except IOError:
+        print(f"Can't write to targets file: {filename}")
+    return success
+
+def read_targets(short_file_base: str, frame: int) -> TargetArray:
     """Read targets from a file."""
-    filename = file_base_to_filename(file_base, frame)
-    print(f" filename: {filename}")
+    filename = f"{short_file_base}.{frame:04d}_targets"
+    print(f" Reading targets from: filename: {filename}")
+
+    if not os.path.exists(filename):
+        raise FileNotFoundError(f"Targets file does not exist: {filename}")
 
     try:
         with open(filename, "r", encoding="utf-8") as file:
@@ -802,44 +827,108 @@ def read_targets(file_base: str, frame: int = 123456789) -> TargetArray:
     return targs
 
 
-def write_targets(targets: TargetArray, file_base: str, frame: int = 123456789) -> bool:
-    """Write targets to a file."""
-    success = False
-    filename = file_base_to_filename(file_base, frame)
-    num_targets = len(targets)
+def extract_cam_ids(file_bases: list[str]) -> list[int]:
+    """
+    Given a list of file base strings, extract the camera identification number from each.
+    The camera id is the digit or number that is the main difference between the names,
+    typically close to 'cam', 'c', 'img', etc.
+    Returns a list of integers, one for each file base.
+    """
+    # Try to find all numbers in each string, and their context
+    if not file_bases:
+        raise ValueError("file_bases list is empty")
+    
+    # If input is a string, convert to a list
+    if isinstance(file_bases, str):
+        file_bases = [file_bases]
 
-    try:
-        target_arr = np.array(
-            [
-                ([t.pnr(), *t.pos(), *t.count_pixels(), t.sum_grey_value(), t.tnr()])
-                for t in targets
-            ]
-        )
-        np.savetxt(
-            filename,
-            target_arr,
-            fmt="%4d %9.4f %9.4f %5d %5d %5d %5d %5d",
-            header=f"{num_targets}",
-            comments="",
-        )
-        success = True
-    except IOError:
-        print(f"Can't open targets file: {filename}")
+    # Remove frame number patterns like %d, %04d, etc.
+    clean_bases = [re.sub(r'%0?\d*d', '', s) for s in file_bases]
+    file_bases = clean_bases
 
-    return success
+    # Helper to extract all (number, context) pairs from a string
+    def extract_number_context(s):
+        # Find all numbers with up to 4 chars before and after
+        matches = []
+        for m in re.finditer(r'([a-zA-Z]{0,4})?(\d+)', s):
+            prefix = m.group(1) or ''
+            number = m.group(2)
+            start = m.start(2)
+            matches.append((number, prefix.lower(), start))
+        return matches
+
+    # Build a list of all numbers and their context for each string
+    all_matches = [extract_number_context(s) for s in file_bases]
+
+    # Transpose to group by position in the list
+    # Find which number position varies the most across the list
+    # (i.e., the one that is different between the names)
+    candidate_indices = []
+    maxlen = max(len(m) for m in all_matches) if all_matches else 0
+    for idx in range(maxlen):
+        nums = []
+        for m in all_matches:
+            if len(m) > idx:
+                nums.append(m[idx][0])
+            else:
+                nums.append(None)
+        # Count unique numbers (ignoring None)
+        unique = set(n for n in nums if n is not None)
+        candidate_indices.append((idx, len(unique)))
+
+    # Pick the index with the most unique numbers (should be the cam id)
+    candidate_indices.sort(key=lambda x: -x[1])
+    if not candidate_indices or candidate_indices[0][1] <= 1:
+        # fallback: just use the last number in each string
+        fallback_ids = []
+        for idx, s in enumerate(file_bases):
+            found = re.findall(r'(\d+)', s)
+            if found:
+                fallback_ids.append(int(found[-1]))
+            else:
+                # fallback to default SHORT_BASE+idx+1
+                fallback_ids.append(None)
+        # If any fallback_ids are None, use default SHORT_BASE+idx+1
+        if any(x is None for x in fallback_ids):
+            fallback_ids = list(range(1, len(file_bases)+1))
+            print("fall back to default list", fallback_ids)
+            
+        return fallback_ids
+
+    cam_idx = candidate_indices[0][0]
+
+    # Now, for each string, get the number at cam_idx
+    cam_ids = []
+    for idx, m in enumerate(all_matches):
+        if len(m) > cam_idx:
+            cam_ids.append(int(m[cam_idx][0]))
+        else:
+            # fallback: last number or default SHORT_BASE+idx+1
+            nums = re.findall(r'(\d+)', ''.join([x[0] for x in m]))
+            if nums:
+                cam_ids.append(int(nums[-1]))
+            else:
+                cam_ids.append(f"{SHORT_BASE}{idx+1}")
+    # If any cam_ids are not int, fallback to default SHORT_BASE+idx+1
+    if any(not isinstance(x, int) for x in cam_ids):
+        cam_ids = list(range(1, len(file_bases)+1))
+        print("Fallback to default list {cam_ids}")
+
+    return cam_ids
 
 
-def file_base_to_filename(file_base, frame):
-    """Convert file base name to a filename"""
-    file_base = os.path.splitext(file_base)[0]
-    file_base = re.sub(r"_\d*d", "", file_base)
-    if re.search(r"%\d*d", file_base):
-        _ = re.sub(r"%\d*d", "%04d", file_base)
-        filename = Path(f"{_ % frame}_targets")
-    else:
-        filename = Path(f"{file_base}.{frame:04d}_targets")
-
-    return filename
+def generate_short_file_bases(img_base_names: List[str]) -> List[str]:
+    """
+    Given a list of image base names (full paths) for all cameras, generate a list of short_file_base strings for targets.
+    The short file base will be in the same directory as the original, but with the filename replaced by SHORT_BASE + index.
+    """
+    ids = extract_cam_ids(img_base_names)
+    short_bases = []
+    for idx, full_path in enumerate(img_base_names):
+        parent = Path(full_path).parent
+        short_name = f"{SHORT_BASE}{ids[idx]}"
+        short_bases.append(str(parent / short_name))
+    return short_bases
 
 
 def read_rt_is_file(filename) -> List[List[float]]:

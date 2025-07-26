@@ -26,20 +26,20 @@ def test_detection_parameters_bug():
     experiment = Experiment()
     # Add the paramset to experiment
     experiment.addParamset("Run1", yaml_file)
-    experiment.setActive(0)
+    experiment.set_active(0)
     
     print("=== Testing Detection Parameter Bug ===")
     print()
     
     # Check what parameters are available
     print("Available parameter sections:")
-    for key in experiment.parameter_manager.parameters.keys():
+    for key in experiment.pm.parameters.keys():
         print(f"  - {key}")
     print()
     
     # Test GUI approach (wrong)
     print("1. GUI approach (looking for 'targ_rec'):")
-    targ_rec_params = experiment.get_parameter('targ_rec')
+    targ_rec_params = experiment.pm.parameters['targ_rec']
     print(f"   targ_rec parameters: {targ_rec_params}")
     if targ_rec_params is None:
         print("   ❌ GUI will fail - no 'targ_rec' section!")
@@ -105,7 +105,7 @@ def test_detection_parameters_bug():
             img = rgb2gray(img)
         img = img_as_ubyte(img)
         
-        n_cams = experiment.get_n_cam()
+        num_cams = experiment.get_n_cam()
         images = [img]  # Just test with first camera
         
         # Test GUI detection (with wrong parameters)

@@ -40,13 +40,13 @@ class Sequence:
             self.exp.ensure_parameter_objects()
         
         # Verify splitter mode is enabled
-        if hasattr(self.exp, 'parameter_manager'):
-            ptv_params = self.exp.parameter_manager.get_parameter('ptv', {})
+        if hasattr(self.exp, 'pm'):
+            ptv_params = self.exp.pm.get_parameter('ptv', {})
             if not ptv_params.get('splitter', False):
                 raise ValueError("Splitter mode must be enabled for this sequence processor")
             
             # Get processing parameters
-            masking_params = self.exp.parameter_manager.get_parameter('masking', {})
+            masking_params = self.exp.pm.get_parameter('masking', {})
             inverse_flag = ptv_params.get('inverse', False)
         else:
             # Fallback for older experiment objects
@@ -57,7 +57,7 @@ class Sequence:
         if not all(hasattr(self.exp, attr) for attr in ['cpar', 'spar', 'vpar', 'tpar', 'cals']):
             raise ValueError("Experiment object missing required parameter objects")
             
-        n_cams = len(self.exp.cals)
+        num_cams = len(self.exp.cals)
         cpar = self.exp.cpar
         spar = self.exp.spar
         vpar = self.exp.vpar
@@ -65,8 +65,8 @@ class Sequence:
         cals = self.exp.cals
 
         # # Sequence parameters
-        # spar = SequenceParams(num_cams=n_cams)
-        # spar.read_sequence_par(b"parameters/sequence.par", n_cams)
+        # spar = SequenceParams(num_cams=num_cams)
+        # spar.read_sequence_par(b"parameters/sequence.par", num_cams)
 
         # sequence loop for all frames
         first_frame = spar.get_first()
@@ -119,7 +119,7 @@ class Sequence:
             # Split image using configurable order
             list_of_images = self.ptv.image_split(full_image, order=[0,1,3,2])  # HI-D specific order
 
-            for i_cam in range(n_cams):  # Use dynamic camera count
+            for i_cam in range(num_cams):  # Use dynamic camera count
                 
                 masked_image = list_of_images[i_cam].copy()
                 
@@ -165,7 +165,7 @@ class Sequence:
 
             # Save targets only after they've been modified:
             # this is a workaround of the proper way to construct _targets name
-            for i_cam in range(n_cams):  # Use dynamic camera count
+            for i_cam in range(num_cams):  # Use dynamic camera count
                 # base_name = spar.get_img_base_name(i_cam).decode()
                 # base_name = replace_format_specifiers(base_name) # %d to %04d
                 base_name = str(Path(base_image_name).parent / f'cam{i_cam+1}')  # Convert Path to string

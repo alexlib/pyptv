@@ -76,22 +76,21 @@ def test_experiment_initialization():
     exp = Experiment()
     
     # Check that ParameterManager is initialized
-    assert hasattr(exp, 'parameter_manager')
-    assert isinstance(exp.parameter_manager, ParameterManager)
+    assert hasattr(exp, 'pm')
+    assert isinstance(exp.pm, ParameterManager)
     
     # Check initial state
     assert exp.active_params is None
     assert len(exp.paramsets) == 0
-    assert not exp.changed_active_params
 
 
 def test_experiment_parameter_access():
     """Test parameter access through Experiment"""
     exp = Experiment()
     
-    # Initially, get_parameter should return None for non-existent parameters
-    ptv_params = exp.get_parameter('ptv')
-    assert ptv_params is None
+    # Initially, get_parameter should raise ValueError for non-existent parameters
+    with pytest.raises(ValueError):
+        exp.get_parameter('ptv')
 
 
 def test_experiment_populate_runs(temp_experiment_dir):
@@ -112,8 +111,8 @@ def test_experiment_populate_runs(temp_experiment_dir):
         # Check that parameters can be accessed
         ptv_params = exp.get_parameter('ptv')
         assert ptv_params is not None
-        # n_cam is now ONLY at the global level, not in ptv subsection
-        assert exp.get_n_cam() == 4  # n_cam from global level
+        # num_cams is now ONLY at the global level, not in ptv subsection
+        assert exp.get_n_cam() == 4  # num_cams from global level
         assert ptv_params['imx'] == 1280
         assert ptv_params['imy'] == 1024
         
@@ -147,11 +146,11 @@ def test_experiment_parameter_saving(temp_experiment_dir):
         
         # Check that parameters can be loaded from YAML
         exp2 = Experiment()
-        exp2.parameter_manager.from_yaml(yaml_path)
+        exp2.pm.from_yaml(yaml_path)
         
-        ptv_params = exp2.parameter_manager.get_parameter('ptv')
+        ptv_params = exp2.pm.get_parameter('ptv')
         assert ptv_params is not None
-        assert exp2.get_n_cam() == 4  # n_cam from global level, not ptv section
+        assert exp2.get_n_cam() == 4  # num_cams from global level, not ptv section
         
     finally:
         os.chdir(original_dir)
@@ -166,7 +165,7 @@ def test_experiment_no_circular_dependency():
     assert not hasattr(exp, 'gui')
     
     # The experiment should be self-contained for parameter management
-    assert hasattr(exp, 'parameter_manager')
+    assert hasattr(exp, 'pm')
     assert hasattr(exp, 'get_parameter')
     assert hasattr(exp, 'save_parameters')
 
@@ -187,7 +186,7 @@ def test_experiment_parameter_updates(temp_experiment_dir):
         original_imx = ptv_params['imx']
         
         # Update parameters through the ParameterManager
-        exp.parameter_manager.parameters['ptv']['imx'] = 1920
+        exp.pm.parameters['ptv']['imx'] = 1920
         
         # Verify the change
         updated_params = exp.get_parameter('ptv')
@@ -200,9 +199,9 @@ def test_experiment_parameter_updates(temp_experiment_dir):
         # Load in a new experiment instance
         exp2 = Experiment()
         yaml_path = exp.active_params.yaml_path
-        exp2.parameter_manager.from_yaml(yaml_path)
+        exp2.pm.from_yaml(yaml_path)
         
-        reloaded_params = exp2.parameter_manager.get_parameter('ptv')
+        reloaded_params = exp2.pm.get_parameter('ptv')
         assert reloaded_params['imx'] == 1920
         
     finally:
@@ -214,7 +213,7 @@ def test_clean_design_principles():
     exp = Experiment()
     
     # 1. Experiment is the MODEL - owns data
-    assert hasattr(exp, 'parameter_manager')
+    assert hasattr(exp, 'pm')
     assert hasattr(exp, 'paramsets')
     assert hasattr(exp, 'active_params')
     
@@ -229,7 +228,7 @@ def test_clean_design_principles():
         assert not hasattr(exp, attr), f"Experiment should not have GUI attribute: {attr}"
     
     # 4. ParameterManager is encapsulated within Experiment
-    assert isinstance(exp.parameter_manager, ParameterManager)
+    assert isinstance(exp.pm, ParameterManager)
 
 
 if __name__ == "__main__":

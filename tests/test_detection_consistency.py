@@ -22,7 +22,7 @@ class TestDetectionConsistency:
         experiment = Experiment()
         test_dir = Path(__file__).parent / "test_cavity"
         experiment.populate_runs(test_dir)
-        experiment.setActive(0)  # Use first parameter set
+        experiment.set_active(0)  # Use first parameter set
         return experiment
     
     @pytest.fixture
@@ -43,7 +43,7 @@ class TestDetectionConsistency:
         """Test that py_start_proc_c uses targ_rec parameters, not detect_plate."""
         
         # Get parameter manager
-        pm = experiment.parameter_manager
+        pm = experiment.pm
         
         # Get both parameter sections
         targ_rec_params = pm.get_parameter('targ_rec')
@@ -60,7 +60,7 @@ class TestDetectionConsistency:
         
         # Test manual GUI approach
         target_params_gui = {'targ_rec': targ_rec_params}
-        tpar_gui = _populate_tpar(target_params_gui, pm.n_cam)
+        tpar_gui = _populate_tpar(target_params_gui, pm.num_cams)
         
         # Compare the TargetParams objects - they should be identical
         np.testing.assert_array_equal(tpar.get_grey_thresholds(), tpar_gui.get_grey_thresholds())
@@ -74,13 +74,13 @@ class TestDetectionConsistency:
         """Test that manual detection and sequence detection use same parameters."""
         
         # Get parameters
-        pm = experiment.parameter_manager
+        pm = experiment.pm
         ptv_params = pm.get_parameter('ptv')
         targ_rec_params = pm.get_parameter('targ_rec')
         
         # Manual GUI approach (what img_coord_action does)
         target_params_gui = {'targ_rec': targ_rec_params}
-        tpar_gui = _populate_tpar(target_params_gui, pm.n_cam)
+        tpar_gui = _populate_tpar(target_params_gui, pm.num_cams)
         
         # Sequence approach (what py_start_proc_c creates for sequence)
         cpar, spar, vpar, track_par, tpar_seq, cals, epar = py_start_proc_c(pm)
@@ -96,7 +96,7 @@ class TestDetectionConsistency:
     def test_parameter_sections_exist(self, experiment):
         """Test that both targ_rec and detect_plate sections exist in YAML."""
         
-        pm = experiment.parameter_manager
+        pm = experiment.pm
         
         targ_rec = pm.get_parameter('targ_rec')
         detect_plate = pm.get_parameter('detect_plate')
@@ -120,7 +120,7 @@ if __name__ == "__main__":
     experiment = Experiment()
     test_dir = Path(__file__).parent / "test_cavity"
     experiment.populate_runs(test_dir)
-    experiment.setActive(0)
+    experiment.set_active(0)
     
     test_case.test_tpar_parameter_consistency(experiment)
     test_case.test_parameter_sections_exist(experiment)

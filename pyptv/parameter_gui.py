@@ -1,8 +1,4 @@
-import json
-from pathlib import Path
-import shutil
-
-from traits.api import HasTraits, Str, Float, Int, List, Bool, Enum, Instance
+from traits.api import HasTraits, Str, Float, Int, List, Bool
 from traitsui.api import (
     View,
     Item,
@@ -14,8 +10,6 @@ from traitsui.api import (
     spring,
 )
 
-import numpy as np
-from pyptv.parameter_manager import ParameterManager
 from pyptv.experiment import Experiment
 
 
@@ -33,13 +27,17 @@ class ParamHandler(Handler):
             
             print("Updating parameters via Experiment...")
 
-            # Update top-level n_cam
-            experiment.parameter_manager.parameters['n_cam'] = main_params.Num_Cam
+            # Update top-level num_cams
+            experiment.pm.parameters['num_cams'] = main_params.Num_Cam
 
             # Update ptv.par
             img_name = [main_params.Name_1_Image, main_params.Name_2_Image, main_params.Name_3_Image, main_params.Name_4_Image]
             img_cal_name = [main_params.Cali_1_Image, main_params.Cali_2_Image, main_params.Cali_3_Image, main_params.Cali_4_Image]
-            experiment.parameter_manager.parameters['ptv'].update({
+
+            img_name = img_name[:main_params.Num_Cam]
+            img_cal_name = img_cal_name[:main_params.Num_Cam]
+
+            experiment.pm.parameters['ptv'].update({
                 'img_name': img_name, 'img_cal': img_cal_name,
                 'hp_flag': main_params.HighPass, 'allcam_flag': main_params.Accept_OnlyAllCameras,
                 'tiff_flag': main_params.tiff_flag, 'imx': main_params.imx, 'imy': main_params.imy,
@@ -50,16 +48,18 @@ class ParamHandler(Handler):
             })
 
             # Update cal_ori.par
-            experiment.parameter_manager.parameters['cal_ori'].update({
-                'fixp_name': main_params.fixp_name,
-                'img_cal_name': main_params.img_cal_name, 'img_ori': main_params.img_ori,
-                'tiff_flag': main_params.tiff_flag, 'pair_flag': main_params.pair_Flag,
-                'chfield': main_params.chfield
-            })
+            # experiment.pm.parameters['cal_ori'].update({
+            #     'fixp_name': main_params.fixp_name,
+            #     'img_cal_name': main_params.img_cal_name, 'img_ori': main_params.img_ori,
+            #     'tiff_flag': main_params.tiff_flag, 'pair_flag': main_params.pair_Flag,
+            #     'chfield': main_params.chfield
+            # })
 
             # Update targ_rec.par
             gvthres = [main_params.Gray_Tresh_1, main_params.Gray_Tresh_2, main_params.Gray_Tresh_3, main_params.Gray_Tresh_4]
-            experiment.parameter_manager.parameters['targ_rec'].update({
+            gvthres = gvthres[:main_params.Num_Cam]
+
+            experiment.pm.parameters['targ_rec'].update({
                 'gvthres': gvthres, 'disco': main_params.Tol_Disc,
                 'nnmin': main_params.Min_Npix, 'nnmax': main_params.Max_Npix,
                 'nxmin': main_params.Min_Npix_x, 'nxmax': main_params.Max_Npix_x,
@@ -68,13 +68,15 @@ class ParamHandler(Handler):
             })
 
             # Update pft_version.par
-            if 'pft_version' not in experiment.parameter_manager.parameters:
-                experiment.parameter_manager.parameters['pft_version'] = {}
-            experiment.parameter_manager.parameters['pft_version']['Existing_Target'] = main_params.Existing_Target
+            if 'pft_version' not in experiment.pm.parameters:
+                experiment.pm.parameters['pft_version'] = {}
+            experiment.pm.parameters['pft_version']['Existing_Target'] = int(main_params.Existing_Target)
 
             # Update sequence.par
             base_name = [main_params.Basename_1_Seq, main_params.Basename_2_Seq, main_params.Basename_3_Seq, main_params.Basename_4_Seq]
-            experiment.parameter_manager.parameters['sequence'].update({
+            base_name = base_name[:main_params.Num_Cam]
+
+            experiment.pm.parameters['sequence'].update({
                 'base_name': base_name,
                 'first': main_params.Seq_First, 'last': main_params.Seq_Last
             })
@@ -83,7 +85,7 @@ class ParamHandler(Handler):
             X_lay = [main_params.Xmin, main_params.Xmax]
             Zmin_lay = [main_params.Zmin1, main_params.Zmin2]
             Zmax_lay = [main_params.Zmax1, main_params.Zmax2]
-            experiment.parameter_manager.parameters['criteria'].update({
+            experiment.pm.parameters['criteria'].update({
                 'X_lay': X_lay, 'Zmin_lay': Zmin_lay, 'Zmax_lay': Zmax_lay,
                 'cnx': main_params.Min_Corr_nx, 'cny': main_params.Min_Corr_ny,
                 'cn': main_params.Min_Corr_npix, 'csumg': main_params.Sum_gv,
@@ -91,9 +93,9 @@ class ParamHandler(Handler):
             })
 
             # Update masking parameters
-            if 'masking' not in experiment.parameter_manager.parameters:
-                experiment.parameter_manager.parameters['masking'] = {}
-            experiment.parameter_manager.parameters['masking'].update({
+            if 'masking' not in experiment.pm.parameters:
+                experiment.pm.parameters['masking'] = {}
+            experiment.pm.parameters['masking'].update({
                 'mask_flag': main_params.Subtr_Mask,
                 'mask_base_name': main_params.Base_Name_Mask
             })
@@ -109,38 +111,46 @@ class CalHandler(Handler):
         if is_ok:
             calib_params = info.object
             experiment = calib_params.experiment
-            
+            num_cams = experiment.pm.parameters['num_cams']
+
             print("Updating calibration parameters via Experiment...")
 
-            # Update top-level n_cam
-            experiment.parameter_manager.parameters['n_cam'] = calib_params.n_img
+            # Update top-level num_cams
+            # experiment.pm.parameters['num_cams'] = calib_params.n_img
 
-            # Update ptv.par
-            experiment.parameter_manager.parameters['ptv'].update({
-                'img_name': calib_params.img_name, 'img_cal': calib_params.img_cal,
-                'hp_flag': calib_params.hp_flag, 'allcam_flag': calib_params.allcam_flag,
-                'tiff_flag': calib_params.tiff_head, 'imx': calib_params.h_image_size,
-                'imy': calib_params.v_image_size, 'pix_x': calib_params.h_pixel_size,
-                'pix_y': calib_params.v_pixel_size, 'chfield': calib_params.chfield,
-                'mmp_n1': calib_params.mmp_n1, 'mmp_n2': calib_params.mmp_n2,
-                'mmp_n3': calib_params.mmp_n3, 'mmp_d': calib_params.mmp_d
+            # Update ptv.par with some parameters that for some reason 
+            # are stored in Calibration Parameters GUI
+            experiment.pm.parameters['ptv'].update({
+                # 'tiff_flag': calib_params.tiff_head,
+                'imx': calib_params.h_image_size,
+                'imy': calib_params.v_image_size,
+                'pix_x': calib_params.h_pixel_size,
+                'pix_y': calib_params.v_pixel_size,
+                # 'chfield': calib_params.chfield,
             })
 
             # Update cal_ori.par
             img_cal_name = [calib_params.cam_1, calib_params.cam_2, calib_params.cam_3, calib_params.cam_4]
             img_ori = [calib_params.ori_cam_1, calib_params.ori_cam_2, calib_params.ori_cam_3, calib_params.ori_cam_4]
-            experiment.parameter_manager.parameters['cal_ori'].update({
+
+            img_cal_name = img_cal_name[:num_cams]
+            img_ori = img_ori[:num_cams]
+
+
+            experiment.pm.parameters['cal_ori'].update({
                 'fixp_name': calib_params.fixp_name,
-                'img_cal_name': img_cal_name, 'img_ori': img_ori,
-                'tiff_flag': calib_params.tiff_head, 'pair_flag': calib_params.pair_head,
-                'chfield': calib_params.chfield,
+                'img_cal_name': img_cal_name, # see above
+                'img_ori': img_ori, # see above
+                #'tiff_flag': calib_params.tiff_head, 
+                #'pair_flag': calib_params.pair_head,
+                #'chfield': calib_params.chfield,
                 'cal_splitter': calib_params._cal_splitter
             })
 
             # Update detect_plate.par
-            if 'detect_plate' not in experiment.parameter_manager.parameters:
-                experiment.parameter_manager.parameters['detect_plate'] = {}
-            experiment.parameter_manager.parameters['detect_plate'].update({
+            if 'detect_plate' not in experiment.pm.parameters:
+                experiment.pm.parameters['detect_plate'] = {}
+            experiment.pm.parameters['detect_plate'].update({
                 'gvth_1': calib_params.grey_value_treshold_1, 'gvth_2': calib_params.grey_value_treshold_2,
                 'gvth_3': calib_params.grey_value_treshold_3, 'gvth_4': calib_params.grey_value_treshold_4,
                 'tol_dis': calib_params.tolerable_discontinuity, 'min_npix': calib_params.min_npix,
@@ -157,31 +167,31 @@ class CalHandler(Handler):
             nr4 = [calib_params.img_4_p1, calib_params.img_4_p2, calib_params.img_4_p3, calib_params.img_4_p4]
             # Flatten to 1D array as expected by legacy format: [cam1_p1, cam1_p2, cam1_p3, cam1_p4, cam2_p1, ...]
             nr = nr1 + nr2 + nr3 + nr4
-            if 'man_ori' not in experiment.parameter_manager.parameters:
-                experiment.parameter_manager.parameters['man_ori'] = {}
-            experiment.parameter_manager.parameters['man_ori']['nr'] = nr
+            if 'man_ori' not in experiment.pm.parameters:
+                experiment.pm.parameters['man_ori'] = {}
+            experiment.pm.parameters['man_ori']['nr'] = nr
 
             # Update examine.par
-            if 'examine' not in experiment.parameter_manager.parameters:
-                experiment.parameter_manager.parameters['examine'] = {}
-            experiment.parameter_manager.parameters['examine']['Examine_Flag'] = calib_params.Examine_Flag
-            experiment.parameter_manager.parameters['examine']['Combine_Flag'] = calib_params.Combine_Flag
+            if 'examine' not in experiment.pm.parameters:
+                experiment.pm.parameters['examine'] = {}
+            experiment.pm.parameters['examine']['Examine_Flag'] = calib_params.Examine_Flag
+            experiment.pm.parameters['examine']['Combine_Flag'] = calib_params.Combine_Flag
 
             # Update orient.par
-            if 'orient' not in experiment.parameter_manager.parameters:
-                experiment.parameter_manager.parameters['orient'] = {}
-            experiment.parameter_manager.parameters['orient'].update({
-                'pnfo': calib_params.point_number_of_orientation, 'cc': calib_params.cc,
-                'xh': calib_params.xh, 'yh': calib_params.yh, 'k1': calib_params.k1,
-                'k2': calib_params.k2, 'k3': calib_params.k3, 'p1': calib_params.p1,
-                'p2': calib_params.p2, 'scale': calib_params.scale, 'shear': calib_params.shear,
-                'interf': calib_params.interf
+            if 'orient' not in experiment.pm.parameters:
+                experiment.pm.parameters['orient'] = {}
+            experiment.pm.parameters['orient'].update({
+                'pnfo': calib_params.point_number_of_orientation, 'cc': int(calib_params.cc),
+                'xh': int(calib_params.xh), 'yh': int(calib_params.yh), 'k1': int(calib_params.k1),
+                'k2': int(calib_params.k2), 'k3': int(calib_params.k3), 'p1': int(calib_params.p1),
+                'p2': int(calib_params.p2), 'scale': int(calib_params.scale), 'shear': int(calib_params.shear),
+                'interf': int(calib_params.interf),
             })
 
             # Update shaking.par
-            if 'shaking' not in experiment.parameter_manager.parameters:
-                experiment.parameter_manager.parameters['shaking'] = {}
-            experiment.parameter_manager.parameters['shaking'].update({
+            if 'shaking' not in experiment.pm.parameters:
+                experiment.pm.parameters['shaking'] = {}
+            experiment.pm.parameters['shaking'].update({
                 'shaking_first_frame': calib_params.shaking_first_frame,
                 'shaking_last_frame': calib_params.shaking_last_frame,
                 'shaking_max_num_points': calib_params.shaking_max_num_points,
@@ -189,9 +199,9 @@ class CalHandler(Handler):
             })
 
             # Update dumbbell.par
-            if 'dumbbell' not in experiment.parameter_manager.parameters:
-                experiment.parameter_manager.parameters['dumbbell'] = {}
-            experiment.parameter_manager.parameters['dumbbell'].update({
+            if 'dumbbell' not in experiment.pm.parameters:
+                experiment.pm.parameters['dumbbell'] = {}
+            experiment.pm.parameters['dumbbell'].update({
                 'dumbbell_eps': calib_params.dumbbell_eps,
                 'dumbbell_scale': calib_params.dumbbell_scale,
                 'dumbbell_gradient_descent': calib_params.dumbbell_gradient_descent,
@@ -214,10 +224,10 @@ class TrackHandler(Handler):
             print("Updating tracking parameters via Experiment...")
 
             # Ensure track parameters section exists
-            if 'track' not in experiment.parameter_manager.parameters:
-                experiment.parameter_manager.parameters['track'] = {}
+            if 'track' not in experiment.pm.parameters:
+                experiment.pm.parameters['track'] = {}
                 
-            experiment.parameter_manager.parameters['track'].update({
+            experiment.pm.parameters['track'].update({
                 'dvxmin': track_params.dvxmin, 'dvxmax': track_params.dvxmax,
                 'dvymin': track_params.dvymin, 'dvymax': track_params.dvymax,
                 'dvzmin': track_params.dvzmin, 'dvzmax': track_params.dvzmax,
@@ -231,30 +241,30 @@ class TrackHandler(Handler):
 
 
 class Tracking_Params(HasTraits):
-    dvxmin = Float(DEFAULT_FLOAT)
-    dvxmax = Float(DEFAULT_FLOAT)
-    dvymin = Float(DEFAULT_FLOAT)
-    dvymax = Float(DEFAULT_FLOAT)
-    dvzmin = Float(DEFAULT_FLOAT)
-    dvzmax = Float(DEFAULT_FLOAT)
-    angle = Float(DEFAULT_FLOAT)
-    dacc = Float(DEFAULT_FLOAT)
+    dvxmin = Float()
+    dvxmax = Float()
+    dvymin = Float()
+    dvymax = Float()
+    dvzmin = Float()
+    dvzmax = Float()
+    angle = Float()
+    dacc = Float()
     flagNewParticles = Bool(True)
 
     def __init__(self, experiment: Experiment):
         super(Tracking_Params, self).__init__()
         self.experiment = experiment
-        tracking_params = self.experiment.parameter_manager.parameters.get('track', {})
+        tracking_params = experiment.pm.parameters['track']
         
-        self.dvxmin = tracking_params.get('dvxmin', DEFAULT_FLOAT)
-        self.dvxmax = tracking_params.get('dvxmax', DEFAULT_FLOAT)
-        self.dvymin = tracking_params.get('dvymin', DEFAULT_FLOAT)
-        self.dvymax = tracking_params.get('dvymax', DEFAULT_FLOAT)
-        self.dvzmin = tracking_params.get('dvzmin', DEFAULT_FLOAT)
-        self.dvzmax = tracking_params.get('dvzmax', DEFAULT_FLOAT)
-        self.angle = tracking_params.get('angle', DEFAULT_FLOAT)
-        self.dacc = tracking_params.get('dacc', DEFAULT_FLOAT)
-        self.flagNewParticles = bool(tracking_params.get('flagNewParticles', True))
+        self.dvxmin = tracking_params['dvxmin']
+        self.dvxmax = tracking_params['dvxmax']
+        self.dvymin = tracking_params['dvymin']
+        self.dvymax = tracking_params['dvymax']
+        self.dvzmin = tracking_params['dvzmin']
+        self.dvzmax = tracking_params['dvzmax']
+        self.angle = tracking_params['angle']
+        self.dacc = tracking_params['dacc']
+        self.flagNewParticles = bool(tracking_params['flagNewParticles'])
 
     Tracking_Params_View = View(
         HGroup(
@@ -282,85 +292,85 @@ class Tracking_Params(HasTraits):
 
 class Main_Params(HasTraits):
     # Panel 1: General
-    Num_Cam = Int(4, label="Number of cameras: ")
+    Num_Cams = Int(label="Number of cameras: ")
     Accept_OnlyAllCameras = Bool(
-        False, label="Accept only points seen from all cameras?"
+        label="Accept only points seen from all cameras?"
     )
-    pair_Flag = Bool(False, label="Include pairs")
-    pair_enable_flag = Bool(True)
-    all_enable_flag = Bool(True)
-    hp_enable_flag = Bool(True)
-    inverse_image_flag = Bool(False)
-    Splitter = Bool(False, label="Split images into 4?")
+    pair_Flag = Bool(label="Include pairs")
+    pair_enable_flag = True
+    all_enable_flag = False
+    # hp_enable_flag = Bool()
+    inverse_image_flag = Bool()
+    Splitter = Bool(label="Split images into 4?")
 
     tiff_flag = Bool()
-    imx = Int(DEFAULT_INT)
-    imy = Int(DEFAULT_INT)
-    pix_x = Float(DEFAULT_FLOAT)
-    pix_y = Float(DEFAULT_FLOAT)
-    chfield = Int(DEFAULT_INT)
-    img_cal_name = []
+    imx = Int()
+    imy = Int()
+    pix_x = Float()
+    pix_y = Float()
+    chfield = Int()
+    img_cal_name = List()
 
     fixp_name = Str()
-    img_ori = []
+    img_ori = List()
 
-    Name_1_Image = Str(DEFAULT_STRING, label="Name of 1. image")
-    Name_2_Image = Str(DEFAULT_STRING, label="Name of 2. image")
-    Name_3_Image = Str(DEFAULT_STRING, label="Name of 3. image")
-    Name_4_Image = Str(DEFAULT_STRING, label="Name of 4. image")
-    Cali_1_Image = Str(DEFAULT_STRING, label="Calibration data for 1. image")
-    Cali_2_Image = Str(DEFAULT_STRING, label="Calibration data for 2. image")
-    Cali_3_Image = Str(DEFAULT_STRING, label="Calibration data for 3. image")
-    Cali_4_Image = Str(DEFAULT_STRING, label="Calibration data for 4. image")
+    Name_1_Image = Str(label="Name of 1. image")
+    Name_2_Image = Str(label="Name of 2. image")
+    Name_3_Image = Str(label="Name of 3. image")
+    Name_4_Image = Str(label="Name of 4. image")
+    Cali_1_Image = Str(label="Calibration data for 1. image")
+    Cali_2_Image = Str(label="Calibration data for 2. image")
+    Cali_3_Image = Str(label="Calibration data for 3. image")
+    Cali_4_Image = Str(label="Calibration data for 4. image")
 
-    Refr_Air = Float(1.0, label="Air:")
-    Refr_Glass = Float(1.33, label="Glass:")
-    Refr_Water = Float(1.46, label="Water:")
-    Thick_Glass = Float(1.0, label="Thickness of glass:")
+    Refr_Air = Float(label="Air:")
+    Refr_Glass = Float(label="Glass:")
+    Refr_Water = Float(label="Water:")
+    Thick_Glass = Float(label="Thickness of glass:")
 
     # New panel 2: ImageProcessing
-    HighPass = Bool(True, label="High pass filter")
-    Gray_Tresh_1 = Int(DEFAULT_INT, label="1st image")
-    Gray_Tresh_2 = Int(DEFAULT_INT, label="2nd image")
-    Gray_Tresh_3 = Int(DEFAULT_INT, label="3rd image")
-    Gray_Tresh_4 = Int(DEFAULT_INT, label="4th image")
-    Min_Npix = Int(DEFAULT_INT, label="min npix")
-    Max_Npix = Int(DEFAULT_INT, label="max npix")
-    Min_Npix_x = Int(DEFAULT_INT, label="min npix x")
-    Max_Npix_x = Int(DEFAULT_INT, label="max npix x")
-    Min_Npix_y = Int(DEFAULT_INT, label="min npix y")
-    Max_Npix_y = Int(DEFAULT_INT, label="max npix y")
-    Sum_Grey = Int(DEFAULT_INT, label="Sum of grey value")
-    Tol_Disc = Int(DEFAULT_INT, label="Tolerable discontinuity")
-    Size_Cross = Int(DEFAULT_INT, label="Size of crosses")
-    Subtr_Mask = Bool(False, label="Subtract mask")
-    Base_Name_Mask = Str(DEFAULT_STRING, label="Base name for the mask")
-    Existing_Target = Bool(False, label="Use existing_target files?")
-    Inverse = Bool(False, label="Negative images?")
+    HighPass = Bool(label="High pass filter")
+    Gray_Tresh_1 = Int(label="1st image")
+    Gray_Tresh_2 = Int(label="2nd image")
+    Gray_Tresh_3 = Int(label="3rd image")
+    Gray_Tresh_4 = Int(label="4th image")
+    Min_Npix = Int(label="min npix")
+    Max_Npix = Int(label="max npix")
+    Min_Npix_x = Int(label="min npix x")
+    Max_Npix_x = Int(label="max npix x")
+    Min_Npix_y = Int(label="min npix y")
+    Max_Npix_y = Int(label="max npix y")
+    Sum_Grey = Int(label="Sum of grey value")
+    Tol_Disc = Int(label="Tolerable discontinuity")
+    Size_Cross = Int(label="Size of crosses")
+    Subtr_Mask = Bool(label="Subtract mask")
+    Base_Name_Mask = Str(label="Base name for the mask")
+    Existing_Target = Bool(label="Use existing_target files?")
+    Inverse = Bool(label="Negative images?")
 
     # New panel 3: Sequence
-    Seq_First = Int(DEFAULT_INT, label="First sequence image:")
-    Seq_Last = Int(DEFAULT_INT, label="Last sequence image:")
-    Basename_1_Seq = Str(DEFAULT_STRING, label="Basename for 1. sequence")
-    Basename_2_Seq = Str(DEFAULT_STRING, label="Basename for 2. sequence")
-    Basename_3_Seq = Str(DEFAULT_STRING, label="Basename for 3. sequence")
-    Basename_4_Seq = Str(DEFAULT_STRING, label="Basename for 4. sequence")
+    Seq_First = Int(label="First sequence image:")
+    Seq_Last = Int(label="Last sequence image:")
+    Basename_1_Seq = Str(label="Basename for 1. sequence")
+    Basename_2_Seq = Str(label="Basename for 2. sequence")
+    Basename_3_Seq = Str(label="Basename for 3. sequence")
+    Basename_4_Seq = Str(label="Basename for 4. sequence")
 
     # Panel 4: ObservationVolume
-    Xmin = Float(DEFAULT_FLOAT, label="Xmin")
-    Xmax = Float(DEFAULT_FLOAT, label="Xmax")
-    Zmin1 = Float(DEFAULT_FLOAT, label="Zmin")
-    Zmin2 = Float(DEFAULT_FLOAT, label="Zmin")
-    Zmax1 = Float(DEFAULT_FLOAT, label="Zmax")
-    Zmax2 = Float(DEFAULT_FLOAT, label="Zmax")
+    Xmin = Int(label="Xmin")
+    Xmax = Int(label="Xmax")
+    Zmin1 = Int(label="Zmin")
+    Zmin2 = Int(label="Zmin")
+    Zmax1 = Int(label="Zmax")
+    Zmax2 = Int(label="Zmax")
 
     # Panel 5: ParticleDetection
-    Min_Corr_nx = Float(DEFAULT_FLOAT, label="min corr for ratio nx")
-    Min_Corr_ny = Float(DEFAULT_FLOAT, label="min corr for ratio ny")
-    Min_Corr_npix = Float(DEFAULT_FLOAT, label="min corr for ratio npix")
-    Sum_gv = Float(DEFAULT_FLOAT, label="sum of gv")
-    Min_Weight_corr = Float(DEFAULT_FLOAT, label="min for weighted correlation")
-    Tol_Band = Float(DEFAULT_FLOAT, lable="Tolerance of epipolar band [mm]")
+    Min_Corr_nx = Float(label="min corr for ratio nx")
+    Min_Corr_ny = Float(label="min corr for ratio ny")
+    Min_Corr_npix = Float(label="min corr for ratio npix")
+    Sum_gv = Float(label="sum of gv")
+    Min_Weight_corr = Float(label="min for weighted correlation")
+    Tol_Band = Float(lable="Tolerance of epipolar band [mm]")
 
     Group1 = Group(
         Group(
@@ -439,7 +449,7 @@ class Main_Params(HasTraits):
             Item(name="Subtr_Mask"),
             Item(name="Base_Name_Mask"),
             Item(name="Existing_Target"),
-            Item(name="HighPass", enabled_when="hp_enable_flag"),
+            Item(name="HighPass"),
             Item(name="Inverse"),
             orientation="horizontal",
         ),
@@ -516,123 +526,133 @@ class Main_Params(HasTraits):
         else:
             self.pair_enable_flag = True
 
-    def _reload(self, params):
-        # Check for global n_cam first, then ptv section
-        global_n_cam = params.get('n_cam', 4)
-        ptv_params = params.get('ptv', {})
-        
-        img_names = ptv_params.get('img_name', [''] * 4)
-        self.Name_1_Image, self.Name_2_Image, self.Name_3_Image, self.Name_4_Image = (
-            img_names + [''] * 4)[:4]
-        img_cals = ptv_params.get('img_cal', [''] * 4)
-        self.Cali_1_Image, self.Cali_2_Image, self.Cali_3_Image, self.Cali_4_Image = (
-            img_cals + [''] * 4)[:4]
-        self.Refr_Air = ptv_params.get('mmp_n1', 1.0)
-        self.Refr_Glass = ptv_params.get('mmp_n2', 1.33)
-        self.Refr_Water = ptv_params.get('mmp_n3', 1.46)
-        self.Thick_Glass = ptv_params.get('mmp_d', 1.0)
-        self.Accept_OnlyAllCameras = bool(ptv_params.get('allcam_flag', False))
-        # Use global n_cam - don't look for n_img in ptv section anymore
+    def _reload(self, num_cams: int, params: dict):
+        # Check for global num_cams first, then ptv section
+        global_n_cam = num_cams
+        ptv_params = params['ptv']
+
+        img_names = ptv_params['img_name']
+        # Update only the Name_x_Image attributes for available img_names
+        for i, name in enumerate(img_names):
+            if name is not None and i < global_n_cam:
+                setattr(self, f"Name_{i+1}_Image", name)
+
+        img_cals = ptv_params['img_cal']
+        for i, cal in enumerate(img_cals):
+            if cal is not None and i < global_n_cam:
+                setattr(self, f"Cali_{i+1}_Image", cal)
+
+        self.Refr_Air = ptv_params['mmp_n1']
+        self.Refr_Glass = ptv_params['mmp_n2']
+        self.Refr_Water = ptv_params['mmp_n3']
+        self.Thick_Glass = ptv_params['mmp_d']
+        self.Accept_OnlyAllCameras = bool(ptv_params['allcam_flag'])
         self.Num_Cam = global_n_cam
-        self.HighPass = bool(ptv_params.get('hp_flag', False))
-        self.tiff_flag = bool(ptv_params.get('tiff_flag', False))
-        self.imx = ptv_params.get('imx', DEFAULT_INT)
-        self.imy = ptv_params.get('imy', DEFAULT_INT)
-        self.pix_x = ptv_params.get('pix_x', DEFAULT_FLOAT)
-        self.pix_y = ptv_params.get('pix_y', DEFAULT_FLOAT)
-        self.chfield = ptv_params.get('chfield', DEFAULT_INT)
-        self.Splitter = bool(ptv_params.get('splitter', False))
+        self.HighPass = bool(ptv_params['hp_flag'])
+        self.tiff_flag = bool(ptv_params['tiff_flag'])
+        self.imx = ptv_params['imx']
+        self.imy = ptv_params['imy']
+        self.pix_x = ptv_params['pix_x']
+        self.pix_y = ptv_params['pix_y']
+        self.chfield = ptv_params['chfield']
+        self.Splitter = bool(ptv_params['splitter'])
 
-        cal_ori_params = params.get('cal_ori', {})
-        self.pair_Flag = bool(cal_ori_params.get('pair_flag', False))
-        self.img_cal_name = cal_ori_params.get('img_cal_name', [])
-        self.img_ori = cal_ori_params.get('img_ori', [])
-        self.fixp_name = cal_ori_params.get('fixp_name', DEFAULT_STRING)
+        # cal_ori_params = params['cal_ori']
+        # # self.pair_Flag = bool(cal_ori_params['pair_flag'])
+        # # self.img_cal_name = cal_ori_params['img_cal_name']
+        # # self.img_ori = cal_ori_params['img_ori']
+        # self.fixp_name = cal_ori_params['fixp_name']
 
-        targ_rec_params = params.get('targ_rec', {})
-        gvthres = targ_rec_params.get('gvthres', [DEFAULT_INT]*4)
-        self.Gray_Tresh_1, self.Gray_Tresh_2, self.Gray_Tresh_3, self.Gray_Tresh_4 = (
-            gvthres + [DEFAULT_INT] * 4)[:4]
-        self.Min_Npix = targ_rec_params.get('nnmin', DEFAULT_INT)
-        self.Max_Npix = targ_rec_params.get('nnmax', DEFAULT_INT)
-        self.Min_Npix_x = targ_rec_params.get('nxmin', DEFAULT_INT)
-        self.Max_Npix_x = targ_rec_params.get('nxmax', DEFAULT_INT)
-        self.Min_Npix_y = targ_rec_params.get('nymin', DEFAULT_INT)
-        self.Max_Npix_y = targ_rec_params.get('nymax', DEFAULT_INT)
-        self.Sum_Grey = targ_rec_params.get('sumg_min', DEFAULT_INT)
-        self.Tol_Disc = targ_rec_params.get('disco', DEFAULT_INT)
-        self.Size_Cross = targ_rec_params.get('cr_sz', DEFAULT_INT)
+        targ_rec_params = params['targ_rec']
+        gvthres = targ_rec_params['gvthres']
+        # # Update only the Gray_Tresh_x attributes for available cameras
+        for i in range(num_cams):
+            if i < len(gvthres):
+                setattr(self, f"Gray_Tresh_{i+1}", gvthres[i])
 
-        pft_version_params = params.get('pft_version', {})
-        self.Existing_Target = bool(pft_version_params.get('Existing_Target', False))
+        self.Min_Npix = targ_rec_params['nnmin']
+        self.Max_Npix = targ_rec_params['nnmax']
+        self.Min_Npix_x = targ_rec_params['nxmin']
+        self.Max_Npix_x = targ_rec_params['nxmax']
+        self.Min_Npix_y = targ_rec_params['nymin']
+        self.Max_Npix_y = targ_rec_params['nymax']
+        self.Sum_Grey = targ_rec_params['sumg_min']
+        self.Tol_Disc = targ_rec_params['disco']
+        self.Size_Cross = targ_rec_params['cr_sz']
 
-        sequence_params = params.get('sequence', {})
-        base_names = sequence_params.get('base_name', [DEFAULT_STRING] * 4)
-        self.Basename_1_Seq, self.Basename_2_Seq, self.Basename_3_Seq, self.Basename_4_Seq = (
-            base_names + [DEFAULT_STRING] * 4)[:4]
-        self.Seq_First = sequence_params.get('first', DEFAULT_INT)
-        self.Seq_Last = sequence_params.get('last', DEFAULT_INT)
+        pft_version_params = params['pft_version']
+        self.Existing_Target = bool(pft_version_params['Existing_Target'])
 
-        criteria_params = params.get('criteria', {})
-        X_lay = criteria_params.get('X_lay', [DEFAULT_FLOAT, DEFAULT_FLOAT])
-        self.Xmin, self.Xmax = (X_lay + [DEFAULT_FLOAT] * 2)[:2]
-        Zmin_lay = criteria_params.get('Zmin_lay', [DEFAULT_FLOAT, DEFAULT_FLOAT])
-        self.Zmin1, self.Zmin2 = (Zmin_lay + [DEFAULT_FLOAT] * 2)[:2]
-        Zmax_lay = criteria_params.get('Zmax_lay', [DEFAULT_FLOAT, DEFAULT_FLOAT])
-        self.Zmax1, self.Zmax2 = (Zmax_lay + [DEFAULT_FLOAT] * 2)[:2]
-        self.Min_Corr_nx = criteria_params.get('cnx', DEFAULT_FLOAT)
-        self.Min_Corr_ny = criteria_params.get('cny', DEFAULT_FLOAT)
-        self.Min_Corr_npix = criteria_params.get('cn', DEFAULT_FLOAT)
-        self.Sum_gv = criteria_params.get('csumg', DEFAULT_FLOAT)
-        self.Min_Weight_corr = criteria_params.get('corrmin', DEFAULT_FLOAT)
-        self.Tol_Band = criteria_params.get('eps0', DEFAULT_FLOAT)
+        sequence_params = params['sequence']
+        base_names = sequence_params['base_name']
+        
+        for i, base_name in enumerate(base_names):
+            if base_name is not None and i < global_n_cam:
+                setattr(self, f"Basename_{i+1}_Seq", base_name)
 
-        masking_params = params.get('masking', {})
-        self.Subtr_Mask = masking_params.get('mask_flag', False)
-        self.Base_Name_Mask = masking_params.get('mask_base_name', DEFAULT_STRING)
+        self.Seq_First = sequence_params['first']
+        self.Seq_Last = sequence_params['last']
+
+        criteria_params = params['criteria']
+        X_lay = criteria_params['X_lay']
+        self.Xmin, self.Xmax = X_lay[:2]
+        Zmin_lay = criteria_params['Zmin_lay']
+        self.Zmin1, self.Zmin2 = Zmin_lay[:2]
+        Zmax_lay = criteria_params['Zmax_lay']
+        self.Zmax1, self.Zmax2 = Zmax_lay[:2]
+        self.Min_Corr_nx = criteria_params['cnx']
+        self.Min_Corr_ny = criteria_params['cny']
+        self.Min_Corr_npix = criteria_params['cn']
+        self.Sum_gv = criteria_params['csumg']
+        self.Min_Weight_corr = criteria_params['corrmin']
+        self.Tol_Band = criteria_params['eps0']
+
+        masking_params = params['masking']
+        self.Subtr_Mask = masking_params['mask_flag']
+        self.Base_Name_Mask = masking_params['mask_base_name']
 
     def __init__(self, experiment: Experiment):
         HasTraits.__init__(self)
         self.experiment = experiment
-        self._reload(self.experiment.parameter_manager.parameters)
+        self._reload(experiment.get_n_cam(), experiment.pm.parameters)
 
 
 # -----------------------------------------------------------------------------
 class Calib_Params(HasTraits):
     # general and unsed variables
-    pair_enable_flag = Bool(True)
-    n_cam = Int(DEFAULT_INT)
+    # pair_enable_flag = Bool(True)
+    num_cams = Int
     img_name = List
     img_cal = List
-    hp_flag = Bool(False, label="highpass")
-    allcam_flag = Bool(False, label="all camera targets")
-    mmp_n1 = Float(DEFAULT_FLOAT)
-    mmp_n2 = Float(DEFAULT_FLOAT)
-    mmp_n3 = Float(DEFAULT_FLOAT)
-    mmp_d = Float(DEFAULT_FLOAT)
-    _cal_splitter = Bool(False, label="Split calibration image into 4?")
+    hp_flag = Bool(label="highpass")
+    # allcam_flag = Bool(False, label="all camera targets")
+    mmp_n1 = Float
+    mmp_n2 = Float
+    mmp_n3 = Float
+    mmp_d = Float
+    _cal_splitter = Bool(label="Split calibration image into 4?")
 
     # images data
-    cam_1 = Str(DEFAULT_STRING, label="Calibration picture camera 1")
-    cam_2 = Str(DEFAULT_STRING, label="Calibration picture camera 2")
-    cam_3 = Str(DEFAULT_STRING, label="Calibration picture camera 3")
-    cam_4 = Str(DEFAULT_STRING, label="Calibration picture camera 4")
-    ori_cam_1 = Str(DEFAULT_STRING, label="Orientation data picture camera 1")
-    ori_cam_2 = Str(DEFAULT_STRING, label="Orientation data picture camera 2")
-    ori_cam_3 = Str(DEFAULT_STRING, label="Orientation data picture camera 3")
-    ori_cam_4 = Str(DEFAULT_STRING, label="Orientation data picture camera 4")
+    cam_1 = Str(label="Calibration picture camera 1")
+    cam_2 = Str(label="Calibration picture camera 2")
+    cam_3 = Str(label="Calibration picture camera 3")
+    cam_4 = Str(label="Calibration picture camera 4")
+    ori_cam_1 = Str(label="Orientation data picture camera 1")
+    ori_cam_2 = Str(label="Orientation data picture camera 2")
+    ori_cam_3 = Str(label="Orientation data picture camera 3")
+    ori_cam_4 = Str(label="Orientation data picture camera 4")
 
-    fixp_name = Str(DEFAULT_STRING, label="File of Coordinates on plate")
-    tiff_head = Bool(True, label="TIFF-Header")
-    pair_head = Bool(True, label="Include pairs")
-    chfield = Enum("Frame", "Field odd", "Field even")
+    fixp_name = Str(label="File of Coordinates on plate")
+    # tiff_head = Bool(True, label="TIFF-Header")
+    # pair_head = Bool(True, label="Include pairs")
+    # chfield = Enum("Frame", "Field odd", "Field even")
 
     Group1_1 = Group(
         Item(name="cam_1"),
         Item(name="cam_2"),
         Item(name="cam_3"),
         Item(name="cam_4"),
-        label="Calibration pictures",
+        label="Calibration images",
         show_border=True,
     )
     Group1_2 = Group(
@@ -645,13 +665,13 @@ class Calib_Params(HasTraits):
     )
     Group1_3 = Group(
         Item(name="fixp_name"),
-        Group(
-            Item(name="tiff_head"),
-            Item(name="pair_head", enabled_when="pair_enable_flag"),
-            Item(name="chfield", show_label=False, style="custom"),
-            orientation="vertical",
-            columns=3,
-        ),
+        # Group(
+        #     # Item(name="tiff_head"),
+        #     # Item(name="pair_head", enabled_when="pair_enable_flag"),
+        #     # Item(name="chfield", show_label=False, style="custom"),
+        #     orientation="vertical",
+        #     columns=3,
+        # ),
         orientation="vertical",
     )
 
@@ -665,24 +685,24 @@ class Calib_Params(HasTraits):
 
     # calibration data detection
 
-    h_image_size = Int(DEFAULT_INT, label="Image size horizontal")
-    v_image_size = Int(DEFAULT_INT, label="Image size vertical")
-    h_pixel_size = Float(DEFAULT_FLOAT, label="Pixel size horizontal")
-    v_pixel_size = Float(DEFAULT_FLOAT, label="Pixel size vertical")
+    h_image_size = Int(label="Image size horizontal")
+    v_image_size = Int(label="Image size vertical")
+    h_pixel_size = Float(label="Pixel size horizontal")
+    v_pixel_size = Float(label="Pixel size vertical")
 
-    grey_value_treshold_1 = Int(DEFAULT_INT, label="First Image")
-    grey_value_treshold_2 = Int(DEFAULT_INT, label="Second Image")
-    grey_value_treshold_3 = Int(DEFAULT_INT, label="Third Image")
-    grey_value_treshold_4 = Int(DEFAULT_INT, label="Forth Image")
-    tolerable_discontinuity = Int(DEFAULT_INT, label="Tolerable discontinuity")
-    min_npix = Int(DEFAULT_INT, label="min npix")
-    min_npix_x = Int(DEFAULT_INT, label="min npix in x")
-    min_npix_y = Int(DEFAULT_INT, label="min npix in y")
-    max_npix = Int(DEFAULT_INT, label="max npix")
-    max_npix_x = Int(DEFAULT_INT, label="max npix in x")
-    max_npix_y = Int(DEFAULT_INT, label="max npix in y")
-    sum_of_grey = Int(DEFAULT_INT, label="Sum of greyvalue")
-    size_of_crosses = Int(DEFAULT_INT, label="Size of crosses")
+    grey_value_treshold_1 = Int(label="First Image")
+    grey_value_treshold_2 = Int(label="Second Image")
+    grey_value_treshold_3 = Int(label="Third Image")
+    grey_value_treshold_4 = Int(label="Forth Image")
+    tolerable_discontinuity = Int(label="Tolerable discontinuity")
+    min_npix = Int(label="min npix")
+    min_npix_x = Int(label="min npix in x")
+    min_npix_y = Int(label="min npix in y")
+    max_npix = Int(label="max npix")
+    max_npix_x = Int(label="max npix in x")
+    max_npix_y = Int(label="max npix in y")
+    sum_of_grey = Int(label="Sum of greyvalue")
+    size_of_crosses = Int(label="Size of crosses")
 
     Group2_1 = Group(
         Item(name="h_image_size"),
@@ -737,22 +757,22 @@ class Calib_Params(HasTraits):
     )
 
     # manuel pre orientation
-    img_1_p1 = Int(DEFAULT_INT, label="P1")
-    img_1_p2 = Int(DEFAULT_INT, label="P2")
-    img_1_p3 = Int(DEFAULT_INT, label="P3")
-    img_1_p4 = Int(DEFAULT_INT, label="P4")
-    img_2_p1 = Int(DEFAULT_INT, label="P1")
-    img_2_p2 = Int(DEFAULT_INT, label="P2")
-    img_2_p3 = Int(DEFAULT_INT, label="P3")
-    img_2_p4 = Int(DEFAULT_INT, label="P4")
-    img_3_p1 = Int(DEFAULT_INT, label="P1")
-    img_3_p2 = Int(DEFAULT_INT, label="P2")
-    img_3_p3 = Int(DEFAULT_INT, label="P3")
-    img_3_p4 = Int(DEFAULT_INT, label="P4")
-    img_4_p1 = Int(DEFAULT_INT, label="P1")
-    img_4_p2 = Int(DEFAULT_INT, label="P2")
-    img_4_p3 = Int(DEFAULT_INT, label="P3")
-    img_4_p4 = Int(DEFAULT_INT, label="P4")
+    img_1_p1 = Int(label="P1")
+    img_1_p2 = Int(label="P2")
+    img_1_p3 = Int(label="P3")
+    img_1_p4 = Int(label="P4")
+    img_2_p1 = Int(label="P1")
+    img_2_p2 = Int(label="P2")
+    img_2_p3 = Int(label="P3")
+    img_2_p4 = Int(label="P4")
+    img_3_p1 = Int(label="P1")
+    img_3_p2 = Int(label="P2")
+    img_3_p3 = Int(label="P3")
+    img_3_p4 = Int(label="P4")
+    img_4_p1 = Int(label="P1")
+    img_4_p2 = Int(label="P2")
+    img_4_p3 = Int(label="P3")
+    img_4_p4 = Int(label="P4")
 
     Group3_1 = Group(
         Item(name="img_1_p1"),
@@ -804,7 +824,7 @@ class Calib_Params(HasTraits):
     Examine_Flag = Bool(False, label="Calibrate with different Z")
     Combine_Flag = Bool(False, label="Combine preprocessed planes")
 
-    point_number_of_orientation = Int(DEFAULT_INT, label="Point number of orientation")
+    point_number_of_orientation = Int(label="Point number of orientation")
     cc = Bool(False, label="cc")
     xh = Bool(False, label="xh")
     yh = Bool(False, label="yh")
@@ -865,14 +885,14 @@ class Calib_Params(HasTraits):
         label="Calibration Orientation Param.",
     )
 
-    dumbbell_eps = Float(DEFAULT_FLOAT, label="dumbbell epsilon")
-    dumbbell_scale = Float(DEFAULT_FLOAT, label="dumbbell scale")
+    dumbbell_eps = Float(label="dumbbell epsilon")
+    dumbbell_scale = Float(label="dumbbell scale")
     dumbbell_gradient_descent = Float(
-        DEFAULT_FLOAT, label="dumbbell gradient descent factor"
+        label="dumbbell gradient descent factor"
     )
-    dumbbell_penalty_weight = Float(DEFAULT_FLOAT, label="weight for dumbbell penalty")
-    dumbbell_step = Int(DEFAULT_INT, label="step size through sequence")
-    dumbbell_niter = Int(DEFAULT_INT, label="number of iterations per click")
+    dumbbell_penalty_weight = Float(label="weight for dumbbell penalty")
+    dumbbell_step = Int(label="step size through sequence")
+    dumbbell_niter = Int(label="number of iterations per click")
 
     Group5 = HGroup(
         VGroup(
@@ -888,10 +908,10 @@ class Calib_Params(HasTraits):
         show_border=True,
     )
 
-    shaking_first_frame = Int(DEFAULT_INT, label="shaking first frame")
-    shaking_last_frame = Int(DEFAULT_INT, label="shaking last frame")
-    shaking_max_num_points = Int(DEFAULT_INT, label="shaking max num points")
-    shaking_max_num_frames = Int(DEFAULT_INT, label="shaking max num frames")
+    shaking_first_frame = Int(label="shaking first frame")
+    shaking_last_frame = Int(label="shaking last frame")
+    shaking_max_num_points = Int(label="shaking max num points")
+    shaking_max_num_frames = Int(label="shaking max num frames")
 
     Group6 = HGroup(
         VGroup(
@@ -914,105 +934,112 @@ class Calib_Params(HasTraits):
         title="Calibration Parameters",
     )
 
-    def _reload(self, params):
-        # Get top-level n_cam
-        global_n_cam = params.get('n_cam', 4)
+    def _reload(self, num_cams, params):
+        # Get top-level num_cams
+        global_n_cam = num_cams
+
+        ptv_params = params['ptv']
+        self.h_image_size = ptv_params['imx']
+        self.v_image_size = ptv_params['imy']
+        self.h_pixel_size = ptv_params['pix_x']
+        self.v_pixel_size = ptv_params['pix_y']
+        # self.img_cal = ptv_params['img_cal']
+        # self.pair_enable_flag = not ptv_params['allcam_flag']
+
+        # self.num_cams = global_n_cam
+        # self.img_name = ptv_params['img_name']
+        self.hp_flag = bool(ptv_params['hp_flag'])
+        # self.allcam_flag = bool(ptv_params['allcam_flag'])
+        # self.mmp_n1 = ptv_params['mmp_n1']
+        # self.mmp_n2 = ptv_params['mmp_n2']
+        # self.mmp_n3 = ptv_params['mmp_n3']
+        # self.mmp_d = ptv_params['mmp_d']
+
+        cal_ori_params = params['cal_ori']
+        cal_names = cal_ori_params['img_cal_name']
+        for i in range(global_n_cam):
+            setattr(self, f"cam_{i + 1}", cal_names[i])
+        # else:
+        #     setattr(self, f"cam_{i + 1}", DEFAULT_STRING)
+
         
-        ptv_params = params.get('ptv', {})
-        self.h_image_size = ptv_params.get('imx', DEFAULT_INT)
-        self.v_image_size = ptv_params.get('imy', DEFAULT_INT)
-        self.h_pixel_size = ptv_params.get('pix_x', DEFAULT_FLOAT)
-        self.v_pixel_size = ptv_params.get('pix_y', DEFAULT_FLOAT)
-        self.img_cal = ptv_params.get('img_cal', [])
-        if ptv_params.get('allcam_flag', False):
-            self.pair_enable_flag = False
-        else:
-            self.pair_enable_flag = True
+        ori_names = cal_ori_params['img_ori']
+        for i in range(global_n_cam):
+            setattr(self, f"ori_cam_{i + 1}", ori_names[i])
+        # else:
+        #     setattr(self, f"ori_cam_{i + 1}", DEFAULT_STRING)
 
-        self.n_cam = global_n_cam
-        self.img_name = ptv_params.get('img_name', [])
-        self.hp_flag = bool(ptv_params.get('hp_flag', False))
-        self.allcam_flag = bool(ptv_params.get('allcam_flag', False))
-        self.mmp_n1 = ptv_params.get('mmp_n1', DEFAULT_FLOAT)
-        self.mmp_n2 = ptv_params.get('mmp_n2', DEFAULT_FLOAT)
-        self.mmp_n3 = ptv_params.get('mmp_n3', DEFAULT_FLOAT)
-        self.mmp_d = ptv_params.get('mmp_d', DEFAULT_FLOAT)
+        # self.ori_cam_1, self.ori_cam_2, self.ori_cam_3, self.ori_cam_4 = ori_names[:4]
+        # self.tiff_head = bool(cal_ori_params['tiff_flag'])
+        # self.pair_head = bool(cal_ori_params['pair_flag'])
+        self.fixp_name = cal_ori_params['fixp_name']
+        self._cal_splitter = bool(cal_ori_params['cal_splitter'])
+        # chfield = cal_ori_params['chfield']
+        # if chfield == 0:
+        #     self.chfield = "Frame"
+        # elif chfield == 1:
+        #     self.chfield = "Field odd"
+        # else:
+        #     self.chfield = "Field even"
 
-        cal_ori_params = params.get('cal_ori', {})
-        cal_names = cal_ori_params.get('img_cal_name', [''] * 4)
-        self.cam_1, self.cam_2, self.cam_3, self.cam_4 = (cal_names + [''] * 4)[:4]
-        ori_names = cal_ori_params.get('img_ori', [''] * 4)
-        self.ori_cam_1, self.ori_cam_2, self.ori_cam_3, self.ori_cam_4 = (ori_names + [''] * 4)[:4]
-        self.tiff_head = bool(cal_ori_params.get('tiff_flag', False))
-        self.pair_head = bool(cal_ori_params.get('pair_flag', False))
-        self.fixp_name = cal_ori_params.get('fixp_name', DEFAULT_STRING)
-        self._cal_splitter = bool(cal_ori_params.get('cal_splitter', False))
-        chfield = cal_ori_params.get('chfield', 0)
-        if chfield == 0:
-            self.chfield = "Frame"
-        elif chfield == 1:
-            self.chfield = "Field odd"
-        else:
-            self.chfield = "Field even"
+        detect_plate_params = params['detect_plate']
+        self.grey_value_treshold_1 = detect_plate_params['gvth_1']
+        self.grey_value_treshold_2 = detect_plate_params['gvth_2']
+        self.grey_value_treshold_3 = detect_plate_params['gvth_3']
+        self.grey_value_treshold_4 = detect_plate_params['gvth_4']
+        self.tolerable_discontinuity = detect_plate_params['tol_dis']
+        self.min_npix = detect_plate_params['min_npix']
+        self.max_npix = detect_plate_params['max_npix']
+        self.min_npix_x = detect_plate_params['min_npix_x']
+        self.max_npix_x = detect_plate_params['max_npix_x']
+        self.min_npix_y = detect_plate_params['min_npix_y']
+        self.max_npix_y = detect_plate_params['max_npix_y']
+        self.sum_of_grey = detect_plate_params['sum_grey']
+        self.size_of_crosses = detect_plate_params['size_cross']
 
-        detect_plate_params = params.get('detect_plate', {})
-        self.grey_value_treshold_1 = detect_plate_params.get('gvth_1', DEFAULT_INT)
-        self.grey_value_treshold_2 = detect_plate_params.get('gvth_2', DEFAULT_INT)
-        self.grey_value_treshold_3 = detect_plate_params.get('gvth_3', DEFAULT_INT)
-        self.grey_value_treshold_4 = detect_plate_params.get('gvth_4', DEFAULT_INT)
-        self.tolerable_discontinuity = detect_plate_params.get('tol_dis', DEFAULT_INT)
-        self.min_npix = detect_plate_params.get('min_npix', DEFAULT_INT)
-        self.max_npix = detect_plate_params.get('max_npix', DEFAULT_INT)
-        self.min_npix_x = detect_plate_params.get('min_npix_x', DEFAULT_INT)
-        self.max_npix_x = detect_plate_params.get('max_npix_x', DEFAULT_INT)
-        self.min_npix_y = detect_plate_params.get('min_npix_y', DEFAULT_INT)
-        self.max_npix_y = detect_plate_params.get('max_npix_y', DEFAULT_INT)
-        self.sum_of_grey = detect_plate_params.get('sum_grey', DEFAULT_INT)
-        self.size_of_crosses = detect_plate_params.get('size_cross', DEFAULT_INT)
-
-        man_ori_params = params.get('man_ori', {})
-        nr = man_ori_params.get('nr', [])
+        man_ori_params = params['man_ori']
+        nr = man_ori_params['nr']
         for i in range(global_n_cam):
             for j in range(4):
-                val = nr[i * 4 + j] if i * 4 + j < len(nr) else 0
+                val = nr[i * 4 + j]
                 setattr(self, f"img_{i + 1}_p{j + 1}", val)
 
-        examine_params = params.get('examine', {})
-        self.Examine_Flag = examine_params.get('Examine_Flag', False)
-        self.Combine_Flag = examine_params.get('Combine_Flag', False)
+        examine_params = params['examine']
+        self.Examine_Flag = examine_params['Examine_Flag']
+        self.Combine_Flag = examine_params['Combine_Flag']
 
-        orient_params = params.get('orient', {})
-        self.point_number_of_orientation = orient_params.get('pnfo', DEFAULT_INT)
-        self.cc = bool(orient_params.get('cc', False))
-        self.xh = bool(orient_params.get('xh', False))
-        self.yh = bool(orient_params.get('yh', False))
-        self.k1 = bool(orient_params.get('k1', False))
-        self.k2 = bool(orient_params.get('k2', False))
-        self.k3 = bool(orient_params.get('k3', False))
-        self.p1 = bool(orient_params.get('p1', False))
-        self.p2 = bool(orient_params.get('p2', False))
-        self.scale = bool(orient_params.get('scale', False))
-        self.shear = bool(orient_params.get('shear', False))
-        self.interf = bool(orient_params.get('interf', False))
+        orient_params = params['orient']
+        self.point_number_of_orientation = orient_params['pnfo']
+        self.cc = bool(orient_params['cc'])
+        self.xh = bool(orient_params['xh'])
+        self.yh = bool(orient_params['yh'])
+        self.k1 = bool(orient_params['k1'])
+        self.k2 = bool(orient_params['k2'])
+        self.k3 = bool(orient_params['k3'])
+        self.p1 = bool(orient_params['p1'])
+        self.p2 = bool(orient_params['p2'])
+        self.scale = bool(orient_params['scale'])
+        self.shear = bool(orient_params['shear'])
+        self.interf = bool(orient_params['interf'])
 
-        dumbbell_params = params.get('dumbbell', {})
-        self.dumbbell_eps = dumbbell_params.get('dumbbell_eps', DEFAULT_FLOAT)
-        self.dumbbell_scale = dumbbell_params.get('dumbbell_scale', DEFAULT_FLOAT)
-        self.dumbbell_gradient_descent = dumbbell_params.get('dumbbell_gradient_descent', DEFAULT_FLOAT)
-        self.dumbbell_penalty_weight = dumbbell_params.get('dumbbell_penalty_weight', DEFAULT_FLOAT)
-        self.dumbbell_step = dumbbell_params.get('dumbbell_step', DEFAULT_INT)
-        self.dumbbell_niter = dumbbell_params.get('dumbbell_niter', DEFAULT_INT)
+        dumbbell_params = params['dumbbell']
+        self.dumbbell_eps = dumbbell_params['dumbbell_eps']
+        self.dumbbell_scale = dumbbell_params['dumbbell_scale']
+        self.dumbbell_gradient_descent = dumbbell_params['dumbbell_gradient_descent']
+        self.dumbbell_penalty_weight = dumbbell_params['dumbbell_penalty_weight']
+        self.dumbbell_step = dumbbell_params['dumbbell_step']
+        self.dumbbell_niter = dumbbell_params['dumbbell_niter']
 
-        shaking_params = params.get('shaking', {})
-        self.shaking_first_frame = shaking_params.get('shaking_first_frame', DEFAULT_INT)
-        self.shaking_last_frame = shaking_params.get('shaking_last_frame', DEFAULT_INT)
-        self.shaking_max_num_points = shaking_params.get('shaking_max_num_points', DEFAULT_INT)
-        self.shaking_max_num_frames = shaking_params.get('shaking_max_num_frames', DEFAULT_INT)
+        shaking_params = params['shaking']
+        self.shaking_first_frame = shaking_params['shaking_first_frame']
+        self.shaking_last_frame = shaking_params['shaking_last_frame']
+        self.shaking_max_num_points = shaking_params['shaking_max_num_points']
+        self.shaking_max_num_frames = shaking_params['shaking_max_num_frames']
 
     def __init__(self, experiment: Experiment):
         HasTraits.__init__(self)
         self.experiment = experiment
-        self._reload(self.experiment.parameter_manager.parameters)
+        self._reload(experiment.get_n_cam(), experiment.pm.parameters)
 
 
 # Experiment and Paramset classes moved to experiment.py for better separation of concerns

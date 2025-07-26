@@ -38,7 +38,7 @@ your_experiment/
 In your YAML file, set up the calibration section:
 
 ```yaml
-n_cam: 4
+num_cams: 4
 
 cal_ori:
   chfield: 0

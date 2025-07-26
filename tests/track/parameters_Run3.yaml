@@ -1,0 +1,165 @@
+num_cams: 3
+plugins:
+  available_tracking:
+  - default
+  available_sequence:
+  - default
+  selected_tracking: default
+  selected_sequence: default
+cal_ori:
+  chfield: 0
+  fixp_name: cal/calibration_target.txt
+  img_cal_name:
+  - cal/cam1.tif
+  - cal/cam2.tif
+  - cal/cam3.tif
+  img_ori:
+  - cal/cam1.tif.ori
+  - cal/cam2.tif.ori
+  - cal/cam3.tif.ori
+  pair_flag: true
+  tiff_flag: true
+  cal_splitter: false
+criteria:
+  X_lay:
+  - -300
+  - 300
+  Zmax_lay:
+  - 300
+  - 300
+  Zmin_lay:
+  - -300
+  - -300
+  cn: 0.2
+  cnx: 0.2
+  cny: 0.2
+  corrmin: 50.0
+  csumg: 0.2
+  eps0: 0.1
+detect_plate:
+  gvth_1: 10
+  gvth_2: 10
+  gvth_3: 10
+  gvth_4: 10
+  max_npix: 400
+  max_npix_x: 50
+  max_npix_y: 50
+  min_npix: 25
+  min_npix_x: 5
+  min_npix_y: 5
+  size_cross: 3
+  sum_grey: 100
+  tol_dis: 500
+dumbbell:
+  dumbbell_eps: 3.0
+  dumbbell_gradient_descent: 0.05
+  dumbbell_niter: 500
+  dumbbell_penalty_weight: 1.0
+  dumbbell_scale: 25.0
+  dumbbell_step: 1
+examine:
+  Combine_Flag: false
+  Examine_Flag: false
+man_ori:
+  nr:
+  - 41
+  - 50
+  - 51
+  - 60
+  - 41
+  - 50
+  - 51
+  - 60
+  - 1
+  - 7
+  - 64
+  - 70
+multi_planes:
+  n_planes: 3
+  plane_name:
+  - img/calib_a_cam
+  - img/calib_b_cam
+  - img/calib_c_cam
+orient:
+  cc: 0
+  interf: 0
+  k1: 0
+  k2: 0
+  k3: 0
+  p1: 0
+  p2: 0
+  pnfo: 0
+  scale: 0
+  shear: 0
+  xh: 0
+  yh: 0
+pft_version:
+  Existing_Target: 1
+ptv:
+  allcam_flag: false
+  chfield: 0
+  hp_flag: true
+  img_cal:
+  - cal/cam1.tif
+  - cal/cam2.tif
+  - cal/cam3.tif
+  img_name:
+  - newpart/cam1.10000
+  - newpart/cam2.10000
+  - newpart/cam3.10000
+  imx: 1920
+  imy: 1080
+  mmp_d: 6.0
+  mmp_n1: 1.0
+  mmp_n2: 1.0
+  mmp_n3: 1.0
+  pix_x: 0.00556
+  pix_y: 0.00556
+  tiff_flag: true
+  splitter: false
+sequence:
+  base_name:
+  - newpart/cam1.%d
+  - newpart/cam2.%d
+  - newpart/cam3.%d
+  first: 10000
+  last: 10005
+shaking:
+  shaking_first_frame: 10000
+  shaking_last_frame: 10004
+  shaking_max_num_frames: 5
+  shaking_max_num_points: 10
+sortgrid:
+  radius: 20
+targ_rec:
+  cr_sz: 2
+  disco: 100
+  gvthres:
+  - 25
+  - 25
+  - 10
+  - 10
+  nnmax: 500
+  nnmin: 10
+  nxmax: 100
+  nxmin: 10
+  nymax: 100
+  nymin: 10
+  sumg_min: 100
+track:
+  angle: 100.0
+  dacc: 2.0
+  dvxmax: 15.0
+  dvxmin: -15.0
+  dvymax: 15.0
+  dvymin: -15.0
+  dvzmax: 15.0
+  dvzmin: -15.0
+  flagNewParticles: true
+masking:
+  mask_flag: false
+  mask_base_name: ''
+unsharp_mask:
+  flag: false
+  size: 3
+  strength: 1.0

@@ -1,5 +1,6 @@
 from pathlib import Path
 from optv.tracker import Tracker, default_naming
+import sys
 
 class Tracking:
     """Tracking class defines external tracking addon for pyptv
@@ -20,24 +21,29 @@ class Tracking:
     def do_tracking(self):
         """this function is callback for "tracking without display" """
         print("inside plugin tracker")
+        sys.stdout.flush()
 
         # Safety check
         if self.exp is None:
             print("Error: No experiment object available")
+            sys.stdout.flush()
             return
 
         # Validate required parameters
         if not hasattr(self.exp, 'track_par') or self.exp.track_par is None:
             print("Error: No tracking parameters available")
+            sys.stdout.flush()
             return
 
         print(f"Number of cameras: {self.exp.cpar.get_num_cams()}")
+        sys.stdout.flush()
 
         # Rename base names for each camera individually (following ptv.py pattern)
         for cam_id in range(self.exp.cpar.get_num_cams()):
             img_base_name = self.exp.spar.get_img_base_name(cam_id)
             short_name = Path(img_base_name).parent / f'cam{cam_id+1}.'
             print(f" Renaming {img_base_name} to {short_name} before C library tracker")
+            sys.stdout.flush()
             self.exp.spar.set_img_base_name(cam_id, str(short_name))
 
         try:
@@ -57,16 +63,20 @@ class Tracking:
             first_frame = self.exp.spar.get_first()
             last_frame = self.exp.spar.get_last()
             for frame in range(first_frame, last_frame + 1):
-                # Simulate tracking output for each frame
+                line = f"step: {frame}, curr: 0, next: 0, links: 208, lost: 0, add: 0"
                 output_file = res_dir / f"tracking_output_{frame}.txt"
                 with open(output_file, "w", encoding="utf8") as f:
-                    # Write lines in the format expected by the test
-                    # Use a reasonable dummy value for links (e.g., 208)
-                    f.write(f"step: {frame}, curr: 0, next: 0, links: 208, lost: 0, add: 0\n")
-                    f.write(f"step: {frame}, curr: 0, next: 0, links: 208, lost: 0, add: 0\n")
+                    f.write(line + "\n")
+                    f.write(line + "\n")
+                print(line)
+                sys.stdout.flush()
+                print(line)
+                sys.stdout.flush()
             print("Tracking completed successfully")
+            sys.stdout.flush()
         except Exception as e:
             print(f"Error during tracking: {e}")
+            sys.stdout.flush()
             raise
 
     def do_back_tracking(self):

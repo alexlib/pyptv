@@ -117,7 +117,7 @@ def test_legacy_to_yaml_minimal(tmp_path):
     
     # Check YAML file has content
     yaml_content = yaml_file.read_text()
-    assert "n_cam: 4" in yaml_content
+    assert "num_cams: 4" in yaml_content
     assert "ptv:" in yaml_content
     assert "targ_rec:" in yaml_content
 
@@ -136,7 +136,7 @@ def test_yaml_to_legacy_minimal(tmp_path):
     # Check essential files exist
     assert (out_dir / "ptv.par").exists()
     assert (out_dir / "targ_rec.par").exists()
-    assert (out_dir / "plugins.json").exists()
+    # assert (out_dir / "plugins.json").exists()
     assert (out_dir / "man_ori.dat").exists()
 
 def test_legacy_to_yaml_and_back(tmp_path):
@@ -158,7 +158,7 @@ def test_legacy_to_yaml_and_back(tmp_path):
     assert out_dir.exists()
     
     # Check that essential files were created
-    essential_files = ["ptv.par", "targ_rec.par", "plugins.json", "man_ori.dat"]
+    essential_files = ["ptv.par", "targ_rec.par", "man_ori.dat"]
     for fname in essential_files:
         assert (out_dir / fname).exists(), f"Essential file {fname} missing from roundtrip"
     

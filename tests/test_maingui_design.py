@@ -9,6 +9,8 @@ from pathlib import Path
 import shutil
 from unittest.mock import patch
 
+from pyptv.experiment import Experiment
+
 # Since GUI tests require display and can be problematic in CI
 pytestmark = pytest.mark.skipif(
     os.environ.get("DISPLAY") is None or os.environ.get("QT_QPA_PLATFORM") == "offscreen",
@@ -71,6 +73,9 @@ def temp_experiment_dir():
         with open(params_dir / param_file, "w") as f:
             f.write("# Test parameter file\n")
 
+    # Simulate batch conversion to YAML (as in CLI)
+    experiment = Experiment()
+    experiment.populate_runs(exp_dir)
     yield exp_dir
     shutil.rmtree(temp_dir)
 
@@ -79,44 +84,38 @@ def test_maingui_initialization_design(temp_experiment_dir):
     """Test that MainGUI can be initialized with the new design"""
     try:
         from pyptv.pyptv_gui import MainGUI
-        
+        # Find a YAML file in the experiment directory
+        yaml_files = list(temp_experiment_dir.glob("*.yaml")) + list(temp_experiment_dir.glob("*.yml"))
+        assert yaml_files, "No YAML file found after batch conversion"
+        yaml_file = yaml_files[0]
+
         # Mock the configure_traits method to avoid actually showing the GUI
         with patch.object(MainGUI, 'configure_traits'):
-            software_path = Path.cwd()
-            
-            # Change to the experiment directory
             original_dir = os.getcwd()
             os.chdir(temp_experiment_dir)
-            
             try:
-                # This should work with the new design
-                gui = MainGUI(temp_experiment_dir, software_path)
-                
+                exp = Experiment()
+                exp.populate_runs(temp_experiment_dir)
+                gui = MainGUI(yaml_file, exp)
                 # Test the clean design principles
                 assert hasattr(gui, 'exp1')
-                assert hasattr(gui.exp1, 'parameter_manager')
+                assert hasattr(gui.exp1, 'pm')
                 assert hasattr(gui, 'get_parameter')
                 assert hasattr(gui, 'save_parameters')
-                
                 # Test parameter access delegation
                 ptv_params = gui.get_parameter('ptv')
                 assert ptv_params is not None
                 assert gui.exp1.get_n_cam() == 4
-                
                 # Test that GUI uses experiment for parameters, not direct ParameterManager
                 assert not hasattr(gui, 'pm')  # Old direct ParameterManager reference should be gone
-                
                 # Test the experiment is properly configured
                 assert gui.exp1.active_params is not None
                 assert len(gui.exp1.paramsets) > 0
-                
                 # Test camera configuration loaded correctly
-                assert gui.n_cams == 4
+                assert gui.num_cams == 4
                 assert len(gui.camera_list) == 4
-                
             finally:
                 os.chdir(original_dir)
-                
     except ImportError:
         pytest.skip("GUI components not available")
     except Exception as e:
@@ -140,7 +139,7 @@ def test_no_circular_dependency_in_maingui():
         assert not hasattr(exp, 'gui')
         
         # Experiment should be self-contained for parameter management
-        assert hasattr(exp, 'parameter_manager')
+        assert hasattr(exp, 'pm')
         assert hasattr(exp, 'get_parameter')
         assert hasattr(exp, 'save_parameters')
         

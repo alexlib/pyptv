@@ -35,7 +35,7 @@ class Sequence:
         # Sequence parameters
 
         _, cpar, spar, vpar, tpar, cals = (
-            self.exp.n_cams,
+            self.exp.num_cams,
             self.exp.cpar,
             self.exp.spar,
             self.exp.vpar,
@@ -44,8 +44,8 @@ class Sequence:
         )
 
         # # Sequence parameters
-        # spar = SequenceParams(num_cams=n_cams)
-        # spar.read_sequence_par(b"parameters/sequence.par", n_cams)
+        # spar = SequenceParams(num_cams=num_cams)
+        # spar.read_sequence_par(b"parameters/sequence.par", num_cams)
 
         # sequence loop for all frames
         first_frame = spar.get_first()

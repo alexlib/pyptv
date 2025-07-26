@@ -1,4 +1,11 @@
-n_cam: 4
+num_cams: 4
+plugins:
+  available_tracking:
+  - default
+  available_sequence:
+  - default
+  selected_tracking: default
+  selected_sequence: default
 cal_ori:
   chfield: 0
   fixp_name: cal/target_on_a_side.txt
@@ -17,14 +24,14 @@ cal_ori:
   cal_splitter: false
 criteria:
   X_lay:
-  - -40.0
-  - 40.0
+  - -40
+  - 40
   Zmax_lay:
-  - 25.0
-  - 25.0
+  - 25
+  - 25
   Zmin_lay:
-  - -20.0
-  - -20.0
+  - -20
+  - -20
   cn: 0.02
   cnx: 0.02
   cny: 0.02
@@ -93,7 +100,7 @@ orient:
   xh: 0
   yh: 0
 pft_version:
-  Existing_Target: false
+  Existing_Target: 0
 ptv:
   allcam_flag: false
   chfield: 0
@@ -104,16 +111,16 @@ ptv:
   - cal/cam3.tif
   - cal/cam4.tif
   img_name:
-  - img/cam1.10001
-  - img/cam2.10001
-  - img/cam3.10001
-  - img/cam4.10001
+  - img/cam1.10002
+  - img/cam2.10002
+  - img/cam3.10002
+  - img/cam4.10002
   imx: 1280
   imy: 1024
   mmp_d: 6.0
   mmp_n1: 1.0
-  mmp_n2: 1.46
-  mmp_n3: 1.33
+  mmp_n2: 1.33
+  mmp_n3: 1.46
   pix_x: 0.012
   pix_y: 0.012
   tiff_flag: true
@@ -124,7 +131,7 @@ sequence:
   - img/cam2.%d
   - img/cam3.%d
   - img/cam4.%d
-  first: 10000
+  first: 10001
   last: 10004
 shaking:
   shaking_first_frame: 10000
@@ -149,35 +156,15 @@ targ_rec:
   nymin: 2
   sumg_min: 150
 track:
-  angle: 270.0
-  dacc: 5.0
-  dvxmax: 15.0
-  dvxmin: -15.0
-  dvymax: 15.0
-  dvymin: -15.0
-  dvzmax: 15.0
-  dvzmin: -15.0
+  angle: 100.0
+  dacc: 2.8
+  dvxmax: 15.5
+  dvxmin: -15.5
+  dvymax: 15.5
+  dvymin: -15.5
+  dvzmax: 15.5
+  dvzmin: -15.5
   flagNewParticles: true
-masking:
-  mask_flag: false
-  mask_base_name: ''
-unsharp_mask:
-  flag: false
-  size: 3
-  strength: 1.0
-plugins:
-  available_tracking:
-  - default
-  - ext_tracker_denis
-  - ext_tracker_splitter
-  available_sequence:
-  - default
-  - ext_sequence_rembg
-  - ext_sequence_contour
-  - ext_sequence_rembg_contour
-  - ext_sequence_splitter
-  selected_tracking: default
-  selected_sequence: default
 man_ori_coordinates:
   camera_0:
     point_1:
@@ -231,3 +218,10 @@ man_ori_coordinates:
     point_4:
       x: 988.0
       y: 299.0
+masking:
+  mask_flag: false
+  mask_base_name: ''
+unsharp_mask:
+  flag: false
+  size: 3
+  strength: 1.0

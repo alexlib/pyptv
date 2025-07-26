@@ -53,16 +53,15 @@ def test_optimized_performance():
     import subprocess
     
     test_path = Path(__file__).parent / "test_splitter"
+    yaml_file = test_path / "parameters_Run1.yaml"
     script_path = Path(__file__).parent.parent / "pyptv" / "pyptv_batch_plugins.py"
-    
     cmd = [
         sys.executable, 
         str(script_path), 
-        str(test_path), 
+        str(yaml_file), 
         "1000001", 
         "1000003",
-        "--sequence", "ext_sequence_splitter",
-        "--tracking", "ext_tracker_splitter"
+        "--mode", "sequence"
     ]
     
     print("🚀 Testing performance with optimized parameters...")

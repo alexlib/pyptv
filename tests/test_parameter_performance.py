@@ -36,12 +36,12 @@ def test_parameter_access_performance():
         
         # Test 1: Direct parameter manager access
         print("\n1. Testing direct ParameterManager access...")
-        pm = experiment.parameter_manager
+        pm = experiment.pm
         
         start_time = time.time()
         for i in range(1000):
-            ptv_params = pm.get_parameter('ptv')
-            n_cam = ptv_params.get('n_cam', 4)
+            ptv_params = pm.parameters.get('ptv', {})
+            num_cams = ptv_params.get('num_cams', 0)
             img_names = ptv_params.get('img_name', [])
         direct_time = time.time() - start_time
         print(f"Direct access (1000 iterations): {direct_time:.4f} seconds")
@@ -51,19 +51,19 @@ def test_parameter_access_performance():
         
         start_time = time.time()
         for i in range(1000):
-            ptv_params = experiment.get_parameter('ptv')
-            n_cam = ptv_params.get('n_cam', 4)
+            ptv_params = experiment.pm.parameters.get('ptv', {})
+            num_cams = ptv_params.get('num_cams', 0)
             img_names = ptv_params.get('img_name', [])
         delegation_time = time.time() - start_time
         print(f"Experiment delegation (1000 iterations): {delegation_time:.4f} seconds")
         
         # Test 3: Cached access (storing reference)
         print("\n3. Testing cached parameter access...")
-        cached_ptv_params = experiment.get_parameter('ptv')
+        cached_ptv_params = experiment.pm.parameters.get('ptv', {})
         
         start_time = time.time()
         for i in range(1000):
-            n_cam = cached_ptv_params.get('n_cam', 4)
+            num_cams = cached_ptv_params.get('num_cams', 0)
             img_names = cached_ptv_params.get('img_name', [])
         cached_time = time.time() - start_time
         print(f"Cached access (1000 iterations): {cached_time:.4f} seconds")
@@ -76,7 +76,7 @@ def test_parameter_access_performance():
         for i in range(10):  # Fewer iterations for I/O
             pm_temp = ParameterManager()
             pm_temp.from_yaml(yaml_path)
-            ptv_params = pm_temp.get_parameter('ptv')
+            ptv_params = pm_temp.parameters.get('ptv', {})
         io_time = time.time() - start_time
         print(f"File I/O reload (10 iterations): {io_time:.4f} seconds")
         
@@ -131,18 +131,15 @@ def test_parameter_change_scenarios():
         
         # Scenario 1: GUI parameter change
         print("\n1. GUI parameter change simulation...")
-        # Get original n_cam from the global parameter manager, not from ptv section
+        # Get original num_cams from the global parameter manager, not from ptv section
         original_n_cam = experiment.get_n_cam()
-        print(f"Original n_cam: {original_n_cam}")
+        print(f"Original num_cams: {original_n_cam}")
         
         # Store the original YAML content to restore later
         yaml_path = experiment.active_params.yaml_path
         with open(yaml_path, 'r') as f:
             original_yaml_content = f.read()
         
-        # Simulate changing n_cam in GUI - using the GLOBAL n_cam only
-        experiment.parameter_manager.set_n_cam(6)  # Update global n_cam
-        assert experiment.get_n_cam() == 6
         
         new_n_cam = experiment.get_n_cam()  # Get from global, not from ptv section
         print(f"After GUI change: {new_n_cam}")
@@ -168,13 +165,13 @@ def test_parameter_change_scenarios():
             f.write(original_yaml_content)
         experiment.load_parameters_for_active()
         restored_n_cam = experiment.get_n_cam()
-        print(f"Restored n_cam: {restored_n_cam}")
+        print(f"Restored num_cams: {restored_n_cam}")
         
         # Only assert if original_n_cam was not None
         if original_n_cam is not None:
-            assert restored_n_cam == original_n_cam, f"Failed to restore n_cam: expected {original_n_cam}, got {restored_n_cam}"
+            assert restored_n_cam == original_n_cam, f"Failed to restore num_cams: expected {original_n_cam}, got {restored_n_cam}"
         else:
-            print(f"Note: Original n_cam was None, restored to {restored_n_cam}")
+            print(f"Note: Original num_cams was None, restored to {restored_n_cam}")
         
         return {
             'original_n_cam': original_n_cam,

@@ -4,6 +4,8 @@ import pytest
 from pathlib import Path
 import numpy as np
 
+from pyptv.parameter_manager import ParameterManager
+
 # Add pyptv to path
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
@@ -34,7 +36,8 @@ def test_cavity_setup():
     
     # Initialize experiment with YAML parameters
     experiment = Experiment()
-    experiment.parameter_manager.from_yaml(yaml_file)
+    experiment.populate_runs(test_cavity_path)
+    experiment.pm.from_yaml(yaml_file)
     
     yield {
         'software_path': software_path,
@@ -61,6 +64,9 @@ def test_cavity_directory_structure():
         res_dir.mkdir(parents=True, exist_ok=True)
 
     # Check for required directories and files (updated for YAML structure)
+    pm = ParameterManager()
+    pm.from_directory(test_cavity_path / "parameters")
+    pm.to_yaml(test_cavity_path / "parameters_Run1.yaml")
     required_items = ['img', 'cal', 'res', 'parameters_Run1.yaml']
     for item in required_items:
         assert (test_cavity_path / item).exists(), f"Required item missing: {item}"
@@ -71,9 +77,9 @@ def test_experiment_initialization(test_cavity_setup):
     setup = test_cavity_setup
     experiment = setup['experiment']
     
-    assert hasattr(experiment, 'parameter_manager'), "Experiment missing parameter_manager"
-    assert experiment.parameter_manager is not None, "ParameterManager is None"
-    assert experiment.parameter_manager.n_cam == 4, f"Expected 4 cameras, got {experiment.parameter_manager.n_cam}"
+    assert hasattr(experiment, 'pm'), "Experiment missing pm"
+    assert experiment.pm is not None, "ParameterManager is None"
+    assert experiment.pm.num_cams == 4, f"Expected 4 cameras, got {experiment.pm.num_cams}"
 
 
 def test_parameter_loading(test_cavity_setup):
@@ -81,20 +87,20 @@ def test_parameter_loading(test_cavity_setup):
     setup = test_cavity_setup
     experiment = setup['experiment']
     
-    assert hasattr(experiment, 'parameter_manager'), "Experiment missing parameter_manager"
-    assert experiment.parameter_manager is not None, "ParameterManager is None"
+    assert hasattr(experiment, 'pm'), "Experiment missing pm"
+    assert experiment.pm is not None, "ParameterManager is None"
     
     # Test PTV parameters
-    ptv_params = experiment.parameter_manager.get_parameter('ptv')
+    ptv_params = experiment.pm.parameters['ptv']
     assert ptv_params is not None, "PTV parameters not loaded"
     
-    # n_cam is now at global level
-    assert experiment.parameter_manager.n_cam == 4, f"Expected 4 cameras, got {experiment.parameter_manager.n_cam}"
+    # num_cams is now at global level
+    assert experiment.pm.num_cams == 4, f"Expected 4 cameras, got {experiment.pm.num_cams}"
     assert ptv_params.get('imx') == 1280, f"Expected image width 1280, got {ptv_params.get('imx')}"
     assert ptv_params.get('imy') == 1024, f"Expected image height 1024, got {ptv_params.get('imy')}"
     
     # Test sequence parameters for image names
-    seq_params = experiment.parameter_manager.get_parameter('sequence')
+    seq_params = experiment.pm.parameters['sequence']
     assert seq_params is not None, "Sequence parameters not loaded"
     
     base_names = seq_params.get('base_name', [])
@@ -111,20 +117,20 @@ def test_parameter_manager_debugging(test_cavity_setup):
     experiment = setup['experiment']
     
     # Get number of cameras from global level
-    n_cams = experiment.parameter_manager.n_cam
+    num_cams = experiment.pm.num_cams
     
-    print(f"Number of cameras: {n_cams}")
-    print(f"Type of n_cams: {type(n_cams)}")
+    print(f"Number of cameras: {num_cams}")
+    print(f"Type of num_cams: {type(num_cams)}")
     
-    # Check available methods on parameter_manager
-    print(f"ParameterManager methods: {[m for m in dir(experiment.parameter_manager) if not m.startswith('_')]}")
+    # Check available methods on pm
+    print(f"ParameterManager methods: {[m for m in dir(experiment.pm) if not m.startswith('_')]}")
     
     # Check if we can access the parameters dictionary directly
-    print(f"Available parameter sections: {list(experiment.parameter_manager.parameters.keys())}")
+    print(f"Available parameter sections: {list(experiment.pm.parameters.keys())}")
     
     # Test new py_start_proc_c with parameter manager
     try:
-        cpar, spar, vpar, track_par, tpar, cals, epar = ptv.py_start_proc_c(experiment.parameter_manager)
+        cpar, spar, vpar, track_par, tpar, cals, epar = ptv.py_start_proc_c(experiment.pm)
         print(f"Successfully initialized PyPTV core with {len(cals)} calibrations")
     except Exception as e:
         print(f"Failed to initialize PyPTV core: {e}")
@@ -136,14 +142,14 @@ def test_image_files_exist(test_cavity_setup):
     experiment = setup['experiment']
     
     # Get sequence parameters for base names
-    seq_params = experiment.parameter_manager.get_parameter('sequence')
+    seq_params = experiment.pm.parameters['sequence']
     base_names = seq_params.get('base_name', [])
-    n_cams = experiment.parameter_manager.n_cam
+    num_cams = experiment.pm.num_cams
     first_frame = seq_params.get('first', 10000)
     
     loaded_images = []
     
-    for i, base_name in enumerate(base_names[:n_cams]):
+    for i, base_name in enumerate(base_names[:num_cams]):
         # Format the base name with frame number
         img_name = base_name % first_frame
         img_path = Path(img_name)
@@ -162,7 +168,7 @@ def test_image_files_exist(test_cavity_setup):
         img = img_as_ubyte(img)
         loaded_images.append(img)
     
-    assert len(loaded_images) == n_cams, f"Expected {n_cams} images, loaded {len(loaded_images)}"
+    assert len(loaded_images) == num_cams, f"Expected {num_cams} images, loaded {len(loaded_images)}"
 
 
 def test_yaml_parameter_consistency(test_cavity_setup):
@@ -173,10 +179,10 @@ def test_yaml_parameter_consistency(test_cavity_setup):
     
     # Test that we can reload the same parameters
     experiment2 = Experiment()
-    experiment2.parameter_manager.from_yaml(yaml_file)
+    experiment2.pm.from_yaml(yaml_file)
     
     # Compare key parameters
-    assert experiment.parameter_manager.n_cam == experiment2.parameter_manager.n_cam
+    assert experiment.pm.num_cams == experiment2.pm.num_cams
     
     
     print(f"YAML parameter consistency test passed for {yaml_file}")
@@ -189,11 +195,11 @@ def test_pyptv_core_initialization(test_cavity_setup):
     
     # Test new py_start_proc_c with parameter manager
     try:
-        cpar, spar, vpar, track_par, tpar, cals, epar = ptv.py_start_proc_c(experiment.parameter_manager)
+        cpar, spar, vpar, track_par, tpar, cals, epar = ptv.py_start_proc_c(experiment.pm)
         
         assert cpar is not None, "Camera parameters not initialized"
         assert tpar is not None, "Target parameters not initialized"
-        assert len(cals) == experiment.parameter_manager.n_cam, f"Expected {experiment.parameter_manager.n_cam} calibrations, got {len(cals)}"
+        assert len(cals) == experiment.pm.num_cams, f"Expected {experiment.pm.num_cams} calibrations, got {len(cals)}"
         
         print(f"Successfully initialized PyPTV core:")
         print(f"  - Camera parameters: {cpar}")
@@ -211,13 +217,13 @@ def test_image_preprocessing(test_cavity_setup):
     experiment = setup['experiment']
     
     # Load images
-    seq_params = experiment.parameter_manager.get_parameter('sequence')
+    seq_params = experiment.pm.parameters['sequence']
     base_names = seq_params.get('base_name', [])
-    n_cams = experiment.parameter_manager.n_cam
+    num_cams = experiment.pm.num_cams
     first_frame = seq_params.get('first', 10000)
     
     orig_images = []
-    for i, base_name in enumerate(base_names[:n_cams]):
+    for i, base_name in enumerate(base_names[:num_cams]):
         img_name = base_name % first_frame
         img_path = Path(img_name)
         img = imread(str(img_path))
@@ -227,7 +233,7 @@ def test_image_preprocessing(test_cavity_setup):
         orig_images.append(img)
     
     # Initialize PyPTV core
-    cpar, spar, vpar, track_par, tpar, cals, epar = ptv.py_start_proc_c(experiment.parameter_manager)
+    cpar, spar, vpar, track_par, tpar, cals, epar = ptv.py_start_proc_c(experiment.pm)
     
     # Apply preprocessing using the simple_highpass function
     processed_images = []
@@ -247,13 +253,13 @@ def test_particle_detection(test_cavity_setup):
     experiment = setup['experiment']
     
     # Load and preprocess images
-    seq_params = experiment.parameter_manager.get_parameter('sequence')
+    seq_params = experiment.pm.parameters['sequence']
     base_names = seq_params.get('base_name', [])
-    n_cams = experiment.parameter_manager.n_cam
+    num_cams = experiment.pm.num_cams
     first_frame = seq_params.get('first', 10000)
     
     orig_images = []
-    for i, base_name in enumerate(base_names[:n_cams]):
+    for i, base_name in enumerate(base_names[:num_cams]):
         img_name = base_name % first_frame
         img_path = Path(img_name)
         img = imread(str(img_path))
@@ -263,7 +269,7 @@ def test_particle_detection(test_cavity_setup):
         orig_images.append(img)
     
     # Initialize PyPTV core
-    cpar, spar, vpar, track_par, tpar, cals, epar = ptv.py_start_proc_c(experiment.parameter_manager)
+    cpar, spar, vpar, track_par, tpar, cals, epar = ptv.py_start_proc_c(experiment.pm)
     
     # Apply preprocessing
     processed_images = []

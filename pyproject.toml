@@ -39,7 +39,8 @@ dependencies = [
     "imagecodecs>=2023.1.23",
     "flowtracks>=0.3.0",
     "Pygments>=2.15.0",
-    "pyparsing>=3.0.0"
+    "pyparsing>=3.0.0",
+    "pytest>=8.4.1",
 ]
 
 [project.urls]

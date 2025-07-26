@@ -25,6 +25,7 @@ class Tracking:
 
         for cam_id in range(self.exp.cpar.get_num_cams()):
             short_name = Path(img_base_name).parent / f'cam{cam_id+1}.'
+            
             # print(short_name)
             print(f" Renaming {img_base_name} to {short_name} before C library tracker")
             self.exp.spar.set_img_base_name(cam_id, str(short_name))

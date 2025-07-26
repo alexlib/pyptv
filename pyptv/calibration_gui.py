@@ -9,6 +9,7 @@ import os
 import shutil
 import re
 from pathlib import Path
+from typing import Union
 import numpy as np
 from imageio.v3 import imread
 from skimage.util import img_as_ubyte
@@ -259,9 +260,9 @@ class CalibrationGUI(HasTraits):
     button_edit_ori_files = Button()
     button_edit_addpar_files = Button()
     button_test = Button()
-    _cal_splitter = Bool(False)
+    _cal_splitter = Bool()
 
-    def __init__(self, yaml_path):
+    def __init__(self, yaml_path: Union[Path | str]):
         super(CalibrationGUI, self).__init__()
         self.need_reset = 0
         self.yaml_path = Path(yaml_path).resolve()
@@ -272,17 +273,18 @@ class CalibrationGUI(HasTraits):
         # Create Experiment using the YAML file
         self.experiment = Experiment()
         self.experiment.populate_runs(self.working_folder)
+        self.experiment.pm.from_yaml(self.experiment.active_params.yaml_path)
         
         ptv_params = self.experiment.get_parameter('ptv')
         if ptv_params is None:
             raise ValueError("Failed to load PTV parameters")
-        self.n_cams = self.experiment.get_n_cam()
+        self.num_cams = self.experiment.get_n_cam()
         
         # Initialize detections to prevent AttributeError
         self.detections = None
         
-        self.camera = [PlotWindow() for i in range(self.n_cams)]
-        for i in range(self.n_cams):
+        self.camera = [PlotWindow() for i in range(self.num_cams)]
+        for i in range(self.num_cams):
             self.camera[i].name = "Camera" + str(i + 1)
             self.camera[i].cameraN = i
             self.camera[i].py_rclick_delete = ptv.py_rclick_delete
@@ -427,7 +429,7 @@ class CalibrationGUI(HasTraits):
             self.tpar,
             self.cals,
             self.epar,
-        ) = ptv.py_start_proc_c(self.experiment.parameter_manager)
+        ) = ptv.py_start_proc_c(self.experiment.pm)
 
         self.epar = self.get_parameter('examine')
 
@@ -497,7 +499,7 @@ class CalibrationGUI(HasTraits):
         target_params_dict = {'detect_plate': self.get_parameter('detect_plate')}
         
         self.detections, corrected = ptv.py_detection_proc_c(
-            self.n_cams,
+            self.num_cams,
             self.cal_images, 
             ptv_params, 
             target_params_dict
@@ -508,7 +510,7 @@ class CalibrationGUI(HasTraits):
 
         self.drawcross("x", "y", x, y, "blue", 4)
 
-        for i in range(self.n_cams):
+        for i in range(self.num_cams):
             self.camera[i]._right_click_avail = 1
 
     def _button_manual_fired(self):
@@ -518,7 +520,7 @@ class CalibrationGUI(HasTraits):
 
         print("Start manual orientation, click 4 times in 4 cameras and then press this button again")
         points_set = True
-        for i in range(self.n_cams):
+        for i in range(self.num_cams):
             if len(self.camera[i]._x) < 4:
                 print(f"Camera {i} not enough points: {self.camera[i]._x}")
                 points_set = False
@@ -528,7 +530,7 @@ class CalibrationGUI(HasTraits):
         if points_set:
             # Save to YAML instead of man_ori.dat
             man_ori_coords = {}
-            for i in range(self.n_cams):
+            for i in range(self.num_cams):
                 cam_key = f'camera_{i}'
                 man_ori_coords[cam_key] = {}
                 for j in range(4):
@@ -539,7 +541,7 @@ class CalibrationGUI(HasTraits):
                     }
             
             # Update the YAML parameters
-            self.experiment.parameter_manager.parameters['man_ori_coordinates'] = man_ori_coords
+            self.experiment.pm.parameters['man_ori_coordinates'] = man_ori_coords
             self.experiment.save_parameters()
             self.status_text = "Manual orientation coordinates saved to YAML."
         else:
@@ -553,13 +555,13 @@ class CalibrationGUI(HasTraits):
             self.need_reset = 0
 
         # Load from YAML instead of man_ori.dat
-        man_ori_coords = self.experiment.parameter_manager.parameters.get('man_ori_coordinates', {})
+        man_ori_coords = self.experiment.pm.parameters.get('man_ori_coordinates', {})
         
         if not man_ori_coords:
             self.status_text = "No manual orientation coordinates found in YAML parameters."
             return
         
-        for i in range(self.n_cams):
+        for i in range(self.num_cams):
             cam_key = f'camera_{i}'
             self.camera[i]._x = []
             self.camera[i]._y = []
@@ -584,7 +586,7 @@ class CalibrationGUI(HasTraits):
         self.status_text = "Manual orientation coordinates loaded from YAML."
 
         man_ori_params = self.get_parameter('man_ori')
-        for i in range(self.n_cams):
+        for i in range(self.num_cams):
             for j in range(4):
                 self.camera[i].man_ori[j] = man_ori_params['nr'][i*4+j]
             self.status_text = "man_ori.par loaded."
@@ -600,13 +602,13 @@ class CalibrationGUI(HasTraits):
         self.cal_points = self._read_cal_points()
 
         self.cals = []
-        for i_cam in range(self.n_cams):
+        for i_cam in range(self.num_cams):
             cal = Calibration()
             tmp = self.get_parameter('cal_ori')['img_ori'][i_cam]
             cal.from_file(tmp, tmp.replace(".ori", ".addpar"))
             self.cals.append(cal)
 
-        for i_cam in range(self.n_cams):
+        for i_cam in range(self.num_cams):
             self._project_cal_points(i_cam)
 
     def _project_cal_points(self, i_cam, color="orange"):
@@ -643,7 +645,7 @@ class CalibrationGUI(HasTraits):
 
         print("_button_sort_grid_fired")
 
-        for i_cam in range(self.n_cams):
+        for i_cam in range(self.num_cams):
             targs = match_detection_to_ref(
                 self.cals[i_cam],
                 self.cal_points["pos"],
@@ -671,7 +673,7 @@ class CalibrationGUI(HasTraits):
 
         self.backup_ori_files()
 
-        for i_cam in range(self.n_cams):
+        for i_cam in range(self.num_cams):
             selected_points = np.zeros((4, 3))
             for i, cp_id in enumerate(self.cal_points["id"]):
                 for j in range(4):
@@ -710,7 +712,7 @@ class CalibrationGUI(HasTraits):
         orient_params = self.get_parameter('orient')
         flags = [name for name in NAMES if orient_params.get(name) == 1]
 
-        for i_cam in range(self.n_cams):
+        for i_cam in range(self.num_cams):
             if self.epar.get('Combine_Flag', False):
                 self.status_text = "Multiplane calibration."
                 all_known = []
@@ -925,10 +927,10 @@ class CalibrationGUI(HasTraits):
         seq_last = shaking_params['shaking_last_frame']
 
         base_names = [
-            self.spar.get_img_base_name(i) for i in range(self.n_cams)
+            self.spar.get_img_base_name(i) for i in range(self.num_cams)
         ]
 
-        for i_cam in range(self.n_cams):
+        for i_cam in range(self.num_cams):
             targ_ix = targ_ix_all[i_cam]
             targs = targs_all[i_cam]
             residuals = residuals_all[i_cam]
@@ -995,27 +997,27 @@ class CalibrationGUI(HasTraits):
 
     def drawcross(self, str_x, str_y, x, y, color1, size1, i_cam=None):
         if i_cam is None:
-            for i in range(self.n_cams):
+            for i in range(self.num_cams):
                 self.camera[i].drawcross(str_x, str_y, x[i], y[i], color1, size1)
         else:
             self.camera[i_cam].drawcross(str_x, str_y, x, y, color1, size1)
 
     def backup_ori_files(self):
-        for f in self.get_parameter('cal_ori')['img_ori'][: self.n_cams]:
+        for f in self.get_parameter('cal_ori')['img_ori'][: self.num_cams]:
             print(f"Backing up {f}")
             shutil.copyfile(f, f + ".bck")
             g = f.replace("ori", "addpar")
             shutil.copyfile(g, g + ".bck")
 
     def restore_ori_files(self):
-        for f in self.get_parameter('cal_ori')['img_ori'][: self.n_cams]:
+        for f in self.get_parameter('cal_ori')['img_ori'][: self.num_cams]:
             print(f"Restoring {f}")
             shutil.copyfile(f + ".bck", f)
             g = f.replace("ori", "addpar")
             shutil.copyfile(g, g + ".bck")
 
     def protect_ori_files(self):
-        for f in self.get_parameter('cal_ori')['img_ori'][: self.n_cams]:
+        for f in self.get_parameter('cal_ori')['img_ori'][: self.num_cams]:
             with open(f, "r") as d:
                 d.read().split()
                 if not np.all(
@@ -1045,7 +1047,7 @@ if __name__ == "__main__":
     import sys
 
     if len(sys.argv) != 2:
-        print("Usage: python calibration_gui.py <parameters_file>")
+        print("Usage: python calibration_gui.py <parameters_yaml_file>")
         sys.exit(1)
 
     active_param_path = Path(sys.argv[1]).resolve()

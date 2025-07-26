@@ -29,7 +29,7 @@ def experiment_with_test_data():
     
     if test_yaml.exists():
         experiment.addParamset("Run1", test_yaml)
-        experiment.setActive(0)
+        experiment.set_active(0)
     else:
         pytest.skip(f"Test YAML file {test_yaml} not found")
     

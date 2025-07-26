@@ -18,8 +18,9 @@ def test_pyptv_batch_parallel(test_data_dir):
     n_processes = 4
 
     try:
-        # New API: pass YAML file path, not directory
-        pyptv_batch_parallel.main(yaml_file, start_frame, end_frame, n_processes)
+        # Only 'both' and 'sequence' modes are valid for parallel batch; 'tracking' is serial only
+        pyptv_batch_parallel.main(yaml_file, start_frame, end_frame, n_processes, mode="both")
+        pyptv_batch_parallel.main(yaml_file, start_frame, end_frame, n_processes, mode="sequence")
     except Exception as e:
         pytest.fail(f"Parallel batch processing failed: {str(e)}")
 

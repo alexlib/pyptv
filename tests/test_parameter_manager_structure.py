@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 """
-Test the new ParameterManager structure with global n_cam
+Test the new ParameterManager structure with global num_cams
 """
 
 import sys
@@ -14,7 +14,7 @@ from pyptv.parameter_manager import ParameterManager
 
 
 def test_parameter_manager_new_structure():
-    """Test the new ParameterManager with global n_cam"""
+    """Test the new ParameterManager with global num_cams"""
     
     test_cavity_path = Path(__file__).parent / "test_cavity"
     
@@ -34,32 +34,32 @@ def test_parameter_manager_new_structure():
         pm = ParameterManager()
         pm.from_directory(test_cavity_path / "parametersRun1")
         
-        print(f"Global n_cam: {pm.get_n_cam()}")
+        print(f"Global num_cams: {pm.get_n_cam()}")
         print(f"Parameter groups: {list(pm.parameters.keys())}")
         
         # Check that n_img was removed from non-ptv parameters
         for param_name, param_data in pm.parameters.items():
             if param_name != 'ptv' and isinstance(param_data, dict):
-                if 'n_cam' in param_data:
+                if 'num_cams' in param_data:
                     print(f"WARNING: Found n_img in {param_name} parameters!")
                 else:
                     print(f"✓ No redundant n_img in {param_name}")
         
         # Check ptv parameters
-        ptv_params = pm.get_parameter('ptv')
+        ptv_params = pm.parameters.get('ptv')
         if ptv_params:
-            if 'n_cam' in ptv_params:
-                print(f"ERROR: PTV still has n_cam: {ptv_params['n_cam']}")
+            if 'num_cams' in ptv_params:
+                print(f"ERROR: PTV still has num_cams: {ptv_params['num_cams']}")
             else:
-                print("✓ PTV section correctly has no n_cam")
+                print("✓ PTV section correctly has no num_cams")
             if 'n_img' in ptv_params:
                 print(f"ERROR: PTV still has legacy n_img: {ptv_params['n_img']}")
             else:
                 print("✓ PTV section correctly has no n_img")
         
-        # Check that global n_cam is available
+        # Check that global num_cams is available
         global_n_cam = pm.get_n_cam()
-        print(f"✓ Global n_cam: {global_n_cam}")
+        print(f"✓ Global num_cams: {global_n_cam}")
         
         # Test saving to new YAML format
         print("\n2. Saving to new YAML format...")
@@ -71,7 +71,7 @@ def test_parameter_manager_new_structure():
         pm2 = ParameterManager()
         pm2.from_yaml(new_yaml_path)
         
-        print(f"Loaded global n_cam: {pm2.get_n_cam()}")
+        print(f"Loaded global num_cams: {pm2.get_n_cam()}")
         print(f"Parameter groups: {list(pm2.parameters.keys())}")
         
         # Test converting back to directory

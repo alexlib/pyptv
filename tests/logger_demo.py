@@ -39,12 +39,12 @@ def demonstrate_formatted_logging():
     exp_path = "/path/to/experiment"
     seq_first = 1000
     seq_last = 2000
-    n_cams = 4
+    num_cams = 4
     
     # Using f-strings (recommended)
     logger.info(f"Starting batch processing in: {exp_path}")
     logger.info(f"Frame range: {seq_first} to {seq_last}")
-    logger.info(f"Number of cameras: {n_cams}")
+    logger.info(f"Number of cameras: {num_cams}")
     
     # Simulating progress
     for i in range(3):

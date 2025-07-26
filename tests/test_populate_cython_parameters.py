@@ -26,10 +26,10 @@ def test_parameter_translation_pipeline():
     
     # Step 2: Check raw YAML parameters
     print("\n2. Checking raw YAML parameters...")
-    params = experiment.parameter_manager.parameters
-    n_cam = experiment.parameter_manager.n_cam
+    params = experiment.pm.parameters
+    num_cams = experiment.pm.num_cams
     
-    print(f"   Global n_cam: {n_cam}")
+    print(f"   Global num_cams: {num_cams}")
     print(f"   Available sections: {list(params.keys())}")
     
     # Check critical sections
@@ -55,20 +55,20 @@ def test_parameter_translation_pipeline():
     try:
         # Test ControlParams
         print("   Creating ControlParams...")
-        cpar = _populate_cpar(ptv_params, n_cam)
+        cpar = _populate_cpar(ptv_params, num_cams)
         print(f"   ✅ ControlParams: {cpar.get_num_cams()} cameras, image size: {cpar.get_image_size()}")
         
         # Test TargetParams  
         print("   Creating TargetParams...")
         # _populate_tpar expects a dict with 'targ_rec' key, not the targ_rec section directly
         target_params_dict = {'targ_rec': targ_params}
-        tpar = _populate_tpar(target_params_dict, n_cam)
+        tpar = _populate_tpar(target_params_dict, num_cams)
         print(f"   ✅ TargetParams: grey thresholds: {tpar.get_grey_thresholds()}")
         print(f"      Pixel bounds: {tpar.get_pixel_count_bounds()}")
         
         # Test SequenceParams
         print("   Creating SequenceParams...")
-        spar = _populate_spar(seq_params, n_cam)
+        spar = _populate_spar(seq_params, num_cams)
         print(f"   ✅ SequenceParams: frames {spar.get_first()}-{spar.get_last()}")
         
     except Exception as e:
@@ -80,7 +80,7 @@ def test_parameter_translation_pipeline():
     # Step 4: Test full py_start_proc_c
     print("\n4. Testing complete parameter initialization...")
     try:
-        cpar, spar, vpar, track_par, tpar, cals, epar = py_start_proc_c(experiment.parameter_manager)
+        cpar, spar, vpar, track_par, tpar, cals, epar = py_start_proc_c(experiment.pm)
         print("   ✅ py_start_proc_c completed successfully")
         print(f"   ControlParams cameras: {cpar.get_num_cams()}")
         print(f"   Calibrations loaded: {len(cals)}")

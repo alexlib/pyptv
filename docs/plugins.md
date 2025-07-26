@@ -59,14 +59,14 @@ Create a tracking plugin by implementing the required functions:
 ```python
 # plugins/my_custom_tracker.py
 
-def default_tracking(exp, step, n_cam):
+def default_tracking(exp, step, num_cams):
     """
     Custom tracking algorithm
     
     Args:
         exp: Experiment object
         step: Current time step
-        n_cam: Number of cameras
+        num_cams: Number of cameras
         
     Returns:
         Number of tracked particles
@@ -98,7 +98,7 @@ def finalize_tracking(exp):
 import numpy as np
 from optv.tracking_framebuf import TargetArray
 
-def default_tracking(exp, step, n_cam):
+def default_tracking(exp, step, num_cams):
     """Tracking based on velocity prediction"""
     
     # Get current and previous particles
@@ -243,10 +243,10 @@ Combines background removal with contour detection.
 Plugins have access to the full experiment object:
 
 ```python
-def default_tracking(exp, step, n_cam):
+def default_tracking(exp, step, num_cams):
     # Access parameters
-    detect_params = exp.parameter_manager.get_parameter('detect_plate')
-    track_params = exp.parameter_manager.get_parameter('track')
+    detect_params = exp.pm.get_parameter('detect_plate')
+    track_params = exp.pm.get_parameter('track')
     
     # Access calibration data
     calibration = exp.calibration
@@ -266,7 +266,7 @@ Maintain state between plugin calls:
 # Global state storage
 plugin_state = {}
 
-def default_tracking(exp, step, n_cam):
+def default_tracking(exp, step, num_cams):
     # Initialize state if needed
     if 'initialized' not in plugin_state:
         plugin_state['particle_histories'] = {}
@@ -317,7 +317,7 @@ class TestCustomTracker(unittest.TestCase):
     
     def test_tracking_basic(self):
         # Test basic tracking functionality
-        result = default_tracking(self.exp, step=1, n_cam=4)
+        result = default_tracking(self.exp, step=1, num_cams=4)
         self.assertIsInstance(result, int)
         self.assertGreaterEqual(result, 0)
 ```
@@ -332,7 +332,7 @@ def test_with_real_data():
     exp = Experiment('tests/test_cavity/parameters_Run1.yaml')
     
     # Enable your plugin
-    exp.parameter_manager.set_parameter('plugins', {
+    exp.pm.set_parameter('plugins', {
         'selected_tracking': 'my_custom_tracker'
     })
     
@@ -420,7 +420,7 @@ import logging
 
 logger = logging.getLogger(__name__)
 
-def default_tracking(exp, step, n_cam):
+def default_tracking(exp, step, num_cams):
     logger.info(f"Starting tracking for step {step}")
     
     try:

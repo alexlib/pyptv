@@ -79,3 +79,4 @@ tests/test_splitter/res/*
 test_output/*
 tests/test_cavity/parameters__test_new.yaml
 pyptv_session_log_*.txt
+tests/track/res/*

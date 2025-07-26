@@ -1,320 +1,103 @@
-"""
-This module defines the ParameterManager class, which is responsible for
-loading, saving, and managing parameters, and converting between a single
-YAML file and a directory of parameter files.
-"""
-
 import yaml
 from pathlib import Path
-import argparse
 from pyptv import legacy_parameters as legacy_params
 
-class ParameterManager:
-    """
-    A centralized manager for handling experiment parameters. It can convert
-    a directory of .par files into a single YAML file and vice-versa.
-    
-    Features robust error handling for missing parameters:
-    
-    Example usage:
-        pm = ParameterManager()
-        pm.from_yaml('parameters.yaml')
-        
-        # Safe parameter access with defaults
-        masking_params = pm.get_parameter('masking', default={'mask_flag': False})
-        mask_flag = pm.get_parameter_value('masking', 'mask_flag', default=False)
-        
-        # Check parameter existence
-        if pm.has_parameter('masking'):
-            print("Masking parameters available")
-    """
+# Minimal ParameterManager for converting between .par directories and YAML files.
 
+class ParameterManager:
     def __init__(self):
-        """
-        Initializes the ParameterManager.
-        """
-        self.parameters: dict = {}
-        self.n_cam: int = 4  # Global number of cameras - critical parameter that defines structure
+        self.parameters = {}
+        self.num_cams = 0
         self._class_map = self._get_class_map()
-        self.path: Path = Path('.')
+        self.plugins_info = {}  # Initialize plugins_info
 
     def _get_class_map(self):
-        """Builds a map from parameter file names to their corresponding classes."""
         dummy_path = Path('.')
         class_map = {}
-
-        base_classes = [
-            legacy_params.PtvParams, legacy_params.CriteriaParams,
-            legacy_params.DetectPlateParams, legacy_params.OrientParams,
-            legacy_params.TrackingParams, legacy_params.PftVersionParams,
-            legacy_params.ExamineParams, legacy_params.DumbbellParams,
-            legacy_params.ShakingParams
-        ]
-        for cls in base_classes:
-            instance = cls(path=dummy_path)
-            class_map[instance.filename()] = cls
-
-        n_img_classes = [
-            legacy_params.CalOriParams, legacy_params.SequenceParams,
-            legacy_params.TargRecParams, legacy_params.MultiPlaneParams,
-            legacy_params.SortGridParams
-        ]
-        for cls in n_img_classes:
-            instance = cls(n_img=0, path=dummy_path)
-            class_map[instance.filename()] = cls
-
-        instance = legacy_params.ManOriParams(n_img=0, nr=[], path=dummy_path)
-        class_map[instance.filename()] = legacy_params.ManOriParams
-
+        # Map .par filenames to legacy parameter classes
+        for cls in [
+            legacy_params.PtvParams, legacy_params.CriteriaParams, legacy_params.DetectPlateParams,
+            legacy_params.OrientParams, legacy_params.TrackingParams, legacy_params.PftVersionParams,
+            legacy_params.ExamineParams, legacy_params.DumbbellParams, legacy_params.ShakingParams
+        ]:
+            class_map[cls(path=dummy_path).filename] = cls
+        for cls in [
+            legacy_params.CalOriParams, legacy_params.SequenceParams, legacy_params.TargRecParams,
+            legacy_params.MultiPlaneParams, legacy_params.SortGridParams
+        ]:
+            class_map[cls(n_img=0, path=dummy_path).filename] = cls
+        class_map[legacy_params.ManOriParams(n_img=0, nr=[], path=dummy_path).filename] = legacy_params.ManOriParams
         return class_map
 
-    def from_directory(self, dir_path: Path):
-        """
-        Loads parameters from a directory of .par files.
-        First determines n_cam from ptv.par, then uses it globally.
-        """
-        if not isinstance(dir_path, Path):
-            dir_path = Path(dir_path)
-        self.path = dir_path
-
-        if not dir_path.is_dir():
-            print(f"Error: Directory not found at {dir_path}")
-            return
-
-        # First, read ptv.par to determine n_cam (global number of cameras)
-        ptv_par_path = dir_path / "ptv.par"
-        if ptv_par_path.exists():
-            ptv_obj = legacy_params.PtvParams(path=dir_path)
-            ptv_obj.read()
-            self.n_cam = ptv_obj.n_img  # Extract global n_cam from ptv.par
-            print(f"Global n_cam set to {self.n_cam} from ptv.par")
-        else:
-            print(f"Warning: ptv.par not found, using default n_cam = {self.n_cam}")
-
-        # Now load all parameter files using the global n_cam
-        for par_file in sorted(dir_path.glob('*.par')):
+    def from_directory(self, dir_path) -> dict:
+        """Load parameters from a directory containing .par files."""
+        dir_path = Path(dir_path)
+        self.parameters = {}
+        ptv_par = dir_path / "ptv.par"
+        if ptv_par.exists():
+            ptv = legacy_params.PtvParams(path=dir_path)
+            ptv.read()
+            self.num_cams = ptv.n_img
+        # print(f"[DEBUG] num_cams after reading ptv.par: {self.num_cams}")
+        for par_file in sorted(dir_path.glob("*.par")):
             filename = par_file.name
             if filename in self._class_map:
-                param_class = self._class_map[filename]
-                
-                # Use global n_cam for classes that need it
+                cls = self._class_map[filename]
                 if filename in ["cal_ori.par", "sequence.par", "targ_rec.par", "man_ori.par", "multi_planes.par", "sortgrid.par"]:
-                    if filename == 'man_ori.par':
-                        param_obj = param_class(n_img=self.n_cam, nr=[], path=dir_path)
+                    if filename == "man_ori.par":
+                        obj = cls(n_img=self.num_cams, nr=[], path=dir_path)
                     else:
-                        param_obj = param_class(n_img=self.n_cam, path=dir_path)
+                        obj = cls(n_img=self.num_cams, path=dir_path)
                 else:
-                    param_obj = param_class(path=dir_path)
-
-                param_obj.read()
-                param_name = par_file.stem
-                
-                param_dict = {
-                    key: self._clean_value(getattr(param_obj, key))
-                    for key in dir(param_obj)
-                    if not key.startswith('_') and not key.endswith('_')
-                       and key not in ['path', 'exp_path', 'trait_added', 'trait_modified', 'wrappers', 'default_path']
-                       and not callable(getattr(param_obj, key))
-                }
-                
-                # Remove redundant n_img from all parameter groups
-                if 'n_img' in param_dict:
-                    del param_dict['n_img']
-                    print(f"Removed redundant n_img from {param_name} parameters")
-                
-                # Don't add n_cam to individual groups - use global only
-                if param_name == 'ptv':
-                    param_dict['splitter'] = False
-                
-                if param_name == 'cal_ori':
-                    param_dict['cal_splitter'] = False
-                    
-                self.parameters[param_name] = param_dict
-        
-        # Ensure default parameters for compatibility
-        self.ensure_default_parameters()
-
-    def _clean_value(self, value):
-        if isinstance(value, Path):
-            return str(value)
-        if isinstance(value, list):
-            return [self._clean_value(v) for v in value]
-        return value
-
-    def get_parameter(self, name, default=None, warn_if_missing=True):
-        """
-        Get a parameter by name with robust error handling.
-        
-        Args:
-            name (str): The parameter name to retrieve
-            default: Default value to return if parameter doesn't exist
-            warn_if_missing (bool): Whether to print a warning if parameter is missing
-            
-        Returns:
-            The parameter value if found, otherwise the default value
-        """
-        if name in self.parameters:
-            return self.parameters[name]
-        else:
-            if warn_if_missing:
-                print(f"Warning: Parameter '{name}' not found in configuration. Using default value: {default}")
-            return default
-    
-    def get_parameter_value(self, param_group, param_key, default=None, warn_if_missing=True):
-        """
-        Get a specific parameter value from a parameter group.
-        
-        Args:
-            param_group (str): The parameter group name (e.g., 'masking', 'ptv')
-            param_key (str): The specific parameter key within the group
-            default: Default value to return if parameter doesn't exist
-            warn_if_missing (bool): Whether to print a warning if parameter is missing
-            
-        Returns:
-            The parameter value if found, otherwise the default value
-        """
-        group = self.get_parameter(param_group, default={}, warn_if_missing=warn_if_missing)
-        if isinstance(group, dict) and param_key in group:
-            return group[param_key]
-        else:
-            if warn_if_missing and param_group in self.parameters:
-                print(f"Warning: Parameter '{param_key}' not found in group '{param_group}'. Using default value: {default}")
-            return default
-    
-    def has_parameter(self, name):
-        """
-        Check if a parameter exists.
-        
-        Args:
-            name (str): The parameter name to check
-            
-        Returns:
-            bool: True if parameter exists, False otherwise
-        """
-        return name in self.parameters
-    
-    def has_parameter_value(self, param_group, param_key):
-        """
-        Check if a specific parameter value exists in a parameter group.
-        
-        Args:
-            param_group (str): The parameter group name
-            param_key (str): The specific parameter key within the group
-            
-        Returns:
-            bool: True if parameter value exists, False otherwise
-        """
-        group = self.parameters.get(param_group, {})
-        return isinstance(group, dict) and param_key in group
-
-    def to_yaml(self, file_path: Path):
-        if not isinstance(file_path, Path):
-            file_path = Path(file_path)
-
-        # Create output data with global n_cam at the top
-        output_data = {'n_cam': self.n_cam}
-        output_data.update(self.parameters)
-
-        with file_path.open('w') as f:
-            yaml.dump(output_data, f, default_flow_style=False, sort_keys=False)
-        print(f"Parameters consolidated and saved to {file_path} with global n_cam = {self.n_cam}")
-
-    def from_yaml(self, file_path: Path):
-        if not isinstance(file_path, Path):
-            file_path = Path(file_path)
-        self.path = file_path.parent
-
-        try:
-            with file_path.open('r') as f:
-                data = yaml.safe_load(f) or {}
-            
-            # Extract global n_cam from the YAML structure - SINGLE SOURCE OF TRUTH
-            if 'n_cam' in data:
-                # Direct n_cam field (the ONLY way n_cam should be stored)
-                self.n_cam = data.pop('n_cam')  # Remove from data after extracting
-                print(f"Global n_cam set to {self.n_cam} from top-level YAML")
-            else:
-                print(f"Warning: n_cam not found at top level in YAML, using default {self.n_cam}")
-            
-            # Clean up any legacy n_cam/n_img in subsections - they should not exist
-            self._remove_legacy_n_cam_from_subsections(data)
-                
-            self.parameters = data
-            print(f"Parameters loaded from {file_path}")
-            
-            # Ensure default parameters for compatibility
-            self.ensure_default_parameters()
-            
-        except FileNotFoundError:
-            print(f"Warning: YAML file not found at {file_path}. Using empty parameters.")
-            self.parameters = {}
-            self.ensure_default_parameters()
-        except yaml.YAMLError as e:
-            print(f"Error: Failed to parse YAML file {file_path}: {e}")
-            self.parameters = {}
-            self.ensure_default_parameters()
-
-    def _remove_legacy_n_cam_from_subsections(self, data):
-        """Remove any legacy n_cam or n_img from parameter subsections."""
-        sections_to_clean = ['ptv', 'cal_ori', 'sequence', 'targ_rec', 'multi_planes', 'sortgrid']
-        
-        for section in sections_to_clean:
-            if section in data and isinstance(data[section], dict):
-                if 'n_cam' in data[section]:
-                    legacy_val = data[section].pop('n_cam')
-                    print(f"Removed legacy n_cam={legacy_val} from {section} section")
-                if 'n_img' in data[section]:
-                    legacy_val = data[section].pop('n_img')
-                    print(f"Removed legacy n_img={legacy_val} from {section} section")
-
-    def to_directory(self, dir_path: Path):
-        if not isinstance(dir_path, Path):
-            dir_path = Path(dir_path)
-
-        dir_path.mkdir(parents=True, exist_ok=True)
-
-        # Use global n_cam for all parameter objects that need it
-        print(f"Writing parameters to directory using global n_cam = {self.n_cam}")
-
-        for name, data in self.parameters.items():
-            filename = f"{name}.par"
-            if filename in self._class_map:
-                param_class = self._class_map[filename]
-                
-                # Create parameter object with global n_cam
-                if filename in ["cal_ori.par", "sequence.par", "targ_rec.par", "man_ori.par", "multi_planes.par", "sortgrid.par"]:
-                    if filename == 'man_ori.par':
-                        param_obj = param_class(n_img=self.n_cam, nr=[], path=dir_path)
-                    else:
-                        param_obj = param_class(n_img=self.n_cam, path=dir_path)
+                    obj = cls(path=dir_path)
+                obj.read()
+                # Only include attributes that are actual parameters (not class/static fields)
+                # Use the class's 'fields' property if available, else filter by excluding known non-parameter fields
+                if hasattr(obj, 'fields') and isinstance(obj.fields, (list, tuple)):
+                    d = {k: getattr(obj, k) for k in obj.fields if hasattr(obj, k)}
                 else:
-                    param_obj = param_class(path=dir_path)
+                    d = {k: getattr(obj, k) for k in dir(obj)
+                         if not k.startswith('_') and not callable(getattr(obj, k))
+                         and k not in ['path', 'exp_path', 'default_path', 'filename', 'fields', 'n_img']}
+                self.parameters[par_file.stem] = d
 
-                # Set parameter values, handling special cases
-                for key, value in data.items():
-                    if hasattr(param_obj, key):
-                        # For legacy compatibility, map n_cam back to n_img when writing to objects
-                        if key == 'n_cam' and hasattr(param_obj, 'n_img'):
-                            setattr(param_obj, 'n_img', value)
+        # # Debug print for tracking parameters after loading from directory
+        # if 'track' in self.parameters:
+        #     print("[DEBUG] 'track' parameters after from_directory:", self.parameters['track'])
+        # else:
+        #     print("[DEBUG] 'track' section missing after from_directory!")
+
+        # Debug print for cam_id expectations
+        # print(f"[DEBUG] Expected cam_id values after from_directory: {list(range(self.num_cams))}")
+
+        # Read man_ori.dat if present and add to parameters as 'man_ori_coordinates'
+        man_ori_dat = dir_path / "man_ori.dat"
+        if man_ori_dat.exists():
+            coords = {}
+            try:
+                with man_ori_dat.open('r') as f:
+                    lines = [line.strip() for line in f if line.strip()]
+                num_cams = self.num_cams
+                for cam_idx in range(num_cams):
+                    cam_key = f'camera_{cam_idx}'
+                    coords[cam_key] = {}
+                    for pt_idx in range(4):
+                        line_idx = cam_idx * 4 + pt_idx
+                        if line_idx < len(lines):
+                            x_str, y_str = lines[line_idx].split()
+                            coords[cam_key][f'point_{pt_idx+1}'] = {'x': float(x_str), 'y': float(y_str)}
                         else:
-                            setattr(param_obj, key, value)
-                
-                # Ensure n_img is set for objects that need it
-                if hasattr(param_obj, 'n_img') and not hasattr(data, 'n_img'):
-                    param_obj.n_img = self.n_cam
-                
-                try:
-                    param_obj.write()
-                except Exception as e:
-                    print(f"Exception caught, message: {e}")
-                    
-        print(f"Parameters written to individual files in {dir_path}")
+                            coords[cam_key][f'point_{pt_idx+1}'] = {'x': 0.0, 'y': 0.0}
+                self.parameters['man_ori_coordinates'] = coords
+            except Exception as e:
+                print(f"Warning: Failed to read man_ori.dat: {e}")
 
-    def ensure_default_parameters(self):
-        """
-        Ensure that commonly missing parameters have default values.
-        This helps maintain compatibility with older parameter files.
-        """
+        # Ensure splitter and cal_splitter are present in ptv and cal_ori after reading
+        if 'ptv' in self.parameters:
+            self.parameters['ptv']['splitter'] = getattr(self, 'splitter', False)
+        if 'cal_ori' in self.parameters:
+            self.parameters['cal_ori']['cal_splitter'] = getattr(self, 'cal_splitter', False)
+
         # Default masking parameters
         if 'masking' not in self.parameters:
             self.parameters['masking'] = {
@@ -322,7 +105,6 @@ class ParameterManager:
                 'mask_base_name': ''
             }
             print("Info: Added default masking parameters")
-        
         # Default unsharp mask parameters
         if 'unsharp_mask' not in self.parameters:
             self.parameters['unsharp_mask'] = {
@@ -331,245 +113,190 @@ class ParameterManager:
                 'strength': 1.0
             }
             print("Info: Added default unsharp mask parameters")
-        
-        # Default plugins parameters
-        if 'plugins' not in self.parameters:
+
+        # Default plugins parameters or scan plugins directory
+        plugins_dir = dir_path / 'plugins'
+        if not plugins_dir.exists() or not plugins_dir.is_dir():
+            if 'plugins' not in self.parameters:
+                self.parameters['plugins'] = {
+                    'available_tracking': ['default'],
+                    'available_sequence': ['default'],
+                    'selected_tracking': 'default',
+                    'selected_sequence': 'default'
+                }
+                print("Info: Added default plugins parameters")
+        else:
+            available_tracking = ['default']
+            available_sequence = ['default']
+            for entry in plugins_dir.iterdir():
+                if entry.is_file() and entry.suffix == '.py':
+                    name = entry.stem
+                    if 'sequence' in name:
+                        available_sequence.append(name)
+                    if 'track' in name or 'tracker' in name:
+                        available_tracking.append(name)
             self.parameters['plugins'] = {
-                'available_tracking': ['default'],
-                'available_sequence': ['default'],
+                'available_tracking': sorted(available_tracking),
+                'available_sequence': sorted(available_sequence),
                 'selected_tracking': 'default',
                 'selected_sequence': 'default'
             }
-            print("Info: Added default plugins parameters")
-        
-        # Ensure ptv parameters have splitter flag (but NOT n_cam)
-        if 'ptv' in self.parameters:
-            if 'splitter' not in self.parameters['ptv']:
-                self.parameters['ptv']['splitter'] = False
-                print("Info: Added default splitter flag to ptv parameters")
-        
-        # Ensure cal_ori parameters have cal_splitter flag
-        if 'cal_ori' in self.parameters and 'cal_splitter' not in self.parameters['cal_ori']:
-            self.parameters['cal_ori']['cal_splitter'] = False
-            print("Info: Added default cal_splitter flag to cal_ori parameters")
-        
-        # Default manual orientation coordinates section
-        if 'man_ori_coordinates' not in self.parameters:
-            # Create empty structure based on number of cameras
-            n_cam = self.get_n_cam()
-            self.parameters['man_ori_coordinates'] = {
-                f'camera_{i}': {
-                    'point_1': {'x': 0.0, 'y': 0.0},
-                    'point_2': {'x': 0.0, 'y': 0.0},
-                    'point_3': {'x': 0.0, 'y': 0.0},
-                    'point_4': {'x': 0.0, 'y': 0.0}
-                } for i in range(n_cam)
-            }
-            print("Info: Added default manual orientation coordinates structure")
+            print("Info: Populated plugins from plugins directory")
 
-    def get_default_value_for_parameter(self, param_group, param_key):
-        """
-        Get a sensible default value for a known parameter.
-        
-        Args:
-            param_group (str): The parameter group name
-            param_key (str): The parameter key
-            
-        Returns:
-            A sensible default value based on the parameter type
-        """
-        # Define known defaults for common parameters
-        defaults = {
-            'masking': {
-                'mask_flag': False,
-                'mask_base_name': '',
-            },
-            'unsharp_mask': {
-                'flag': False,
-                'size': 3,
-                'strength': 1.0,
-            },
-            'ptv': {
-                'splitter': False,
-                'hp_flag': True,
-                'allcam_flag': False,
-                'tiff_flag': True,
-            },
-            'cal_ori': {
-                'cal_splitter': False,
-                'pair_flag': False,
-                'tiff_flag': True,
-            }
+    def scan_plugins(self, plugins_dir=None):
+        """Scan the plugins directory and update self.plugins_info with available plugins."""
+        if plugins_dir is None:
+            plugins_dir = Path('plugins')
+        else:
+            plugins_dir = Path(plugins_dir)
+        plugins = []
+        if plugins_dir.exists() and plugins_dir.is_dir():
+            for entry in plugins_dir.iterdir():
+                if entry.is_dir() or (entry.is_file() and entry.suffix in {'.py', '.so', '.dll'}):
+                    plugins.append(entry.stem)
+        # Always include 'default' in both available lists
+        available_sequence = ['default']
+        available_tracking = ['default']
+        for plugin in plugins:
+            if plugin != 'default':
+                available_sequence.append(plugin)
+                available_tracking.append(plugin)
+        self.plugins_info = {
+            'available_sequence': sorted(available_sequence),
+            'available_tracking': sorted(available_tracking),
+            'selected_sequence': 'default',
+            'selected_tracking': 'default'
         }
-        
-        if param_group in defaults and param_key in defaults[param_group]:
-            return defaults[param_group][param_key]
-        
-        # Generic defaults based on common naming patterns
-        if param_key.endswith('_flag') or param_key.startswith('flag'):
-            return False
-        elif param_key.endswith('_name') or param_key.startswith('name'):
-            return ''
-        elif 'min' in param_key.lower():
-            return 0
-        elif 'max' in param_key.lower():
-            return 100
-        elif 'size' in param_key.lower():
-            return 1
-        else:
-            return None
 
-    def get_n_cam(self)-> int:
-        """
-        Get the global number of cameras.
-        
-        Returns:
-            int: The global number of cameras
-        """
-        return self.n_cam
-    
-    def set_n_cam(self, n_cam):
-        """
-        Set the global number of cameras.
-        
-        Args:
-            n_cam (int): The number of cameras
-        """
-        self.n_cam = n_cam
-        print(f"Global n_cam set to {self.n_cam}")
-        # Note: We do NOT update any subsections - n_cam only exists at top level
-    
-    def migrate_plugins_json(self, plugins_json_path: Path = None):
-        """
-        Migrate plugins.json configuration into the YAML parameters.
-        
-        Args:
-            plugins_json_path: Path to plugins.json file. If None, looks in current directory.
-        """
-        if plugins_json_path is None:
-            plugins_json_path = Path.cwd() / "plugins.json"
-        
-        if plugins_json_path.exists():
-            try:
-                import json
-                with open(plugins_json_path, 'r') as f:
-                    plugins_config = json.load(f)
-                
-                # Migrate to YAML format
-                self.parameters['plugins'] = {
-                    'available_tracking': plugins_config.get('tracking', ['default']),
-                    'available_sequence': plugins_config.get('sequence', ['default']),
-                    'selected_tracking': plugins_config.get('tracking', ['default'])[0],
-                    'selected_sequence': plugins_config.get('sequence', ['default'])[0]
-                }
-                
-                print(f"Migrated plugins configuration from {plugins_json_path}")
-                print(f"Available tracking: {self.parameters['plugins']['available_tracking']}")
-                print(f"Available sequence: {self.parameters['plugins']['available_sequence']}")
-                
-            except (json.JSONDecodeError, KeyError) as e:
-                print(f"Error migrating plugins.json: {e}")
-        else:
-            print(f"No plugins.json found at {plugins_json_path}")
+    def to_yaml(self, file_path) -> dict:
+        """Write parameters to a YAML file."""
+        file_path = Path(file_path)
+        out = {'num_cams': self.num_cams}
+        # Remove 'default_path' and 'filename' from all parameter dicts (all classes)
+        filtered_params = {}
+        for k, v in self.parameters.items():
+            if isinstance(v, dict):
+                filtered_params[k] = {ik: iv for ik, iv in v.items() if ik not in ('default_path', 'filename')}
+            else:
+                filtered_params[k] = v
 
-    def migrate_man_ori_dat(self, source_dir):
-        """
-        Migrate man_ori.dat file data into the YAML parameters structure.
+        # Insert splitter under ptv, cal_splitter under cal_ori only if not already present
+        if 'ptv' in filtered_params and 'splitter' not in filtered_params['ptv']:
+            filtered_params['ptv']['splitter'] = False
+        if 'cal_ori' in filtered_params and 'cal_splitter' not in filtered_params['cal_ori']:
+            filtered_params['cal_ori']['cal_splitter'] = False
+
+        # Add plugins section if available
+        if hasattr(self, 'plugins_info'):
+            out['plugins'] = self.plugins_info
+        out.update(filtered_params)
         
-        Args:
-            source_dir (Path): Directory containing the man_ori.dat file
-        """
-        man_ori_dat_path = source_dir / "man_ori.dat"
+        def convert(obj):
+            if isinstance(obj, dict):
+                return {k: convert(v) for k, v in obj.items()}
+            elif isinstance(obj, list):
+                return [convert(i) for i in obj]
+            elif isinstance(obj, Path):
+                return str(obj)
+            else:
+                return obj
+            
+        data = convert(out)
         
-        if not man_ori_dat_path.exists():
-            return  # No file to migrate
-        
-        print(f"Migrating man_ori.dat from {man_ori_dat_path}...")
-        
-        try:
-            with open(man_ori_dat_path, 'r') as f:
-                lines = f.readlines()
-            
-            # Ensure we have the right number of lines (n_cam * 4)
-            n_cam = self.get_n_cam()
-            expected_lines = n_cam * 4
-            
-            if len(lines) < expected_lines:
-                print(f"Warning: man_ori.dat has {len(lines)} lines, expected {expected_lines}")
-                return
-            
-            # Initialize the coordinates structure if needed
-            if 'man_ori_coordinates' not in self.parameters:
-                self.parameters['man_ori_coordinates'] = {}
-            
-            # Parse and migrate the coordinates
-            line_idx = 0
-            for cam_idx in range(n_cam):
-                cam_key = f'camera_{cam_idx}'
-                if cam_key not in self.parameters['man_ori_coordinates']:
-                    self.parameters['man_ori_coordinates'][cam_key] = {}
-                
-                for point_idx in range(4):
-                    point_key = f'point_{point_idx + 1}'
-                    
-                    if line_idx < len(lines):
-                        x_val, y_val = lines[line_idx].strip().split()
-                        self.parameters['man_ori_coordinates'][cam_key][point_key] = {
-                            'x': float(x_val),
-                            'y': float(y_val)
-                        }
-                        line_idx += 1
+        # import traceback
+
+        with file_path.open('w') as f:
+            print(f"[DEBUG] Writing to {file_path} at step:")
+            # traceback.print_stack(limit=5)
+            yaml.safe_dump(data, f, default_flow_style=False, sort_keys=False)
+
+    def from_yaml(self, file_path):
+        """Load parameters from a YAML file."""
+
+        file_path = Path(file_path)
+        with file_path.open('r') as f:
+            data = yaml.safe_load(f)
+
+        self.num_cams = data.get('num_cams')
+        self.parameters = data
+
+
+    def to_directory(self, dir_path):
+        """Write parameters to a legacy directory as .par files."""
+        dir_path = Path(dir_path)
+        dir_path.mkdir(parents=True, exist_ok=True)
+        # Do NOT write splitter or cal_splitter to directory (par) files; they are YAML-only
+        for name, data in self.parameters.items():
+            filename = f"{name}.par"
+            if filename in self._class_map:
+                cls = self._class_map[filename]
+                if filename in ["cal_ori.par", "sequence.par", "targ_rec.par", "man_ori.par", "multi_planes.par", "sortgrid.par"]:
+                    if filename == "man_ori.par":
+                        obj = cls(n_img=self.num_cams, nr=[], path=dir_path)
                     else:
-                        # Fill with default if data is missing
-                        self.parameters['man_ori_coordinates'][cam_key][point_key] = {
-                            'x': 0.0,
-                            'y': 0.0
-                        }
-            
-            print(f"Successfully migrated {line_idx} coordinate pairs from man_ori.dat")
-            
-        except Exception as e:
-            print(f"Error migrating man_ori.dat: {e}")
+                        obj = cls(n_img=self.num_cams, path=dir_path)
+                else:
+                    obj = cls(path=dir_path)
+                # Special handling for cal_ori.par to ensure correct list lengths and repeat last value if needed
+                if filename == "cal_ori.par":
+                    if 'img_cal_name' in data and isinstance(data['img_cal_name'], list):
+                        L = data['img_cal_name']
+                        if len(L) < self.num_cams:
+                            last = L[-1] if L else ""
+                            L = L + [last for _ in range(self.num_cams - len(L))]
+                        data['img_cal_name'] = L[:self.num_cams]
+                    if 'img_ori' in data and isinstance(data['img_ori'], list):
+                        L = data['img_ori']
+                        if len(L) < self.num_cams:
+                            last = L[-1] if L else ""
+                            L = L + [last for _ in range(self.num_cams - len(L))]
+                        data['img_ori'] = L[:self.num_cams]
+                for k, v in data.items():
+                    if hasattr(obj, k):
+                        setattr(obj, k, v)
+                if hasattr(obj, 'n_img'):
+                    obj.n_img = self.num_cams
+                obj.write()
 
+        # Write man_ori.dat if 'man_ori_coordinates' is present in parameters
+        coords = self.parameters.get('man_ori_coordinates')
+        if coords:
+            man_ori_dat = dir_path / "man_ori.dat"
+            try:
+                with man_ori_dat.open('w') as f:
+                    num_cams = self.num_cams
+                    for cam_idx in range(num_cams):
+                        cam_key = f'camera_{cam_idx}'
+                        for pt_idx in range(4):
+                            pt_key = f'point_{pt_idx+1}'
+                            pt = coords.get(cam_key, {}).get(pt_key, {'x': 0.0, 'y': 0.0})
+                            f.write(f"{pt['x']} {pt['y']}\n")
+            except Exception as e:
+                print(f"Warning: Failed to write man_ori.dat: {e}")
 
-def main():
-    parser = argparse.ArgumentParser(
-        description="Convert between a directory of .par files and a single YAML file.",
-        formatter_class=argparse.RawTextHelpFormatter
-    )
-    parser.add_argument('source', type=Path, help="Source directory or YAML file.")
-    parser.add_argument('destination', type=Path, help="Destination YAML file or directory.")
+    def get_n_cam(self):
+        return self.num_cams
     
-    group = parser.add_mutually_exclusive_group(required=True)
-    group.add_argument(
-        '--to-yaml', 
-        action='store_true', 
-        help="Convert from a directory of .par files to a single YAML file.\n"
-             "Example: python pyptv/parameter_manager.py tests/test_cavity/parameters/ parameters.yaml --to-yaml"
-    )
-    group.add_argument(
-        '--to-dir', 
-        action='store_true', 
-        help="Convert from a single YAML file to a directory of .par files.\n"
-             "Example: python pyptv/parameter_manager.py parameters.yaml new_params_dir/ --to-dir"
-    )
-
-    args = parser.parse_args()
-    manager = ParameterManager()
-
-    if args.to_yaml:
-        if not args.source.is_dir():
-            parser.error("Source for --to-yaml must be an existing directory.")
-        print(f"Converting directory '{args.source}' to YAML file '{args.destination}'...")
-        manager.from_directory(args.source)
-        manager.to_yaml(args.destination)
-
-    elif args.to_dir:
-        if not args.source.is_file():
-            parser.error("Source for --to-dir must be an existing file.")
-        print(f"Converting YAML file '{args.source}' to directory '{args.destination}'...")
-        manager.from_yaml(args.source)
-        manager.to_directory(args.destination)
+    def get_parameter(self, name):
+        """Get a specific parameter by name, returning None if not found."""
+        parameter = self.parameters.get(name, None)
+        if parameter is None:
+            raise ValueError(f'{name} returns None')
+        return parameter
 
 if __name__ == '__main__':
-    main()
+    import argparse
+    parser = argparse.ArgumentParser(description="Convert between .par directory and YAML file.")
+    parser.add_argument('source', type=Path, help="Source directory or YAML file.")
+    parser.add_argument('destination', type=Path, help="Destination YAML file or directory.")
+    group = parser.add_mutually_exclusive_group(required=True)
+    group.add_argument('--to-yaml', action='store_true', help="Convert directory to YAML.")
+    group.add_argument('--to-dir', action='store_true', help="Convert YAML to directory.")
+    args = parser.parse_args()
+    pm = ParameterManager()
+    if args.to_yaml:
+        pm.from_directory(args.source)
+        pm.to_yaml(args.destination)
+    elif args.to_dir:
+        pm.from_yaml(args.source)
+        pm.to_directory(args.destination)

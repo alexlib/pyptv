@@ -267,9 +267,9 @@ class MaskGUI(HasTraits):
         ptv_params = experiment.get_parameter('ptv')
         if ptv_params is None:
             raise ValueError("Failed to load PTV parameters")
-        self.n_cams = experiment.get_n_cam()
-        self.camera = [PlotWindow() for i in range(self.n_cams)]
-        for i in range(self.n_cams):
+        self.num_cams = experiment.get_n_cam()
+        self.camera = [PlotWindow() for i in range(self.num_cams)]
+        for i in range(self.num_cams):
             self.camera[i].name = "Camera" + str(i + 1)
             self.camera[i].cameraN = i
             self.camera[i].py_rclick_delete = ptv.py_rclick_delete
@@ -322,7 +322,7 @@ class MaskGUI(HasTraits):
             self.tpar,
             self.cals,
             self.epar,
-        ) = ptv.py_start_proc_c(self.experiment.parameter_manager)
+        ) = ptv.py_start_proc_c(self.experiment.pm)
 
         self.images = []
         for i in range(len(self.camera)):
@@ -339,13 +339,13 @@ class MaskGUI(HasTraits):
         self.status_text = "Initialization finished."
 
     def _button_manual_fired(self):
-        self.mask_files = [f"mask_{cam}.txt" for cam in range(self.n_cams)]
+        self.mask_files = [f"mask_{cam}.txt" for cam in range(self.num_cams)]
         print(self.mask_files)
 
         print("Start mask drawing click in some order in each camera")
 
         points_set = True
-        for i in range(self.n_cams):
+        for i in range(self.num_cams):
             if len(self.camera[i]._x) < 4:
                 print(f"Camera {i} less than 4 points: {self.camera[i]._x}")
                 points_set = False
@@ -365,7 +365,7 @@ class MaskGUI(HasTraits):
                 )
 
         if points_set:
-            for cam in range(self.n_cams):
+            for cam in range(self.num_cams):
                 with open(self.mask_files[cam], "w", encoding="utf-8") as f:
                     for x, y in zip(self.camera[cam]._x, self.camera[cam]._y):
                         f.write("%f %f\n" % (x, y))
@@ -378,7 +378,7 @@ class MaskGUI(HasTraits):
             )
 
     def reset_plots(self):
-        for i in range(self.n_cams):
+        for i in range(self.num_cams):
             self.camera[i]._plot.delplot(*self.camera[i]._plot.plots.keys()[0:])
             self.camera[i]._plot.overlays.clear()
 
@@ -398,7 +398,7 @@ class MaskGUI(HasTraits):
 
     def drawcross(self, str_x, str_y, x, y, color1, size1, i_cam=None):
         if i_cam is None:
-            for i in range(self.n_cams):
+            for i in range(self.num_cams):
                 self.camera[i].drawcross(str_x, str_y, x[i], y[i], color1, size1)
         else:
             self.camera[i_cam].drawcross(str_x, str_y, x, y, color1, size1)

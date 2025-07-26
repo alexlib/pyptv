@@ -1,128 +1,92 @@
 """
-COMPREHENSIVE UNIT TEST COVERAGE for pyptv/ptv.py
+PyPTV Core Function Documentation
+================================
 
-This document summarizes the unit tests created for all functions in ptv.py,
-demonstrating the removal of dangerous default values and comprehensive testing.
+**image_split(img, order=[0,1,3,2])**
+    Split an image into four quadrants in a specified order.
 
-TEST FILES CREATED:
-==================
+**negative(img)**
+    Return the negative (inverted intensity) of an 8-bit image.
 
-1. test_ptv_image_processing.py (11 tests)
-   - Tests for: image_split(), negative(), simple_highpass()
-   - Coverage: Basic image processing functions with edge cases
+**simple_highpass(img, cpar)**
+    Apply a simple highpass filter to an image using liboptv.
 
-2. test_ptv_parameter_population.py (16 tests)
-   - Tests for: _populate_cpar(), _populate_spar(), _populate_vpar(), 
-     _populate_track_par(), _populate_tpar()
-   - Coverage: Parameter validation, missing parameter detection, strict validation
-   - Key Achievement: Tests verify that default values have been removed
+**_populate_cpar(ptv_params, num_cams)**
+    Create a ControlParams object from a parameter dictionary. Raises if required fields are missing.
 
-3. test_ptv_core_processing.py (8 tests)
-   - Tests for: py_start_proc_c(), py_detection_proc_c(), py_correspondences_proc_c()
-   - Coverage: Core processing pipeline functions
+**_populate_spar(seq_params, num_cams)**
+    Create a SequenceParams object from a parameter dictionary. Raises if required fields are missing.
 
-4. test_ptv_file_io.py (21 tests)
-   - Tests for: read_targets(), write_targets(), file_base_to_filename(), read_rt_is_file()
-   - Coverage: File I/O operations with error handling
+**_populate_vpar(crit_params)**
+    Create a VolumeParams object from a parameter dictionary.
 
-5. test_ptv_utilities.py (25 tests)
-   - Tests for: _read_calibrations(), py_pre_processing_c(), py_determination_proc_c(),
-     run_sequence_plugin(), run_tracking_plugin(), py_sequence_loop(),
-     py_trackcorr_init(), py_trackcorr_loop(), py_traject_loop(), py_rclick_delete()
-   - Coverage: Utility functions, plugin systems, tracking loops
+**_populate_track_par(track_params)**
+    Create a TrackingParams object from a parameter dictionary. Raises if required fields are missing.
 
-6. test_ptv_remaining.py (9 tests)
-   - Tests for: py_get_pix_N(), py_calibration(), py_rclick_delete()
-   - Coverage: Remaining utility functions including stub functions
+**_populate_tpar(targ_params, num_cams)**
+    Create a TargetParams object from a parameter dictionary. Handles both 'targ_rec' and 'detect_plate' keys.
 
-FUNCTIONS TESTED (20+ functions):
-=================================
+**_read_calibrations(cpar, num_cams)**
+    Read calibration files for all cameras. Returns default calibrations if files are missing.
 
-✅ Image Processing:
-   - image_split() - Image quadrant splitting with custom ordering
-   - negative() - Image intensity inversion
-   - simple_highpass() - High-pass filtering using optv
+**py_start_proc_c(pm)**
+    Read all parameters needed for processing using a ParameterManager.
 
-✅ Parameter Population (ALL DEFAULT VALUES REMOVED):
-   - _populate_cpar() - Control parameters with strict validation
-   - _populate_spar() - Sequence parameters with required field checking
-   - _populate_vpar() - Volume parameters with KeyError on missing fields
-   - _populate_track_par() - Tracking parameters with ValueError on missing fields
-   - _populate_tpar() - Target parameters with comprehensive validation
+**py_pre_processing_c(num_cams, list_of_images, ptv_params)**
+    Apply pre-processing to a list of images.
 
-✅ Core Processing Pipeline:
-   - py_start_proc_c() - Initialization with parameter manager
-   - py_detection_proc_c() - Target detection with proper mocking
-   - py_correspondences_proc_c() - Correspondence finding
+**py_detection_proc_c(num_cams, list_of_images, ptv_params, target_params, existing_target=False)**
+    Detect targets in a list of images.
 
-✅ File I/O Operations:
-   - read_targets() - Target file reading with error handling
-   - write_targets() - Target file writing with permission checks
-   - file_base_to_filename() - Filename generation with format strings
-   - read_rt_is_file() - File existence checking
+**py_correspondences_proc_c(exp)**
+    Compute correspondences for detected targets and write results to file.
 
-✅ Utility Functions:
-   - _read_calibrations() - Calibration file loading
-   - py_pre_processing_c() - Image preprocessing pipeline
-   - py_determination_proc_c() - 3D position determination
-   - run_sequence_plugin() - Dynamic plugin loading
-   - run_tracking_plugin() - Tracking plugin execution
-   - py_sequence_loop() - Main processing loop
-   - py_trackcorr_init() - Tracking correction initialization
-   - py_trackcorr_loop() - Tracking correction loop
-   - py_traject_loop() - Trajectory processing loop
-   - py_rclick_delete() - Target deletion (stub function)
-   - py_get_pix_N() - Pixel neighbor retrieval (stub function)
-   - py_calibration() - Calibration routine
+**py_determination_proc_c(num_cams, sorted_pos, sorted_corresp, corrected, cpar, vpar, cals)**
+    Calculate 3D positions from 2D correspondences and save to file.
 
-DANGEROUS DEFAULT VALUES REMOVED:
-=================================
+**run_sequence_plugin(exp)**
+    Load and run plugins for sequence processing.
 
-Before (dangerous):
-```python
-def _populate_spar(seq_params: dict, n_cam: int) -> SequenceParams:
-    first = seq_params.get('first', 0)  # ❌ Hidden default
-    last = seq_params.get('last', 10)   # ❌ Hidden default
-```
+**run_tracking_plugin(exp)**
+    Load and run plugins for tracking processing.
 
-After (safe):
-```python
-def _populate_spar(seq_params: dict, n_cam: int) -> SequenceParams:
-    if 'first' not in seq_params or 'last' not in seq_params:
-        raise ValueError("Missing required sequence parameters: 'first', 'last'")
-    first = seq_params['first']  # ✅ Explicit requirement
-    last = seq_params['last']    # ✅ Explicit requirement
-```
+**py_sequence_loop(exp)**
+    Run a sequence of detection, correspondence, and determination for all frames.
 
-Similar changes applied to:
-- _populate_track_par() - Removed velocity constraint defaults
-- _populate_tpar() - Removed pixel count defaults
+**py_trackcorr_init(exp)**
+    Initialize a Tracker object and set up image base names for tracking.
 
-TESTING ACHIEVEMENTS:
-====================
+**py_rclick_delete(x, y, n)**
+    Stub: Delete clicked points (no-op).
 
-1. ✅ 90 comprehensive unit tests created
-2. ✅ All major ptv.py functions covered
-3. ✅ Dangerous default values removed and validated with tests
-4. ✅ Error conditions and edge cases tested
-5. ✅ Mock-based testing for external dependencies
-6. ✅ Parameter validation thoroughly tested
-7. ✅ File I/O error handling verified
-8. ✅ Plugin system functionality tested
+**py_get_pix_N(x, y, n)**
+    Stub: Get pixel coordinates (returns empty lists).
 
-VALIDATION TESTS:
-================
+**py_get_pix(x, y)**
+    Stub: Get target positions (returns input).
 
-Key tests that verify default value removal:
-- test_populate_spar_missing_required_params()
-- test_populate_track_par_missing_required_params()
-- test_populate_tpar_missing_detect_plate_params()
+**py_calibration(selection, exp)**
+    Perform calibration routines based on selection.
 
-These tests specifically verify that functions now raise explicit errors
-instead of silently using hidden default values.
+**write_targets(targets, short_file_base, frame)**
+    Write detected targets to a file for a given frame.
 
-TOTAL TEST COVERAGE: 90 tests across 6 test files
-ALL FUNCTIONS IN ptv.py NOW HAVE UNIT TESTS WITH STRICT PARAMETER VALIDATION
+**read_targets(short_file_base, frame)**
+    Read detected targets from a file for a given frame.
+
+**extract_cam_id(file_base)**
+    Extract the camera ID from a file base string. Returns 0 if not found.
+
+**generate_short_file_bases(img_base_names)**
+    Generate a list of short file base names for all cameras, using their camera IDs.
+
+**read_rt_is_file(filename)**
+    Read data from an rt_is file and return the parsed values.
+
+**full_scipy_calibration(cal, XYZ, targs, cpar, flags=[])**
+    Perform full camera calibration using scipy.optimize.
+
+This documentation is included to ensure all public functions in ptv.py are covered by tests and referenced in this summary.
 """
 
 # This file serves as documentation and can be run as a test to verify coverage
@@ -142,11 +106,10 @@ def test_function_coverage_documentation():
         'image_split', 'negative', 'simple_highpass',
         '_populate_cpar', '_populate_spar', '_populate_vpar', '_populate_track_par', '_populate_tpar',
         'py_start_proc_c', 'py_detection_proc_c', 'py_correspondences_proc_c',
-        'read_targets', 'write_targets', 'file_base_to_filename', 'read_rt_is_file',
+        'read_targets', 'write_targets', 'read_rt_is_file',
         '_read_calibrations', 'py_pre_processing_c', 'py_determination_proc_c',
         'run_sequence_plugin', 'run_tracking_plugin', 'py_sequence_loop',
-        'py_trackcorr_init', 'py_trackcorr_loop', 'py_traject_loop',
-        'py_rclick_delete', 'py_get_pix_N', 'py_calibration'
+        'py_trackcorr_init', 'py_rclick_delete', 'py_get_pix_N', 'py_calibration'
     ]
     
     # Verify that documented functions actually exist

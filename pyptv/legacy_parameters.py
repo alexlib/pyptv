@@ -1,10 +1,12 @@
 from __future__ import print_function
 from __future__ import absolute_import
 
+
 from pathlib import Path
 import shutil
 from tqdm import tqdm
-from traits.api import HasTraits, Str, Float, Int, List, Bool
+import collections.abc
+from typing import Optional
 
 # import yaml
 
@@ -14,32 +16,37 @@ max_cam = int(4)
 
 
 def g(f):
-    """Returns a line without white spaces"""
-    return f.readline().strip()
+    """Reads the next line from a file object and returns it stripped of leading and trailing whitespace."""
+    line = f.readline()
+    if line == "":
+        # End of file reached
+        return ""
+    return line.strip()
 
 
 # Base class for all parameters classes
 
-
-class Parameters(HasTraits):
+class Parameters:
     # default path of the directory of the param files
     default_path = Path(par_dir_prefix)
+    filename = 'tmp.par'
 
-    def __init__(self, path: Path = default_path):
-        HasTraits.__init__(self)
+    def __init__(self, path=None):
+        if path is None:
+            path = self.default_path
         if isinstance(path, str):
             path = Path(path)
-
         self.path = path.resolve()
         self.exp_path = self.path.parent
 
-    # returns the name of the specific params file
-    def filename(self):
-        raise NotImplementedError()
+
+
 
     # returns the path to the specific params file
     def filepath(self):
-        return self.path.joinpath(self.filename())
+        if not hasattr(self, 'filename'):
+            raise NotImplementedError("Subclasses must define a class attribute 'filename'.")
+        return self.path.joinpath(self.filename)
 
     # sets all variables of the param file (no actual writing to disk)
     def set(self, *vars):
@@ -97,6 +104,7 @@ def readParamsDir(par_path):
     # n_pts = Int(4)
 
     ret = {
+        PtvParams: ptvParams,
         CalOriParams: CalOriParams(n_img, path=par_path),
         SequenceParams: SequenceParams(n_img, path=par_path),
         CriteriaParams: CriteriaParams(path=par_path),
@@ -109,6 +117,8 @@ def readParamsDir(par_path):
         ExamineParams: ExamineParams(path=par_path),
         DumbbellParams: DumbbellParams(path=par_path),
         ShakingParams: ShakingParams(path=par_path),
+        MultiPlaneParams: MultiPlaneParams(n_img=n_img, path=par_path),
+        SortGridParams: SortGridParams(n_img=n_img, path=par_path),
     }
 
     for parType in list(ret.keys()):
@@ -144,66 +154,45 @@ def copy_params_dir(src: Path, dest: Path):
     print("Successfully \n")
 
 
-# Specific parameter classes #######
-
 
 class PtvParams(Parameters):
     def __init__(
         self,
-        n_img=Int,
-        img_name=List,
-        img_cal=List,
-        hp_flag=Bool,
-        allcam_flag=Bool,
-        tiff_flag=Bool,
-        imx=Int,
-        imy=Int,
-        pix_x=Float,
-        pix_y=Float,
-        chfield=Int,
-        mmp_n1=Float,
-        mmp_n2=Float,
-        mmp_n3=Float,
-        mmp_d=Float,
-        path=Parameters.default_path,
+        n_img: int = 0,
+        img_name: list[str] = [""],
+        img_cal: list[str] = [""],
+        hp_flag: bool = False,
+        allcam_flag: bool = False,
+        tiff_flag: bool = False,
+        imx: int = 0,
+        imy: int = 0,
+        pix_x: float = 0.0,
+        pix_y: float = 0.0,
+        chfield: int = 0,
+        mmp_n1: float = 0.0,
+        mmp_n2: float = 0.0,
+        mmp_n3: float = 0.0,
+        mmp_d: float = 0.0,
+        path: Optional[Path] = None,
     ):
         Parameters.__init__(self, path)
-        (
-            self.n_img,
-            self.img_name,
-            self.img_cal,
-            self.hp_flag,
-            self.allcam_flag,
-            self.tiff_flag,
-            self.imx,
-            self.imy,
-            self.pix_x,
-            self.pix_y,
-            self.chfield,
-            self.mmp_n1,
-            self.mmp_n2,
-            self.mmp_n3,
-            self.mmp_d,
-        ) = (
-            n_img,
-            img_name,
-            img_cal,
-            hp_flag,
-            allcam_flag,
-            tiff_flag,
-            imx,
-            imy,
-            pix_x,
-            pix_y,
-            chfield,
-            mmp_n1,
-            mmp_n2,
-            mmp_n3,
-            mmp_d,
-        )
+        self.n_img = n_img
+        self.img_name = img_name if img_name is not None else ["" for _ in range(max_cam)]
+        self.img_cal = img_cal if img_cal is not None else ["" for _ in range(max_cam)]
+        self.hp_flag = hp_flag
+        self.allcam_flag = allcam_flag
+        self.tiff_flag = tiff_flag
+        self.imx = imx
+        self.imy = imy
+        self.pix_x = pix_x
+        self.pix_y = pix_y
+        self.chfield = chfield
+        self.mmp_n1 = mmp_n1
+        self.mmp_n2 = mmp_n2
+        self.mmp_n3 = mmp_n3
+        self.mmp_d = mmp_d
 
-    def filename(self):
-        return "ptv.par"
+    filename = "ptv.par"
 
     def read(self):
         if not self.filepath().exists():
@@ -212,11 +201,9 @@ class PtvParams(Parameters):
             with open(self.filepath(), "r", encoding="utf8") as f:
                 self.n_img = int(g(f))
 
-                self.img_name = [None] * max_cam
-                self.img_cal = [None] * max_cam
-                for i in range(self.n_img):
-                    self.img_name[i] = g(f)
-                    self.img_cal[i] = g(f)
+                lines = [g(f) for _ in range(2 * self.n_img)]
+                self.img_name = lines[::2]
+                self.img_cal = lines[1::2]
 
                 self.hp_flag = int(g(f)) != 0
                 self.allcam_flag = int(g(f)) != 0
@@ -265,39 +252,26 @@ class PtvParams(Parameters):
 
 
 class CalOriParams(Parameters):
-    def __init__(
-        self,
-        n_img=Int,
-        fixp_name=Str,
-        img_cal_name=List,
-        img_ori=List,
-        tiff_flag=Bool,
-        pair_flag=Bool,
-        chfield=Int,
-        path=Parameters.default_path,
-    ):
+    def __init__(self, 
+                    n_img:int = 0,
+                    fixp_name: str = "",
+                    img_cal_name: list[str] = [""], 
+                    img_ori: list[str] = [""],
+                    tiff_flag: bool = False,
+                    pair_flag: bool = False,
+                    chfield: int = 0,
+                    path: Path=Parameters.default_path
+                 ):
         Parameters.__init__(self, path)
+        self.n_img = n_img
+        self.fixp_name = fixp_name
+        self.img_cal_name = img_cal_name
+        self.img_ori = img_ori 
+        self.tiff_flag = tiff_flag
+        self.pair_flag = pair_flag
+        self.chfield = chfield
 
-        (
-            self.n_img,
-            self.fixp_name,
-            self.img_cal_name,
-            self.img_ori,
-            self.tiff_flag,
-            self.pair_flag,
-            self.chfield,
-        ) = (
-            n_img,
-            fixp_name,
-            img_cal_name,
-            img_ori,
-            tiff_flag,
-            pair_flag,
-            chfield,
-        )
-
-    def filename(self):
-        return "cal_ori.par"
+    filename = "cal_ori.par"
 
     def read(self):
         try:
@@ -305,11 +279,9 @@ class CalOriParams(Parameters):
                 self.fixp_name = g(f)
                 self.istherefile(self.fixp_name)
 
-                self.img_cal_name = []
-                self.img_ori = []
-                for i in range(self.n_img):
-                    self.img_cal_name.append(g(f))
-                    self.img_ori.append(g(f))
+                lines = [g(f) for _ in range(2 * self.n_img)]
+                self.img_cal_name = lines[::2]
+                self.img_ori = lines[1::2]
 
                 self.tiff_flag = int(g(f)) != 0
                 self.pair_flag = int(g(f)) != 0
@@ -343,22 +315,19 @@ class CalOriParams(Parameters):
 class SequenceParams(Parameters):
     def __init__(
         self,
-        n_img=Int,
-        base_name=List,
-        first=Int,
-        last=Int,
-        path=Parameters.default_path,
+        n_img: int = 0,
+        base_name: list[str] = [""],
+        first: int = 0,
+        last: int = 0,
+        path: Optional[Path] = None,
     ):
         Parameters.__init__(self, path)
-        (self.n_img, self.base_name, self.first, self.last) = (
-            n_img,
-            base_name,
-            first,
-            last,
-        )
+        self.n_img = n_img
+        self.base_name = base_name if base_name is not None else ["" for _ in range(n_img)]
+        self.first = first
+        self.last = last
 
-    def filename(self):
-        return "sequence.par"
+    filename = "sequence.par"
 
     def read(self):
         try:
@@ -390,46 +359,29 @@ class SequenceParams(Parameters):
 class CriteriaParams(Parameters):
     def __init__(
         self,
-        X_lay=List,
-        Zmin_lay=List,
-        Zmax_lay=List,
-        cnx=Float,
-        cny=Float,
-        cn=Float,
-        csumg=Float,
-        corrmin=Float,
-        eps0=Float,
-        path=Parameters.default_path,
+        X_lay: list[int] = [0, 0],
+        Zmin_lay: list[int] = [0, 0],
+        Zmax_lay: list[int] = [0, 0],
+        cnx: float = 0.0,
+        cny: float = 0.0,
+        cn: float = 0.0,
+        csumg: float = 0.0,
+        corrmin: float = 0.0,
+        eps0: float = 0.0,
+        path: Optional[Path] = None,
     ):
         Parameters.__init__(self, path)
-        self.set(X_lay, Zmin_lay, Zmax_lay, cnx, cny, cn, csumg, corrmin, eps0)
+        self.X_lay = X_lay if X_lay is not None else [0, 0]
+        self.Zmin_lay = Zmin_lay if Zmin_lay is not None else [0, 0]
+        self.Zmax_lay = Zmax_lay if Zmax_lay is not None else [0, 0]
+        self.cnx = cnx
+        self.cny = cny
+        self.cn = cn
+        self.csumg = csumg
+        self.corrmin = corrmin
+        self.eps0 = eps0
 
-    def set(
-        self,
-        X_lay=List,
-        Zmin_lay=List,
-        Zmax_lay=List,
-        cnx=Float,
-        cny=Float,
-        cn=Float,
-        csumg=Float,
-        corrmin=Float,
-        eps0=Float,
-    ):
-        (
-            self.X_lay,
-            self.Zmin_lay,
-            self.Zmax_lay,
-            self.cnx,
-            self.cny,
-            self.cn,
-            self.csumg,
-            self.corrmin,
-            self.eps0,
-        ) = (X_lay, Zmin_lay, Zmax_lay, cnx, cny, cn, csumg, corrmin, eps0)
-
-    def filename(self):
-        return "criteria.par"
+    filename = "criteria.par"
 
     def read(self):
         try:
@@ -482,49 +434,33 @@ class CriteriaParams(Parameters):
 class TargRecParams(Parameters):
     def __init__(
         self,
-        n_img=Int,
-        gvthres=List,
-        disco=Int,
-        nnmin=Int,
-        nnmax=Int,
-        nxmin=Int,
-        nxmax=Int,
-        nymin=Int,
-        nymax=Int,
-        sumg_min=Int,
-        cr_sz=Int,
-        path=Parameters.default_path,
+        n_img: int = 0,
+        gvthres: list[int] = [0,0,0,0],
+        disco: int = 0,
+        nnmin: int = 0,
+        nnmax: int = 0,
+        nxmin: int = 0,
+        nxmax: int = 0,
+        nymin: int = 0,
+        nymax: int = 0,
+        sumg_min: int = 0,
+        cr_sz: int = 0,
+        path: Path = Parameters.default_path,
     ):
         Parameters.__init__(self, path)
+        self.n_img = n_img
+        self.gvthres = gvthres if gvthres is not None else [0 for _ in range(max_cam)]
+        self.disco = disco
+        self.nnmin = nnmin
+        self.nnmax = nnmax
+        self.nxmin = nxmin
+        self.nxmax = nxmax
+        self.nymin = nymin
+        self.nymax = nymax
+        self.sumg_min = sumg_min
+        self.cr_sz = cr_sz
 
-        (
-            self.n_img,
-            self.gvthres,
-            self.disco,
-            self.nnmin,
-            self.nnmax,
-            self.nxmin,
-            self.nxmax,
-            self.nymin,
-            self.nymax,
-            self.sumg_min,
-            self.cr_sz,
-        ) = (
-            n_img,
-            gvthres,
-            disco,
-            nnmin,
-            nnmax,
-            nxmin,
-            nxmax,
-            nymin,
-            nymax,
-            sumg_min,
-            cr_sz,
-        )
-
-    def filename(self):
-        return "targ_rec.par"
+    filename = "targ_rec.par"
 
     def read(self):
         try:
@@ -570,14 +506,17 @@ class TargRecParams(Parameters):
 
 
 class ManOriParams(Parameters):
-    def __init__(self, n_img=Int, nr=List, path=Parameters.default_path):
+    def __init__(self, 
+                 n_img: int = 0, 
+                 nr: list[int] = [0, 0, 0, 0],
+                 path: Path = Parameters.default_path
+                 ):
         Parameters.__init__(self, path)
-        self.n_img = int(n_img)
-        self.nr = nr
+        self.n_img = int(n_img) if n_img is not None else 0
+        self.nr = nr if nr is not None else []
         self.path = path
 
-    def filename(self):
-        return "man_ori.par"
+    filename = "man_ori.par"
 
     def read(self):
         try:
@@ -593,97 +532,47 @@ class ManOriParams(Parameters):
             with open(self.filepath(), "w") as f:
                 for i in range(self.n_img):
                     for j in range(4):
-                        f.write("%d\n" % self.nr[i][j])
+                        f.write("%d\n" % self.nr[i * 4 + j])
 
             return True
         except BaseException:
             error(None, "Error writing %s." % self.filepath())
             return False
 
-
 class DetectPlateParams(Parameters):
     def __init__(
         self,
-        gvth_1=Int,
-        gvth_2=Int,
-        gvth_3=Int,
-        gvth_4=Int,
-        tol_dis=Int,
-        min_npix=Int,
-        max_npix=Int,
-        min_npix_x=Int,
-        max_npix_x=Int,
-        min_npix_y=Int,
-        max_npix_y=Int,
-        sum_grey=Int,
-        size_cross=Int,
-        path=Parameters.default_path,
+        gvth_1: int = 0,
+        gvth_2: int = 0,
+        gvth_3: int = 0,
+        gvth_4: int = 0,
+        tol_dis: int = 0,
+        min_npix: int = 0,
+        max_npix: int = 0,
+        min_npix_x: int = 0,
+        max_npix_x: int = 0,
+        min_npix_y: int = 0,
+        max_npix_y: int = 0,
+        sum_grey: int = 0,
+        size_cross: int = 0,
+        path: Path = Parameters.default_path,
     ):
         Parameters.__init__(self, path)
-        self.set(
-            gvth_1,
-            gvth_2,
-            gvth_3,
-            gvth_4,
-            tol_dis,
-            min_npix,
-            max_npix,
-            min_npix_x,
-            max_npix_x,
-            min_npix_y,
-            max_npix_y,
-            sum_grey,
-            size_cross,
-        )
+        self.gvth_1 = gvth_1
+        self.gvth_2 = gvth_2
+        self.gvth_3 = gvth_3
+        self.gvth_4 = gvth_4
+        self.tol_dis = tol_dis
+        self.min_npix = min_npix
+        self.max_npix = max_npix
+        self.min_npix_x = min_npix_x
+        self.max_npix_x = max_npix_x
+        self.min_npix_y = min_npix_y
+        self.max_npix_y = max_npix_y
+        self.sum_grey = sum_grey
+        self.size_cross = size_cross
 
-    def set(
-        self,
-        gvth_1=Int,
-        gvth_2=Int,
-        gvth_3=Int,
-        gvth_4=Int,
-        tol_dis=Int,
-        min_npix=Int,
-        max_npix=Int,
-        min_npix_x=Int,
-        max_npix_x=Int,
-        min_npix_y=Int,
-        max_npix_y=Int,
-        sum_grey=Int,
-        size_cross=Int,
-    ):
-        (
-            self.gvth_1,
-            self.gvth_2,
-            self.gvth_3,
-            self.gvth_4,
-            self.tol_dis,
-            self.min_npix,
-            self.max_npix,
-            self.min_npix_x,
-            self.max_npix_x,
-            self.min_npix_y,
-            self.max_npix_y,
-            self.sum_grey,
-            self.size_cross,
-        ) = (
-            gvth_1,
-            gvth_2,
-            gvth_3,
-            gvth_4,
-            tol_dis,
-            min_npix,
-            max_npix,
-            min_npix_x,
-            max_npix_x,
-            min_npix_y,
-            max_npix_y,
-            sum_grey,
-            size_cross,
-        )
-
-    def filename(self):
-        return "detect_plate.par"
+    filename = "detect_plate.par"
 
     def read(self):
         try:
@@ -731,59 +620,56 @@ class DetectPlateParams(Parameters):
             error(None, "Error writing %s." % self.filepath())
             return False
 
-
 class OrientParams(Parameters):
+    """
+    orient.par: flags for camera parameter usage 1=use, 0=unused
+    2 point number for orientation, in this case
+    every second point on the reference body is
+    used, 0 for using all points
+    1 cc = principle distance
+    1 xp - shift of the center
+    1 yp - shift of the center
+    1 k1 - radial distortion coefficient
+    1 k2 - radial distortion coefficient
+    1 k3 - radial distortion coefficient
+    0 p1 - tangential distortion coefficient
+    0 p2 - tangential distortion coefficient
+    1 scx - scale factor in x direction
+    1 she - shear factor
+    0 interf - interference term
+    """
+
     def __init__(
         self,
-        pnfo=Int,
-        cc=Int,
-        xh=Int,
-        yh=Int,
-        k1=Int,
-        k2=Int,
-        k3=Int,
-        p1=Int,
-        p2=Int,
-        scale=Int,
-        shear=Int,
-        interf=Int,
-        path=Parameters.default_path,
+        pnfo: int = 0,
+        cc: float = 0.0,
+        xh: float = 0.0,
+        yh: float = 0.0,
+        k1: float = 0.0,
+        k2: float = 0.0,
+        k3: float = 0.0,
+        p1: float = 0.0,
+        p2: float = 0.0,
+        scale: float = 0.0,
+        shear: float = 0.0,
+        interf: float = 0.0,
+        path: Optional[Path] = None,
     ):
         Parameters.__init__(self, path)
-        self.set(pnfo, cc, xh, yh, k1, k2, k3, p1, p2, scale, shear, interf)
+        self.pnfo = pnfo
+        self.cc = cc
+        self.xh = xh
+        self.yh = yh
+        self.k1 = k1
+        self.k2 = k2
+        self.k3 = k3
+        self.p1 = p1
+        self.p2 = p2
+        self.scale = scale
+        self.shear = shear
+        self.interf = interf
 
-    def set(
-        self,
-        pnfo=Int,
-        cc=Int,
-        xh=Int,
-        yh=Int,
-        k1=Int,
-        k2=Int,
-        k3=Int,
-        p1=Int,
-        p2=Int,
-        scale=Int,
-        shear=Int,
-        interf=Int,
-    ):
-        (
-            self.pnfo,
-            self.cc,
-            self.xh,
-            self.yh,
-            self.k1,
-            self.k2,
-            self.k3,
-            self.p1,
-            self.p2,
-            self.scale,
-            self.shear,
-            self.interf,
-        ) = (pnfo, cc, xh, yh, k1, k2, k3, p1, p2, scale, shear, interf)
-
-    def filename(self):
-        return "orient.par"
+    filename = "orient.par"
 
     def read(self):
         try:
@@ -825,70 +711,33 @@ class OrientParams(Parameters):
             error(None, "Error writing %s." % self.filepath())
             return False
 
-
 class TrackingParams(Parameters):
+    """Parameters for the tracking algorithm""" 
     def __init__(
         self,
-        dvxmin=Float,
-        dvxmax=Float,
-        dvymin=Float,
-        dvymax=Float,
-        dvzmin=Float,
-        dvzmax=Float,
-        angle=Float,
-        dacc=Float,
-        flagNewParticles=Bool,
+        dvxmin: float = 0.0,
+        dvxmax: float = 0.0,
+        dvymin: float = 0.0,
+        dvymax: float = 0.0,
+        dvzmin: float = 0.0,
+        dvzmax: float = 0.0,
+        angle: float = 0.0,
+        dacc: float = 0.0,
+        flagNewParticles: bool = False,
         path=Parameters.default_path,
     ):
         Parameters.__init__(self, path)
-        self.set(
-            dvxmin,
-            dvxmax,
-            dvymin,
-            dvymax,
-            dvzmin,
-            dvzmax,
-            angle,
-            dacc,
-            flagNewParticles,
-        )
+        self.dvxmin = dvxmin
+        self.dvxmax = dvxmax
+        self.dvymin = dvymin
+        self.dvymax = dvymax
+        self.dvzmin = dvzmin
+        self.dvzmax = dvzmax
+        self.angle = angle
+        self.dacc = dacc
+        self.flagNewParticles = flagNewParticles
 
-    def set(
-        self,
-        dvxmin=Float,
-        dvxmax=Float,
-        dvymin=Float,
-        dvymax=Float,
-        dvzmin=Float,
-        dvzmax=Float,
-        angle=Float,
-        dacc=Float,
-        flagNewParticles=Bool,
-    ):
-        (
-            self.dvxmin,
-            self.dvxmax,
-            self.dvymin,
-            self.dvymax,
-            self.dvzmin,
-            self.dvzmax,
-            self.angle,
-            self.dacc,
-            self.flagNewParticles,
-        ) = (
-            dvxmin,
-            dvxmax,
-            dvymin,
-            dvymax,
-            dvzmin,
-            dvzmax,
-            angle,
-            dacc,
-            flagNewParticles,
-        )
-
-    def filename(self):
-        return "track.par"
+    filename = "track.par"
 
     def read(self):
         try:
@@ -926,15 +775,11 @@ class TrackingParams(Parameters):
 
 
 class PftVersionParams(Parameters):
-    def __init__(self, Existing_Target=Int, path=Parameters.default_path):
+    def __init__(self, Existing_Target: int=0, path=None):
         Parameters.__init__(self, path)
-        self.set(Existing_Target)
-
-    def set(self, Existing_Target=Int):
         self.Existing_Target = Existing_Target
 
-    def filename(self):
-        return "pft_version.par"
+    filename = "pft_version.par"
 
     def read(self):
         try:
@@ -962,18 +807,15 @@ class PftVersionParams(Parameters):
 class ExamineParams(Parameters):
     def __init__(
         self,
-        Examine_Flag=Bool,
-        Combine_Flag=Bool,
-        path=Parameters.default_path,
+        Examine_Flag: bool = False,
+        Combine_Flag: bool = False,
+        path: Optional[Path] = None,
     ):
         Parameters.__init__(self, path)
-        self.set(Examine_Flag, Combine_Flag)
+        self.Examine_Flag = Examine_Flag
+        self.Combine_Flag = Combine_Flag
 
-    def set(self, Examine_Flag=Bool, Combine_Flag=Bool):
-        (self.Examine_Flag, self.Combine_Flag) = (Examine_Flag, Combine_Flag)
-
-    def filename(self):
-        return "examine.par"
+    filename = "examine.par"
 
     def read(self):
         if not self.filepath().exists():
@@ -1009,51 +851,23 @@ class ExamineParams(Parameters):
 class DumbbellParams(Parameters):
     def __init__(
         self,
-        dumbbell_eps=Float,
-        dumbbell_scale=Float,
-        dumbbell_gradient_descent=Float,
-        dumbbell_penalty_weight=Float,
-        dumbbell_step=Int,
-        dumbbell_niter=Int,
-        path=Parameters.default_path,
+        dumbbell_eps: float = 0.0,
+        dumbbell_scale: float = 0.0,
+        dumbbell_gradient_descent: float = 0.0,
+        dumbbell_penalty_weight: float = 0.0,
+        dumbbell_step: int = 0,
+        dumbbell_niter: int = 0,
+        path: Path = Parameters.default_path,
     ):
         Parameters.__init__(self, path)
-        self.set(
-            dumbbell_eps,
-            dumbbell_scale,
-            dumbbell_gradient_descent,
-            dumbbell_penalty_weight,
-            dumbbell_step,
-            dumbbell_niter,
-        )
+        self.dumbbell_eps = dumbbell_eps
+        self.dumbbell_scale = dumbbell_scale
+        self.dumbbell_gradient_descent = dumbbell_gradient_descent
+        self.dumbbell_penalty_weight = dumbbell_penalty_weight
+        self.dumbbell_step = dumbbell_step
+        self.dumbbell_niter = dumbbell_niter
 
-    def set(
-        self,
-        dumbbell_eps=Float,
-        dumbbell_scale=Float,
-        dumbbell_gradient_descent=Float,
-        dumbbell_penalty_weight=Float,
-        dumbbell_step=Int,
-        dumbbell_niter=Int,
-    ):
-        (
-            self.dumbbell_eps,
-            self.dumbbell_scale,
-            self.dumbbell_gradient_descent,
-            self.dumbbell_penalty_weight,
-            self.dumbbell_step,
-            self.dumbbell_niter,
-        ) = (
-            dumbbell_eps,
-            dumbbell_scale,
-            dumbbell_gradient_descent,
-            dumbbell_penalty_weight,
-            dumbbell_step,
-            dumbbell_niter,
-        )
-
-    def filename(self):
-        return "dumbbell.par"
+    filename = "dumbbell.par"
 
     def read(self):
         if not self.filepath().exists():
@@ -1101,41 +915,19 @@ class DumbbellParams(Parameters):
 class ShakingParams(Parameters):
     def __init__(
         self,
-        shaking_first_frame=Int,
-        shaking_last_frame=Int,
-        shaking_max_num_points=Int,
-        shaking_max_num_frames=Int,
-        path=Parameters.default_path,
+        shaking_first_frame: int = 0,
+        shaking_last_frame: int = 0,
+        shaking_max_num_points: int = 0,
+        shaking_max_num_frames: int = 0,
+        path: Optional[Path] = None,
     ):
         Parameters.__init__(self, path)
-        self.set(
-            shaking_first_frame,
-            shaking_last_frame,
-            shaking_max_num_points,
-            shaking_max_num_frames,
-        )
+        self.shaking_first_frame = shaking_first_frame
+        self.shaking_last_frame = shaking_last_frame
+        self.shaking_max_num_points = shaking_max_num_points
+        self.shaking_max_num_frames = shaking_max_num_frames
 
-    def set(
-        self,
-        shaking_first_frame=Int,
-        shaking_last_frame=Int,
-        shaking_max_num_points=Int,
-        shaking_max_num_frames=Int,
-    ):
-        (
-            self.shaking_first_frame,
-            self.shaking_last_frame,
-            self.shaking_max_num_points,
-            self.shaking_max_num_frames,
-        ) = (
-            shaking_first_frame,
-            shaking_last_frame,
-            shaking_max_num_points,
-            shaking_max_num_frames,
-        )
-
-    def filename(self):
-        return "shaking.par"
+    filename = "shaking.par"
 
     def read(self):
         if not self.filepath().exists():
@@ -1177,24 +969,19 @@ class ShakingParams(Parameters):
 class MultiPlaneParams(Parameters):
     def __init__(
         self,
-        n_img=Int,
-        n_planes=Int,
-        plane_name=None,
-        path=Parameters.default_path,
+        n_img: int = 0,
+        n_planes: int = 0,
+        plane_name: list[str] = [""],
+        path: Path = Parameters.default_path,
     ):
         Parameters.__init__(self, path)
         if plane_name is None:
             plane_name = []
-        self.set(n_img, n_planes, plane_name)
-
-    def set(self, n_img=Int, n_planes=Int, plane_name=None):
-        if plane_name is None:
-            plane_name = []
         self.n_img = n_img
-        (self.n_planes, self.plane_name) = (n_planes, plane_name)
+        self.n_planes = n_planes
+        self.plane_name = plane_name
 
-    def filename(self):
-        return "multi_planes.par"
+    filename = "multi_planes.par"
 
     def read(self):
         try:
@@ -1221,16 +1008,16 @@ class MultiPlaneParams(Parameters):
 
 
 class SortGridParams(Parameters):
-    def __init__(self, n_img=Int, radius=Int, path=Parameters.default_path):
+    def __init__(self, 
+                 n_img: int = 0, 
+                 radius: int = 0, 
+                 path: Path = Parameters.default_path
+                 ):
         Parameters.__init__(self, path)
-        self.set(n_img, radius)
-
-    def set(self, n_img=Int, radius=Int):
         self.n_img = n_img
         self.radius = radius
 
-    def filename(self):
-        return "sortgrid.par"
+    filename = "sortgrid.par"
 
     def read(self):
         try:

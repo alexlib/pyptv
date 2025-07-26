@@ -2,55 +2,60 @@
 """
 Test script for the improved ParameterManager functionality
 """
+import pytest
 
 from pyptv.parameter_manager import ParameterManager
 
-def test_parameter_manager():
-    print("=== Testing ParameterManager improvements ===")
-    
-    # Test the new functionality
+
+def test_man_ori_dat_roundtrip(tmp_path):
+    # Create a fake parameter directory with man_ori.dat
+    param_dir = tmp_path / "params"
+    param_dir.mkdir()
+    man_ori_dat = param_dir / "man_ori.dat"
+    # 2 cameras, 4 points each
+    man_ori_dat.write_text("0.0 0.0\n1.0 0.0\n1.0 1.0\n0.0 1.0\n" * 2)
+    ptv_par = param_dir / "ptv.par"
+    # Write a valid ptv.par file with all required fields (example: 2 cameras)
+    ptv_par.write_text(
+        "2\n"
+        "img/cam1.10002\n"
+        "cal/cam1.tif\n"
+        "img/cam2.10002\n"
+        "cal/cam2.tif\n"
+        "1\n"
+        "0\n"
+        "1\n"
+        "1280\n"
+        "1024\n"
+        "0.012\n"
+        "0.012\n"
+        "0\n"
+        "1\n"
+        "1.33\n"
+        "1.46\n"
+        "6\n"
+    )
+
+
     pm = ParameterManager()
+    pm.from_directory(param_dir)
+    assert 'man_ori_coordinates' in pm.parameters
+    coords = pm.parameters['man_ori_coordinates']
+    assert 'camera_0' in coords and 'camera_1' in coords
+    assert coords['camera_0']['point_1'] == {'x': 0.0, 'y': 0.0}
+    assert coords['camera_1']['point_4'] == {'x': 0.0, 'y': 1.0}
 
-    # Test with empty parameters
-    print('\n1. Testing missing parameter handling')
-    result = pm.get_parameter('masking')
-    print(f'   masking (not exists): {result}')
+    # Now test writing back to directory
+    out_dir = tmp_path / "out"
+    pm.to_directory(out_dir)
+    out_man_ori = out_dir / "man_ori.dat"
+    assert out_man_ori.exists()
+    lines = out_man_ori.read_text().splitlines()
+    assert lines[0] == "0.0 0.0"
+    assert lines[3] == "0.0 1.0"
 
-    result = pm.get_parameter('masking', default={'mask_flag': False})
-    print(f'   masking (with default): {result}')
 
-    # Test parameter value extraction
-    result = pm.get_parameter_value('nonexistent_group', 'some_key', default='default_value')
-    print(f'   nonexistent parameter: {result}')
-
-    # Test has_parameter
-    print(f'   has masking: {pm.has_parameter("masking")}')
-
-    print('\n2. Testing ensure_default_parameters')
-    pm.ensure_default_parameters()
-    print(f'   masking after defaults: {pm.get_parameter("masking")}')
-    print(f'   has masking now: {pm.has_parameter("masking")}')
-    
-    # Test parameter value extraction after defaults
-    print('\n3. Testing parameter value extraction after defaults')
-    mask_flag = pm.get_parameter_value('masking', 'mask_flag')
-    print(f'   masking.mask_flag: {mask_flag}')
-    
-    nonexistent = pm.get_parameter_value('masking', 'nonexistent_key', default='N/A')
-    print(f'   masking.nonexistent_key: {nonexistent}')
-    
-    # Test default value generation
-    print('\n4. Testing default value generation')
-    default_flag = pm.get_default_value_for_parameter('some_group', 'enable_flag')
-    print(f'   default for enable_flag: {default_flag}')
-    
-    default_name = pm.get_default_value_for_parameter('some_group', 'base_name')
-    print(f'   default for base_name: {default_name}')
-    
-    default_size = pm.get_default_value_for_parameter('some_group', 'window_size')
-    print(f'   default for window_size: {default_size}')
-    
-    print('\n=== Test completed successfully! ===')
-
-if __name__ == '__main__':
-    test_parameter_manager()
+if __name__ == "__main__":
+    pytest.main([__file__, "-v", "--tb=short"])
+    # Run the test directly if this script is executed
+    # test_parameter_manager()

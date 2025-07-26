@@ -11,7 +11,7 @@ PyPTV has undergone significant improvements in its parameter management system.
 The current parameter system uses a single YAML file with the following top-level structure:
 
 ```yaml
-n_cam: 4  # Number of cameras (global setting)
+num_cams: 4  # Number of cameras (global setting)
 
 cal_ori:
   # Calibration and orientation parameters
@@ -40,11 +40,11 @@ plugins:
 ### 1. Camera Count Management
 
 **Old system:** Used `n_img` in various parameter sections
-**New system:** Uses single global `n_cam` field
+**New system:** Uses single global `num_cams` field
 
 ```yaml
 # ✅ Correct - current format
-n_cam: 4
+num_cams: 4
 
 # ❌ Incorrect - legacy format
 ptv:
@@ -79,7 +79,7 @@ man_ori:
    - Save as new YAML format using "Save Parameters"
 
 3. **Verify the migration**
-   - Check that `n_cam` is set correctly at the top level
+   - Check that `num_cams` is set correctly at the top level
    - Ensure no `n_img` fields remain in the YAML
    - Test calibration and tracking workflows
 
@@ -96,7 +96,7 @@ If you have manually created parameter files:
 ### Issue 1: Multiple Camera Count Fields
 
 **Problem:** Old files may have `n_img` in multiple sections
-**Solution:** Remove all `n_img` fields and use only the global `n_cam`
+**Solution:** Remove all `n_img` fields and use only the global `num_cams`
 
 ### Issue 2: Incorrect File Paths
 

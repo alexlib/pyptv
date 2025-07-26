@@ -57,9 +57,9 @@ def test_param_handlers():
         # Create experiment and load parameters
         experiment = Experiment()
         experiment.addParamset("Run1", test_yaml_dst)
-        experiment.setActive(0)
+        experiment.set_active(0)
         
-        print(f"Original n_cam: {experiment.parameter_manager.get_n_cam()}")
+        print(f"Original num_cams: {experiment.pm.get_n_cam()}")
         
         # Test ParamHandler
         print("\\nTesting ParamHandler...")
@@ -83,16 +83,16 @@ def test_param_handlers():
             # Verify changes were saved by reloading
             experiment2 = Experiment()
             experiment2.addParamset("Run1", test_yaml_dst)
-            experiment2.setActive(0)
+            experiment2.set_active(0)
             
-            saved_n_cam = experiment2.parameter_manager.get_n_cam()
-            saved_img_name = experiment2.parameter_manager.parameters['ptv']['img_name'][0]
-            saved_hp_flag = experiment2.parameter_manager.parameters['ptv']['hp_flag']
-            saved_seq_first = experiment2.parameter_manager.parameters['sequence']['first']
+            saved_n_cam = experiment2.pm.get_n_cam()
+            saved_img_name = experiment2.pm.parameters['ptv']['img_name'][0]
+            saved_hp_flag = experiment2.pm.parameters['ptv']['hp_flag']
+            saved_seq_first = experiment2.pm.parameters['sequence']['first']
             
-            print(f"Verification: n_cam={saved_n_cam}, img_name[0]={saved_img_name}, hp_flag={saved_hp_flag}, seq_first={saved_seq_first}")
+            print(f"Verification: num_cams={saved_n_cam}, img_name[0]={saved_img_name}, hp_flag={saved_hp_flag}, seq_first={saved_seq_first}")
             
-            assert saved_n_cam == 3, f"Expected n_cam=3, got {saved_n_cam}"
+            assert saved_n_cam == 3, f"Expected num_cams=3, got {saved_n_cam}"
             assert saved_img_name == "test_modified_cam1.tif", f"Expected img_name='test_modified_cam1.tif', got '{saved_img_name}'"
             assert saved_hp_flag == False, f"Expected hp_flag=False, got {saved_hp_flag}"
             assert saved_seq_first == 30001, f"Expected seq_first=30001, got {saved_seq_first}"

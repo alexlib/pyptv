@@ -8,7 +8,7 @@ from unittest.mock import Mock, patch, MagicMock
 from pyptv.ptv import (
     _read_calibrations, py_pre_processing_c, py_determination_proc_c,
     run_sequence_plugin, run_tracking_plugin, py_sequence_loop,
-    py_trackcorr_init, py_trackcorr_loop, py_traject_loop, py_rclick_delete
+    py_trackcorr_init, py_rclick_delete
 )
 from pyptv.experiment import Experiment
 from optv.parameters import ControlParams
@@ -31,7 +31,7 @@ def test_cavity_exp():
     
     try:
         experiment = Experiment()
-        experiment.parameter_manager.from_yaml(yaml_file)
+        experiment.pm.from_yaml(yaml_file)
         yield experiment
     finally:
         os.chdir(original_cwd)
@@ -53,7 +53,7 @@ def test_splitter_exp():
     
     try:
         experiment = Experiment()
-        experiment.parameter_manager.from_yaml(yaml_file)
+        experiment.pm.from_yaml(yaml_file)
         yield experiment
     finally:
         os.chdir(original_cwd)
@@ -68,14 +68,14 @@ class TestReadCalibrations:
         
         try:
             # Initialize PyPTV core with real experiment data
-            cpar, spar, vpar, track_par, tpar, cals, epar = ptv.py_start_proc_c(test_cavity_exp.parameter_manager)
+            cpar, spar, vpar, track_par, tpar, cals, epar = ptv.py_start_proc_c(test_cavity_exp.pm)
             
-            n_cams = test_cavity_exp.parameter_manager.n_cam
+            num_cams = test_cavity_exp.pm.num_cams
             
             # Test the function with real control parameters
-            result = _read_calibrations(cpar, n_cams)
+            result = _read_calibrations(cpar, num_cams)
             
-            assert len(result) == n_cams
+            assert len(result) == num_cams
             assert all(isinstance(cal, Calibration) for cal in result)
             
         except Exception as e:
@@ -88,10 +88,10 @@ class TestReadCalibrations:
         
         try:
             # Initialize PyPTV core with real experiment data
-            cpar, spar, vpar, track_par, tpar, cals, epar = ptv.py_start_proc_c(test_splitter_exp.parameter_manager)
+            cpar, spar, vpar, track_par, tpar, cals, epar = ptv.py_start_proc_c(test_splitter_exp.pm)
             
             # Test with a different number of cameras than in the experiment
-            test_n_cams = test_splitter_exp.parameter_manager.n_cam + 1
+            test_n_cams = test_splitter_exp.pm.num_cams + 1
             
             result = _read_calibrations(cpar, test_n_cams)
             assert len(result) == test_n_cams  # Should create the right number of calibrations
@@ -110,25 +110,25 @@ class TestPyPreProcessingC:
         
         try:
             # Initialize PyPTV core with real experiment data
-            cpar, spar, vpar, track_par, tpar, cals, epar = ptv.py_start_proc_c(test_cavity_exp.parameter_manager)
+            cpar, spar, vpar, track_par, tpar, cals, epar = ptv.py_start_proc_c(test_cavity_exp.pm)
             
-            n_cam = test_cavity_exp.parameter_manager.n_cam
+            num_cams = test_cavity_exp.pm.num_cams
             
             # Create test images with proper dimensions
             imx = cpar.get_image_size()[0]
             imy = cpar.get_image_size()[1]
             images = [
                 np.random.randint(0, 255, (imy, imx), dtype=np.uint8)
-                for _ in range(n_cam)
+                for _ in range(num_cams)
             ]
             
             # Use real parameters from the experiment
-            ptv_params = test_cavity_exp.parameter_manager.parameters.get('ptv', {})
+            ptv_params = test_cavity_exp.pm.parameters.get('ptv', {})
             
-            result = py_pre_processing_c(n_cam, images, ptv_params)
+            result = py_pre_processing_c(num_cams, images, ptv_params)
             
             # Should return processed images
-            assert len(result) == n_cam
+            assert len(result) == num_cams
             assert all(isinstance(img, np.ndarray) for img in result)
             
         except Exception as e:
@@ -137,7 +137,7 @@ class TestPyPreProcessingC:
     
     def test_py_pre_processing_c_empty_images(self):
         """Test preprocessing with empty image list"""
-        n_cam = 0
+        num_cams = 0
         images = []
         ptv_params = {
             'imx': 100, 'imy': 100, 'hp_flag': 1,
@@ -149,10 +149,10 @@ class TestPyPreProcessingC:
             'mmp_n2': 1.33,
             'mmp_d': 1.0,
             'mmp_n3': 1.0,
-            'img_cal': []  # Empty calibration list to match n_cam=0
+            'img_cal': []  # Empty calibration list to match num_cams=0
         }
         
-        result = py_pre_processing_c(n_cam, images, ptv_params)
+        result = py_pre_processing_c(num_cams, images, ptv_params)
         
         # Should return empty list for empty input
         assert len(result) == 0
@@ -160,14 +160,14 @@ class TestPyPreProcessingC:
     @patch('pyptv.ptv._populate_cpar')
     def test_py_pre_processing_c_invalid_params(self, mock_populate_cpar):
         """Test preprocessing with invalid parameters"""
-        n_cam = 1
+        num_cams = 1
         images = [np.random.randint(0, 255, (100, 100), dtype=np.uint8)]
         ptv_params = {}  # Missing required parameters
         
         mock_populate_cpar.side_effect = KeyError("Missing required parameter")
         
         with pytest.raises(KeyError):
-            py_pre_processing_c(n_cam, images, ptv_params)
+            py_pre_processing_c(num_cams, images, ptv_params)
 
 
 class TestPyDeterminationProcC:
@@ -179,19 +179,19 @@ class TestPyDeterminationProcC:
         
         try:
             # Initialize PyPTV core with real experiment data
-            cpar, spar, vpar, track_par, tpar, cals, epar = ptv.py_start_proc_c(test_splitter_exp.parameter_manager)
+            cpar, spar, vpar, track_par, tpar, cals, epar = ptv.py_start_proc_c(test_splitter_exp.pm)
             
-            n_cams = test_splitter_exp.parameter_manager.n_cam
+            num_cams = test_splitter_exp.pm.num_cams
             
             # Create minimal test data - one point per camera
-            sorted_pos = [np.array([[100.0, 200.0]]) for _ in range(n_cams)]
-            sorted_corresp = [np.array([[0]]) for _ in range(n_cams)]
+            sorted_pos = [np.array([[100.0, 200.0]]) for _ in range(num_cams)]
+            sorted_corresp = [np.array([[0]]) for _ in range(num_cams)]
             
             # Use real TargetArray objects
             from optv.tracker import TargetArray
             from optv.tracking_framebuf import Target
             corrected = []
-            for i in range(n_cams):
+            for i in range(num_cams):
                 target_array = TargetArray()
                 # Add a test target
                 target = Target()
@@ -201,7 +201,7 @@ class TestPyDeterminationProcC:
                 corrected.append(target_array)
             
             # Should not raise any exceptions with real data structures
-            py_determination_proc_c(n_cams, sorted_pos, sorted_corresp, corrected, cpar, vpar, cals)
+            py_determination_proc_c(num_cams, sorted_pos, sorted_corresp, corrected, cpar, vpar, cals)
             
         except Exception as e:
             # If core initialization fails, skip with informative message
@@ -213,25 +213,25 @@ class TestPyDeterminationProcC:
         
         try:
             # Initialize PyPTV core with real experiment data
-            cpar, spar, vpar, track_par, tpar, cals, epar = ptv.py_start_proc_c(test_cavity_exp.parameter_manager)
+            cpar, spar, vpar, track_par, tpar, cals, epar = ptv.py_start_proc_c(test_cavity_exp.pm)
             
             # Create minimal test data that matches the expected format
-            n_cams = test_cavity_exp.parameter_manager.n_cam
+            num_cams = test_cavity_exp.pm.num_cams
             
             # Create simple test data - empty arrays with correct shape
-            sorted_pos = [np.array([]).reshape(0, 2) for _ in range(n_cams)]
-            sorted_corresp = [np.array([]).reshape(0, 1) for _ in range(n_cams)]
+            sorted_pos = [np.array([]).reshape(0, 2) for _ in range(num_cams)]
+            sorted_corresp = [np.array([]).reshape(0, 1) for _ in range(num_cams)]
             
             # Use empty TargetArray objects (these exist in the real system)
             from optv.tracker import TargetArray
-            corrected = [TargetArray() for _ in range(n_cams)]
+            corrected = [TargetArray() for _ in range(num_cams)]
             
             # Test with empty data - function should handle gracefully
             # This tests the function's robustness with edge cases
             if len(sorted_pos) > 0 and all(len(pos) == 0 for pos in sorted_pos):
                 # For empty data, function may exit early - that's expected behavior
                 try:
-                    py_determination_proc_c(n_cams, sorted_pos, sorted_corresp, corrected, cpar, vpar, cals)
+                    py_determination_proc_c(num_cams, sorted_pos, sorted_corresp, corrected, cpar, vpar, cals)
                 except (ValueError, IndexError) as e:
                     # Empty data might cause these exceptions - that's acceptable
                     pass
@@ -242,7 +242,7 @@ class TestPyDeterminationProcC:
     
     def test_py_determination_proc_c_invalid_calibrations(self):
         """Test determination processing with invalid calibrations"""
-        n_cams = 2
+        num_cams = 2
         sorted_pos = [np.array([[1.0, 2.0], [3.0, 4.0]])]
         sorted_corresp = [np.array([[0, 1]])]
         corrected = [Mock()]
@@ -251,7 +251,7 @@ class TestPyDeterminationProcC:
         cals = []  # Empty calibrations
         
         with pytest.raises((IndexError, ValueError)):
-            py_determination_proc_c(n_cams, sorted_pos, sorted_corresp, corrected, cpar, vpar, cals)
+            py_determination_proc_c(num_cams, sorted_pos, sorted_corresp, corrected, cpar, vpar, cals)
 
 
 class TestRunSequencePlugin:
@@ -361,12 +361,12 @@ class TestPySequenceLoop:
         
         # Initialize PyPTV core with real experiment data
         try:
-            cpar, spar, vpar, track_par, tpar, cals, epar = ptv.py_start_proc_c(test_cavity_exp.parameter_manager)
+            cpar, spar, vpar, track_par, tpar, cals, epar = ptv.py_start_proc_c(test_cavity_exp.pm)
             
             # Create a proper experiment object for testing
             exp = Mock()
-            exp.parameter_manager = test_cavity_exp.parameter_manager
-            exp.n_cams = test_cavity_exp.parameter_manager.n_cam
+            exp.pm = test_cavity_exp.pm
+            exp.num_cams = test_cavity_exp.pm.num_cams
             exp.cpar = cpar
             exp.spar = spar
             exp.vpar = vpar
@@ -390,7 +390,7 @@ class TestPySequenceLoop:
     
     def test_py_sequence_loop_invalid_experiment(self):
         """Test sequence loop with invalid experiment"""
-        with pytest.raises(ValueError, match="Object must have either parameter_manager or exp1.parameter_manager attribute"):
+        with pytest.raises(ValueError, match="Object must have either pm or exp1.pm attribute"):
             py_sequence_loop(None)
 
 
@@ -403,7 +403,7 @@ class TestPyTrackcorrInit:
         
         try:
             # Initialize PyPTV core with real experiment data
-            cpar, spar, vpar, track_par, tpar, cals, epar = ptv.py_start_proc_c(test_splitter_exp.parameter_manager)
+            cpar, spar, vpar, track_par, tpar, cals, epar = ptv.py_start_proc_c(test_splitter_exp.pm)
             
             # Create a proper experiment object for testing
             exp = Mock()
@@ -431,28 +431,6 @@ class TestPyTrackcorrInit:
         
         with pytest.raises(AttributeError):
             py_trackcorr_init(exp)
-
-
-class TestPyTrackcorrLoop:
-    """Test py_trackcorr_loop function"""
-    
-    def test_py_trackcorr_loop_basic(self):
-        """Test basic tracking correction loop - it's a stub function"""
-        # py_trackcorr_loop is currently a stub that does nothing
-        result = py_trackcorr_loop()
-        
-        assert result is None
-
-
-class TestPyTrajectLoop:
-    """Test py_traject_loop function"""
-    
-    def test_py_traject_loop_basic(self):
-        """Test basic trajectory loop - it's a stub function"""
-        # py_traject_loop is currently a stub that does nothing
-        result = py_traject_loop()
-        
-        assert result is None
 
 
 class TestPyRclickDelete:

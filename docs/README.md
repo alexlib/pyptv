@@ -123,7 +123,7 @@ The PyPTV documentation is organized into the following sections:
 This documentation has been completely restructured to provide:
 
 ✅ **Modern YAML Focus** - All examples use the current YAML parameter system  
-✅ **Correct n_cam Usage** - No references to obsolete `n_img` field  
+✅ **Correct num_cams Usage** - No references to obsolete `n_img` field  
 ✅ **test_cavity Reference** - Consistent examples using the included test dataset  
 ✅ **Modular Structure** - Each topic in its own focused guide  
 ✅ **Practical Workflows** - Step-by-step procedures for common tasks  

@@ -7,7 +7,6 @@ Example:
     python pyptv_batch_plugins.py tests/test_splitter 10000 10004 --tracking splitter --sequence splitter
 """
 
-import logging
 from pathlib import Path
 import os
 import sys
@@ -17,64 +16,46 @@ import importlib
 from pyptv.ptv import py_start_proc_c
 from pyptv.experiment import Experiment
 
-# Configure logging
-logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
-logger = logging.getLogger(__name__)
-
 
 def load_plugins_config(exp_path: Path):
     """Load available plugins from experiment parameters (YAML) with fallback to plugins.json"""
     from pyptv.experiment import Experiment
-    
     try:
-        # Primary source: YAML parameters
         experiment = Experiment()
-        experiment.populate_runs(exp_path)
-        if experiment.nParamsets() > 0:
-            experiment.setActive(0)  # Use first parameter set
-            plugins_params = experiment.get_parameter('plugins')
-            if plugins_params is not None:
-                return {
-                    "tracking": plugins_params.get('available_tracking', ['default']),
-                    "sequence": plugins_params.get('available_sequence', ['default'])
-                }
+        experiment.pm.from_yaml(exp_path)  # Corrected to use exp_path
+        plugins_params = experiment.pm.parameters.get('plugins', None)
+        if plugins_params is not None:
+            return {
+                "tracking": plugins_params.get('available_tracking', ['default']),
+                "sequence": plugins_params.get('available_sequence', ['default'])
+            }
     except Exception as e:
         print(f"Error loading plugins from YAML: {e}")
-    
     # Fallback to plugins.json for backward compatibility (deprecated)
-    plugins_file = exp_path / "plugins.json"
+    plugins_file = exp_path.parent / "plugins.json"  # Corrected to use exp_path
     if plugins_file.exists():
-        logger.warning("Using deprecated plugins.json - please migrate to YAML parameters")
+        print("WARNING: Using deprecated plugins.json - please migrate to YAML parameters")
         with open(plugins_file, 'r') as f:
             return json.load(f)
-    
     return {"tracking": ["default"], "sequence": ["default"]}
 
-def run_batch(exp_path: Path, seq_first: int, seq_last: int, 
-              tracking_plugin: str = "default", sequence_plugin: str = "default"):
-    """Run batch processing with plugins"""
-    
-    # Change to experiment directory
+def run_batch(yaml_file: Path, seq_first: int, seq_last: int, 
+              tracking_plugin: str = "default", sequence_plugin: str = "default", mode: str = "both"):
+    """Run batch processing with plugins, supporting modular mode (both, sequence, tracking)"""
     original_cwd = Path.cwd()
+    exp_path = yaml_file.parent
     os.chdir(exp_path)
-    
-    # Create experiment and load parameters
     experiment = Experiment()
-    experiment.populate_runs(exp_path)
-
-    logger.info(f"Processing frames {seq_first}-{seq_last} with {experiment.get_n_cam()} cameras")
-    logger.info(f"Using plugins: tracking={tracking_plugin}, sequence={sequence_plugin}")
-
-    # Initialize PyPTV with parameter manager
-    cpar, spar, vpar, track_par, tpar, cals, epar = py_start_proc_c(experiment.parameter_manager)
-    # Set sequence parameters
+    experiment.pm.from_yaml(yaml_file)
+    print(f"Processing frames {seq_first}-{seq_last} with {experiment.pm.num_cams} cameras")
+    print(f"Using plugins: tracking={tracking_plugin}, sequence={sequence_plugin}")
+    print(f"Mode: {mode}")
+    cpar, spar, vpar, track_par, tpar, cals, epar = py_start_proc_c(experiment.pm)
     spar.set_first(seq_first)
     spar.set_last(seq_last)
-
-    # Create a simple object to hold processing parameters for ptv.py functions
     class ProcessingExperiment:
         def __init__(self, experiment, cpar, spar, vpar, track_par, tpar, cals, epar):
-            self.parameter_manager = experiment.parameter_manager
+            self.pm = experiment.pm
             self.cpar = cpar
             self.spar = spar
             self.vpar = vpar
@@ -82,99 +63,84 @@ def run_batch(exp_path: Path, seq_first: int, seq_last: int,
             self.tpar = tpar
             self.cals = cals
             self.epar = epar
-            self.n_cams = experiment.get_n_cam()
+            self.num_cams = experiment.pm.num_cams
             self.exp_path = str(exp_path.absolute())
             self.detections = []
             self.corrected = []
-
     exp_config = ProcessingExperiment(experiment, cpar, spar, vpar, track_par, tpar, cals, epar)
-
-    # Add plugins directory to path we're inside exp_path
     plugins_dir = Path.cwd() / "plugins"
+    print(f"[DEBUG] Plugins directory: {plugins_dir}")
     if str(plugins_dir) not in sys.path:
         sys.path.insert(0, str(plugins_dir.absolute()))
-
-    try:
-        seq_plugin = importlib.import_module(sequence_plugin)
-    except ImportError as e:
-        print(f"Error loading {sequence_plugin}: {e}")
-        print("Check for missing packages or syntax errors.")
-        os.chdir(original_cwd)
-        return
-
+        print(f"[DEBUG] Added plugins directory to sys.path: {plugins_dir}")
     # Patch: Ensure output files are written to 'res' directory for test_splitter
-    # Only for test_splitter experiment
     res_dir = Path("res")
     if not res_dir.exists():
         res_dir.mkdir(exist_ok=True)
-
-    # Monkey-patch default_naming for plugins to write to res/
     import optv.tracker
     if hasattr(optv.tracker, "default_naming"):
         for k in optv.tracker.default_naming.keys():
             name = optv.tracker.default_naming[k]
             if isinstance(name, bytes):
-                # e.g. b"rt_is"
                 optv.tracker.default_naming[k] = b"res/" + name if not name.startswith(b"res/") else name
             elif isinstance(name, str):
                 optv.tracker.default_naming[k] = "res/" + name if not name.startswith("res/") else name
-
-    # Check if the plugin has a Sequence class
-    if hasattr(seq_plugin, "Sequence"):
-        print(f"Running sequence plugin: {sequence_plugin}")
-        try:
-            # Create a Sequence instance and run it
-            sequence = seq_plugin.Sequence(exp = exp_config)
-            sequence.do_sequence()
-        except Exception as e:
-            print(f"Error running sequence plugin: {e}")
-            os.chdir(original_cwd)
-            return
-
     try:
-        track_plugin = importlib.import_module(tracking_plugin)
+        if mode in ("both", "sequence"):
+            seq_plugin = importlib.import_module(sequence_plugin)
+            if hasattr(seq_plugin, "Sequence"):
+                print(f"Running sequence plugin: {sequence_plugin}")
+                try:
+                    sequence = seq_plugin.Sequence(exp=exp_config)
+                    sequence.do_sequence()
+                except Exception as e:
+                    print(f"Error running sequence plugin: {e}")
+                    os.chdir(original_cwd)
+                    return
+        if mode in ("both", "tracking"):
+            try:
+                track_plugin = importlib.import_module(tracking_plugin)
+                print(f"[DEBUG] Loaded tracking plugin: {track_plugin}")
+                print(f"Running tracking plugin: {tracking_plugin}")
+                tracker = track_plugin.Tracking(exp=exp_config)
+                tracker.do_tracking()
+            except Exception as e:
+                print(f"ERROR: Tracking plugin {tracking_plugin} not found or not implemented. Exception: {e}")
+                os.chdir(original_cwd)
+                return
+        print("Batch processing completed successfully")
     except ImportError as e:
-        print(f"Error loading {tracking_plugin}: {e}")
+        print(f"Error loading plugin: {e}")
         print("Check for missing packages or syntax errors.")
+    finally:
         os.chdir(original_cwd)
-        return
-
-    # Run tracking
-    if track_plugin:
-        logger.info(f"Running tracking plugin: {tracking_plugin}")
-        tracker = track_plugin.Tracking(exp=exp_config)
-        tracker.do_tracking()
-    else:
-        logger.error(f"Tracking plugin {tracking_plugin} not found or not implemented.")
-        os.chdir(original_cwd)
-        return
-
-    logger.info("Batch processing completed successfully")
-    os.chdir(original_cwd)
 
 
 def main():
-    """Main entry point"""
-    if len(sys.argv) < 4:
-        print("Usage: python pyptv_batch_plugins.py <exp_path> <first_frame> <last_frame>")
-        print("Example: python pyptv_batch_plugins.py tests/test_splitter 1000001 1000005")
-        return
-    
-    exp_path = Path(sys.argv[1])
-    first_frame = int(sys.argv[2])
-    last_frame = int(sys.argv[3])
-
-    
+    """Main entry point with argparse and --mode support"""
+    import argparse
+    parser = argparse.ArgumentParser(
+        description="PyPTV batch processing with plugins. Supports running only sequence, only tracking, or both."
+    )
+    parser.add_argument("yaml_file", type=str, help="Path to YAML parameter file.")
+    parser.add_argument("first_frame", type=int, help="First frame number.")
+    parser.add_argument("last_frame", type=int, help="Last frame number.")
+    parser.add_argument(
+        "--mode", type=str, default="both", choices=["both", "sequence", "tracking"],
+        help="Which steps to run: both (default), sequence, or tracking."
+    )
+    args = parser.parse_args()
+    yaml_file = Path(args.yaml_file).resolve()
+    first_frame = args.first_frame
+    last_frame = args.last_frame
+    mode = args.mode
     # Show available plugins
-    plugins_config = load_plugins_config(exp_path)
-    logger.info(f"Available tracking plugins: {plugins_config.get('tracking', ['default'])}")
-    logger.info(f"Available sequence plugins: {plugins_config.get('sequence', ['default'])}")
-    
-    tracking_plugin = plugins_config.get('tracking', ['default'])[0]  # Default to first available
-    sequence_plugin = plugins_config.get('sequence', ['default'])[0]  # Default to first available
-    
-
-    run_batch(exp_path, first_frame, last_frame, tracking_plugin, sequence_plugin)
+    plugins_config = load_plugins_config(yaml_file)
+    print(f"Available tracking plugins: {plugins_config.get('tracking', ['default'])}")
+    print(f"Available sequence plugins: {plugins_config.get('sequence', ['default'])}")
+    tracking_plugin = plugins_config.get('tracking', ['default'])[0]
+    sequence_plugin = plugins_config.get('sequence', ['default'])[0]
+    run_batch(yaml_file, first_frame, last_frame, tracking_plugin, sequence_plugin, mode)
 
 
 if __name__ == "__main__":

@@ -18,8 +18,8 @@ from pathlib import Path
 from typing import Union, Optional
 import argparse
 
-from .parameter_manager import ParameterManager
-from .experiment import Experiment
+from pyptv.parameter_manager import ParameterManager
+from pyptv.experiment import Experiment
 
 
 def legacy_to_yaml(parameters_dir: Union[str, Path], 
@@ -88,23 +88,16 @@ def legacy_to_yaml(parameters_dir: Union[str, Path],
     # Create experiment to handle plugins.json and man_ori.dat migration
     print("🔧 Processing plugins and manual orientation data...")
     experiment = Experiment()
-    experiment.parameter_manager = manager
+    experiment.pm = manager
     
-    # Migrate plugins.json if it exists in the parameters folder
-    plugins_json = parameters_dir / "plugins.json"
-    if plugins_json.exists():
-        print(f"🔌 Migrating plugins from {plugins_json}")
-        manager.migrate_plugins_json(plugins_json)
-    else:
-        print("ℹ️  No plugins.json found - using defaults")
-    
+   
     # Migrate man_ori.dat if it exists in the parameters folder
-    man_ori_dat = parameters_dir / "man_ori.dat"
-    if man_ori_dat.exists():
-        print(f"📍 Migrating manual orientation from {man_ori_dat}")
-        manager.migrate_man_ori_dat(parameters_dir)
-    else:
-        print("ℹ️  No man_ori.dat found - using defaults")
+    # man_ori_dat = parameters_dir / "man_ori.dat"
+    # if man_ori_dat.exists():
+    #     print(f"📍 Migrating manual orientation from {man_ori_dat}")
+    #     manager.migrate_man_ori_dat(parameters_dir)
+    # else:
+    #     print("ℹ️  No man_ori.dat found - using defaults")
     
     # Save to YAML
     print(f"💾 Saving to YAML: {yaml_file}")
@@ -112,7 +105,7 @@ def legacy_to_yaml(parameters_dir: Union[str, Path],
     
     print("✅ Conversion complete!")
     print(f"📊 Summary:")
-    print(f"   - Global n_cam: {manager.n_cam}")
+    print(f"   - Global num_cams: {manager.num_cams}")
     print(f"   - Parameter sections: {len(manager.parameters)}")
     print(f"   - YAML file: {yaml_file}")
     print()
@@ -171,27 +164,27 @@ def yaml_to_legacy(yaml_file: Union[str, Path],
     print("💾 Creating .par files...")
     manager.to_directory(output_dir)
     
-    # Extract and save plugins.json if plugins section exists
-    plugins_params = manager.get_parameter('plugins')
-    if plugins_params:
-        plugins_json_path = output_dir / "plugins.json"
-        print(f"🔌 Creating plugins.json at {plugins_json_path}")
+    # # Extract and save plugins.json if plugins section exists
+    # plugins_params = manager.get_parameter('plugins')
+    # if plugins_params:
+    #     plugins_json_path = output_dir / "plugins.json"
+    #     print(f"🔌 Creating plugins.json at {plugins_json_path}")
         
-        # Create plugins.json structure
-        plugins_data = {
-            "tracking": {
-                "available": plugins_params.get('available_tracking', ['default']),
-                "selected": plugins_params.get('selected_tracking', 'default')
-            },
-            "sequence": {
-                "available": plugins_params.get('available_sequence', ['default']),
-                "selected": plugins_params.get('selected_sequence', 'default')
-            }
-        }
+    #     # Create plugins.json structure
+    #     plugins_data = {
+    #         "tracking": {
+    #             "available": plugins_params.get('available_tracking', ['default']),
+    #             "selected": plugins_params.get('selected_tracking', 'default')
+    #         },
+    #         "sequence": {
+    #             "available": plugins_params.get('available_sequence', ['default']),
+    #             "selected": plugins_params.get('selected_sequence', 'default')
+    #         }
+    #     }
         
-        import json
-        with open(plugins_json_path, 'w') as f:
-            json.dump(plugins_data, f, indent=2)
+    #     import json
+    #     with open(plugins_json_path, 'w') as f:
+    #         json.dump(plugins_data, f, indent=2)
     
     # Extract and save man_ori.dat if manual orientation coordinates exist
     man_ori_coords = manager.get_parameter('man_ori_coordinates')
@@ -200,8 +193,8 @@ def yaml_to_legacy(yaml_file: Union[str, Path],
         print(f"📍 Creating man_ori.dat at {man_ori_path}")
         
         with open(man_ori_path, 'w') as f:
-            n_cam = manager.get_n_cam()  # Use the n_cam attribute directly
-            for cam_idx in range(n_cam):
+            num_cams = manager.get_n_cam()  # Use the num_cams attribute directly
+            for cam_idx in range(num_cams):
                 cam_key = f'camera_{cam_idx}'
                 if cam_key in man_ori_coords:
                     for point_idx in range(4):

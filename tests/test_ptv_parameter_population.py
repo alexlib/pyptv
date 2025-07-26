@@ -26,9 +26,9 @@ class TestPopulateCpar:
             'mmp_n3': 1.49,
             'img_cal': ['cal1.tif', 'cal2.tif']
         }
-        n_cam = 2
+        num_cams = 2
         
-        result = _populate_cpar(ptv_params, n_cam)
+        result = _populate_cpar(ptv_params, num_cams)
         
         assert isinstance(result, ControlParams)
         assert result.get_image_size() == (1024, 768)
@@ -43,10 +43,10 @@ class TestPopulateCpar:
             'pix_x': 0.01,
             'pix_y': 0.01,
         }
-        n_cam = 2
+        num_cams = 2
         
-        with pytest.raises(KeyError):
-            _populate_cpar(ptv_params, n_cam)
+        with pytest.raises(ValueError, match="img_cal_list is too short"):
+            _populate_cpar(ptv_params, num_cams)
     
     def test_populate_cpar_invalid_img_cal_length(self):
         """Test with mismatched img_cal list length"""
@@ -63,12 +63,12 @@ class TestPopulateCpar:
             'mmp_n2': 1.33,
             'mmp_d': 5.0,
             'mmp_n3': 1.49,
-            'img_cal': ['cal1.tif']  # Only 1 camera, but n_cam = 2
+            'img_cal': ['cal1.tif']  # Only 1 camera, but num_cams = 2
         }
-        n_cam = 2
-        
-        with pytest.raises(ValueError, match="img_cal_list length does not match n_cam"):
-            _populate_cpar(ptv_params, n_cam)
+        num_cams = 2
+
+        with pytest.raises(ValueError, match="img_cal_list is too short"):
+            _populate_cpar(ptv_params, num_cams)
 
 
 class TestPopulateSpar:
@@ -81,9 +81,9 @@ class TestPopulateSpar:
             'last': 1010,
             'base_name': ['img1_%04d.tif', 'img2_%04d.tif']
         }
-        n_cam = 2
+        num_cams = 2
         
-        result = _populate_spar(seq_params, n_cam)
+        result = _populate_spar(seq_params, num_cams)
         
         assert isinstance(result, SequenceParams)
         assert result.get_first() == 1000
@@ -95,22 +95,22 @@ class TestPopulateSpar:
             'first': 1000,
             # Missing 'last' and 'base_name'
         }
-        n_cam = 2
+        num_cams = 2
         
         with pytest.raises(ValueError, match="Missing required sequence parameters"):
-            _populate_spar(seq_params, n_cam)
+            _populate_spar(seq_params, num_cams)
     
     def test_populate_spar_invalid_base_name_length(self):
         """Test with mismatched base_name list length"""
         seq_params = {
             'first': 1000,
             'last': 1010,
-            'base_name': ['img1_%04d.tif']  # Only 1 camera, but n_cam = 2
+            'base_name': ['img1_%04d.tif']  # Only 1 camera, but num_cams = 2
         }
-        n_cam = 2
+        num_cams = 2
         
         with pytest.raises(ValueError, match="base_name_list length"):
-            _populate_spar(seq_params, n_cam)
+            _populate_spar(seq_params, num_cams)
 
 
 class TestPopulateVpar:
@@ -211,9 +211,9 @@ class TestPopulateTpar:
                 'tol_dis': 20
             }
         }
-        n_cam = 4
+        num_cams = 4
         
-        result = _populate_tpar(targ_params, n_cam)
+        result = _populate_tpar(targ_params, num_cams)
         
         assert isinstance(result, TargetParams)
         grey_thresholds = result.get_grey_thresholds()
@@ -235,9 +235,9 @@ class TestPopulateTpar:
                 'disco': 20
             }
         }
-        n_cam = 4
+        num_cams = 4
         
-        result = _populate_tpar(targ_params, n_cam)
+        result = _populate_tpar(targ_params, num_cams)
         
         assert isinstance(result, TargetParams)
         grey_thresholds = result.get_grey_thresholds()
@@ -253,20 +253,20 @@ class TestPopulateTpar:
                 # Missing required parameters
             }
         }
-        n_cam = 4
+        num_cams = 4
         
         with pytest.raises(ValueError):
-            _populate_tpar(targ_params, n_cam)
+            _populate_tpar(targ_params, num_cams)
     
     def test_populate_tpar_missing_section(self):
         """Test target parameter population with missing section"""
         targ_params = {
             'invalid_section': {}
         }
-        n_cam = 4
+        num_cams = 4
         
         with pytest.raises(ValueError, match="Target parameters must contain either"):
-            _populate_tpar(targ_params, n_cam)
+            _populate_tpar(targ_params, num_cams)
     
     def test_populate_tpar_missing_grey_thresholds(self):
         """Test target parameter population with missing grey thresholds"""
@@ -285,10 +285,10 @@ class TestPopulateTpar:
                 'tol_dis': 20
             }
         }
-        n_cam = 4
+        num_cams = 4
         
         with pytest.raises(ValueError, match="Missing required grey threshold keys"):
-            _populate_tpar(targ_params, n_cam)
+            _populate_tpar(targ_params, num_cams)
 
 
 if __name__ == "__main__":

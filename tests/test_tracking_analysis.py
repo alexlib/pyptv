@@ -11,21 +11,19 @@ def analyze_tracking_performance():
     """Analyze tracking performance with different parameter settings"""
     
     test_path = Path(__file__).parent / "test_splitter"
+    yaml_file = test_path / "parameters_Run1.yaml"
     script_path = Path(__file__).parent.parent / "pyptv" / "pyptv_batch_plugins.py"
-    
-    if not test_path.exists() or not script_path.exists():
+    if not test_path.exists() or not script_path.exists() or not yaml_file.exists():
         print("❌ Required files not found")
         return
-    
     # Run batch with current parameters
     cmd = [
         sys.executable, 
         str(script_path), 
-        str(test_path), 
+        str(yaml_file), 
         "1000001", 
         "1000003",  # 3 frames for better tracking analysis
-        "--sequence", "ext_sequence_splitter",
-        "--tracking", "ext_tracker_splitter"
+        "--mode", "sequence"
     ]
     
     print("🔍 Running tracking analysis...")
@@ -148,9 +146,9 @@ def check_tracking_parameters():
     
     experiment = Experiment()
     experiment.populate_runs(test_path)
-    experiment.setActive(0)
+    experiment.set_active(0)
     
-    track_params = experiment.parameter_manager.get_parameter('track', {})
+    track_params = experiment.pm.get_parameter('track', {})
     
     if track_params is None:
         print("❌ No tracking parameters found")

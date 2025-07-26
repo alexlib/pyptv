@@ -9,7 +9,7 @@ PyPTV uses a single YAML file to store all experiment parameters. The file is or
 ## File Structure
 
 ```yaml
-n_cam: 4  # Global camera count
+num_cams: 4  # Global camera count
 
 cal_ori:
   # Calibration parameters
@@ -71,10 +71,10 @@ man_ori_coordinates:
 
 ## Global Parameters
 
-### n_cam
+### num_cams
 **Type**: Integer  
 **Description**: Number of cameras in the system  
-**Example**: `n_cam: 4`
+**Example**: `num_cams: 4`
 
 > **Important**: This is the master camera count. Do not use `n_img` anywhere in the YAML file.
 
@@ -367,8 +367,8 @@ To validate your parameter file:
 
 When migrating from older formats:
 
-- Remove any `n_img` fields - use only `n_cam`
-- Ensure all camera arrays have exactly `n_cam` elements
+- Remove any `n_img` fields - use only `num_cams`
+- Ensure all camera arrays have exactly `num_cams` elements
 - Flatten `man_ori.nr` array if it was nested
 - Convert boolean values to lowercase
 

@@ -43,10 +43,10 @@ def test_parameter_gui_experiment_integration():
         # Create experiment and load parameters
         experiment = Experiment()
         experiment.addParamset("Run1", test_yaml_dst)
-        experiment.setActive(0)
+        experiment.set_active(0)
         
         print(f"Experiment active params: {getattr(experiment.active_params, 'name', 'Unknown')}")
-        print(f"Number of cameras: {experiment.parameter_manager.get_n_cam()}")
+        print(f"Number of cameras: {experiment.pm.get_n_cam()}")
         
         # Test Main_Params initialization
         print("\\nTesting Main_Params...")
@@ -73,7 +73,7 @@ def test_parameter_gui_experiment_integration():
         try:
             calib_params = Calib_Params(experiment)
             print(f"✓ Calib_Params created successfully")
-            print(f"  - Number of cameras: {calib_params.n_cam}")
+            print(f"  - Number of cameras: {calib_params.num_cams}")
             print(f"  - Image size: {calib_params.h_image_size}x{calib_params.v_image_size}")
             print(f"  - Calibration images: {[calib_params.cam_1, calib_params.cam_2, calib_params.cam_3, calib_params.cam_4]}")
             print(f"  - Gray value thresholds: {[calib_params.grey_value_treshold_1, calib_params.grey_value_treshold_2, calib_params.grey_value_treshold_3, calib_params.grey_value_treshold_4]}")
@@ -111,10 +111,10 @@ def test_parameter_gui_experiment_integration():
             
             # Update parameters in experiment (simulate ParamHandler)
             img_name = [main_params.Name_1_Image, main_params.Name_2_Image, main_params.Name_3_Image, main_params.Name_4_Image]
-            experiment.parameter_manager.parameters['ptv']['img_name'] = img_name
-            experiment.parameter_manager.parameters['sequence']['first'] = main_params.Seq_First
-            experiment.parameter_manager.parameters['detect_plate']['gvth_1'] = calib_params.grey_value_treshold_1
-            experiment.parameter_manager.parameters['track']['dvxmin'] = tracking_params.dvxmin
+            experiment.pm.parameters['ptv']['img_name'] = img_name
+            experiment.pm.parameters['sequence']['first'] = main_params.Seq_First
+            experiment.pm.parameters['detect_plate']['gvth_1'] = calib_params.grey_value_treshold_1
+            experiment.pm.parameters['track']['dvxmin'] = tracking_params.dvxmin
             
             # Save to YAML
             experiment.save_parameters()
@@ -123,12 +123,12 @@ def test_parameter_gui_experiment_integration():
             # Verify save by reloading
             experiment2 = Experiment()
             experiment2.addParamset("Run1", test_yaml_dst)
-            experiment2.setActive(0)
+            experiment2.set_active(0)
             
-            saved_img_name = experiment2.parameter_manager.parameters['ptv']['img_name'][0]
-            saved_seq_first = experiment2.parameter_manager.parameters['sequence']['first']
-            saved_gvth_1 = experiment2.parameter_manager.parameters['detect_plate']['gvth_1']
-            saved_dvxmin = experiment2.parameter_manager.parameters['track']['dvxmin']
+            saved_img_name = experiment2.pm.parameters['ptv']['img_name'][0]
+            saved_seq_first = experiment2.pm.parameters['sequence']['first']
+            saved_gvth_1 = experiment2.pm.parameters['detect_plate']['gvth_1']
+            saved_dvxmin = experiment2.pm.parameters['track']['dvxmin']
             
             print(f"✓ Verification: img_name[0] = {saved_img_name}")
             print(f"✓ Verification: seq_first = {saved_seq_first}")

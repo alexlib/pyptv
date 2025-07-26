@@ -1,4 +1,11 @@
-n_cam: 4
+num_cams: 4
+plugins:
+  available_tracking:
+  - default
+  available_sequence:
+  - default
+  selected_tracking: default
+  selected_sequence: default
 cal_ori:
   chfield: 0
   fixp_name: cal/calblock_new.txt
@@ -14,17 +21,17 @@ cal_ori:
   - cal/cam_4.tif.ori
   pair_flag: false
   tiff_flag: true
-  cal_splitter: false
+  cal_splitter: true
 criteria:
   X_lay:
-  - -30.0
-  - 50.0
+  - -30
+  - 50
   Zmax_lay:
-  - -15.0
-  - -15.0
+  - -15
+  - -15
   Zmin_lay:
-  - -80.0
-  - -80.0
+  - -80
+  - -80
   cn: 0.02
   cnx: 0.3
   cny: 0.3
@@ -93,7 +100,7 @@ orient:
   xh: 0
   yh: 0
 pft_version:
-  Existing_Target: false
+  Existing_Target: 0
 ptv:
   allcam_flag: false
   chfield: 0
@@ -158,20 +165,6 @@ track:
   dvzmax: 1.9
   dvzmin: -1.9
   flagNewParticles: true
-masking:
-  mask_flag: false
-  mask_base_name: ''
-unsharp_mask:
-  flag: false
-  size: 3
-  strength: 1.0
-plugins:
-  available_tracking:
-  - ext_tracker_splitter
-  available_sequence:
-  - ext_sequence_splitter
-  selected_tracking: ext_tracker_splitter
-  selected_sequence: ext_sequence_splitter
 man_ori_coordinates:
   camera_0:
     point_1:
@@ -225,3 +218,10 @@ man_ori_coordinates:
     point_4:
       x: 118.0
       y: 371.0
+masking:
+  mask_flag: false
+  mask_base_name: ''
+unsharp_mask:
+  flag: false
+  size: 3
+  strength: 1.0

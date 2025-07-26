@@ -21,7 +21,7 @@ Use splitter mode when:
 Enable splitter mode in your YAML configuration:
 
 ```yaml
-n_cam: 2  # Even though it's one physical camera
+num_cams: 2  # Even though it's one physical camera
 
 ptv:
   splitter: true
@@ -266,7 +266,7 @@ sequence:
 Combine splitter mode with multi-camera setups:
 
 ```yaml
-n_cam: 4  # 2 physical cameras, each with splitter
+num_cams: 4  # 2 physical cameras, each with splitter
 
 ptv:
   splitter: true

@@ -58,7 +58,7 @@ test_cavity/
 The test_cavity example demonstrates:
 
 - **4-camera setup** with proper calibration
-- **Correct YAML structure** with `n_cam: 4`
+- **Correct YAML structure** with `num_cams: 4`
 - **Plugin system** usage
 - **Complete workflow** from calibration to tracking
 
@@ -86,7 +86,7 @@ cp tests/test_cavity/parameters_Run1.yaml parameters_my_experiment.yaml
 Edit `parameters_my_experiment.yaml`:
 
 ```yaml
-n_cam: 3  # Adjust for your camera count
+num_cams: 3  # Adjust for your camera count
 
 sequence:
   base_name:
@@ -339,7 +339,7 @@ import matplotlib.pyplot as plt
 
 ### Parameter Configuration
 - Start with test_cavity as template
-- Use only `n_cam`, never `n_img`
+- Use only `num_cams`, never `n_img`
 - Test parameters on single frames first
 - Document parameter changes
 

@@ -27,7 +27,7 @@ def test_parameter_gui_with_experiment():
     
     if test_yaml.exists():
         experiment.addParamset("Run1", test_yaml)
-        experiment.setActive(0)
+        experiment.set_active(0)
         print(f"Loaded test parameters from {test_yaml}")
     else:
         print("Warning: Test YAML file not found, using defaults")
@@ -49,7 +49,7 @@ def test_parameter_gui_with_experiment():
     try:
         calib_params = Calib_Params(experiment)
         print(f"  ✓ Calib_Params created successfully")
-        print(f"  ✓ Number of cameras: {calib_params.n_cam}")
+        print(f"  ✓ Number of cameras: {calib_params.num_cams}")
         print(f"  ✓ Image size: {calib_params.h_image_size}x{calib_params.v_image_size}")
         print(f"  ✓ High pass flag: {calib_params.hp_flag}")
     except Exception as e:
@@ -77,7 +77,7 @@ def test_parameter_gui_with_experiment():
         print(f"  ✓ Modified Num_Cam from {original_n_cam} to {main_params.Num_Cam}")
         
         # Update the experiment
-        experiment.parameter_manager.parameters['ptv']['n_img'] = main_params.Num_Cam
+        experiment.pm.parameters['ptv']['n_img'] = main_params.Num_Cam
         
         # Save parameters
         experiment.save_parameters()
@@ -85,11 +85,11 @@ def test_parameter_gui_with_experiment():
         
         # Verify the change was saved
         experiment.load_parameters_for_active()
-        updated_n_cam = experiment.parameter_manager.parameters['ptv']['n_img']
+        updated_n_cam = experiment.pm.parameters['ptv']['n_img']
         print(f"  ✓ Verified saved parameter: n_img = {updated_n_cam}")
         
         # Restore original value
-        experiment.parameter_manager.parameters['ptv']['n_img'] = original_n_cam
+        experiment.pm.parameters['ptv']['n_img'] = original_n_cam
         experiment.save_parameters()
         print(f"  ✓ Restored original parameter value")
         

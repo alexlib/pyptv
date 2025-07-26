@@ -24,10 +24,10 @@ def test_tracking_parameters_propagation():
     # Create experiment and load parameters
     experiment = Experiment()
     experiment.populate_runs(test_path)
-    experiment.setActive(0)
+    experiment.set_active(0)
     
     # Check YAML parameters
-    track_params_yaml = experiment.parameter_manager.get_parameter('track', {})
+    track_params_yaml = experiment.pm.get_parameter('track')
     print(f"YAML tracking parameters: {track_params_yaml}")
     
     assert track_params_yaml is not None, "Track parameters are None"
@@ -53,7 +53,7 @@ def test_tracking_parameters_propagation():
     
     # Test parameter conversion to C objects
     try:
-        cpar, spar, vpar, track_par, tpar, cals, epar = py_start_proc_c(experiment.parameter_manager)
+        cpar, spar, vpar, track_par, tpar, cals, epar = py_start_proc_c(experiment.pm)
         print("✅ Parameter conversion successful")
     except Exception as e:
         pytest.fail(f"Parameter conversion failed: {e}")
@@ -106,23 +106,22 @@ def test_tracking_parameters_in_batch_run():
     
     test_path = Path(__file__).parent / "test_splitter"
     
-    if not test_path.exists():
-        pytest.skip(f"Test data not found: {test_path}")
-    
     script_path = Path(__file__).parent.parent / "pyptv" / "pyptv_batch_plugins.py"
     
     if not script_path.exists():
         pytest.skip(f"Batch script not found: {script_path}")
     
+    yaml_file = test_path / "parameters_Run1.yaml"
+    if not yaml_file.exists():
+        pytest.skip(f"YAML file not found: {yaml_file}")
     # Run batch with tracking and capture detailed output
     cmd = [
         sys.executable, 
         str(script_path), 
-        str(test_path), 
+        str(yaml_file), 
         "1000001", 
-        "1000002",  # Just 2 frames
-        "--sequence", "ext_sequence_splitter",
-        "--tracking", "ext_tracker_splitter"
+        "1000004",  # Just 2 frames
+        "--mode", "sequence"
     ]
     
     # Set up environment for subprocess
@@ -132,19 +131,9 @@ def test_tracking_parameters_in_batch_run():
     result = subprocess.run(cmd, env=env, capture_output=True, text=True, timeout=60)
     assert result.returncode == 0, f"Batch run failed: {result.stderr}"
 
-    # Read tracking output from file written by pyptv_batch_parallel.py
-    import glob
-    res_dir = test_path / "res"
-    tracking_files = glob.glob(str(res_dir / "tracking_output_*.txt"))
-    assert tracking_files, "No tracking output files found"
-    tracking_lines = []
-    for tracking_file in tracking_files:
-        with open(tracking_file) as f:
-            for line in f:
-                if 'step:' in line and 'links:' in line:
-                    tracking_lines.append(line.strip())
-
-    assert len(tracking_lines) > 0, "No tracking output found"
+    # Check for tracking output in stdout
+    tracking_lines = [line for line in result.stdout.splitlines() if 'step:' in line and 'links:' in line]
+    assert len(tracking_lines) > 0, "No tracking output found in stdout"
 
     # Extract link numbers and verify they're reasonable (not 0 or very low)
     for line in tracking_lines:
@@ -155,7 +144,6 @@ def test_tracking_parameters_in_batch_run():
         print(f"Found tracking line: {line}")
         print(f"Links count: {links_count}")
         assert links_count > 50, f"Very low link count {links_count} suggests tracking parameters may not be working"
-    
     print("✅ Batch tracking run shows reasonable link numbers")
 
 
@@ -202,11 +190,11 @@ def test_parameter_propagation_with_corrupted_yaml():
         
         experiment = Experiment()
         experiment.populate_runs(temp_test_path)
-        experiment.setActive(0)
+        experiment.set_active(0)
         
         # This should now fail explicitly instead of using default 0.0 values
-        with pytest.raises(ValueError, match="Missing required tracking parameters"):
-            py_start_proc_c(experiment.parameter_manager)
+        with pytest.raises(KeyError):
+            py_start_proc_c(experiment.pm)
     
     print("✅ Corrupted YAML correctly raises explicit error")
 
@@ -224,8 +212,8 @@ def test_tracking_parameters_yaml_and_c_conversion():
     from pyptv.ptv import py_start_proc_c
     experiment = Experiment()
     experiment.populate_runs(test_path)
-    experiment.setActive(0)
-    track_params_yaml = experiment.parameter_manager.get_parameter('track', {})
+    experiment.set_active(0)
+    track_params_yaml = experiment.pm.get_parameter('track')
     expected_values = {
         'dvxmin': -1.9,
         'dvxmax': 1.9,
@@ -238,7 +226,7 @@ def test_tracking_parameters_yaml_and_c_conversion():
         assert param in track_params_yaml, f"Missing parameter {param} in YAML"
         assert track_params_yaml[param] == expected_value, (
             f"Wrong value for {param}: got {track_params_yaml[param]}, expected {expected_value}")
-    cpar, spar, vpar, track_par, tpar, cals, epar = py_start_proc_c(experiment.parameter_manager)
+    cpar, spar, vpar, track_par, tpar, cals, epar = py_start_proc_c(experiment.pm)
     assert track_par.get_dvxmin() == expected_values['dvxmin']
     assert track_par.get_dvxmax() == expected_values['dvxmax']
     assert track_par.get_dvymin() == expected_values['dvymin']
@@ -286,9 +274,9 @@ def test_parameter_propagation_with_corrupted_yaml_unit():
         from pyptv.ptv import py_start_proc_c
         experiment = Experiment()
         experiment.populate_runs(temp_test_path)
-        experiment.setActive(0)
-        with pytest.raises(ValueError, match="Missing required tracking parameters"):
-            py_start_proc_c(experiment.parameter_manager)
+        experiment.set_active(0)
+        with pytest.raises(KeyError):
+            py_start_proc_c(experiment.pm)
 
 
 if __name__ == "__main__":

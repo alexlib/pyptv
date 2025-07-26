@@ -19,16 +19,18 @@ def test_ext_sequence_splitter():
     
     # Use the proven working batch script approach
     script_path = Path(__file__).parent.parent / "pyptv" / "pyptv_batch_plugins.py"
-    
+    yaml_file = test_path / "parameters_Run1.yaml"
     if not script_path.exists():
         print(f"❌ Batch script not found: {script_path}")
         return False
-    
+    if not yaml_file.exists():
+        print(f"❌ YAML file not found: {yaml_file}")
+        return False
     # Run just 2 frames for quick testing
     cmd = [
         sys.executable, 
         str(script_path), 
-        str(test_path), 
+        str(yaml_file), 
         "1000001", 
         "1000002",  # Just 2 frames for quick test
         "--sequence", "ext_sequence_splitter"
@@ -97,11 +99,15 @@ def test_batch_command():
         print(f"❌ Test experiment not found: {test_exp_path}")
         return False
     
+    yaml_file = test_exp_path / "parameters_Run1.yaml"
+    if not yaml_file.exists():
+        print(f"❌ YAML file not found: {yaml_file}")
+        return False
     # Run just 2 frames for quick testing
     cmd = [
         sys.executable, 
         str(script_path), 
-        str(test_exp_path), 
+        str(yaml_file), 
         "1000001", 
         "1000002",  # Just 2 frames for quick test
         "--sequence", "ext_sequence_splitter"
