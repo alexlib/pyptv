@@ -488,12 +488,12 @@ def run_tracking_plugin(exp) -> None:
                     return
 
                 if hasattr(plugin, "Tracking"):
-                    print(f"Running sequence plugin: {exp.plugins.track_alg}")
+                    print(f"Running tracking plugin: {exp.plugins.track_alg}")
                     try:
                         tracker = plugin.Tracking(exp=exp)
                         tracker.do_tracking()
                     except Exception as e:
-                        print(f"Error running sequence plugin {plugin_name}: {e}")
+                        print(f"Error running tracking plugin {plugin_name}: {e}")
 
 
 

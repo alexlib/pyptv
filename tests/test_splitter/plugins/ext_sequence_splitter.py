@@ -41,12 +41,12 @@ class Sequence:
         
         # Verify splitter mode is enabled
         if hasattr(self.exp, 'pm'):
-            ptv_params = self.exp.pm.get_parameter('ptv', {})
+            ptv_params = self.exp.pm.get_parameter('ptv')
             if not ptv_params.get('splitter', False):
                 raise ValueError("Splitter mode must be enabled for this sequence processor")
             
             # Get processing parameters
-            masking_params = self.exp.pm.get_parameter('masking', {})
+            masking_params = self.exp.pm.get_parameter('masking')
             inverse_flag = ptv_params.get('inverse', False)
         else:
             # Fallback for older experiment objects

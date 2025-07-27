@@ -83,14 +83,6 @@ def run_batch(yaml_file: Path, seq_first: int, seq_last: int,
     res_dir = Path("res")
     if not res_dir.exists():
         res_dir.mkdir(exist_ok=True)
-    import optv.tracker
-    if hasattr(optv.tracker, "default_naming"):
-        for k in optv.tracker.default_naming.keys():
-            name = optv.tracker.default_naming[k]
-            if isinstance(name, bytes):
-                optv.tracker.default_naming[k] = b"res/" + name if not name.startswith(b"res/") else name
-            elif isinstance(name, str):
-                optv.tracker.default_naming[k] = "res/" + name if not name.startswith("res/") else name
     try:
         if mode in ("both", "sequence"):
             seq_plugin = importlib.import_module(sequence_plugin)
