@@ -29,3 +29,11 @@ def clean_test_environment(test_data_dir):
     # Cleanup after tests
     if results_dir.exists():
         shutil.rmtree(results_dir)
+
+
+def pytest_runtest_setup(item):
+    if 'qt' in item.keywords:
+        try:
+            import PySide6  # or PySide6, depending on your package
+        except ImportError:
+            pytest.skip("Skipping Qt-dependent test: Qt not available")

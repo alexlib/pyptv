@@ -11,6 +11,8 @@ from unittest.mock import patch
 
 from pyptv.experiment import Experiment
 
+pytestmark = pytest.mark.qt
+
 # Since GUI tests require display and can be problematic in CI
 pytestmark = pytest.mark.skipif(
     os.environ.get("DISPLAY") is None or os.environ.get("QT_QPA_PLATFORM") == "offscreen",

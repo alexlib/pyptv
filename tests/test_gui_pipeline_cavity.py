@@ -1,4 +1,6 @@
 import pytest
+pytestmark = pytest.mark.qt
+
 from pathlib import Path
 import shutil
 import numpy as np

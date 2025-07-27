@@ -65,4 +65,4 @@ jobs:
 
       - name: Run tests
         shell: bash -l {0}
-        run: pytest -v -x --tb=short
+        run: pytest -v -x --tb=short -m 'not qt'
