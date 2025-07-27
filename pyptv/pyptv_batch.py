@@ -27,7 +27,7 @@ import sys
 import time
 from typing import Union
 
-from pyptv.ptv import py_start_proc_c, py_trackcorr_init, py_sequence_loop
+from pyptv.ptv import py_start_proc_c, py_trackcorr_init, py_sequence_loop, generate_short_file_bases
 from pyptv.experiment import Experiment
 
 
@@ -137,6 +137,11 @@ def run_batch(yaml_file: Path, seq_first: int, seq_last: int, mode: str = "both"
                 self.corrected = []
 
         proc_exp = ProcessingExperiment(experiment, cpar, spar, vpar, track_par, tpar, cals, epar)
+
+        seq_params = experiment.pm.parameters.get('sequence')
+        base_names = seq_params.get('base_name')
+
+        proc_exp.target_filenames = generate_short_file_bases(base_names)
 
         # Run processing according to mode
         if mode == "both":

@@ -113,6 +113,12 @@ def test_tracking_parameters_in_batch_run():
     with tempfile.TemporaryDirectory() as temp_dir:
         temp_test_path = Path(temp_dir) / "test_splitter"
         shutil.copytree(test_path, temp_test_path)
+        # Print contents of temp_test_path to verify required directories and files
+        required_items = ["img", "cal", "plugins", "res", "parameters_Run1.yaml"]
+        actual_items = [item.name for item in temp_test_path.iterdir()]
+        print(f"Contents of temp_test_path: {actual_items}")
+        for req in required_items:
+            assert req in actual_items, f"Missing required item: {req}"
         yaml_file = temp_test_path / "parameters_Run1.yaml"
         if not yaml_file.exists():
             pytest.skip(f"YAML file not found: {yaml_file}")
@@ -121,7 +127,7 @@ def test_tracking_parameters_in_batch_run():
         with open(yaml_file, "r") as f:
             params = yaml.safe_load(f)
         if "ptv" not in params:
-            params["ptv"] = {}
+            raise ValueError("Missing 'ptv' section in YAML")
         params["ptv"]["splitter"] = True
         with open(yaml_file, "w") as f:
             yaml.safe_dump(params, f)
@@ -133,15 +139,17 @@ def test_tracking_parameters_in_batch_run():
             yaml_file,
             1000001,
             1000004,
-            mode="tracking",
+            mode="both",
             tracking_plugin = "ext_tracker_splitter",
+            sequence_plugin = "ext_sequence_splitter"
         )
 
         # Check for tracking output in res directory
         res_dir = temp_test_path / "res"
+        print(list(Path(res_dir).rglob('*')))
         tracking_lines = []
         for frame in range(1000001, 1000005):
-            output_file = res_dir / f"tracking_output_{frame}.txt"
+            output_file = res_dir / f"ptv_is.{frame}"
             if output_file.exists():
                 with open(output_file, "r") as f:
                     for line in f:

@@ -31,7 +31,7 @@ import multiprocessing
 from concurrent.futures import ProcessPoolExecutor, as_completed
 from typing import Union, List, Tuple
 
-from pyptv.ptv import py_start_proc_c, py_sequence_loop
+from pyptv.ptv import py_start_proc_c, py_sequence_loop, generate_short_file_bases
 from pyptv.experiment import Experiment
 
 # Configure logging
@@ -105,6 +105,12 @@ def run_sequence_chunk(yaml_file: Union[str, Path], seq_first: int, seq_last: in
         
         proc_exp = ProcessingExperiment(experiment, cpar, spar, vpar, track_par, tpar, cals, epar)
         
+        
+        seq_params = experiment.pm.parameters.get('sequence')
+        base_names = seq_params.get('base_name')
+
+        proc_exp.target_filenames = generate_short_file_bases(base_names)
+
         # Run sequence processing
         py_sequence_loop(proc_exp)
         

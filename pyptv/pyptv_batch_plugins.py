@@ -13,7 +13,7 @@ import sys
 import json
 import importlib
 
-from pyptv.ptv import py_start_proc_c
+from pyptv.ptv import generate_short_file_bases, py_start_proc_c
 from pyptv.experiment import Experiment
 
 
@@ -68,6 +68,12 @@ def run_batch(yaml_file: Path, seq_first: int, seq_last: int,
             self.detections = []
             self.corrected = []
     exp_config = ProcessingExperiment(experiment, cpar, spar, vpar, track_par, tpar, cals, epar)
+
+    seq_params = experiment.pm.parameters.get('sequence')
+    base_names = seq_params.get('base_name')
+    img_path = Path(base_names[0]).parent
+    exp_config.target_filenames = [img_path / f'cam{i+1}' for i in range(experiment.pm.num_cams)]
+
     plugins_dir = Path.cwd() / "plugins"
     print(f"[DEBUG] Plugins directory: {plugins_dir}")
     if str(plugins_dir) not in sys.path:
