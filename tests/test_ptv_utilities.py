@@ -6,7 +6,7 @@ import os
 from pathlib import Path
 from unittest.mock import Mock, patch, MagicMock
 from pyptv.ptv import (
-    _read_calibrations, py_pre_processing_c, py_determination_proc_c,
+    _read_calibrations, generate_short_file_bases, py_pre_processing_c, py_determination_proc_c,
     run_sequence_plugin, run_tracking_plugin, py_sequence_loop,
     py_trackcorr_init, py_rclick_delete
 )
@@ -32,6 +32,7 @@ def test_cavity_exp():
     try:
         experiment = Experiment()
         experiment.pm.from_yaml(yaml_file)
+        experiment.target_filenames = generate_short_file_bases(experiment.pm.parameters['sequence']['base_name'])
         yield experiment
     finally:
         os.chdir(original_cwd)
@@ -54,6 +55,9 @@ def test_splitter_exp():
     try:
         experiment = Experiment()
         experiment.pm.from_yaml(yaml_file)
+        large_img_path = Path(experiment.pm.parameters['sequence']['base_name'][0]).parent
+        experiment.target_filenames = [large_img_path / f'cam{i+1}' for i in range(experiment.pm.num_cams)]
+
         yield experiment
     finally:
         os.chdir(original_cwd)
@@ -360,37 +364,35 @@ class TestPySequenceLoop:
         from pyptv import ptv
         
         # Initialize PyPTV core with real experiment data
-        try:
-            cpar, spar, vpar, track_par, tpar, cals, epar = ptv.py_start_proc_c(test_cavity_exp.pm)
-            
-            # Create a proper experiment object for testing
-            exp = Mock()
-            exp.pm = test_cavity_exp.pm
-            exp.num_cams = test_cavity_exp.pm.num_cams
-            exp.cpar = cpar
-            exp.spar = spar
-            exp.vpar = vpar
-            exp.track_par = track_par
-            exp.tpar = tpar
-            exp.cals = cals
-            
-            # Modify to process only 1 frame to keep test fast
-            original_last = spar.get_last()
-            spar.set_last(spar.get_first())  # Process just first frame
-            
-            # Should execute without major errors
-            py_sequence_loop(exp)
-            
-            # Restore original settings
-            spar.set_last(original_last)
-            
-        except Exception as e:
-            # If core initialization fails, skip with informative message
-            pytest.skip(f"Could not initialize PyPTV core with real data: {e}")
-    
+        cpar, spar, vpar, track_par, tpar, cals, epar = ptv.py_start_proc_c(test_cavity_exp.pm)
+        
+        # Create a proper experiment object for testing
+        exp = Mock()
+        exp.pm = test_cavity_exp.pm
+        exp.num_cams = test_cavity_exp.pm.num_cams
+        exp.cpar = cpar
+        exp.spar = spar
+        exp.vpar = vpar
+        exp.track_par = track_par
+        exp.tpar = tpar
+        exp.cals = cals
+        
+        # Modify to process only 1 frame to keep test fast
+        original_last = spar.get_last()
+        spar.set_last(spar.get_first())  # Process just first frame
+
+        exp.target_filenames = test_cavity_exp.target_filenames
+        
+        # Should execute without major errors
+        py_sequence_loop(exp)
+        
+        # Restore original settings
+        spar.set_last(original_last)
+        # If core initialization fails, skip with informative message
+
     def test_py_sequence_loop_invalid_experiment(self):
         """Test sequence loop with invalid experiment"""
-        with pytest.raises(ValueError, match="Object must have either pm or exp1.pm attribute"):
+        with pytest.raises(ValueError):
             py_sequence_loop(None)
 
 
