@@ -522,6 +522,16 @@ class TreeMenuHandler(Handler):
          mainGui.cals, 
          mainGui.epar
          ) = ptv.py_start_proc_c(mainGui.exp1.pm)
+        
+        seq_params = mainGui.get_parameter('sequence')
+        base_names = seq_params.get('base_name')
+
+        if not ptv_params.get('splitter'):
+            mainGui.target_filenames = ptv.generate_short_file_bases(base_names)
+        else:
+            img_path = Path(base_names[0]).parent
+            mainGui.target_filenames = [img_path / f'{ptv.SHORT_BASE}{i+1}' for i in range(mainGui.num_cams)]
+
             
 
         mainGui.clear_plots()
@@ -722,7 +732,7 @@ class TreeMenuHandler(Handler):
         seq_first = seq_params['first']
         seq_last = seq_params['last']
         base_names = seq_params['base_name']
-        short_base_names = ptv.generate_short_file_bases(base_names)
+        short_base_names = info.object.target_filenames
 
         info.object.overlay_set_images(base_names, seq_first, seq_last)
         

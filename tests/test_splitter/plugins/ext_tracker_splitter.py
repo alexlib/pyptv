@@ -29,22 +29,17 @@ class Tracking:
             sys.stdout.flush()
             return
 
-        # Validate required parameters
-        if not hasattr(self.exp, 'track_par') or self.exp.track_par is None:
-            print("Error: No tracking parameters available")
-            sys.stdout.flush()
-            return
 
         print(f"Number of cameras: {self.exp.cpar.get_num_cams()}")
         sys.stdout.flush()
 
-        # Rename base names for each camera individually (following ptv.py pattern)
-        for cam_id in range(self.exp.cpar.get_num_cams()):
-            img_base_name = self.exp.spar.get_img_base_name(cam_id)
-            short_name = Path(img_base_name).parent / f'cam{cam_id+1}.'
-            print(f" Renaming {img_base_name} to {short_name} before C library tracker")
-            sys.stdout.flush()
-            self.exp.spar.set_img_base_name(cam_id, str(short_name))
+
+        img_base_names = [self.exp.spar.get_img_base_name(i) for i in range(self.exp.cpar.get_num_cams())]
+        self.exp.short_file_bases = self.exp.target_filenames
+
+        for cam_id, short_name in enumerate(self.exp.short_file_bases):
+            # print(f"Setting tracker image base name for cam {cam_id+1}: {Path(short_name).resolve()}")
+            self.exp.spar.set_img_base_name(cam_id, str(Path(short_name).resolve())+'.')
 
         try:
             tracker = Tracker(
@@ -55,25 +50,8 @@ class Tracking:
                 self.exp.cals,
                 default_naming
             )
-
-            # Execute tracking and collect output
-            # Patch: Write tracking output to res/tracking_output_{frame}.txt
-            res_dir = Path("res")
-            res_dir.mkdir(exist_ok=True)
-            first_frame = self.exp.spar.get_first()
-            last_frame = self.exp.spar.get_last()
-            for frame in range(first_frame, last_frame + 1):
-                line = f"step: {frame}, curr: 0, next: 0, links: 208, lost: 0, add: 0"
-                output_file = res_dir / f"tracking_output_{frame}.txt"
-                with open(output_file, "w", encoding="utf8") as f:
-                    f.write(line + "\n")
-                    f.write(line + "\n")
-                print(line)
-                sys.stdout.flush()
-                print(line)
-                sys.stdout.flush()
-            print("Tracking completed successfully")
-            sys.stdout.flush()
+            
+            tracker.full_forward()
         except Exception as e:
             print(f"Error during tracking: {e}")
             sys.stdout.flush()

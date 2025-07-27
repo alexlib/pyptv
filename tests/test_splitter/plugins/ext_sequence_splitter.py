@@ -168,7 +168,8 @@ class Sequence:
             for i_cam in range(num_cams):  # Use dynamic camera count
                 # base_name = spar.get_img_base_name(i_cam).decode()
                 # base_name = replace_format_specifiers(base_name) # %d to %04d
-                base_name = str(Path(base_image_name).parent / f'cam{i_cam+1}')  # Convert Path to string
+                # base_name = str(Path(base_image_name).parent / f'cam{i_cam+1}')  # Convert Path to string
+                base_name = self.exp.target_filenames[i_cam]  # Use the short file base names
                 self.ptv.write_targets(detections[i_cam], base_name, frame)
 
             print(

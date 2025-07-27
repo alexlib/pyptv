@@ -370,7 +370,7 @@ def py_correspondences_proc_c(exp):
     )
 
     img_base_names = [exp.spar.get_img_base_name(i) for i in range(exp.num_cams)]
-    short_file_bases = generate_short_file_bases(img_base_names)
+    short_file_bases = exp.target_filenames
     print(f"short_file_bases: {short_file_bases}")
 
     for i_cam in range(exp.num_cams):
@@ -533,7 +533,7 @@ def py_sequence_loop(exp) -> None:
     last_frame = spar.get_last()
     # Generate short_file_bases once per experiment
     img_base_names = [spar.get_img_base_name(i) for i in range(num_cams)]
-    short_file_bases = generate_short_file_bases(img_base_names)
+    short_file_bases = exp.target_filenames
 
     for frame in range(first_frame, last_frame + 1):
         detections = []
@@ -614,7 +614,7 @@ def py_trackcorr_init(exp):
 
     # Generate short_file_bases once per experiment
     img_base_names = [exp.spar.get_img_base_name(i) for i in range(exp.cpar.get_num_cams())]
-    exp.short_file_bases = generate_short_file_bases(img_base_names)
+    exp.short_file_bases = exp.target_filenames
     for cam_id, short_name in enumerate(exp.short_file_bases):
         # print(f"Setting tracker image base name for cam {cam_id+1}: {Path(short_name).resolve()}")
         exp.spar.set_img_base_name(cam_id, str(Path(short_name).resolve())+'.')
