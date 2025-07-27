@@ -1,4 +1,3 @@
-from traits.etsconfig.etsconfig import ETSConfig
 import os
 import sys
 import json
@@ -39,7 +38,6 @@ OpenPTV library is distributed under the terms of LGPL license
 see http://www.openptv.net for more details.
 
 """
-ETSConfig.toolkit = "qt"
 
 class FilteredFileBrowserExample(HasTraits):
     """
