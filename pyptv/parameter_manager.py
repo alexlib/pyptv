@@ -5,6 +5,24 @@ from pyptv import legacy_parameters as legacy_params
 # Minimal ParameterManager for converting between .par directories and YAML files.
 
 class ParameterManager:
+    
+    def get_target_filenames(self):
+        """Return the list of target_filenames for the current experiment, based on YAML parameters and splitter mode."""
+        seq_params = self.parameters.get('sequence')
+        ptv_params = self.parameters.get('ptv')
+        base_names = seq_params.get('base_name')
+        num_cams = self.num_cams
+        # Splitter mode: one base_name, output cam1, cam2, ... in same folder
+        if ptv_params.get('splitter', False):
+            if not base_names:
+                return []
+            img_path = Path(base_names[0]).parent
+            return [img_path / f'cam{i+1}' for i in range(num_cams)]
+        # Non-splitter: one base_name per camera
+        else:
+            return [Path(bn).parent / f'cam{i+1}' for i, bn in enumerate(base_names)]
+        
+    
     def __init__(self):
         self.parameters = {}
         self.num_cams = 0
