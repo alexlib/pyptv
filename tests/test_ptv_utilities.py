@@ -32,7 +32,7 @@ def test_cavity_exp():
     try:
         experiment = Experiment()
         experiment.pm.from_yaml(yaml_file)
-        experiment.target_filenames = generate_short_file_bases(experiment.pm.parameters['sequence']['base_name'])
+        experiment.target_filenames = experiment.pm.get_target_filenames()
         yield experiment
     finally:
         os.chdir(original_cwd)
@@ -55,8 +55,7 @@ def test_splitter_exp():
     try:
         experiment = Experiment()
         experiment.pm.from_yaml(yaml_file)
-        large_img_path = Path(experiment.pm.parameters['sequence']['base_name'][0]).parent
-        experiment.target_filenames = [large_img_path / f'cam{i+1}' for i in range(experiment.pm.num_cams)]
+        experiment.target_filenames = experiment.pm.get_target_filenames()
 
         yield experiment
     finally:
@@ -430,6 +429,7 @@ class TestPyTrackcorrInit:
         exp = Mock()
         exp.cpar.get_num_cams.return_value = 2  # Mock returns integer for range()
         exp.spar = None  # Missing sequence parameters
+        exp.target_filenames = ['cam1', 'cam2']  # Mock target filenames
         
         with pytest.raises(AttributeError):
             py_trackcorr_init(exp)

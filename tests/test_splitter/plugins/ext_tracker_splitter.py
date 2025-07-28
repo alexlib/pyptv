@@ -34,10 +34,10 @@ class Tracking:
         sys.stdout.flush()
 
 
-        img_base_names = [self.exp.spar.get_img_base_name(i) for i in range(self.exp.cpar.get_num_cams())]
-        self.exp.short_file_bases = self.exp.target_filenames
+        # img_base_names = [self.exp.spar.get_img_base_name(i) for i in range(self.exp.cpar.get_num_cams())]
+        # self.exp.short_file_bases = self.exp.target_filenames
 
-        for cam_id, short_name in enumerate(self.exp.short_file_bases):
+        for cam_id, short_name in enumerate(self.exp.target_filenames):
             # print(f"Setting tracker image base name for cam {cam_id+1}: {Path(short_name).resolve()}")
             self.exp.spar.set_img_base_name(cam_id, str(Path(short_name).resolve())+'.')
 

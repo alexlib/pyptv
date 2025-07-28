@@ -138,10 +138,8 @@ def run_batch(yaml_file: Path, seq_first: int, seq_last: int, mode: str = "both"
 
         proc_exp = ProcessingExperiment(experiment, cpar, spar, vpar, track_par, tpar, cals, epar)
 
-        seq_params = experiment.pm.parameters.get('sequence')
-        base_names = seq_params.get('base_name')
-
-        proc_exp.target_filenames = generate_short_file_bases(base_names)
+        # Centralized: get target_filenames from ParameterManager
+        proc_exp.target_filenames = experiment.pm.get_target_filenames()
 
         # Run processing according to mode
         if mode == "both":

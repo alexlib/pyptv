@@ -369,7 +369,7 @@ def py_correspondences_proc_c(exp):
         exp.detections, exp.corrected, exp.cals, exp.vpar, exp.cpar
     )
 
-    img_base_names = [exp.spar.get_img_base_name(i) for i in range(exp.num_cams)]
+    # img_base_names = [exp.spar.get_img_base_name(i) for i in range(exp.num_cams)]
     short_file_bases = exp.target_filenames
     print(f"short_file_bases: {short_file_bases}")
 
@@ -613,9 +613,9 @@ def py_trackcorr_init(exp):
     """Reads all the necessary stuff into Tracker"""
 
     # Generate short_file_bases once per experiment
-    img_base_names = [exp.spar.get_img_base_name(i) for i in range(exp.cpar.get_num_cams())]
-    exp.short_file_bases = exp.target_filenames
-    for cam_id, short_name in enumerate(exp.short_file_bases):
+    # img_base_names = [exp.spar.get_img_base_name(i) for i in range(exp.cpar.get_num_cams())]
+    # exp.short_file_bases = exp.target_filenames
+    for cam_id, short_name in enumerate(exp.target_filenames):
         # print(f"Setting tracker image base name for cam {cam_id+1}: {Path(short_name).resolve()}")
         exp.spar.set_img_base_name(cam_id, str(Path(short_name).resolve())+'.')
 

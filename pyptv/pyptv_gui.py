@@ -521,14 +521,9 @@ class TreeMenuHandler(Handler):
          mainGui.epar
          ) = ptv.py_start_proc_c(mainGui.exp1.pm)
         
-        seq_params = mainGui.get_parameter('sequence')
-        base_names = seq_params.get('base_name')
 
-        if not ptv_params.get('splitter'):
-            mainGui.target_filenames = ptv.generate_short_file_bases(base_names)
-        else:
-            img_path = Path(base_names[0]).parent
-            mainGui.target_filenames = [img_path / f'{ptv.SHORT_BASE}{i+1}' for i in range(mainGui.num_cams)]
+        # Centralized: get target_filenames from ParameterManager
+        mainGui.target_filenames = mainGui.exp1.pm.get_target_filenames()
 
             
 
