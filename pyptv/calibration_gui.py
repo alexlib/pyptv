@@ -964,6 +964,47 @@ class CalibrationGUI(HasTraits):
 
         self.status_text = "Orientation with particles finished."
 
+
+    def _button_orient_dumbbell_fired(self):
+        self.backup_ori_files()
+        targs_all, targ_ix_all, residuals_all = ptv.py_calibration(12, self)
+
+
+
+        for i_cam in range(self.num_cams):
+            targ_ix = targ_ix_all[i_cam]
+            targs = targs_all[i_cam]
+            residuals = residuals_all[i_cam]
+
+            x, y = zip(*[targs[t].pos() for t in targ_ix if t != -999])
+            x, y = zip(*[(xi, yi) for xi, yi in zip(x, y) if xi != 0 and yi != 0])
+
+            self.camera[i_cam]._plot.overlays.clear()
+
+            if os.path.exists(base_names[i_cam] % seq_first):
+                for i_seq in range(seq_first, seq_last + 1):
+                    temp_img = []
+                    for seq in range(seq_first, seq_last):
+                        _ = imread(base_names[i_cam] % seq)
+                        temp_img.append(img_as_ubyte(_))
+
+                    temp_img = np.array(temp_img)
+                    temp_img = np.max(temp_img, axis=0)
+
+                self.camera[i_cam].update_image(temp_img)
+
+            self.drawcross("orient_x", "orient_y", x, y, "orange", 5, i_cam=i_cam)
+
+            self.camera[i_cam].drawquiver(
+                x,
+                y,
+                x + 5 * residuals[: len(x), 0],
+                y + 5 * residuals[: len(x), 1],
+                "red",
+            )
+
+        self.status_text = "Orientation with particles finished."        
+
     def _button_restore_orient_fired(self):
         print("Restoring ORI files\n")
         self.restore_ori_files()

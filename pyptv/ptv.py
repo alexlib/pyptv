@@ -21,6 +21,7 @@ from skimage.color import rgb2gray
 
 # OptV imports
 from optv.calibration import Calibration
+from optv.orientation import dumbbell_target_func
 from optv.correspondences import correspondences, MatchedCoords
 from optv.image_processing import preprocess_image
 from optv.orientation import point_positions
@@ -34,6 +35,8 @@ from optv.parameters import (
 from optv.segmentation import target_recognition
 from optv.tracking_framebuf import TargetArray
 from optv.tracker import Tracker, default_naming
+from optv.transforms import convert_arr_pixel_to_metric
+
 """
 example from Tracker documentation: 
         dict naming - a dictionary with naming rules for the frame buffer 
@@ -676,93 +679,14 @@ def py_calibration(selection, exp):
     if selection == 9:
         pass
 
+    if selection == 12:
+        """ Calibration with dumbbell ."""
+        return calib_dumbbell(exp)
+
     if selection == 10:
-        from optv.tracking_framebuf import Frame
-        
-        # Handle both Experiment objects and MainGUI objects
-        if hasattr(exp, 'pm'):
-            # Traditional experiment object
-            pm = exp.pm
-            cpar = exp.cpar
-            spar = exp.spar
-        elif hasattr(exp, 'exp1') and hasattr(exp.exp1, 'pm'):
-            # MainGUI object - ensure parameter objects are initialized
-            pm = exp.exp1.pm
-            cpar = exp.cpar
-            spar = exp.spar
-        else:
-            raise ValueError("Object must have either pm or exp1.pm attribute")
-        
-        num_cams = cpar.get_num_cams()
-        calibs = _read_calibrations(cpar, num_cams)
+        """ Calibration with particles ."""
 
-        targ_files = [
-            spar.get_img_base_name(c).split("%d")[0].encode('utf-8')
-            for c in range(num_cams)
-        ]
-        
-        orient_params = pm.get_parameter('orient')
-        shaking_params = pm.get_parameter('shaking')
-        
-        flags = [name for name in NAMES if orient_params.get(name) == 1]
-        all_known = []
-        all_detected = [[] for c in range(num_cams)]
-
-        for frm_num in range(shaking_params['shaking_first_frame'], shaking_params['shaking_last_frame'] + 1):
-            frame = Frame(
-                cpar.get_num_cams(),
-                corres_file_base=("res/rt_is").encode('utf-8'),
-                linkage_file_base=("res/ptv_is").encode('utf-8'),
-                target_file_base=targ_files,
-                frame_num=frm_num,
-            )
-
-            all_known.append(frame.positions())
-            for cam in range(num_cams):
-                all_detected[cam].append(frame.target_positions_for_camera(cam))
-
-        all_known = np.vstack(all_known)
-
-        targ_ix_all = []
-        residuals_all = []
-        targs_all = []
-        for cam in range(num_cams):
-            detects = np.vstack(all_detected[cam])
-            assert detects.shape[0] == all_known.shape[0]
-
-            have_targets = ~np.isnan(detects[:, 0])
-            used_detects = detects[have_targets, :]
-            used_known = all_known[have_targets, :]
-
-            targs = TargetArray(len(used_detects))
-
-            for tix in range(len(used_detects)):
-                targ = targs[tix]
-                targ.set_pnr(tix)
-                targ.set_pos(used_detects[tix])
-
-            residuals = full_scipy_calibration(
-                calibs[cam], used_known, targs, exp.cpar, flags=flags
-            )
-            print(f"After scipy full calibration, {np.sum(residuals**2)}")
-
-            print(("Camera %d" % (cam + 1)))
-            print((calibs[cam].get_pos()))
-            print((calibs[cam].get_angles()))
-
-            ori_filename = exp.cpar.get_cal_img_base_name(cam)
-            addpar_filename = ori_filename + ".addpar"
-            ori_filename = ori_filename + ".ori"
-            calibs[cam].write(ori_filename.encode('utf-8'), addpar_filename.encode('utf-8'))
-
-            targ_ix = [t.pnr() for t in targs if t.pnr() != -999]
-
-            targs_all.append(targs)
-            targ_ix_all.append(targ_ix)
-            residuals_all.append(residuals)
-
-        print("End calibration with particles")
-        return targs_all, targ_ix_all, residuals_all
+        return calib_particles(exp)
 
 
 def write_targets(targets: TargetArray, short_file_base: str, frame: int) -> bool:
@@ -1062,3 +986,240 @@ def full_scipy_calibration(
     residuals /= 100
 
     return residuals
+
+
+"""
+Perform dumbbell calibration from existing target files, using a subset of
+the camera set, assuming some cameras are known to have moved and some to have
+remained relatively static (but we can alternate on subsequent runs).
+
+Created on Tue Dec 15 13:39:40 2015
+@author: yosef
+
+Modified for PyPTV on 2025-08-01
+@author: alexlib
+"""
+
+# These readers should go in a nice module, but I wait on Max to finish the 
+# proper bindings.
+
+
+def calib_convergence(calib_vec, targets, calibs, active_cams, cpar,
+    db_length, db_weight):
+    """
+    Mediated the ray_convergence function and the parameter format used by 
+    SciPy optimization routines, by taking a vector of variable calibration
+    parameters and pouring it into the Calibration objects understood by 
+    OpenPTV.
+    
+    Arguments:
+    calib_vec - 1D array. 3 elements: camera 1 position, 3 element: camera 1 
+        angles, next 6 for camera 2 etc.
+    targets - a (c,t,2) array, for t target metric positions in each of c 
+        cameras.
+    calibs - an array of per-camera Calibration objects. The permanent fields 
+        are retained, the variable fields get overwritten.
+    active_cams - a sequence of True/False values stating whether the 
+        corresponding camera is free to move or just a parameter.
+    cpar - a ControlParams object describing the overall setting.
+    db_length - expected distance between two dumbbell points.
+    db_weight - weight of the distance error in the target function.
+    
+    Returns:
+    The weighted ray convergence + length error measure.
+    """
+    calib_pars = calib_vec.reshape(-1, 2, 3)
+    
+    for cam, cal in enumerate(calibs):
+        if not active_cams[cam]:
+            continue
+        
+        # Pop a parameters line:
+        pars = calib_pars[0]
+        calib_pars = calib_pars[1:]
+        
+        cal.set_pos(pars[0])
+        cal.set_angles(pars[1])
+    
+    return dumbbell_target_func(targets, cpar, calibs, db_length, db_weight)
+
+
+def calib_dumbbell(exp):
+
+    # Generate initial-guess calibration objects. These get overwritten by
+    # the optimizer's target function.
+    cal_args = exp.pm.get_parameter('dumbbell')
+
+    calibs = []
+    active = []
+    
+    for cam_data in cal_args:
+        cl = Calibration()
+        cl.from_file(cam_data['ori_file'].encode(), cam_data['addpar_file'].encode())
+        
+        calibs.append(cl)
+        active.append(cam_data['free'])
+    
+    scene_args = yaml_args['scene']
+    scene_args['cams'] = len(cal_args)
+    cpar = ControlParams(**scene_args)
+    
+    db_length = yaml_args['dumbbell']['length']
+    db_weight = yaml_args['dumbbell']['weight']
+    
+    # Soak up all targets to memory. Not perfect but how OpenPTV wants it.
+    # Well, use a limited clip, ok?
+    num_frames = yaml_args['last'] - yaml_args['first'] + 1
+    all_targs = [[] for pt in range(num_frames*2)] # 2 targets per fram
+    
+    for cam in range(len(cal_args)):
+        for frame in range(num_frames):
+            targ_file = yaml_args['template'] % (cam)
+            print(os.path.abspath(targ_file))
+            targs = read_targets(targ_file, yaml_args['first'] + frame)
+            
+            for tix, targ in enumerate(targs):
+                all_targs[frame*2 + tix].append(targ.pos())
+    
+    all_targs = np.array([convert_arr_pixel_to_metric(np.array(targs), cpar) \
+        for targs in all_targs])
+    assert(all_targs.shape[1] == len(cal_args) and all_targs.shape[2] == 2)
+    
+    # Generate initial guess vector and bounds for optimization:
+    num_active = np.sum(active)
+    calib_vec = np.empty((num_active, 2, 3))
+    active_ptr = 0
+    for cam in range(len(cal_args)):
+        if active[cam]:
+            calib_vec[active_ptr,0] = calibs[cam].get_pos()
+            calib_vec[active_ptr,1] = calibs[cam].get_angles()
+            active_ptr += 1
+        
+        # Positions within a neighbourhood of the initial guess, so we don't 
+        # converge to the trivial solution where all cameras are in the same 
+        # place.
+    calib_vec = calib_vec.flatten()
+    
+    # Test optimizer-ready target function:
+    print("Initial values (1 row per camera, pos, then angle):")
+    print(calib_vec.reshape(len(cal_args),-1))
+    print("Current target function (to minimize):", end=' ')
+    print(calib_convergence(calib_vec, all_targs, calibs, active, cpar,
+        db_length, db_weight))
+    
+    # Optimization:
+    res = minimize(calib_convergence, calib_vec, 
+                   args=(all_targs, calibs, active, cpar, db_length, db_weight),
+                   tol=1, options={'maxiter': 1000})
+    
+    print("Result of minimize:")
+    print(res.x.reshape(len(cal_args),-1))
+    print("Success:", res.success, res.message)
+    print("Final target function:", end=' ')
+    print(calib_convergence(res.x, all_targs, calibs, active, cpar,
+        db_length, db_weight))
+    
+    # if cli_args.clobber:
+    #     x = res.x.reshape(-1,2,3)
+    #     for cam in range(len(cal_args)):
+    #         if active[cam]:
+    #             # Make sure 'minimize' didn't play around:
+    #             calibs[cam].set_pos(x[0,0])
+    #             calibs[cam].set_angles(x[0,1])
+    #             calibs[cam].write(cal_args[cam]['ori_file'].encode(), 
+    #                 cal_args[cam]['addpar_file'].encode())
+    #             x = x[1:]
+
+    # Update the original calibration files with the new parameters
+    raise NotImplementedError("Calibration update not implemented yet.")
+
+
+def calib_particles(exp):
+    """Calibration with particles."""
+    
+    from optv.tracking_framebuf import Frame
+    
+    # Handle both Experiment objects and MainGUI objects
+    if hasattr(exp, 'pm'):
+        # Traditional experiment object
+        pm = exp.pm
+        cpar = exp.cpar
+        spar = exp.spar
+    elif hasattr(exp, 'exp1') and hasattr(exp.exp1, 'pm'):
+        # MainGUI object - ensure parameter objects are initialized
+        pm = exp.exp1.pm
+        cpar = exp.cpar
+        spar = exp.spar
+    else:
+        raise ValueError("Object must have either pm or exp1.pm attribute")
+    
+    num_cams = cpar.get_num_cams()
+    calibs = _read_calibrations(cpar, num_cams)
+
+    targ_files = [
+        spar.get_img_base_name(c).split("%d")[0].encode('utf-8')
+        for c in range(num_cams)
+    ]
+    
+    orient_params = pm.get_parameter('orient')
+    shaking_params = pm.get_parameter('shaking')
+    
+    flags = [name for name in NAMES if orient_params.get(name) == 1]
+    all_known = []
+    all_detected = [[] for c in range(num_cams)]
+
+    for frm_num in range(shaking_params['shaking_first_frame'], shaking_params['shaking_last_frame'] + 1):
+        frame = Frame(
+            cpar.get_num_cams(),
+            corres_file_base=("res/rt_is").encode('utf-8'),
+            linkage_file_base=("res/ptv_is").encode('utf-8'),
+            target_file_base=targ_files,
+            frame_num=frm_num,
+        )
+
+        all_known.append(frame.positions())
+        for cam in range(num_cams):
+            all_detected[cam].append(frame.target_positions_for_camera(cam))
+
+    all_known = np.vstack(all_known)
+
+    targ_ix_all = []
+    residuals_all = []
+    targs_all = []
+    for cam in range(num_cams):
+        detects = np.vstack(all_detected[cam])
+        assert detects.shape[0] == all_known.shape[0]
+
+        have_targets = ~np.isnan(detects[:, 0])
+        used_detects = detects[have_targets, :]
+        used_known = all_known[have_targets, :]
+
+        targs = TargetArray(len(used_detects))
+
+        for tix in range(len(used_detects)):
+            targ = targs[tix]
+            targ.set_pnr(tix)
+            targ.set_pos(used_detects[tix])
+
+        residuals = full_scipy_calibration(
+            calibs[cam], used_known, targs, exp.cpar, flags=flags
+        )
+        print(f"After scipy full calibration, {np.sum(residuals**2)}")
+
+        print(("Camera %d" % (cam + 1)))
+        print((calibs[cam].get_pos()))
+        print((calibs[cam].get_angles()))
+
+        ori_filename = exp.cpar.get_cal_img_base_name(cam)
+        addpar_filename = ori_filename + ".addpar"
+        ori_filename = ori_filename + ".ori"
+        calibs[cam].write(ori_filename.encode('utf-8'), addpar_filename.encode('utf-8'))
+
+        targ_ix = [t.pnr() for t in targs if t.pnr() != -999]
+
+        targs_all.append(targs)
+        targ_ix_all.append(targ_ix)
+        residuals_all.append(residuals)
+
+    print("End calibration with particles")
+    return targs_all, targ_ix_all, residuals_all
