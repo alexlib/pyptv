@@ -8,7 +8,7 @@ from unittest.mock import Mock, patch, MagicMock
 from pyptv.ptv import (
     _read_calibrations, generate_short_file_bases, py_pre_processing_c, py_determination_proc_c,
     run_sequence_plugin, run_tracking_plugin, py_sequence_loop,
-    py_trackcorr_init, py_rclick_delete
+    py_trackcorr_init
 )
 from pyptv.experiment import Experiment
 from optv.parameters import ControlParams
@@ -438,25 +438,25 @@ class TestPyTrackcorrInit:
 class TestPyRclickDelete:
     """Test py_rclick_delete function"""
     
-    def test_py_rclick_delete_basic(self):
-        """Test basic right-click delete"""
-        x, y, n = 100, 200, 0
-        
-        # Function is a stub that just passes, so test it returns None
-        result = py_rclick_delete(x, y, n)
-        assert result is None
+    # def test_py_rclick_delete_basic(self):
+    #     """Test basic right-click delete"""
+    #     x, y, n = 100, 200, 0
+    #     
+    #     # Function is a stub that just passes, so test it returns None
+    #     result = py_rclick_delete(x, y, n)
+    #     assert result is None
     
-    def test_py_rclick_delete_invalid_coords(self):
-        """Test right-click delete with invalid coordinates"""
-        # Function is a stub that just passes, so test it returns None
-        result = py_rclick_delete(-1, -1, 0)
-        assert result is None
+    # def test_py_rclick_delete_invalid_coords(self):
+    #     """Test right-click delete with invalid coordinates"""
+    #     # Function is a stub that just passes, so test it returns None
+    #     result = py_rclick_delete(-1, -1, 0)
+    #     assert result is None
     
-    def test_py_rclick_delete_invalid_camera(self):
-        """Test right-click delete with invalid camera number"""
-        # Function is a stub that just passes, so test it returns None
-        result = py_rclick_delete(100, 200, -1)
-        assert result is None
+    # def test_py_rclick_delete_invalid_camera(self):
+    #     """Test right-click delete with invalid camera number"""
+    #     # Function is a stub that just passes, so test it returns None
+    #     result = py_rclick_delete(100, 200, -1)
+    #     assert result is None
 
 
 if __name__ == "__main__":

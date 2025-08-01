@@ -641,13 +641,6 @@ def py_trackcorr_init(exp):
 
 # ------- Utilities ----------#
 
-
-def py_rclick_delete(x: int, y: int, n: int) -> None:
-    """Delete clicked points (stub function).
-    """
-    pass
-
-
 def py_get_pix_N(x: int, y: int, n: int) -> Tuple[List[int], List[int]]:
     """Get pixel coordinates (stub function).
     """
@@ -1136,7 +1129,7 @@ def calib_dumbbell(exp):
 
 def calib_particles(exp):
     """Calibration with particles."""
-    
+
     from optv.tracking_framebuf import Frame
     
     # Handle both Experiment objects and MainGUI objects
