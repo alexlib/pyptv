@@ -273,9 +273,12 @@ class CalibrationGUI(HasTraits):
         print(f"Calibration GUI working directory: {Path.cwd()}")
 
         # Create Experiment using the YAML file
-        self.experiment = Experiment()
+        from pyptv.parameter_manager import ParameterManager
+        pm = ParameterManager()
+        pm.from_yaml(self.yaml_path)
+        self.experiment = Experiment(pm=pm)
         self.experiment.populate_runs(self.working_folder)
-        self.experiment.pm.from_yaml(self.experiment.active_params.yaml_path)
+        # self.experiment.pm.from_yaml(self.experiment.active_params.yaml_path)
         
         ptv_params = self.experiment.get_parameter('ptv')
         if ptv_params is None:

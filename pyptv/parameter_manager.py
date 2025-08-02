@@ -237,6 +237,7 @@ class ParameterManager:
 
         self.num_cams = data.get('num_cams')
         self.parameters = data
+        self.yaml_path = file_path  # Store the path for later reference
 
 
     def to_directory(self, dir_path):

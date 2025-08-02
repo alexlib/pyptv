@@ -996,6 +996,82 @@ Modified for PyPTV on 2025-08-01
 # These readers should go in a nice module, but I wait on Max to finish the 
 # proper bindings.
 
+def dumbbell_target_func(targets, cpar, calibs, db_length, db_weight):
+    """
+    Calculate the ray convergence error for a set of targets and calibrations.
+
+    Arguments:
+    targets : np.ndarray
+        Array of shape (num_cams, num_targets, 2), where num_cams is the number of cameras,
+        num_targets is the total number of dumbbell endpoints (should be even, typically 2 per frame),
+        and 2 corresponds to the (x, y) metric coordinates for each target in each camera.
+    cpar : ControlParams
+        A ControlParams object describing the overall setting.
+    calibs : list of Calibration
+        An array of per-camera Calibration objects.
+    db_length : float
+        Expected distance between two dumbbell points.
+    db_weight : float
+        Weight of the distance error in the target function.
+
+    Returns:
+    float
+        The weighted ray convergence + length error measure.
+    """
+    from optv.transforms import multi_cam_point_positions
+
+    num_cams = cpar.get_num_cams()
+    num_targs = targets.shape[1]
+    multimed_pars = cpar.get_multimedia_params()
+
+    # Prepare the result arrays
+    res = [np.zeros((num_cams, 3)) for _ in range(2)]
+    res_current = None
+    dtot = 0.0
+    len_err_tot = 0.0
+    dist = 0.0
+
+    # Iterate over pairs of targets
+    if num_targs % 2 != 0:
+        raise ValueError("Number of targets must be even for dumbbell calibration")
+    
+    # Process each target pair
+    for pt in range(0, num_targs, 2):
+        # For each pair of targets (dumbbell ends)
+        # Get their 2D positions in all cameras for this pair
+        pair_targets = targets[:, pt:pt+2, :]  # shape: (num_cams, 2, pos)
+        # Compute their 3D positions using all cameras
+        # Each column: [cam1_t1, cam2_t1, ..., camN_t1], [cam1_t2, ..., camN_t2]
+        # So we need to transpose to (2, num_cams, pos)
+        pair_targets = pair_targets.transpose(1, 0, 2)  # shape: (2, num_cams, pos)
+        # Get 3D positions for each end
+        xyz1, err1 = multi_cam_point_positions(pair_targets[0], cpar, calibs)
+        xyz2, err2 = multi_cam_point_positions(pair_targets[1], cpar, calibs)
+        # xyz1, xyz2 are (1, 3) arrays (single point)
+        # Compute the distance between the two ends
+        dist = np.linalg.norm(xyz1[0] - xyz2[0])
+        # Accumulate the error between measured and expected dumbbell length
+        len_err_tot += abs(dist - db_length)
+        # Accumulate the ray convergence error (sum of distances from rays to intersection)
+        # Use the error returned by point_positions
+        dtot += err1 + err2
+
+
+    # Calculate the total error
+    len_err_tot /= 2.0  # since we counted pairs, divide by 2
+
+    # Calculate the total error as a weighted sum of ray convergence and length error
+    dtot /= num_targs / 2.0  # average over pairs
+    if db_length <= 0:
+        raise ValueError("Dumbbell length must be positive")
+    
+    if db_weight < 0:
+        raise ValueError("Dumbbell weight must be non-negative")
+
+    # Return the total error
+    return dtot + db_weight * len_err_tot / (num_targs / 2.0)   
+
+
 
 def calib_convergence(calib_vec, targets, calibs, active_cams, cpar,
     db_length, db_weight):
@@ -1037,29 +1113,17 @@ def calib_convergence(calib_vec, targets, calibs, active_cams, cpar,
     return dumbbell_target_func(targets, cpar, calibs, db_length, db_weight)
 
 
-def calib_dumbbell(exp)-> None:
+def calib_dumbbell(cal_gui)-> None:
     """Calibration with dumbbell targets.
 
     Args:
         exp: Either an Experiment object with pm attribute,
              or a MainGUI object with exp1.pm and cached parameter objects
     """
-
-    # Use exp.cpar, exp.spar, exp.cals, etc.
-    if hasattr(exp, 'pm'):
-        pm = exp.pm
-        num_cams = pm.num_cams
-        cpar = exp.cpar
-        spar = exp.spar
-        cals = exp.cals
-    elif hasattr(exp, 'exp1') and hasattr(exp.exp1, 'pm'):
-        pm = exp.exp1.pm
-        num_cams = exp.num_cams
-        cpar = exp.cpar
-        spar = exp.spar
-        cals = exp.cals
-    else:
-        raise ValueError("Object must have either pm or exp1.pm attribute")
+    pm = cal_gui.experiment.pm
+    cpar, spar, vpar, track_par, tpar, cals, epar = py_start_proc_c(pm)
+    num_cams = cpar.get_num_cams()
+    target_filenames = pm.get_target_filenames()
 
     # Get dumbbell length from parameters (or set default)
     db_length = pm.get_parameter('dumbbell').get('dumbbell_scale')
@@ -1070,30 +1134,34 @@ def calib_dumbbell(exp)-> None:
     last_frame = spar.get_last()
 
     num_frames = last_frame - first_frame + 1
-    all_targs = [[] for pt in range(num_frames*2)] # 2 targets per fram
-    
+    # all_targs = [[] for pt in range(num_frames*2)] # 2 targets per fram
+    all_targs = []
     for frame in range(num_frames):
         frame_targets = []
         valid = True
         for cam in range(num_cams):
-            targs = read_targets(exp.target_filenames[cam], first_frame + frame)
+            targs = read_targets(target_filenames[cam], first_frame + frame)
             if len(targs) != 2:
                 valid = False
                 break
             frame_targets.append([targ.pos() for targ in targs])
         if valid:
             # Only add targets if all cameras have exactly two targets
-            for tix in range(2):
-                all_targs[frame*2 + tix].extend([frame_targets[cam][tix] for cam in range(num_cams)])
+            # for tix in range(2):
+            #     all_targs[frame*2 + tix].extend([frame_targets[cam][tix] for cam in range(num_cams)])
+            all_targs.append(frame_targets)
     
+    all_targs = np.array(all_targs)
+    assert(all_targs.shape[1] == num_cams and all_targs.shape[2] == 2)
+    num_frames, n_cams, num_targs, num_pos = all_targs.shape
+    all_targs = all_targs.transpose(1,0,2,3).reshape(n_cams, num_frames*num_targs, num_pos)
+
     all_targs = np.array([convert_arr_pixel_to_metric(np.array(targs), cpar) \
         for targs in all_targs])
     
-    assert(all_targs.shape[1] == num_cams and all_targs.shape[2] == 2)
-    
     # Generate initial guess vector and bounds for optimization:
-    active = np.ones(num_cams, 1) # 1 means camera can move
-    num_active = np.sum(active)
+    active = np.ones(num_cams) # 1 means camera can move
+    num_active = int(np.sum(active))
     calib_vec = np.empty((num_active, 2, 3))
     active_ptr = 0
     for cam in range(num_cams):

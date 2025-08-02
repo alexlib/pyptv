@@ -1205,7 +1205,7 @@ class MainGUI(HasTraits):
         #         break
 
         # Get configuration from Experiment's ParameterManager
-        print("Initializing MainGUI with parameters from {yaml_file}")
+        print(f"Initializing MainGUI with parameters from {yaml_file}")
         ptv_params = self.exp1.get_parameter('ptv')
         if ptv_params is None:
             raise ValueError("PTV parameters not found in the provided YAML file")
@@ -1232,6 +1232,19 @@ class MainGUI(HasTraits):
                 self.right_click_process, 
                 "rclicked")
         
+        # Ensure the active parameter set is the first in the paramsets list for correct tree display
+        if hasattr(self.exp1, "active_params") and self.exp1.active_params is not None:
+            active_yaml = Path(self.exp1.active_params.yaml_path)
+            # Find the index of the active paramset
+            idx = next(
+                (i for i, p in enumerate(self.exp1.paramsets)
+                 if hasattr(p, "yaml_path") and Path(p.yaml_path).resolve() == active_yaml.resolve()),
+                None
+            )
+            if idx is not None and idx != 0:
+                # Move active paramset to the front
+                self.exp1.paramsets.insert(0, self.exp1.paramsets.pop(idx))
+                self.exp1.set_active(0)
 
     def get_parameter(self, key):
         """Delegate parameter access to experiment"""
