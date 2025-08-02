@@ -1041,21 +1041,44 @@ def calib_dumbbell(exp):
 
     # Generate initial-guess calibration objects. These get overwritten by
     # the optimizer's target function.
-    cal_args = exp.pm.get_parameter('dumbbell')
+    # cal_args = exp.pm.get_parameter('dumbbell')
 
-    calibs = []
-    active = []
+    # calibs = []
+    # active = []
     
-    for cam_data in cal_args:
-        cl = Calibration()
-        cl.from_file(cam_data['ori_file'].encode(), cam_data['addpar_file'].encode())
+    # for cam_data in cal_args:
+    #     cl = Calibration()
+    #     cl.from_file(cam_data['ori_file'].encode(), cam_data['addpar_file'].encode())
         
-        calibs.append(cl)
-        active.append(cam_data['free'])
+    #     calibs.append(cl)
+    #     active.append(cam_data['free'])
     
-    scene_args = yaml_args['scene']
-    scene_args['cams'] = len(cal_args)
-    cpar = ControlParams(**scene_args)
+    # scene_args = yaml_args['scene']
+    # scene_args['cams'] = len(cal_args)
+    # cpar = ControlParams(**scene_args)
+
+        # Handle both Experiment objects and MainGUI objects
+    if hasattr(exp, 'pm'):
+        # Traditional experiment object
+        pm = exp.pm
+        num_cams = pm.num_cams
+        cpar = exp.cpar
+        spar = exp.spar
+        vpar = exp.vpar
+        tpar = exp.tpar
+        cals = exp.cals
+    elif hasattr(exp, 'exp1') and hasattr(exp.exp1, 'pm'):
+        # MainGUI object - ensure parameter objects are initialized
+        pm = exp.exp1.pm
+        num_cams = exp.num_cams
+        cpar = exp.cpar
+        spar = exp.spar
+        vpar = exp.vpar
+        tpar = exp.tpar
+        cals = exp.cals
+    else:
+        raise ValueError("Object must have either pm or exp1.pm attribute")
+    
     
     db_length = yaml_args['dumbbell']['length']
     db_weight = yaml_args['dumbbell']['weight']
@@ -1136,13 +1159,21 @@ def calib_particles(exp):
     if hasattr(exp, 'pm'):
         # Traditional experiment object
         pm = exp.pm
+        num_cams = pm.num_cams
         cpar = exp.cpar
         spar = exp.spar
+        vpar = exp.vpar
+        tpar = exp.tpar
+        cals = exp.cals
     elif hasattr(exp, 'exp1') and hasattr(exp.exp1, 'pm'):
         # MainGUI object - ensure parameter objects are initialized
         pm = exp.exp1.pm
+        num_cams = exp.num_cams
         cpar = exp.cpar
         spar = exp.spar
+        vpar = exp.vpar
+        tpar = exp.tpar
+        cals = exp.cals
     else:
         raise ValueError("Object must have either pm or exp1.pm attribute")
     
