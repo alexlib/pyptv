@@ -1018,7 +1018,7 @@ def dumbbell_target_func(targets, cpar, calibs, db_length, db_weight):
     float
         The weighted ray convergence + length error measure.
     """
-    from optv.transforms import multi_cam_point_positions
+    from optv.orientation import multi_cam_point_positions
 
     num_cams = cpar.get_num_cams()
     num_targs = targets.shape[1]
@@ -1045,8 +1045,8 @@ def dumbbell_target_func(targets, cpar, calibs, db_length, db_weight):
         # So we need to transpose to (2, num_cams, pos)
         pair_targets = pair_targets.transpose(1, 0, 2)  # shape: (2, num_cams, pos)
         # Get 3D positions for each end
-        xyz1, err1 = multi_cam_point_positions(pair_targets[0], cpar, calibs)
-        xyz2, err2 = multi_cam_point_positions(pair_targets[1], cpar, calibs)
+        xyz1, err1 = multi_cam_point_positions(pair_targets[0,np.newaxis], cpar, calibs)
+        xyz2, err2 = multi_cam_point_positions(pair_targets[1,np.newaxis], cpar, calibs)
         # xyz1, xyz2 are (1, 3) arrays (single point)
         # Compute the distance between the two ends
         dist = np.linalg.norm(xyz1[0] - xyz2[0])
