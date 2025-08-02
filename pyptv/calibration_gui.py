@@ -422,6 +422,7 @@ class CalibrationGUI(HasTraits):
         calib_params_gui.edit_traits(view='Calib_Params_View', kind='livemodal')
 
     def _button_showimg_fired(self):
+
         print("Loading images/parameters \n")
         (
             self.cpar,
@@ -434,6 +435,7 @@ class CalibrationGUI(HasTraits):
         ) = ptv.py_start_proc_c(self.experiment.pm)
 
         self.epar = self.get_parameter('examine')
+        ptv_params = self.experiment.pm.get_parameter('ptv')
 
         if self.epar['Combine_Flag'] is True: # type: ignore
             print("Combine Flag is On")
@@ -673,7 +675,7 @@ class CalibrationGUI(HasTraits):
             self.reset_show_images()
             self.need_reset = 0
 
-        self.backup_ori_files()
+        self._backup_ori_files()
 
         for i_cam in range(self.num_cams):
             selected_points = np.zeros((4, 3))
@@ -709,7 +711,7 @@ class CalibrationGUI(HasTraits):
             self.reset_show_images()
             self.need_reset = 0
 
-        self.backup_ori_files()
+        self._backup_ori_files()
 
         orient_params = self.get_parameter('orient')
         flags = [name for name in NAMES if orient_params.get(name) == 1]
@@ -921,7 +923,8 @@ class CalibrationGUI(HasTraits):
         np.savetxt(txt_matched, known, fmt="%10.5f")
 
     def _button_orient_part_fired(self):
-        self.backup_ori_files()
+        """ Orientation using a particle tracking method."""
+        self._backup_ori_files()
         targs_all, targ_ix_all, residuals_all = ptv.py_calibration(10, self)
 
         shaking_params = self.get_parameter('shaking')
@@ -968,55 +971,25 @@ class CalibrationGUI(HasTraits):
 
 
     def _button_orient_dumbbell_fired(self):
-        self.backup_ori_files()
-        targs_all, targ_ix_all, residuals_all = ptv.py_calibration(12, self)
+        """ Orientation using a dumbbell calibration method."""
+        self._backup_ori_files()
+        ptv.py_calibration(12, self)
 
-
-
-        for i_cam in range(self.num_cams):
-            targ_ix = targ_ix_all[i_cam]
-            targs = targs_all[i_cam]
-            residuals = residuals_all[i_cam]
-
-            x, y = zip(*[targs[t].pos() for t in targ_ix if t != -999])
-            x, y = zip(*[(xi, yi) for xi, yi in zip(x, y) if xi != 0 and yi != 0])
-
-            self.camera[i_cam]._plot.overlays.clear()
-
-            if os.path.exists(base_names[i_cam] % seq_first):
-                for i_seq in range(seq_first, seq_last + 1):
-                    temp_img = []
-                    for seq in range(seq_first, seq_last):
-                        _ = imread(base_names[i_cam] % seq)
-                        temp_img.append(img_as_ubyte(_))
-
-                    temp_img = np.array(temp_img)
-                    temp_img = np.max(temp_img, axis=0)
-
-                self.camera[i_cam].update_image(temp_img)
-
-            self.drawcross("orient_x", "orient_y", x, y, "orange", 5, i_cam=i_cam)
-
-            self.camera[i_cam].drawquiver(
-                x,
-                y,
-                x + 5 * residuals[: len(x), 0],
-                y + 5 * residuals[: len(x), 1],
-                "red",
-            )
-
-        self.status_text = "Orientation with particles finished."        
+        self.status_text = "Orientation with dumbbell finished."        
 
     def _button_restore_orient_fired(self):
+        """ Restores original orientation files from backup."""
         print("Restoring ORI files\n")
         self.restore_ori_files()
 
     def reset_plots(self):
+        """ Resets all plots in the camera windows."""
         for i in range(len(self.camera)):
             self.camera[i]._plot.delplot(*self.camera[i]._plot.plots.keys()[0:])
             self.camera[i]._plot.overlays.clear()
 
     def reset_show_images(self):
+        """ Resets the images in all camera windows."""
         for i, cam in enumerate(self.camera):
             cam._plot.delplot(*list(cam._plot.plots.keys())[0:])
             cam._plot.overlays = []
@@ -1031,21 +1004,24 @@ class CalibrationGUI(HasTraits):
             cam._plot.request_redraw()
 
     def _button_edit_ori_files_fired(self):
+        """ Opens the editor for orientation files."""
         editor = oriEditor(experiment=self.experiment)
         editor.edit_traits(kind="livemodal")
 
     def _button_edit_addpar_files_fired(self):
+        """ Opens the editor for additional parameter files."""
         editor = addparEditor(experiment=self.experiment)
         editor.edit_traits(kind="livemodal")
 
     def drawcross(self, str_x, str_y, x, y, color1, size1, i_cam=None):
+        """ Draws crosses on the camera plots."""
         if i_cam is None:
             for i in range(self.num_cams):
                 self.camera[i].drawcross(str_x, str_y, x[i], y[i], color1, size1)
         else:
             self.camera[i_cam].drawcross(str_x, str_y, x, y, color1, size1)
 
-    def backup_ori_files(self):
+    def _backup_ori_files(self):
         for f in self.get_parameter('cal_ori')['img_ori'][: self.num_cams]:
             print(f"Backing up {f}")
             shutil.copyfile(f, f + ".bck")
@@ -1058,16 +1034,6 @@ class CalibrationGUI(HasTraits):
             shutil.copyfile(f + ".bck", f)
             g = f.replace("ori", "addpar")
             shutil.copyfile(g, g + ".bck")
-
-    def protect_ori_files(self):
-        for f in self.get_parameter('cal_ori')['img_ori'][: self.num_cams]:
-            with open(f, "r") as d:
-                d.read().split()
-                if not np.all(
-                    np.isfinite(np.asarray(d).astype("f"))
-                ):
-                    print("protected ORI file %s " % f)
-                    shutil.copyfile(f + ".bck", f)
 
     def _read_cal_points(self):
         return np.atleast_1d(

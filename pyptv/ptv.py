@@ -1037,78 +1037,69 @@ def calib_convergence(calib_vec, targets, calibs, active_cams, cpar,
     return dumbbell_target_func(targets, cpar, calibs, db_length, db_weight)
 
 
-def calib_dumbbell(exp):
+def calib_dumbbell(exp)-> None:
+    """Calibration with dumbbell targets.
 
-    # Generate initial-guess calibration objects. These get overwritten by
-    # the optimizer's target function.
-    # cal_args = exp.pm.get_parameter('dumbbell')
+    Args:
+        exp: Either an Experiment object with pm attribute,
+             or a MainGUI object with exp1.pm and cached parameter objects
+    """
 
-    # calibs = []
-    # active = []
-    
-    # for cam_data in cal_args:
-    #     cl = Calibration()
-    #     cl.from_file(cam_data['ori_file'].encode(), cam_data['addpar_file'].encode())
-        
-    #     calibs.append(cl)
-    #     active.append(cam_data['free'])
-    
-    # scene_args = yaml_args['scene']
-    # scene_args['cams'] = len(cal_args)
-    # cpar = ControlParams(**scene_args)
-
-        # Handle both Experiment objects and MainGUI objects
+    # Use exp.cpar, exp.spar, exp.cals, etc.
     if hasattr(exp, 'pm'):
-        # Traditional experiment object
         pm = exp.pm
         num_cams = pm.num_cams
         cpar = exp.cpar
         spar = exp.spar
-        vpar = exp.vpar
-        tpar = exp.tpar
         cals = exp.cals
     elif hasattr(exp, 'exp1') and hasattr(exp.exp1, 'pm'):
-        # MainGUI object - ensure parameter objects are initialized
         pm = exp.exp1.pm
         num_cams = exp.num_cams
         cpar = exp.cpar
         spar = exp.spar
-        vpar = exp.vpar
-        tpar = exp.tpar
         cals = exp.cals
     else:
         raise ValueError("Object must have either pm or exp1.pm attribute")
-    
-    
-    db_length = yaml_args['dumbbell']['length']
-    db_weight = yaml_args['dumbbell']['weight']
-    
-    # Soak up all targets to memory. Not perfect but how OpenPTV wants it.
-    # Well, use a limited clip, ok?
-    num_frames = yaml_args['last'] - yaml_args['first'] + 1
+
+    # Get dumbbell length from parameters (or set default)
+    db_length = pm.get_parameter('dumbbell').get('dumbbell_scale')
+    db_weight = pm.get_parameter('dumbbell').get('dumbbell_penalty_weight')
+
+    # Get frame range
+    first_frame = spar.get_first()
+    last_frame = spar.get_last()
+
+    num_frames = last_frame - first_frame + 1
     all_targs = [[] for pt in range(num_frames*2)] # 2 targets per fram
     
-    for cam in range(len(cal_args)):
-        for frame in range(num_frames):
-            targ_file = yaml_args['template'] % (cam)
-            print(os.path.abspath(targ_file))
-            targs = read_targets(targ_file, yaml_args['first'] + frame)
-            
-            for tix, targ in enumerate(targs):
-                all_targs[frame*2 + tix].append(targ.pos())
+    for frame in range(num_frames):
+        frame_targets = []
+        valid = True
+        for cam in range(num_cams):
+            targs = read_targets(exp.target_filenames[cam], first_frame + frame)
+            if len(targs) != 2:
+                valid = False
+                break
+            frame_targets.append([targ.pos() for targ in targs])
+        if valid:
+            # Only add targets if all cameras have exactly two targets
+            for tix in range(2):
+                all_targs[frame*2 + tix].extend([frame_targets[cam][tix] for cam in range(num_cams)])
     
     all_targs = np.array([convert_arr_pixel_to_metric(np.array(targs), cpar) \
         for targs in all_targs])
-    assert(all_targs.shape[1] == len(cal_args) and all_targs.shape[2] == 2)
+    
+    assert(all_targs.shape[1] == num_cams and all_targs.shape[2] == 2)
     
     # Generate initial guess vector and bounds for optimization:
+    active = np.ones(num_cams, 1) # 1 means camera can move
     num_active = np.sum(active)
     calib_vec = np.empty((num_active, 2, 3))
     active_ptr = 0
-    for cam in range(len(cal_args)):
+    for cam in range(num_cams):
         if active[cam]:
-            calib_vec[active_ptr,0] = calibs[cam].get_pos()
-            calib_vec[active_ptr,1] = calibs[cam].get_angles()
+            calib_vec[active_ptr,0] = cals[cam].get_pos()
+            calib_vec[active_ptr,1] = cals[cam].get_angles()
             active_ptr += 1
         
         # Positions within a neighbourhood of the initial guess, so we don't 
@@ -1118,36 +1109,45 @@ def calib_dumbbell(exp):
     
     # Test optimizer-ready target function:
     print("Initial values (1 row per camera, pos, then angle):")
-    print(calib_vec.reshape(len(cal_args),-1))
+    print(calib_vec.reshape(num_cams,-1))
     print("Current target function (to minimize):", end=' ')
-    print(calib_convergence(calib_vec, all_targs, calibs, active, cpar,
+    print(calib_convergence(calib_vec, all_targs, cals, active, cpar,
         db_length, db_weight))
     
     # Optimization:
     res = minimize(calib_convergence, calib_vec, 
-                   args=(all_targs, calibs, active, cpar, db_length, db_weight),
-                   tol=1, options={'maxiter': 1000})
-    
-    print("Result of minimize:")
-    print(res.x.reshape(len(cal_args),-1))
+                args=(all_targs, cals, active, cpar, db_length, db_weight),
+                tol=1, options={'maxiter': 1000})
+        
+    print("Result of dumbbell calibration")
+    print(res.x.reshape(num_cams,-1))
     print("Success:", res.success, res.message)
     print("Final target function:", end=' ')
-    print(calib_convergence(res.x, all_targs, calibs, active, cpar,
+    print(calib_convergence(res.x, all_targs, cals, active, cpar,
         db_length, db_weight))
-    
-    # if cli_args.clobber:
-    #     x = res.x.reshape(-1,2,3)
-    #     for cam in range(len(cal_args)):
-    #         if active[cam]:
-    #             # Make sure 'minimize' didn't play around:
-    #             calibs[cam].set_pos(x[0,0])
-    #             calibs[cam].set_angles(x[0,1])
-    #             calibs[cam].write(cal_args[cam]['ori_file'].encode(), 
-    #                 cal_args[cam]['addpar_file'].encode())
-    #             x = x[1:]
 
-    # Update the original calibration files with the new parameters
-    raise NotImplementedError("Calibration update not implemented yet.")
+
+    # convert calib_vec back to Calibration objects:
+    calib_pars = res.x.reshape(-1, 2, 3)
+    
+    for cam, cal in enumerate(cals):
+        if not active[cam]:
+            continue
+        
+        # Pop a parameters line:
+        pars = calib_pars[0]
+        calib_pars = calib_pars[1:]
+        
+        cal.set_pos(pars[0])
+        cal.set_angles(pars[1])
+
+
+        # Write the calibration results to files:
+        ori_filename = cpar.get_cal_img_base_name(cam)
+        addpar_filename = ori_filename + ".addpar"
+        ori_filename = ori_filename + ".ori"
+        cal.write(ori_filename.encode('utf-8'), addpar_filename.encode('utf-8'))
+
 
 
 def calib_particles(exp):
