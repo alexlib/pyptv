@@ -130,16 +130,16 @@ class PlotWindow(HasTraits):
             if self._plot.overlays is not None:
                 self._plot.overlays.clear()
             self.plot_num_overlay(self._x, self._y, self.man_ori)
-        else:
-            if self._right_click_avail:
-                print("deleting point")
-                self.py_rclick_delete(
-                    self._click_tool.x, self._click_tool.y, self.cameraN
-                )
-                x = []
-                y = []
-                self.py_get_pix_N(x, y, self.cameraN)
-                self.drawcross("x", "y", x[0], y[0], "blue", 4)
+        # else:
+        #     if self._right_click_avail:
+        #         print("deleting point")
+        #         self.py_rclick_delete(
+        #             self._click_tool.x, self._click_tool.y, self.cameraN
+        #         )
+        #         x = []
+        #         y = []
+        #         self.py_get_pix_N(x, y, self.cameraN)
+        #         self.drawcross("x", "y", x[0], y[0], "blue", 4)
 
     def attach_tools(self):
         """Attaches the necessary tools to the plot"""
@@ -272,8 +272,8 @@ class MaskGUI(HasTraits):
         for i in range(self.num_cams):
             self.camera[i].name = "Camera" + str(i + 1)
             self.camera[i].cameraN = i
-            self.camera[i].py_rclick_delete = ptv.py_rclick_delete
-            self.camera[i].py_get_pix_N = ptv.py_get_pix_N
+            # self.camera[i].py_rclick_delete = ptv.py_rclick_delete
+            # self.camera[i].py_get_pix_N = ptv.py_get_pix_N
 
     view = View(
         HGroup(

@@ -293,7 +293,7 @@ class CalibrationGUI(HasTraits):
             self.camera[i].name = "Camera" + str(i + 1)
             self.camera[i].cameraN = i
             # self.camera[i].py_rclick_delete = ptv.py_rclick_delete
-            self.camera[i].py_get_pix_N = ptv.py_get_pix_N
+            # self.camera[i].py_get_pix_N = ptv.py_get_pix_N
 
     view = View(
         HGroup(

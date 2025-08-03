@@ -4,40 +4,8 @@ import pytest
 import numpy as np
 from unittest.mock import Mock, patch, mock_open
 from pyptv.ptv import (
-    py_get_pix_N, py_calibration, py_rclick_delete
+    py_calibration
 )
-
-
-class TestPyGetPixN:
-    """Test py_get_pix_N function"""
-    
-    def test_py_get_pix_n_basic(self):
-        """Test basic pixel neighbor retrieval (stub function)"""
-        x, y, n = 100, 200, 0
-        
-        result = py_get_pix_N(x, y, n)
-        
-        # Function is a stub, should return empty lists
-        assert len(result) == 2
-        assert result == ([], [])
-    
-    def test_py_get_pix_n_edge_pixel(self):
-        """Test pixel neighbor retrieval at image edge (stub function)"""
-        x, y, n = 0, 0, 0
-        
-        result = py_get_pix_N(x, y, n)
-        
-        # Function is a stub, should return empty lists
-        assert result == ([], [])
-    
-    def test_py_get_pix_n_negative_coords(self):
-        """Test pixel neighbor retrieval with negative coordinates (stub function)"""
-        x, y, n = -1, -1, 0
-        
-        result = py_get_pix_N(x, y, n)
-        
-        # Function is a stub, should return empty lists
-        assert result == ([], [])
 
 
 class TestPyCalibration:
@@ -71,31 +39,6 @@ class TestPyCalibration:
             py_calibration(selection, None)
         except AttributeError:
             pass  # Expected for None input
-
-
-class TestPyRclickDelete:
-    """Test py_rclick_delete function"""
-    
-    def test_py_rclick_delete_basic(self):
-        """Test basic right-click delete (stub function)"""
-        x, y, n = 100, 200, 0
-        
-        # Function is a stub, should not raise exceptions
-        py_rclick_delete(x, y, n)
-    
-    def test_py_rclick_delete_edge_coordinates(self):
-        """Test right-click delete with edge coordinates (stub function)"""
-        x, y, n = 0, 0, 0
-        
-        # Function is a stub, should not raise exceptions
-        py_rclick_delete(x, y, n)
-    
-    def test_py_rclick_delete_negative_coords(self):
-        """Test right-click delete with negative coordinates (stub function)"""
-        x, y, n = -1, -1, -1
-        
-        # Function is a stub, should not raise exceptions
-        py_rclick_delete(x, y, n)
 
 
 if __name__ == "__main__":

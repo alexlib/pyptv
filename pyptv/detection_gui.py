@@ -109,8 +109,8 @@ class PlotWindow(HasTraits):
         self._plot.padding_top = padd
         self._plot.padding_bottom = padd
         self._quiverplots = []
-        self.py_rclick_delete = ptv.py_rclick_delete
-        self.py_get_pix_N = ptv.py_get_pix_N
+        # self.py_rclick_delete = ptv.py_rclick_delete
+        # self.py_get_pix_N = ptv.py_get_pix_N
 
     def left_clicked_event(self):
         """
@@ -135,16 +135,17 @@ class PlotWindow(HasTraits):
             self.drawcross("coord_x", "coord_y", self._x, self._y, "red", 5)
             self._plot.overlays = []
             self.plot_num_overlay(self._x, self._y, self.man_ori)
-        else:
-            if self._right_click_avail:
-                print("deleting point")
-                self.py_rclick_delete(
-                    self._click_tool.x, self._click_tool.y, self.cameraN
-                )
-                x = []
-                y = []
-                self.py_get_pix_N(x, y, self.cameraN)
-                self.drawcross("x", "y", x[0], y[0], "blue", 4)
+        # else:
+        #     # if self._right_click_avail:
+        #     #     print("deleting point")
+        #     #     self.py_rclick_delete(
+        #     #         self._click_tool.x, self._click_tool.y, self.cameraN
+        #     #     )
+        #     #     x = []
+        #     #     y = []
+        #     #     self.py_get_pix_N(x, y, self.cameraN)
+        #     #     self.drawcross("x", "y", x[0], y[0], "blue", 4)
+        #     print("This part of rclicked_event is not implemented yet")
 
     def attach_tools(self):
         self._click_tool = ClickerTool(self._img_plot)

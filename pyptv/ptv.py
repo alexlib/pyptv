@@ -641,11 +641,6 @@ def py_trackcorr_init(exp):
 
 # ------- Utilities ----------#
 
-def py_get_pix_N(x: int, y: int, n: int) -> Tuple[List[int], List[int]]:
-    """Get pixel coordinates (stub function).
-    """
-    return [], []
-
 
 def py_get_pix(
     x: List[List[int]], y: List[List[int]]

@@ -56,12 +56,6 @@ PyPTV Core Function Documentation
 **py_trackcorr_init(exp)**
     Initialize a Tracker object and set up image base names for tracking.
 
-**py_rclick_delete(x, y, n)**
-    Stub: Delete clicked points (no-op).
-
-**py_get_pix_N(x, y, n)**
-    Stub: Get pixel coordinates (returns empty lists).
-
 **py_get_pix(x, y)**
     Stub: Get target positions (returns input).
 
@@ -109,7 +103,7 @@ def test_function_coverage_documentation():
         'read_targets', 'write_targets', 'read_rt_is_file',
         '_read_calibrations', 'py_pre_processing_c', 'py_determination_proc_c',
         'run_sequence_plugin', 'run_tracking_plugin', 'py_sequence_loop',
-        'py_trackcorr_init', 'py_rclick_delete', 'py_get_pix_N', 'py_calibration'
+        'py_trackcorr_init', 'py_calibration'
     ]
     
     # Verify that documented functions actually exist
