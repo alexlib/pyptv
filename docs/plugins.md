@@ -6,6 +6,10 @@ PyPTV features an extensible plugin system that allows you to customize tracking
 
 The plugin system provides two main extension points:
 
+## Environment Setup and Testing
+
+PyPTV uses a modern conda environment (`environment.yml`) and separates tests into headless (`tests/`) and GUI (`tests_gui/`) categories. See the README for details.
+
 1. **Tracking Plugins** - Custom particle tracking algorithms
 2. **Sequence Plugins** - Custom image sequence preprocessing
 

@@ -6,6 +6,10 @@ This guide covers camera calibration in PyPTV, from basic concepts to advanced t
 
 Camera calibration is the process of determining the intrinsic and extrinsic parameters of your camera system. This is essential for accurate 3D particle tracking.
 
+## Environment Setup and Testing
+
+PyPTV uses a modern conda environment (`environment.yml`) and separates tests into headless (`tests/`) and GUI (`tests_gui/`) categories. See the README for details.
+
 ## Prerequisites
 
 Before starting calibration:

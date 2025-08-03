@@ -6,6 +6,12 @@ This guide provides a comprehensive reference for all parameters in PyPTV's YAML
 
 PyPTV uses a single YAML file to store all experiment parameters. The file is organized into logical sections, each controlling different aspects of the PTV workflow.
 
+## Environment Setup and Testing
+
+PyPTV uses a modern conda environment (`environment.yml`) and separates tests into headless (`tests/`) and GUI (`tests_gui/`) categories. See the README for details.
+
+> **Important**: Always use `num_cams` for camera count. Do not use legacy fields like `n_img`.
+
 ## File Structure
 
 ```yaml

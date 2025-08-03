@@ -117,6 +117,31 @@ python -m pyptv.pyptv_gui
 
 # Run the test suite
 pytest tests/
+
+## Testing: Headless vs GUI
+
+PyPTV separates tests into two categories:
+
+- **Headless tests** (no GUI): Located in `tests/`. These run in CI (GitHub Actions) and Docker, and do not require a display.
+- **GUI-dependent tests**: Located in `tests_gui/`. These require a display and are run locally or with Xvfb.
+
+To run all tests locally:
+```bash
+bash run_tests.sh
+```
+To run only headless tests (recommended for CI/Docker):
+```bash
+bash run_headless_tests.sh
+```
+
+## Docker Usage
+
+For headless testing and reproducible builds, you can use Docker:
+```bash
+docker build -t pyptv-test .
+docker run --rm pyptv-test
+```
+This runs only headless tests in a minimal environment, mimicking CI.
 ```
 
 ## Common Installation Issues

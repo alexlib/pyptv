@@ -6,6 +6,10 @@ This guide covers PyPTV's splitter mode functionality for stereo camera systems 
 
 Splitter mode is designed for stereo PTV systems where a single camera is split using a beam splitter to create two views of the same region. This technique is commonly used to achieve stereo vision with a single camera sensor.
 
+## Environment Setup and Testing
+
+PyPTV uses a modern conda environment (`environment.yml`) and separates tests into headless (`tests/`) and GUI (`tests_gui/`) categories. See the README for details.
+
 ## When to Use Splitter Mode
 
 Use splitter mode when:
@@ -21,18 +25,18 @@ Use splitter mode when:
 Enable splitter mode in your YAML configuration:
 
 ```yaml
-num_cams: 2  # Even though it's one physical camera
+num_cams: 4  # Even though it's one physical camera
 
 ptv:
   splitter: true
-  imx: 1280      # Full sensor width
-  imy: 1024      # Full sensor height
+  imx: 512      # Half width - will be width of splitted
+  imy: 512      # Half height - will be height of splitted
+  img_name: img/unsplitted_%d.tif
 
 cal_ori:
   cal_splitter: true
   img_cal_name:
-    - cal/splitter_left.tif   # Left portion of image
-    - cal/splitter_right.tif  # Right portion of image
+    - cal/unsplitted.tif   # unsplitted image
 
 plugins:
   selected_tracking: ext_tracker_splitter
@@ -50,29 +54,13 @@ In splitter mode, PyPTV automatically:
 4. **Reconstructs 3D positions** using the stereo geometry
 
 ### Splitter Geometry
-
-Define the splitting geometry in your parameters:
-
-```yaml
-# Example for horizontal splitting
-splitter:
-  split_direction: horizontal  # or vertical
-  left_roi: [0, 0, 640, 1024]    # [x, y, width, height]
-  right_roi: [640, 0, 640, 1024] # [x, y, width, height]
-```
+So far it's fixed into 4, but probably can work for 2 
 
 ## Calibration with Splitter
 
-### Calibration Images
+Profidve the unsplitted image and check in the GUI option
+the splitter will work automatically 
 
-Create calibration images that show the target in both split views:
-
-```bash
-cal/
-├── splitter_cal.tif        # Full splitter image
-├── splitter_left.tif       # Extracted left view
-└── splitter_right.tif      # Extracted right view
-```
 
 ### Calibration Process
 
@@ -85,22 +73,8 @@ cal/
 
 If needed, manually split calibration images:
 
-```python
-import cv2
-import numpy as np
+Look into the plugins/ folder there is an example of manual splitting but this obsolete now.
 
-# Load full splitter image
-img = cv2.imread('cal/splitter_cal.tif', cv2.IMREAD_GRAYSCALE)
-
-# Split horizontally
-height, width = img.shape
-left_img = img[:, :width//2]
-right_img = img[:, width//2:]
-
-# Save split images
-cv2.imwrite('cal/splitter_left.tif', left_img)
-cv2.imwrite('cal/splitter_right.tif', right_img)
-```
 
 ## Processing Workflow
 

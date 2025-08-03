@@ -4,8 +4,10 @@ Get up and running with PyPTV using the included test dataset in under 10 minute
 
 ## Prerequisites
 
-- PyPTV installed and working (see [Installation Guide](installation.md))
-- Basic familiarity with particle tracking concepts
+
+## Environment Setup and Testing
+
+PyPTV uses a modern conda environment (`environment.yml`) and separates tests into headless (`tests/`) and GUI (`tests_gui/`) categories. See the README for details.
 
 ## Overview
 

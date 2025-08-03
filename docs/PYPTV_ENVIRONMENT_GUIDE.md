@@ -15,6 +15,28 @@ which python
 # Check Python version
 python --version
 # Should show: Python 3.11.13
+
+### Environment Details
+
+PyPTV uses a modern `environment.yml` and `requirements-dev.txt` for reproducible environments. Most dependencies are installed via conda, but some (e.g., `optv`, `opencv-python-headless`, `rembg`, `flowtracks`) are installed via pip in the conda environment.
+
+See the root `environment.yml` for the recommended setup.
+
+### Testing: Headless vs GUI
+
+PyPTV separates tests into two categories:
+
+- **Headless tests** (no GUI): Located in `tests/`. These run in CI (GitHub Actions) and Docker, and do not require a display.
+- **GUI-dependent tests**: Located in `tests_gui/`. These require a display and are run locally or with Xvfb.
+
+To run all tests locally:
+```bash
+bash run_tests.sh
+```
+To run only headless tests (recommended for CI/Docker):
+```bash
+bash run_headless_tests.sh
+```
 ```
 
 ### Running Commands in the pyptv Environment

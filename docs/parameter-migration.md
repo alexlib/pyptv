@@ -6,6 +6,12 @@ This guide helps you migrate from older PyPTV parameter formats to the current Y
 
 PyPTV has undergone significant improvements in its parameter management system. This guide will help you understand and migrate to the current format.
 
+## Environment Setup and Testing
+
+PyPTV uses a modern conda environment (`environment.yml`) and separates tests into headless (`tests/`) and GUI (`tests_gui/`) categories. See the README for details.
+
+> **Important**: Always use `num_cams` for camera count. Do not use legacy fields like `n_img`.
+
 ## Current YAML Structure
 
 The current parameter system uses a single YAML file with the following top-level structure:
@@ -83,6 +89,66 @@ man_ori:
    - Ensure no `n_img` fields remain in the YAML
    - Test calibration and tracking workflows
 
+### Step-by-step: Migrating from Parameter Directories to YAML
+
+**1. Locate your legacy parameter files:**
+   - Typical files: `ptv_par.txt`, `criterium.txt`, `detect_plate.txt`, `track.txt`, etc.
+   - These are usually in a `parameters/` or project root directory.
+
+**2. Open PyPTV GUI:**
+   - Launch with `python -m pyptv.pyptv_gui`
+   - Use `File → Load Legacy` to select your old parameter directory.
+
+**3. Save as YAML:**
+   - After loading, use `File → Save Parameters` to export all settings to a single YAML file (e.g., `parameters_Run1.yaml`).
+
+**4. Check and edit YAML:**
+   - Open the YAML file in a text editor.
+   - Ensure `num_cams` is present and correct.
+   - Update any file paths to be relative to your experiment directory.
+   - Remove any legacy fields (e.g., `n_img`).
+
+**5. Validate in GUI:**
+   - Reload the YAML in the GUI and check that all dialogs open and parameters are correct.
+
+**6. Use the YAML in Python:**
+   - You can now use the YAML file for all PyPTV workflows, including headless and batch processing.
+
+#### Using YAML Parameters in Python
+
+You can load and use YAML parameters in Python via two main interfaces:
+
+**A. Using the `Experiment` class:**
+```python
+from pyptv.experiment import Experiment
+exp = Experiment('parameters_Run1.yaml')
+# Access parameters:
+print(exp.cpar)  # ControlParams object
+print(exp.spar)  # SequenceParams object
+print(exp.vpar)  # VolumeParams object
+print(exp.tpar)  # TargetParams object
+print(exp.cals)  # List of Calibration objects
+```
+
+**B. Using the `ParameterManager` directly:**
+```python
+from pyptv.parameter_manager import ParameterManager
+pm = ParameterManager('parameters_Run1.yaml')
+# Access raw parameter dictionary:
+params = pm.parameters
+num_cams = pm.num_cams
+# Use helper functions to populate objects:
+from pyptv.ptv import _populate_cpar, _populate_spar
+cpar = _populate_cpar(params['ptv'], num_cams)
+spar = _populate_spar(params['sequence'], num_cams)
+
+
+**Tip:** For most workflows, use the `Experiment` class for convenience. For advanced or custom workflows, use `ParameterManager` and the population functions.
+
+**Summary:**
+- Migrate all legacy parameter files to a single YAML using the GUI.
+- Always use `num_cams` for camera count.
+- Use the YAML file in Python via `Experiment` or `ParameterManager`.
 ### From Manual Parameter Files
 
 If you have manually created parameter files:

@@ -6,6 +6,10 @@ This guide provides practical examples and common workflows for using PyPTV effe
 
 The test_cavity example is included with PyPTV and demonstrates a complete 4-camera PTV setup.
 
+## Environment Setup and Testing
+
+PyPTV uses a modern conda environment (`environment.yml`) and separates tests into headless (`tests/`) and GUI (`tests_gui/`) categories. See the README for details.
+
 ### Location and Setup
 
 ```bash

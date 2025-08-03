@@ -12,6 +12,13 @@ conda activate pyptv
 # Launch GUI from any directory
 python -m pyptv.pyptv_gui
 
+
+## GUI Requirements and Testing
+
+The PyPTV GUI requires a display (X11 on Linux/macOS, or native on Windows). GUI-dependent tests are located in `tests_gui/` and are not run in CI or Docker. Run these tests locally or with Xvfb if needed.
+
+For headless testing, see the main README and installation guide.
+
 # Or from PyPTV source directory
 cd pyptv
 python -m pyptv.pyptv_gui
