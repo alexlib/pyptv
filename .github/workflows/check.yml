@@ -45,7 +45,7 @@ jobs:
         pip freeze
     - name: Test with pytest
       run: |
-        coverage run --source=mpl_data_cast -m pytest -x tests
+        coverage run --source=mpl_data_cast -m pytest tests/ -x tests
     - name: Lint with flake8
       run: |
         flake8 --exclude _version.py .
