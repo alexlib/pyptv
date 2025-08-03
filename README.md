@@ -80,3 +80,26 @@ Note, the specific branch `plugin_remback` requires installation of the `pip ins
       pip install twine
       python -m twine upload dist/*
 
+## Compatibility Notes
+
+### NumPy Compatibility
+- Minimum supported NumPy version: 1.23.5
+- Tested with NumPy arrays in both float64 and uint8 formats
+- Array operations maintained for image processing and coordinate transformations
+
+### OpenPTV (optv) Compatibility
+- Compatible with optv versions 0.2.9 through 0.3.0
+- Core functionality tested with latest optv release
+- Calibration and tracking functions verified
+
+## Development Setup
+For development work with latest NumPy:
+
+```bash
+conda create -n pyptv python=3.11
+conda activate pyptv
+conda install numpy>=1.23.5 optv>=0.3.0
+pip install -e .
+```
+
+

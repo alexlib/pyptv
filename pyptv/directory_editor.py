@@ -3,6 +3,7 @@
 Implementation of a DirectoryEditor demo plugin for Traits UI demo program.
 This demo shows each of the four styles of the DirectoryEditor
 """
+
 # Imports:
 from traits.api import HasTraits, Directory
 

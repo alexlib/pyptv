@@ -1,34 +1,39 @@
-# PyPTV Documentation
+# PyPTV Documentation Index
 
-Welcome to the PyPTV documentation for the modernized user interface.
+Welcome to the PyPTV documentation! This index provides an organized overview of all available guides and resources. Use this page as your starting point for learning, troubleshooting, and reference.
 
-## Contents
+## Getting Started
+- [Installation Guide](installation.md)
+- [Windows Installation Guide](windows-installation.md)
+- [Quick Start Guide](quick-start.md)
 
-- [User Guide](user_guide.md): Complete guide to using PyPTV
-- [Example Workflows](example_workflows.md): Step-by-step tutorials
-- [Migration Guide](migration_guide.md): Transitioning from legacy interface
+## Core Usage
+- [Running the GUI](running-gui.md)
+- [YAML Parameters Reference](yaml-parameters.md)
+- [Parameter Migration Guide](parameter-migration.md)
+- [Calibration Guide](calibration.md)
+- [Examples and Workflows](examples.md)
 
-## Features
+## Advanced Features
+- [Splitter Mode Guide](splitter-mode.md)
+- [Plugins System Guide](plugins.md)
 
-The modernized PyPTV interface includes:
+## System Administration
+- [Logging Guide](LOGGING_GUIDE.md)
+- [Environment Guide](PYPTV_ENVIRONMENT_GUIDE.md)
 
-1. **YAML Parameter System**: A more readable and maintainable parameter management system
-2. **Interactive 3D Visualization**: Advanced visualization of particle trajectories
-3. **Improved Camera Views**: Enhanced controls for image visualization
-4. **Parameter Dialog**: Form-based parameter editing with validation
+## Additional Resources
+- [Test Cavity Example](examples.md#test-cavity)
+- [Parameter Migration FAQ](parameter-migration.md#common-migration-issues)
 
-## Quick Start
+---
 
-For new users, we recommend:
+**How to use this documentation:**
+- Click any link above to jump to the relevant guide.
+- Use your browser's search to find keywords or topics.
+- For troubleshooting, check the FAQ sections in each guide.
+- For community help, visit [GitHub Issues](https://github.com/openptv/pyptv/issues) or [Discussions](https://github.com/openptv/pyptv/discussions).
 
-1. Install PyPTV: `pip install pyptv`
-2. Read the [User Guide](user_guide.md)
-3. Work through the [Example Workflows](example_workflows.md)
+---
 
-For existing users, check the [Migration Guide](migration_guide.md) for a smooth transition.
-
-## Getting Help
-
-- Documentation: http://openptv-python.readthedocs.io
-- Mailing List: openptv@googlegroups.com
-- Issue Tracker: https://github.com/alexlib/pyptv/issues
+*Documentation last updated: August 2025 for PyPTV 2025*

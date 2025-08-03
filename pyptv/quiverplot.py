@@ -18,7 +18,6 @@ from traits.api import Array, Enum, Float, Instance, Int
 
 
 class QuiverPlot(ScatterPlot):
-
     # Determines how to interpret the data in the **vectors** data source.
     # 	"vector": each tuple is a (dx, dy)
     # 	"radial": each tuple is an (r, theta)
@@ -77,12 +76,7 @@ class QuiverPlot(ScatterPlot):
         ep_index_mask = self.index_mapper.range.mask_data(ep_index)
         ep_value_mask = self.value_mapper.range.mask_data(ep_value)
 
-        nan_mask = (
-            invert(isnan(index))
-            & index_mask
-            & invert(isnan(value))
-            & value_mask
-        )
+        nan_mask = invert(isnan(index)) & index_mask & invert(isnan(value)) & value_mask
         point_mask = (
             nan_mask
             & index_range_mask
@@ -124,8 +118,7 @@ class QuiverPlot(ScatterPlot):
 
             # Draw the left arrowhead (for an arrow pointing straight up)
             arrow_ends = (
-                ends
-                - array(unit_vec * matrix([[a, a], [-a, a]])) * self.arrow_size
+                ends - array(unit_vec * matrix([[a, a], [-a, a]])) * self.arrow_size
             )
             gc.begin_path()
             gc.line_set(ends, arrow_ends)
@@ -133,8 +126,7 @@ class QuiverPlot(ScatterPlot):
 
             # Draw the left arrowhead (for an arrow pointing straight up)
             arrow_ends = (
-                ends
-                - array(unit_vec * matrix([[a, -a], [a, a]])) * self.arrow_size
+                ends - array(unit_vec * matrix([[a, -a], [a, a]])) * self.arrow_size
             )
             gc.begin_path()
             gc.line_set(ends, arrow_ends)

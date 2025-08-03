@@ -10,7 +10,8 @@ Loads and saves RGB images from disk
 """
 
 # Standard library imports
-import os, sys
+import os
+import sys
 
 # Major library imports
 
@@ -41,7 +42,6 @@ from chaco.tools.api import PanTool, ZoomTool
 
 
 class DemoView(HasTraits):
-
     ### Public Traits ##########################################################
 
     # A Plot Data object to hold our image data
@@ -101,9 +101,7 @@ class DemoView(HasTraits):
             ),
             menubar=MenuBar(
                 Menu(
-                    Action(
-                        name="Save Plot", action="save"
-                    ),  # see Controller for
+                    Action(name="Save Plot", action="save"),  # see Controller for
                     Action(name="Load Plot", action="load"),  # these callbacks
                     Separator(),
                     CloseAction,
@@ -171,7 +169,6 @@ class DemoView(HasTraits):
 
 
 class DemoController(Handler):
-
     # The HasTraits object we are a controller for
     view = Instance(DemoView)
 
@@ -190,7 +187,7 @@ class DemoController(Handler):
         Callback for the 'Save Image' menu option.
         """
         ui = self.view.edit_traits(view="save_file_view")
-        if ui.result == True:
+        if ui.result:
             self.view._save()
 
     def load(self, ui_info):
@@ -198,7 +195,7 @@ class DemoController(Handler):
         Callback for the 'Load Image' menu option.
         """
         ui = self.view.edit_traits(view="load_file_view")
-        if ui.result == True:
+        if ui.result:
             self.view._load()
 
 

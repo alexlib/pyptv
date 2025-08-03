@@ -1,0 +1,19 @@
+numpy
+scipy
+matplotlib
+pandas
+opencv-python-headless
+pytest
+PyYAML
+optv>=0.3.0
+numba
+tables
+scikit-image
+pillow
+# If you use flowtracks or rembg, keep them:
+flowtracks
+rembg
+# If you use Cython extensions:
+Cython
+tqdm
+

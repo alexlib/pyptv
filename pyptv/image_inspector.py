@@ -29,6 +29,7 @@ from chaco.tools.image_inspector_tool import (
     ImageInspectorOverlay,
 )
 
+
 # ===============================================================================
 # # Create the Chaco plot.
 # ===============================================================================
@@ -75,6 +76,7 @@ def _create_plot_component():  # Create a scalar field to colormap
 # Attributes to use for the plot view.
 size = (800, 600)
 title = "Inspecting a Colormapped Image Plot"
+
 
 # ===============================================================================
 # # Demo class that is used by the demo.py application.

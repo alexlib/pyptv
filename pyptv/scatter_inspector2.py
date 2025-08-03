@@ -1,9 +1,9 @@
-""" Overlay to display the data attached to a scatter point hovered over.
-"""
+"""Overlay to display the data attached to a scatter point hovered over."""
+
 import pandas as pd
 import numpy as np
 
-from traits.api import Callable, Enum, HasTraits, Instance, observe, Str
+from traits.api import Callable, HasTraits, Instance, observe
 from traitsui.api import View, Item
 from enable.api import ComponentEditor
 from chaco.api import (
@@ -12,7 +12,6 @@ from chaco.api import (
     ScatterInspectorOverlay,
     TextBoxOverlay,
 )
-from chaco.api import DataFramePlotData
 from chaco.tools.api import ScatterInspector
 
 
