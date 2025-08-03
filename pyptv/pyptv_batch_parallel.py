@@ -31,7 +31,8 @@ import multiprocessing
 from concurrent.futures import ProcessPoolExecutor, as_completed
 from typing import Union, List, Tuple
 
-from pyptv.ptv import py_start_proc_c, py_sequence_loop
+from pyptv.ptv import py_start_proc_c, py_sequence_loop, generate_short_file_bases
+from pyptv.experiment import Experiment
 
 # Configure logging
 logging.basicConfig(
@@ -46,18 +47,13 @@ class ProcessingError(Exception):
     pass
 
 
-class AttrDict(dict):
-    """Dictionary that allows attribute-style access to its items."""
-    
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.__dict__ = self
+# AttrDict removed - using direct dictionary access with Experiment object
 
-def run_sequence_chunk(exp_path: Union[str, Path], seq_first: int, seq_last: int) -> Tuple[int, int]:
+def run_sequence_chunk(yaml_file: Union[str, Path], seq_first: int, seq_last: int) -> Tuple[int, int]:
     """Run sequence processing for a chunk of frames in a separate process.
     
     Args:
-        exp_path: Path to the experiment directory
+        yaml_file: Path to the YAML parameter file
         seq_first: First frame number in the chunk
         seq_last: Last frame number in the chunk
         
@@ -70,42 +66,53 @@ def run_sequence_chunk(exp_path: Union[str, Path], seq_first: int, seq_last: int
     logger.info(f"Worker process starting: frames {seq_first} to {seq_last}")
     
     try:
-        exp_path = Path(exp_path).resolve()
+        yaml_file = Path(yaml_file).resolve()
+        exp_path = yaml_file.parent
+        
+        # Store original working directory
+        original_cwd = Path.cwd()
         
         # Change to experiment directory
-        original_cwd = Path.cwd()
         os.chdir(exp_path)
         
-        # Read the number of cameras
-        ptv_par_path = exp_path / "parameters" / "ptv.par"
-        try:
-            with open(ptv_par_path, "r") as f:
-                n_cams = int(f.readline().strip())
-        except (ValueError, FileNotFoundError) as e:
-            raise ProcessingError(f"Error reading camera count from {ptv_par_path}: {e}")
-
-        # Initialize processing parameters
-        cpar, spar, vpar, track_par, tpar, cals, epar = py_start_proc_c(n_cams=n_cams)
+        # Create experiment and load YAML parameters
+        experiment = Experiment()
+        
+        # Load parameters from YAML file
+        experiment.pm.from_yaml(yaml_file)
+        
+        # Initialize processing parameters using the experiment
+        cpar, spar, vpar, track_par, tpar, cals, epar = py_start_proc_c(experiment.pm)
         
         # Set sequence parameters
         spar.set_first(seq_first)
         spar.set_last(seq_last)
         
-        # Create experiment configuration
-        exp_config = AttrDict({
-            "cpar": cpar,
-            "spar": spar,
-            "vpar": vpar,
-            "track_par": track_par,
-            "tpar": tpar,
-            "cals": cals,
-            "epar": epar,
-            "n_cams": n_cams,
-        })
+        # Create a simple object to hold processing parameters for ptv.py functions
+        class ProcessingExperiment:
+            def __init__(self, experiment, cpar, spar, vpar, track_par, tpar, cals, epar):
+                self.pm = experiment.pm
+                self.cpar = cpar
+                self.spar = spar
+                self.vpar = vpar
+                self.track_par = track_par
+                self.tpar = tpar
+                self.cals = cals
+                self.epar = epar
+                self.num_cams = experiment.pm.num_cams
+                self.detections = []
+                self.corrected = []
         
+        proc_exp = ProcessingExperiment(experiment, cpar, spar, vpar, track_par, tpar, cals, epar)
+        
+        
+        # Centralized: get target_filenames from ParameterManager
+        proc_exp.target_filenames = experiment.pm.get_target_filenames()
+
         # Run sequence processing
-        py_sequence_loop(exp_config)
+        py_sequence_loop(proc_exp)
         
+        # Only run sequence processing in parallel batch
         logger.info(f"Worker process completed: frames {seq_first} to {seq_last}")
         return (seq_first, seq_last)
         
@@ -115,7 +122,8 @@ def run_sequence_chunk(exp_path: Union[str, Path], seq_first: int, seq_last: int
         raise ProcessingError(error_msg)
     finally:
         # Restore original working directory
-        os.chdir(original_cwd)
+        if 'original_cwd' in locals():
+            os.chdir(original_cwd)
 
 def validate_experiment_directory(exp_path: Path) -> None:
     """Validate that the experiment directory has the required structure.
@@ -151,6 +159,46 @@ def validate_experiment_directory(exp_path: Path) -> None:
     if not ptv_par_file.exists():
         raise ProcessingError(f"Required file not found: {ptv_par_file}")
 
+
+def validate_experiment_setup(yaml_file: Path) -> Path:
+    """Validate that the YAML file exists and required directories are available.
+    
+    Args:
+        yaml_file: Path to the YAML parameter file
+        
+    Returns:
+        Path to the experiment directory (parent of YAML file)
+        
+    Raises:
+        ProcessingError: If required files or directories are missing
+    """
+    if not yaml_file.exists():
+        raise ProcessingError(f"YAML parameter file does not exist: {yaml_file}")
+    
+    if not yaml_file.is_file():
+        raise ProcessingError(f"Path is not a file: {yaml_file}")
+        
+    if not yaml_file.suffix.lower() in ['.yaml', '.yml']:
+        raise ProcessingError(f"File must have .yaml or .yml extension: {yaml_file}")
+    
+    # Get experiment directory (parent of YAML file)
+    exp_path = yaml_file.parent
+    
+    # Check for required subdirectories relative to YAML file location
+    required_dirs = ["img", "cal"]  # res is created automatically
+    missing_dirs = []
+    
+    for dir_name in required_dirs:
+        dir_path = exp_path / dir_name
+        if not dir_path.exists():
+            missing_dirs.append(dir_name)
+    
+    if missing_dirs:
+        raise ProcessingError(
+            f"Missing required directories relative to {yaml_file}: {', '.join(missing_dirs)}"
+        )
+    
+    return exp_path
 
 def chunk_ranges(first: int, last: int, n_chunks: int) -> List[Tuple[int, int]]:
     """Split the frame range into n_chunks as evenly as possible.
@@ -198,104 +246,100 @@ def chunk_ranges(first: int, last: int, n_chunks: int) -> List[Tuple[int, int]]:
     return ranges
 
 def main(
-    exp_path: Union[str, Path], 
-    first: Union[str, int], 
-    last: Union[str, int], 
-    n_processes: Union[str, int] = None
+    yaml_file: Union[str, Path],
+    first: Union[str, int],
+    last: Union[str, int],
+    n_processes: int = 2,
+    mode: str = "both"
 ) -> None:
-    """Run PyPTV parallel batch processing.
+    """Run PyPTV parallel batch processing with modular mode support.
     
     Args:
-        exp_path: Path to the experiment directory containing the required
-                 folder structure (/parameters, /img, /cal, /res)
+        yaml_file: Path to the YAML parameter file (e.g., parameters_Run1.yaml)
         first: First frame number in the sequence
         last: Last frame number in the sequence
-        n_processes: Number of parallel processes to use. If None, uses CPU count
-        
+        n_processes: Number of parallel processes to use
+        mode: Which steps to run: 'both', 'sequence', or 'tracking'
     Raises:
         ProcessingError: If processing fails
         ValueError: If parameters are invalid
     """
     start_time = time.time()
-    
     try:
         # Validate and convert parameters
-        exp_path = Path(exp_path).resolve()
+        yaml_file = Path(yaml_file).resolve()
         seq_first = int(first)
         seq_last = int(last)
-        
+        mode = str(mode).lower()
+        if mode not in ("both", "sequence", "tracking"):
+            raise ValueError(f"Invalid mode: {mode}. Must be one of: both, sequence, tracking")
         if seq_first > seq_last:
             raise ValueError(f"First frame ({seq_first}) must be <= last frame ({seq_last})")
-        
         # Set default number of processes if not specified
         if n_processes is None:
             n_processes = multiprocessing.cpu_count()
             logger.info(f"Using default number of processes: {n_processes} (CPU count)")
         else:
             n_processes = int(n_processes)
-            
         if n_processes < 1:
             raise ValueError(f"Number of processes must be >= 1, got {n_processes}")
-        
         max_processes = multiprocessing.cpu_count()
         if n_processes > max_processes:
             logger.warning(
                 f"Requested {n_processes} processes, but only {max_processes} CPUs available. "
                 f"Consider using fewer processes for optimal performance."
             )
-            
-        logger.info(f"Starting parallel batch processing in directory: {exp_path}")
+        logger.info(f"Starting parallel batch processing with YAML file: {yaml_file}")
         logger.info(f"Frame range: {seq_first} to {seq_last}")
         logger.info(f"Number of processes: {n_processes}")
-        
-        # Validate experiment directory structure
-        validate_experiment_directory(exp_path)
-        
+        logger.info(f"Mode: {mode}")
+        # Validate YAML file and experiment setup
+        exp_path = validate_experiment_setup(yaml_file)
+        logger.info(f"Experiment directory: {exp_path}")
         # Create results directory if it doesn't exist
         res_path = exp_path / "res"
         if not res_path.exists():
             logger.info("Creating 'res' directory")
             res_path.mkdir(parents=True, exist_ok=True)
-        
-        # Split frame range into chunks
-        ranges = chunk_ranges(seq_first, seq_last, n_processes)
-        logger.info(f"Frame chunks: {ranges}")
-        
-        # Process chunks in parallel
-        successful_chunks = 0
-        failed_chunks = 0
-        
-        with ProcessPoolExecutor(max_workers=n_processes) as executor:
-            # Submit all tasks
-            future_to_range = {
-                executor.submit(run_sequence_chunk, exp_path, chunk_first, chunk_last): (chunk_first, chunk_last)
-                for chunk_first, chunk_last in ranges
-            }
-            
-            # Process completed tasks
-            for future in as_completed(future_to_range):
-                chunk_range = future_to_range[future]
-                try:
-                    result = future.result()
-                    logger.info(f"✓ Completed chunk: frames {result[0]} to {result[1]}")
-                    successful_chunks += 1
-                except Exception as e:
-                    logger.error(f"✗ Failed chunk: frames {chunk_range[0]} to {chunk_range[1]} - {e}")
-                    failed_chunks += 1
-        
-        # Report results
-        total_chunks = len(ranges)
-        elapsed_time = time.time() - start_time
-        
-        logger.info(f"Parallel processing completed:")
-        logger.info(f"  Total chunks: {total_chunks}")
-        logger.info(f"  Successful: {successful_chunks}")
-        logger.info(f"  Failed: {failed_chunks}")
-        logger.info(f"  Total processing time: {elapsed_time:.2f} seconds")
-        
-        if failed_chunks > 0:
-            raise ProcessingError(f"{failed_chunks} out of {total_chunks} chunks failed")
-            
+        # Run sequence step in parallel if requested
+        if mode in ("both", "sequence"):
+            ranges = chunk_ranges(seq_first, seq_last, n_processes)
+            logger.info(f"Frame chunks: {ranges}")
+            successful_chunks = 0
+            failed_chunks = 0
+            with ProcessPoolExecutor(max_workers=n_processes) as executor:
+                future_to_range = {
+                    executor.submit(run_sequence_chunk, yaml_file, chunk_first, chunk_last): (chunk_first, chunk_last)
+                    for chunk_first, chunk_last in ranges
+                }
+                for future in as_completed(future_to_range):
+                    chunk_range = future_to_range[future]
+                    try:
+                        result = future.result()
+                        logger.info(f"✓ Completed chunk: frames {result[0]} to {result[1]}")
+                        successful_chunks += 1
+                    except Exception as e:
+                        logger.error(f"✗ Failed chunk: frames {chunk_range[0]} to {chunk_range[1]} - {e}")
+                        failed_chunks += 1
+            total_chunks = len(ranges)
+            elapsed_time = time.time() - start_time
+            logger.info("Parallel sequence processing completed:")
+            logger.info(f"  Total chunks: {total_chunks}")
+            logger.info(f"  Successful: {successful_chunks}")
+            logger.info(f"  Failed: {failed_chunks}")
+            logger.info(f"  Total processing time: {elapsed_time:.2f} seconds")
+            if failed_chunks > 0:
+                raise ProcessingError(f"{failed_chunks} out of {total_chunks} chunks failed")
+        # Run tracking step if requested (serial, for now)
+        if mode in ("both", "tracking"):
+            logger.info("Starting tracking step (serial, not parallelized)")
+            try:
+                from pyptv.pyptv_batch import run_batch
+                run_batch(yaml_file, seq_first, seq_last, mode="tracking")
+                logger.info("Tracking step completed successfully.")
+            except Exception as e:
+                logger.error(f"Tracking step failed: {e}")
+                raise ProcessingError(f"Tracking step failed: {e}")
     except (ValueError, ProcessingError) as e:
         logger.error(f"Parallel processing failed: {e}")
         raise
@@ -303,63 +347,52 @@ def main(
         logger.error(f"Unexpected error during parallel processing: {e}")
         raise ProcessingError(f"Unexpected error: {e}")
 
-def parse_command_line_args() -> tuple[Path, int, int, int]:
-    """Parse and validate command line arguments.
-    
+def parse_command_line_args():
+    """Parse and validate command line arguments for pyptv_batch_parallel.py.
     Returns:
-        Tuple of (experiment_path, first_frame, last_frame, n_processes)
-        
+        Tuple of (yaml_file_path, first_frame, last_frame, n_processes, mode)
     Raises:
         ValueError: If arguments are invalid
     """
-    if len(sys.argv) < 5:
-        logger.warning("Insufficient command line arguments, using default test values")
-        logger.info("Usage: python pyptv_batch_parallel.py <exp_path> <first_frame> <last_frame> <n_processes>")
-        
-        # Default values for testing
-        exp_path = Path("tests/test_cavity").resolve()
-        first_frame = 10000
-        last_frame = 10004
-        n_processes = 2
-        
-        if not exp_path.exists():
-            raise ValueError(
-                f"Default test directory not found: {exp_path}. "
-                "Please provide valid command line arguments."
-            )
-    else:
-        try:
-            exp_path = Path(sys.argv[1]).resolve()
-            first_frame = int(sys.argv[2])
-            last_frame = int(sys.argv[3])
-            n_processes = int(sys.argv[4])
-        except (ValueError, IndexError) as e:
-            raise ValueError(f"Invalid command line arguments: {e}")
-    
-    return exp_path, first_frame, last_frame, n_processes
+    import argparse
+    parser = argparse.ArgumentParser(
+        description="PyPTV parallel batch processing. Supports running only sequence, only tracking, or both."
+    )
+    parser.add_argument("yaml_file", type=str, help="Path to YAML parameter file.")
+    parser.add_argument("first_frame", type=int, help="First frame number.")
+    parser.add_argument("last_frame", type=int, help="Last frame number.")
+    parser.add_argument("n_processes", type=int, help="Number of parallel processes.")
+    parser.add_argument(
+        "--mode", type=str, default="both", choices=["both", "sequence", "tracking"],
+        help="Which steps to run: both (default), sequence, or tracking."
+    )
+    args = parser.parse_args()
+    yaml_file = Path(args.yaml_file).resolve()
+    first_frame = args.first_frame
+    last_frame = args.last_frame
+    n_processes = args.n_processes
+    mode = args.mode
+    return yaml_file, first_frame, last_frame, n_processes, mode
 
 if __name__ == "__main__":
     """Entry point for command line execution.
     
     Command line usage:
-        python pyptv_batch_parallel.py <exp_path> <first_frame> <last_frame> <n_processes>
-        
+        python pyptv_batch_parallel.py <yaml_file> <first_frame> <last_frame> <n_processes> [--mode both|sequence|tracking]
+    
     Example:
-        python pyptv_batch_parallel.py ~/test_cavity 10000 10004 4
+        python pyptv_batch_parallel.py tests/test_cavity/parameters_Run1.yaml 10000 10004 4 --mode both
     
     Python API usage:
         from pyptv.pyptv_batch_parallel import main
-        main("experiments/exp1", 10001, 11001, n_processes=4)
+        main("tests/test_cavity/parameters_Run1.yaml", 10000, 10004, n_processes=4, mode="both")
     """
     try:
         logger.info("Starting PyPTV parallel batch processing")
         logger.info(f"Command line arguments: {sys.argv}")
-        
-        exp_path, first_frame, last_frame, n_processes = parse_command_line_args()
-        main(exp_path, first_frame, last_frame, n_processes)
-        
+        yaml_file, first_frame, last_frame, n_processes, mode = parse_command_line_args()
+        main(yaml_file, first_frame, last_frame, n_processes, mode)
         logger.info("Parallel batch processing completed successfully")
-        
     except (ValueError, ProcessingError) as e:
         logger.error(f"Parallel batch processing failed: {e}")
         sys.exit(1)

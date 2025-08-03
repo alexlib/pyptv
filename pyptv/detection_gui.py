@@ -7,7 +7,7 @@ http://opensource.org/licenses/MIT
 
 import os
 import sys
-import pathlib
+from pathlib import Path
 import numpy as np
 
 from traits.api import HasTraits, Str, Int, Bool, Instance, Button, Range
@@ -22,18 +22,15 @@ from chaco.api import (
     LinearMapper,
 )
 
-# from traitsui.menu import MenuBar, ToolBar, Menu, Action
 from chaco.tools.image_inspector_tool import ImageInspectorTool
 from chaco.tools.better_zoom import BetterZoom as SimpleZoom
 
 from skimage.io import imread
-from skimage import img_as_ubyte
+from skimage.util import img_as_ubyte
 from skimage.color import rgb2gray
 
-# from optv import segmentation
 from optv.segmentation import target_recognition
 from pyptv import ptv
-
 from pyptv.text_box_overlay import TextBoxOverlay
 from pyptv.quiverplot import QuiverPlot
 
@@ -53,26 +50,23 @@ class ClickerTool(ImageInspectorTool):
         Fires the **new_value** event with the data (if any) from the event's
         position.
         """
-        plot = self.component
-        if plot is not None:
-            ndx = plot.map_index((event.x, event.y))
-
-            x_index, y_index = ndx
-            # image_data = plot.value
-            self.x = x_index
-            self.y = y_index
-            print(self.x)
-            print(self.y)
-            self.left_changed = 1 - self.left_changed
-            self.last_mouse_position = (event.x, event.y)
+        if self.component is not None:
+            if hasattr(self.component, "map_index"):
+                ndx = self.component.map_index((event.x, event.y)) # type: ignore
+                if ndx is not None:
+                    x_index, y_index = ndx
+                    self.x = x_index
+                    self.y = y_index
+                    print(self.x)
+                    print(self.y)
+                    self.left_changed = 1 - self.left_changed
+                    self.last_mouse_position = (event.x, event.y)
 
     def normal_right_down(self, event):
-        plot = self.component
-        if plot is not None:
-            ndx = plot.map_index((event.x, event.y))
+        if self.component is not None:
+            ndx = self.component.map_index((event.x, event.y)) # type: ignore
 
             x_index, y_index = ndx
-            # image_data = plot.value
             self.x = x_index
             self.y = y_index
 
@@ -104,7 +98,6 @@ class PlotWindow(HasTraits):
 
     def __init__(self):
         super(HasTraits, self).__init__()
-        # -------------- Initialization of plot system ----------------
         padd = 25
         self._plot_data = ArrayPlotData()
         self._x = []
@@ -116,10 +109,8 @@ class PlotWindow(HasTraits):
         self._plot.padding_top = padd
         self._plot.padding_bottom = padd
         self._quiverplots = []
-        self.py_rclick_delete = ptv.py_rclick_delete
-        self.py_get_pix_N = ptv.py_get_pix_N
-
-        # -------------------------------------------------------------
+        # self.py_rclick_delete = ptv.py_rclick_delete
+        # self.py_get_pix_N = ptv.py_get_pix_N
 
     def left_clicked_event(self):
         """
@@ -144,16 +135,17 @@ class PlotWindow(HasTraits):
             self.drawcross("coord_x", "coord_y", self._x, self._y, "red", 5)
             self._plot.overlays = []
             self.plot_num_overlay(self._x, self._y, self.man_ori)
-        else:
-            if self._right_click_avail:
-                print("deleting point")
-                self.py_rclick_delete(
-                    self._click_tool.x, self._click_tool.y, self.cameraN
-                )
-                x = []
-                y = []
-                self.py_get_pix_N(x, y, self.cameraN)
-                self.drawcross("x", "y", x[0], y[0], "blue", 4)
+        # else:
+        #     # if self._right_click_avail:
+        #     #     print("deleting point")
+        #     #     self.py_rclick_delete(
+        #     #         self._click_tool.x, self._click_tool.y, self.cameraN
+        #     #     )
+        #     #     x = []
+        #     #     y = []
+        #     #     self.py_get_pix_N(x, y, self.cameraN)
+        #     #     self.drawcross("x", "y", x[0], y[0], "blue", 4)
+        #     print("This part of rclicked_event is not implemented yet")
 
     def attach_tools(self):
         self._click_tool = ClickerTool(self._img_plot)
@@ -178,7 +170,6 @@ class PlotWindow(HasTraits):
         """
         Draws crosses on images
         """
-        # self._plot.plotdata = ArrayPlotData(x=x[0], y=y[0])
         self._plot_data.set_data(str_x, x)
         self._plot_data.set_data(str_y, y)
         self._plot.plot(
@@ -197,19 +188,6 @@ class PlotWindow(HasTraits):
         self._plot.request_redraw()
 
     def drawquiver(self, x1c, y1c, x2c, y2c, color, linewidth=1.0, scale=1.0):
-        """drawquiver draws multiple lines at once on the screen x1,y1->x2,y2 in the current camera window
-        parameters:
-            x1c - array of x1 coordinates
-            y1c - array of y1 coordinates
-            x2c - array of x2 coordinates
-            y2c - array of y2 coordinates
-            color - color of the line
-            linewidth - linewidth of the line
-        example usage:
-            drawquiver ([100,200],[100,100],[400,400],[300,200],'red',linewidth=2.0)
-            draws 2 red lines with thickness = 2 :  100,100->400,300 and 200,100->400,200
-
-        """
         x1, y1, x2, y2 = self.remove_short_lines(x1c, y1c, x2c, y2c, min_length=0)
         if len(x1) > 0:
             xs = ArrayDataSource(x1)
@@ -228,24 +206,9 @@ class PlotWindow(HasTraits):
                 ep_value=np.array(y2) * scale,
             )
             self._plot.add(quiverplot)
-            # we need this to track how many quiverplots are in the current
-            # plot
             self._quiverplots.append(quiverplot)
-            # import pdb; pdb.set_trace()
 
     def remove_short_lines(self, x1, y1, x2, y2, min_length=2):
-        """removes short lines from the array of lines
-        parameters:
-            x1,y1,x2,y2 - start and end coordinates of the lines
-        returns:
-            x1f,y1f,x2f,y2f - start and end coordinates of the lines, with short lines removed
-        example usage:
-            x1,y1,x2,y2=remove_short_lines([100,200,300],[100,200,300],[100,200,300],[102,210,320])
-            3 input lines, 1 short line will be removed (100,100->100,102)
-            returned coordinates:
-            x1=[200,300]; y1=[200,300]; x2=[200,300]; y2=[210,320]
-        """
-        # dx, dy = 2, 2  # minimum allowable dx,dy
         x1f, y1f, x2f, y2f = [], [], [], []
         for i in range(len(x1)):
             if abs(x1[i] - x2[i]) > min_length or abs(y1[i] - y2[i]) > min_length:
@@ -285,193 +248,289 @@ class PlotWindow(HasTraits):
         self._plot.request_redraw()
 
 
-# ---------------------------------------------------------
-
-
 class DetectionGUI(HasTraits):
     """detection GUI"""
 
-    status_text = Str(" status ")
-    # -------------------------------------------------------------
-
-    # grey_thresh= Range(1,255,5,mode='slider')
-
-    size_of_crosses = Int(4, label="Size of crosses")
-    # button_edit_cal_parameters = Button()
-    button_showimg = Button(label="Load image")
+    status_text = Str("Ready - Load parameters and image to start")
+    button_load_params = Button(label="Load Parameters")
+    image_name = Str("cal/cam1.tif", label="Image file name")
+    button_load_image = Button(label="Load Image")
     hp_flag = Bool(False, label="highpass")
     inverse_flag = Bool(False, label="inverse")
     button_detection = Button(label="Detect dots")
-    image_name = Str("cal/cam1.tif", label="Image file name")
+    
+    # Default traits that will be updated when parameters are loaded
+    grey_thresh = Range(1, 255, 40, mode="slider", label="Grey threshold")
+    min_npix = Range(1, 100, 25, mode="slider", label="Min pixels")
+    min_npix_x = Range(1, 20, 5, mode="slider", label="min npix in x")
+    min_npix_y = Range(1, 20, 5, mode="slider", label="min npix in y")
+    max_npix = Range(1, 500, 400, mode="slider", label="max npix")
+    max_npix_x = Range(1, 100, 50, mode="slider", label="max npix in x")
+    max_npix_y = Range(1, 100, 50, mode="slider", label="max npix in y")
+    disco = Range(0, 255, 100, mode="slider", label="Discontinuity")
+    sum_of_grey = Range(50, 200, 100, mode="slider", label="Sum of greyvalue")
+    
+    # Range control fields - allow users to adjust slider limits
+    # grey_thresh_min = Int(1, label="Min")
+#   # grey_thresh_max = Int(255, label="Max")
+    min_npix_min = Int(1, label="Min")
+    min_npix_max = Int(100, label="Max")
+    max_npix_min = Int(1, label="Min")
+    max_npix_max = Int(500, label="Max")
+    disco_min = Int(0, label="Min")
+    disco_max = Int(255, label="Max")
+    sum_of_grey_min = Int(10, label="Min")
+    sum_of_grey_max = Int(500, label="Max")
+    
+    # Buttons to apply range changes
+    button_update_ranges = Button(label="Update Slider Ranges")
 
-    # ---------------------------------------------------
-    # Constructor
-    # ---------------------------------------------------
-    def __init__(self, par_path: pathlib.Path):
-        """Initialize DetectionGUI
-
-        Inputs:
-            active_path is the path to the folder of prameters
-            active_path is a subfolder of a working folder with a
-            structure of /parameters, /res, /cal, /img and so on
-        """
-
+    def __init__(self, working_directory=Path("tests/test_cavity")):
         super(DetectionGUI, self).__init__()
-        self.need_reset = 0
 
-        # self.active_path = active_path
-        print(f"par_path is {par_path}")
-        if not isinstance(par_path, pathlib.Path):
-            par_path = pathlib.Path(par_path)
+        self.working_directory = Path(working_directory)
+        
+        # Initialize state variables
+        self.parameters_loaded = False
+        self.image_loaded = False
+        self.raw_image = None
+        self.processed_image = None
+        
+        # Parameter structures (will be initialized when parameters are loaded)
+        self.cpar = None
+        self.tpar = None
+        
+        # Detection parameters (hardcoded defaults)
+        self.thresholds = [40, 0, 0, 0]
+        self.pixel_count_bounds = [25, 400]
+        self.xsize_bounds = [5, 50]
+        self.ysize_bounds = [5, 50]
+        self.sum_grey = 100
+        self.disco = 100
 
-        self.par_path = par_path
-        self.working_folder = self.par_path.parent
-        # self.par_path = os.path.join(self.working_folder, 'parameters')
-
-        # print('active path = %s' % self.active_path)
-        print(f"working_folder = {self.working_folder}")
-        print(f"par_path = {self.par_path}")
-
-        # par.copy_params_dir(self.active_path, self.par_path)
-        os.chdir(self.working_folder)
-        print(f"Inside a folder: {pathlib.Path()}")
-        # read parameters
-        with open((self.par_path / "ptv.par"), "r", encoding="utf-8") as f:
-            self.n_cams = int(f.readline())
-
-        print(f"Loading images/parameters in {self.n_cams} cams \n")
-
-        # copy parameters from active to default folder parameters/
-        # par.copy_params_dir(self.active_path, self.par_path)
-
-        # read from parameters
-        (
-            self.cpar,
-            self.spar,
-            self.vpar,
-            self.track_par,
-            self.tpar,
-            self.cals,
-            self.epar,
-        ) = ptv.py_start_proc_c(self.n_cams)
-
-        self.tpar.read("parameters/detect_plate.par")
-
-        self.thresholds = self.tpar.get_grey_thresholds()
-        self.pixel_count_bounds = list(self.tpar.get_pixel_count_bounds())
-        self.xsize_bounds = list(self.tpar.get_xsize_bounds())
-        self.ysize_bounds = list(self.tpar.get_ysize_bounds())
-        self.sum_grey = self.tpar.get_min_sum_grey()
-        self.disco = self.tpar.get_max_discontinuity()
-
-        # self.add_trait("i_cam", Enum(range(1,self.n_cams+1)))
-        self.add_trait("grey_thresh", Range(1, 255, self.thresholds[0], mode="slider"))
-        self.add_trait(
-            "min_npix",
-            Range(
-                0,
-                self.pixel_count_bounds[0] + 50,
-                self.pixel_count_bounds[0],
-                method="slider",
-                label="min npix",
-            ),
-        )
-        self.add_trait(
-            "min_npix_x",
-            Range(
-                1,
-                self.xsize_bounds[0] + 20,
-                self.xsize_bounds[0],
-                mode="slider",
-                label="min npix in x",
-            ),
-        )
-        self.add_trait(
-            "min_npix_y",
-            Range(
-                1,
-                self.ysize_bounds[0] + 20,
-                self.ysize_bounds[0],
-                mode="slider",
-                label="min npix in y",
-            ),
-        )
-        self.add_trait(
-            "max_npix",
-            Range(
-                1,
-                self.pixel_count_bounds[1] + 100,
-                self.pixel_count_bounds[1],
-                mode="slider",
-                label="max npix",
-            ),
-        )
-        self.add_trait(
-            "max_npix_x",
-            Range(
-                1,
-                self.xsize_bounds[1] + 50,
-                self.xsize_bounds[1],
-                mode="slider",
-                label="max npix in x",
-            ),
-        )
-        self.add_trait(
-            "max_npix_y",
-            Range(
-                1,
-                self.ysize_bounds[1] + 50,
-                self.ysize_bounds[1],
-                mode="slider",
-                label="max npix in y",
-            ),
-        )
-        self.add_trait(
-            "disco",
-            Range(
-                0,
-                255,
-                self.disco,
-                mode="slider",
-                label="Discontinuity",
-            ),
-        )        
-        self.add_trait(
-            "sum_of_grey",
-            Range(
-                self.sum_grey / 2,
-                self.sum_grey * 2,
-                self.sum_grey,
-                mode="slider",
-                label="Sum of greyvalue",
-            ),
-        )
-
-        # Detection will work one by one for the beginning
         self.camera = [PlotWindow()]
-        # self.camera_name = 'Camera' + str(self.i_cam)
 
-    # Defines GUI view --------------------------
+    def _button_load_params(self):
+        """Load parameters from working directory"""
+
+        try:
+            if not self.working_directory.exists():
+                self.status_text = f"Error: Working directory {self.working_directory} does not exist"
+                return
+            
+            # Set working directory
+            os.chdir(self.working_directory)
+            print(f"Working directory: {self.working_directory}")
+
+            # 1. load the image using imread and self.image_name
+            self.image_loaded = False
+            try: 
+                self.raw_image = imread(self.image_name)
+                if self.raw_image.ndim > 2:
+                    self.raw_image = rgb2gray(self.raw_image) 
+                
+                self.raw_image = img_as_ubyte(self.raw_image)
+                self.image_loaded = True
+            except Exception as e:
+                self.status_text = f"Error reading image: {str(e)}"
+                print(f"Error reading image {self.image_name}: {e}")
+                return
+
+            # Set up control parameters for detection:
+            self.cpar = ptv.ControlParams(1)
+            self.cpar.set_image_size((self.raw_image.shape[1], self.raw_image.shape[0]))        
+            self.cpar.set_pixel_size((0.01, 0.01))  # Default pixel size, can be overridden later
+            self.cpar.set_hp_flag(self.hp_flag) 
+
+            # Initialize target parameters for detection
+            self.tpar = ptv.TargetParams()
+            
+            # Set hardcoded detection parameters
+            self.tpar.set_grey_thresholds([10, 0, 0, 0])
+            self.tpar.set_pixel_count_bounds([1, 50])
+            self.tpar.set_xsize_bounds([1,15])
+            self.tpar.set_ysize_bounds([1,15])
+            self.tpar.set_min_sum_grey(100)
+            self.tpar.set_max_discontinuity(100)
+            
+            # Update trait ranges for real-time parameter adjustment
+            if not self.parameters_loaded:
+                self._update_parameter_trait_ranges()
+            else:
+                # Update existing trait values
+                self._update_trait_values()
+            
+            self.parameters_loaded = True
+            self.status_text = f"Parameters loaded for working directory {self.working_directory}"
+            
+        except Exception as e:
+            self.status_text = f"Error loading parameters: {str(e)}"
+            print(f"Error loading parameters: {e}")
+
+    def _update_parameter_trait_ranges(self):
+        """Update dynamic traits for parameter adjustment based on loaded parameters"""
+        # Update existing trait ranges based on loaded parameter bounds
+        self.trait("grey_thresh").handler.low = 1
+        self.trait("grey_thresh").handler.high = 255
+        self.grey_thresh = self.thresholds[0]
+        # Update range control fields
+        self.grey_thresh_min = 1
+        self.grey_thresh_max = 255
+        
+        self.trait("min_npix").handler.low = 0
+        self.trait("min_npix").handler.high = self.pixel_count_bounds[0] + 50
+        self.min_npix = self.pixel_count_bounds[0]
+        self.min_npix_min = 1
+        self.min_npix_max = self.pixel_count_bounds[0] + 50
+        
+        self.trait("max_npix").handler.low = 1
+        self.trait("max_npix").handler.high = self.pixel_count_bounds[1] + 100
+        self.max_npix = self.pixel_count_bounds[1]
+        self.max_npix_min = 1
+        self.max_npix_max = self.pixel_count_bounds[1] + 100
+        
+        self.trait("min_npix_x").handler.low = 1
+        self.trait("min_npix_x").handler.high = self.xsize_bounds[0] + 20
+        self.min_npix_x = self.xsize_bounds[0]
+        
+        self.trait("max_npix_x").handler.low = 1
+        self.trait("max_npix_x").handler.high = self.xsize_bounds[1] + 50
+        self.max_npix_x = self.xsize_bounds[1]
+        
+        self.trait("min_npix_y").handler.low = 1
+        self.trait("min_npix_y").handler.high = self.ysize_bounds[0] + 20
+        self.min_npix_y = self.ysize_bounds[0]
+        
+        self.trait("max_npix_y").handler.low = 1
+        self.trait("max_npix_y").handler.high = self.ysize_bounds[1] + 50
+        self.max_npix_y = self.ysize_bounds[1]
+        
+        self.trait("disco").handler.low = 0
+        self.trait("disco").handler.high = 255
+        self.disco = self.disco
+        self.disco_min = 0
+        self.disco_max = 255
+        
+        self.trait("sum_of_grey").handler.low = self.sum_grey // 2
+        self.trait("sum_of_grey").handler.high = self.sum_grey * 2
+        self.sum_of_grey = self.sum_grey
+        self.sum_of_grey_min = self.sum_grey // 2
+        self.sum_of_grey_max = self.sum_grey * 2
+
+    def _update_trait_values(self):
+        """Update existing trait values when parameters are reloaded"""
+        if hasattr(self, 'grey_thresh'):
+            self.grey_thresh = self.thresholds[0]
+        if hasattr(self, 'min_npix'):
+            self.min_npix = self.pixel_count_bounds[0]
+        if hasattr(self, 'max_npix'):
+            self.max_npix = self.pixel_count_bounds[1]
+        if hasattr(self, 'min_npix_x'):
+            self.min_npix_x = self.xsize_bounds[0]
+        if hasattr(self, 'max_npix_x'):
+            self.max_npix_x = self.xsize_bounds[1]
+        if hasattr(self, 'min_npix_y'):
+            self.min_npix_y = self.ysize_bounds[0]
+        if hasattr(self, 'max_npix_y'):
+            self.max_npix_y = self.ysize_bounds[1]
+        if hasattr(self, 'disco'):
+            self.disco = self.disco
+        if hasattr(self, 'sum_of_grey'):
+            self.sum_of_grey = self.sum_grey
+
+    def _button_load_image_fired(self):
+        """Load raw image from file"""
+
+        self._button_load_params()
+            
+        try:
+            
+            # Process image with current filter settings
+            self._update_processed_image()
+            
+            # Display image
+            self.reset_show_images()
+            
+            self.image_loaded = True
+            self.status_text = f"Image loaded: {self.image_name}"
+            
+            # Run initial detection
+            self._run_detection()
+            
+        except Exception as e:
+            self.status_text = f"Error loading image: {str(e)}"
+            print(f"Error loading image {self.image_name}: {e}")
+
+    def _update_processed_image(self):
+        """Update processed image based on current filter settings"""
+        if self.raw_image is None:
+            return
+            
+        try:
+            # Start with raw image
+            im = self.raw_image.copy()
+            
+            # Apply inverse flag
+            if self.inverse_flag:
+                im = 255 - im
+            
+            # Apply highpass filter if enabled
+            if self.hp_flag:
+                im = ptv.preprocess_image(im, 0, self.cpar, 25)
+            
+            self.processed_image = im.copy()
+            
+        except Exception as e:
+            self.status_text = f"Error processing image: {str(e)}"
+            print(f"Error processing image: {e}")
 
     view = View(
         HGroup(
             VGroup(
                 VGroup(
-                    # Item(name='i_cam'),
-                    Item(name="image_name", width=150),
-                    Item(name="button_showimg"),
+                    Item(name="image_name", width=200),
+                    Item(name="button_load_image"),
+                    "_",  # Separator
                     Item(name="hp_flag"),
                     Item(name="inverse_flag"),
-                    Item(name="button_detection"),
-                    Item(name="grey_thresh"),
-                    Item(name="min_npix"),
-                    Item(name="min_npix_x"),
-                    Item(name="min_npix_y"),
-                    Item(name="max_npix"),
-                    Item(name="max_npix_x"),
-                    Item(name="max_npix_y"),
-                    Item(name="disco"),
-                    Item(name="sum_of_grey"),
+                    Item(name="button_detection", enabled_when="image_loaded"),
+                    "_",  # Separator
+                    # Detection parameter sliders
+                    HGroup(
+                        Item(name="grey_thresh", enabled_when="parameters_loaded"),
+                        # Item(name="grey_thresh_max", width=60),
+                    ),
+                    HGroup(
+                        Item(name="min_npix", enabled_when="parameters_loaded"),
+                        HGroup(Item(name="min_npix_min", width=20), Item(name="min_npix_max", width=60)),
+                    ),
+                    Item(name="min_npix_x", enabled_when="parameters_loaded"),
+                    Item(name="min_npix_y", enabled_when="parameters_loaded"),
+                    HGroup(
+                        Item(name="max_npix", enabled_when="parameters_loaded"),
+                        VGroup(
+                            HGroup(Item(name="max_npix_min", width=60), Item(name="max_npix_max", width=60)),
+                            label="Range",
+                        ),
+                    ),
+                    Item(name="max_npix_x", enabled_when="parameters_loaded"),
+                    Item(name="max_npix_y", enabled_when="parameters_loaded"),
+                    HGroup(
+                        Item(name="disco", enabled_when="parameters_loaded"),
+                        VGroup(
+                            HGroup(Item(name="disco_min", width=60), Item(name="disco_max", width=60)),
+                            label="Range",
+                        ),
+                    ),
+                    HGroup(
+                        Item(name="sum_of_grey", enabled_when="parameters_loaded"),
+                        VGroup(
+                            HGroup(Item(name="sum_of_grey_min", width=60), Item(name="sum_of_grey_max", width=60)),
+                            label="Range",
+                        ),
+                    ),
+                    "_",  # Separator
+                    Item(name="button_update_ranges", enabled_when="parameters_loaded"),
                 ),
             ),
             Item(
@@ -487,7 +546,7 @@ class DetectionGUI(HasTraits):
             ),
             orientation="horizontal",
         ),
-        title="Detection",
+        title="Detection GUI - Load Image and Detect Particles",
         id="view1",
         width=1.0,
         height=1.0,
@@ -495,115 +554,178 @@ class DetectionGUI(HasTraits):
         statusbar="status_text",
     )
 
-    # --------------------------------------------------
 
-    def _inverse_flag_changed(self):
-        self._read_cal_image()
-        self.status_text = "Negative image"
-        self.reset_show_images()
 
     def _hp_flag_changed(self):
-        self._read_cal_image()
-        self.status_text = "Highpassed image"
+        """Handle highpass flag change"""       
+        self._update_processed_image()
         self.reset_show_images()
+
+
+    def _inverse_flag_changed(self):
+        """Handle inverse flag change"""
+        if self.image_loaded:
+            self._update_processed_image()
+            self.reset_show_images()
 
     def _grey_thresh_changed(self):
-        self.thresholds[0] = self.grey_thresh
-        self.tpar.set_grey_thresholds(self.thresholds)
-        # print(f"tpar is now {self.tpar.get_grey_thresholds()}")
-        # run detection again
-        self._button_detection_fired()
+        """Update grey threshold parameter"""
+        if self.parameters_loaded:
+            self.thresholds[0] = self.grey_thresh
+            self.tpar.set_grey_thresholds(self.thresholds)
+            self.status_text = f"Grey threshold: {self.grey_thresh}"
+            self._run_detection()
 
     def _min_npix_changed(self):
-        self.pixel_count_bounds[0] = self.min_npix
-        self.tpar.set_pixel_count_bounds(self.pixel_count_bounds)
-        # print(f"set min {self.tpar.get_pixel_count_bounds()}")
-        self._button_detection_fired()
+        """Update minimum pixel count parameter"""
+        if self.parameters_loaded:
+            self.pixel_count_bounds[0] = self.min_npix
+            self.tpar.set_pixel_count_bounds(self.pixel_count_bounds)
+            self.status_text = f"Min pixels: {self.min_npix}"
+            self._run_detection()
 
     def _max_npix_changed(self):
-        self.pixel_count_bounds[1] = self.max_npix
-        self.tpar.set_pixel_count_bounds(self.pixel_count_bounds)
-        # print(f"set max {self.tpar.get_pixel_count_bounds()}")
-        self._button_detection_fired()
+        """Update maximum pixel count parameter"""
+        if self.parameters_loaded:
+            self.pixel_count_bounds[1] = self.max_npix
+            self.tpar.set_pixel_count_bounds(self.pixel_count_bounds)
+            self.status_text = f"Max pixels: {self.max_npix}"
+            self._run_detection()
 
     def _min_npix_x_changed(self):
-        self.xsize_bounds[0] = self.min_npix_x
-        self.tpar.set_xsize_bounds(self.xsize_bounds)
-        self._button_detection_fired()
+        """Update minimum X pixel count parameter"""
+        if self.parameters_loaded:
+            self.xsize_bounds[0] = self.min_npix_x
+            self.tpar.set_xsize_bounds(self.xsize_bounds)
+            self.status_text = f"Min pixels X: {self.min_npix_x}"
+            self._run_detection()
 
     def _max_npix_x_changed(self):
-        self.xsize_bounds[1] = self.max_npix_x
-        self.tpar.set_xsize_bounds(self.xsize_bounds)
-        self._button_detection_fired()
+        """Update maximum X pixel count parameter"""
+        if self.parameters_loaded:
+            self.xsize_bounds[1] = self.max_npix_x
+            self.tpar.set_xsize_bounds(self.xsize_bounds)
+            self.status_text = f"Max pixels X: {self.max_npix_x}"
+            self._run_detection()
 
     def _min_npix_y_changed(self):
-        self.ysize_bounds[0] = self.min_npix_y
-        self.tpar.set_ysize_bounds(self.ysize_bounds)
-        # self._button_detection_fired()
+        """Update minimum Y pixel count parameter"""
+        if self.parameters_loaded:
+            self.ysize_bounds[0] = self.min_npix_y
+            self.tpar.set_ysize_bounds(self.ysize_bounds)
+            self.status_text = f"Min pixels Y: {self.min_npix_y}"
+            self._run_detection()
 
     def _max_npix_y_changed(self):
-        self.ysize_bounds[1] = self.max_npix_y
-        self.tpar.set_ysize_bounds(self.ysize_bounds)
-        self._button_detection_fired()
+        """Update maximum Y pixel count parameter"""
+        if self.parameters_loaded:
+            self.ysize_bounds[1] = self.max_npix_y
+            self.tpar.set_ysize_bounds(self.ysize_bounds)
+            self.status_text = f"Max pixels Y: {self.max_npix_y}"
+            self._run_detection()
 
     def _sum_of_grey_changed(self):
-        self.tpar.set_min_sum_grey(self.sum_of_grey)
-        self._button_detection_fired()
+        """Update sum of grey parameter"""
+        if self.parameters_loaded:
+            self.tpar.set_min_sum_grey(self.sum_of_grey)
+            self.status_text = f"Sum of grey: {self.sum_of_grey}"
+            self._run_detection()
 
     def _disco_changed(self):
-        self.tpar.set_max_discontinuity(self.disco)
-        # print(f"set disco {self.tpar.get_max_discontinuity()}")
-        self._button_detection_fired()
+        """Update discontinuity parameter"""
+        if self.parameters_loaded:
+            self.tpar.set_max_discontinuity(self.disco)
+            self.status_text = f"Discontinuity: {self.disco}"
+            self._run_detection()
+
+    def _run_detection(self):
+        """Run detection if image is loaded"""
+        if self.image_loaded:
+            self._button_detection_fired()
+
+    def _run_detection_if_image_loaded(self):
+        """Run detection if an image is loaded"""
+        if hasattr(self, 'processed_image') and self.processed_image is not None:
+            self._button_detection_fired()
 
     def _button_showimg_fired(self):
-        self._read_cal_image()
-        self.reset_show_images()
+        """Load and display the specified image"""
+        try:
+            self._load_raw_image()
+            self._reprocess_current_image()
+            self.reset_show_images()
+            self.status_text = f"Loaded image: {self.image_name}"
+            # Run initial detection
+            self._button_detection_fired()
+        except Exception as e:
+            self.status_text = f"Error loading image: {str(e)}"
+            print(f"Error loading image {self.image_name}: {e}")
 
-    def _read_cal_image(self):
-        # read Detection images
-        # imname = self.cpar.get_cal_img_base_name(self.i_cam-1)
-        #
-        # print(f'image name is {self.image_name}')# and \
-        # its string is {self.image_name.decode("utf-8")}')
+    # def _load_raw_image(self):
+    #     """Load the raw image from file (called only once per image)"""
+    #     try:
+    #         self.raw_image = imread(self.image_name)
+    #         if self.raw_image.ndim > 2:
+    #             self.raw_image = rgb2gray(self.raw_image)
+    #         self.raw_image = img_as_ubyte(self.raw_image)
+    #     except Exception as e:
+    #         self.status_text = f"Error reading image: {str(e)}"
+    #         raise
 
-        im = imread(self.image_name)
-        # print(f'image size is {im.shape}')
-        if im.ndim > 2:
-            im = rgb2gray(im)
+    def _reprocess_current_image(self):
+        """Reprocess the current raw image with current filter settings"""
+        if not hasattr(self, 'raw_image') or self.raw_image is None:
+            return
+        
+        try:
+            # Start with the raw image
+            im = self.raw_image.copy()
 
-        if self.inverse_flag is True:
-            im = 255 - im
+            # Apply inverse flag
+            if self.inverse_flag:
+                im = 255 - im
 
-        if self.hp_flag is True:
-            tmp = [img_as_ubyte(im)]
-            tmp = ptv.py_pre_processing_c(tmp, self.cpar)
-            im = tmp[0]
-        else:
-            im = img_as_ubyte(im)
+            # Apply highpass filter if enabled
+            if self.hp_flag and self.cpar is not None:
+                im = ptv.preprocess_image(im, 0, self.cpar, 25)
 
-        self.cal_image = im.copy()
+            self.processed_image = im.copy()
+            
+        except Exception as e:
+            self.status_text = f"Error processing image: {str(e)}"
+            raise
 
     def _button_detection_fired(self):
-        # self.reset_show_images()
-        # self.need_reset = False
-        self.status_text = " Detection procedure "
+        """Run particle detection on the current image"""
+        if not hasattr(self, 'processed_image') or self.processed_image is None:
+            self.status_text = "No image loaded - load parameters and image first"
+            return
+        
+        if not self.parameters_loaded:
+            self.status_text = "Parameters not loaded - load parameters first"
+            return
+        
+        self.status_text = "Running detection..."
+        
+        try:
+            # Run detection using current parameters
+            targs = target_recognition(self.processed_image, self.tpar, 0, self.cpar)
+            targs.sort_y()
 
-        # self.detections, corrected = \
-        #     ptv.py_detection_proc_c([self.cal_image], self.cpar, self.tpar, self.cals)
+            # Extract particle positions
+            x = [i.pos()[0] for i in targs]
+            y = [i.pos()[1] for i in targs]
 
-        targs = target_recognition(self.cal_image, self.tpar, 0, self.cpar)
-        targs.sort_y()
+            # Clear previous detection results
+            self.camera[0].drawcross("x", "y", np.array(x), np.array(y), "orange", 8)
+            self.camera[0]._right_click_avail = 1
 
-        x = [i.pos()[0] for i in targs]
-        y = [i.pos()[1] for i in targs]
-
-        # print("n particles is %d " % len(x))
-
-        self.camera[0].drawcross("x", "y", np.array(x), np.array(y), "orange", 8)
-        self.camera[0]._right_click_avail = 1
-
-        # for i in range(self.n_cams):
-        #     self.camera[i]._right_click_avail = 1
+            # Update status with detection results
+            self.status_text = f"Detected {len(x)} particles"
+            
+        except Exception as e:
+            self.status_text = f"Detection error: {str(e)}"
+            print(f"Detection error: {e}")
 
     def reset_plots(self):
         """Resets all the images and overlays"""
@@ -614,8 +736,12 @@ class DetectionGUI(HasTraits):
         self.camera[0]._quiverplots = []
 
     def reset_show_images(self):
+        """Reset and show the current processed image"""
+        if not hasattr(self, 'processed_image') or self.processed_image is None:
+            return
+            
         self.reset_plots()
-        self.camera[0]._plot_data.set_data("imagedata", self.cal_image)
+        self.camera[0]._plot_data.set_data("imagedata", self.processed_image)
         self.camera[0]._img_plot = self.camera[0]._plot.img_plot(
             "imagedata", colormap=gray
         )[0]
@@ -625,16 +751,64 @@ class DetectionGUI(HasTraits):
         self.camera[0].attach_tools()
         self.camera[0]._plot.request_redraw()
 
-    # def update_plots(self, images, is_float=False):
-    #     self.camera[0].update_image(self.cal_image, is_float)
-
+    def _button_update_ranges_fired(self):
+        """Update slider ranges based on user input"""
+        try:
+            # Update grey threshold range
+            self.trait("grey_thresh").handler.low = self.grey_thresh_min
+            self.trait("grey_thresh").handler.high = self.grey_thresh_max
+            # Ensure current value is within new range
+            if self.grey_thresh < self.grey_thresh_min:
+                self.grey_thresh = self.grey_thresh_min
+            elif self.grey_thresh > self.grey_thresh_max:
+                self.grey_thresh = self.grey_thresh_max
+            
+            # Update min_npix range
+            self.trait("min_npix").handler.low = self.min_npix_min
+            self.trait("min_npix").handler.high = self.min_npix_max
+            if self.min_npix < self.min_npix_min:
+                self.min_npix = self.min_npix_min
+            elif self.min_npix > self.min_npix_max:
+                self.min_npix = self.min_npix_max
+            
+            # Update max_npix range
+            self.trait("max_npix").handler.low = self.max_npix_min
+            self.trait("max_npix").handler.high = self.max_npix_max
+            if self.max_npix < self.max_npix_min:
+                self.max_npix = self.max_npix_min
+            elif self.max_npix > self.max_npix_max:
+                self.max_npix = self.max_npix_max
+            
+            # Update disco range
+            self.trait("disco").handler.low = self.disco_min
+            self.trait("disco").handler.high = self.disco_max
+            if self.disco < self.disco_min:
+                self.disco = self.disco_min
+            elif self.disco > self.disco_max:
+                self.disco = self.disco_max
+            
+            # Update sum_of_grey range
+            self.trait("sum_of_grey").handler.low = self.sum_of_grey_min
+            self.trait("sum_of_grey").handler.high = self.sum_of_grey_max
+            if self.sum_of_grey < self.sum_of_grey_min:
+                self.sum_of_grey = self.sum_of_grey_min
+            elif self.sum_of_grey > self.sum_of_grey_max:
+                self.sum_of_grey = self.sum_of_grey_max
+            
+            self.status_text = "Slider ranges updated successfully"
+            
+        except Exception as e:
+            self.status_text = f"Error updating ranges: {str(e)}"
 
 if __name__ == "__main__":
     if len(sys.argv) == 1:
-        par_path = pathlib.Path().absolute() / "tests" / "test_cavity" / "parameters"
-        # par_path = pathlib.Path('/home/user/Downloads/Test_8_with_50_pic/parameters')
+        # Default to test_cavity directory
+        working_dir = Path().absolute() / "tests" / "test_cavity"
     else:
-        par_path = pathlib.Path(sys.argv[1]) / "parameters"
-
-    detection_gui = DetectionGUI(par_path)
+        # Use provided working directory path
+        working_dir = Path(sys.argv[1])
+    
+    print(f"Loading PyPTV Detection GUI with working directory: {working_dir}")
+    
+    detection_gui = DetectionGUI(working_dir)
     detection_gui.configure_traits()

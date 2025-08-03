@@ -1,0 +1,24 @@
+name: Python application
+
+on:
+  push:
+    branches: [ main, simple_yaml_with_tests ]
+  pull_request:
+    branches: [ main, simple_yaml_with_tests ]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v3
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.11'
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        python -m pip install -r requirements-dev.txt
+        python -m pip install -e .
+    - name: Run headless tests only
+      run: bash run_headless_tests.sh

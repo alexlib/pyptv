@@ -4,7 +4,6 @@ Unit tests for the core ptv module functionality
 
 import pytest
 import numpy as np
-from pathlib import Path
 
 from pyptv.ptv import negative, py_start_proc_c, _read_calibrations
 

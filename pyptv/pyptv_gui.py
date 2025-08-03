@@ -1,23 +1,13 @@
-from traits.etsconfig.api import ETSConfig
 import os
-from pathlib import Path
 import sys
-import time
-import importlib
+import json
+import yaml
+from pathlib import Path
 import numpy as np
-import optv
-from traits.api import HasTraits, Int, Bool, Instance, List, Enum, Any
-from traitsui.api import (
-    View,
-    Item,
-    ListEditor,
-    Handler,
-    TreeEditor,
-    TreeNode,
-    Separator,
-    Group,
-)
-
+from traits.api import HasTraits, Int, Bool, Instance, List, Enum
+from traitsui.api import View, Item, ListEditor, Handler, TreeEditor, TreeNode, Separator, VGroup, HGroup, Group, CodeEditor, VSplit
+from traits.api import File
+from traitsui.api import FileEditor
 from traitsui.menu import Action, Menu, MenuBar
 from chaco.api import ArrayDataSource, ArrayPlotData, LinearMapper, Plot, gray
 from chaco.tools.api import PanTool, ZoomTool
@@ -26,18 +16,16 @@ from enable.component_editor import ComponentEditor
 from skimage.util import img_as_ubyte
 from skimage.io import imread
 from skimage.color import rgb2gray
-
-from pyptv import parameters as par
-from pyptv import ptv
-from pyptv.calibration_gui import CalibrationGUI
-from pyptv.directory_editor import DirectoryEditorDialog
-from pyptv.parameter_gui import Experiment, Paramset
+from pyptv.experiment import Experiment, Paramset
 from pyptv.quiverplot import QuiverPlot
 from pyptv.detection_gui import DetectionGUI
 from pyptv.mask_gui import MaskGUI
-from pyptv import __version__
-import optv.orientation
-import optv.epipolar
+from pyptv.parameter_gui import Main_Params, Calib_Params, Tracking_Params
+from pyptv import __version__, ptv
+from optv.epipolar import epipolar_curve
+from optv.imgcoord import image_coordinates
+from optv.transforms import convert_arr_metric_to_pixel
+from pyptv.calibration_gui import CalibrationGUI
 
 """PyPTV_GUI is the GUI for the OpenPTV (www.openptv.net) written in
 Python with Traits, TraitsUI, Numpy, Scipy and Chaco
@@ -50,8 +38,22 @@ OpenPTV library is distributed under the terms of LGPL license
 see http://www.openptv.net for more details.
 
 """
-ETSConfig.toolkit = "qt"
 
+class FilteredFileBrowserExample(HasTraits):
+    """
+    An example showing how to filter for specific file types.
+    """
+    file_path = File()
+
+    view = View(
+        Item('file_path',
+            label="Select a YAML File",
+            editor=FileEditor(filter=['*.yaml','*.yml']),
+        ),
+        title="YAML File Browser",
+        buttons=['OK', 'Cancel'],
+        resizable=True
+    )
 
 class Clicker(ImageInspectorTool):
     """
@@ -64,7 +66,6 @@ class Clicker(ImageInspectorTool):
     x, y = 0, 0
 
     def __init__(self, *args, **kwargs):
-        # Clicker.__init__(self,*args, **kwargs)
         super(Clicker, self).__init__(*args, **kwargs)
 
     def normal_left_down(self, event):
@@ -146,7 +147,7 @@ class CameraWindow(HasTraits):
 
         pan = PanTool(self._plot, drag_button="middle")
         zoom_tool = ZoomTool(self._plot, tool_mode="box", always_on=False)
-        zoom_tool.max_zoom_out_factor = 1.0  # Disable "bird view" zoom out
+        # zoom_tool.max_zoom_out_factor = 1.0  # Disable "bird view" zoom out
         self._img_plot.overlays.append(zoom_tool)
         self._img_plot.tools.append(pan)
         # print(self._img_plot.tools)
@@ -211,9 +212,12 @@ class CameraWindow(HasTraits):
         if is_float:
             self._plot_data.set_data("imagedata", image.astype(np.float32))
         else:
-            self._plot_data.set_data("imagedata", image.astype(np.uint8))
+            self._plot_data.set_data("imagedata", image)
 
-        self._plot.img_plot("imagedata", colormap=gray)[0]
+        # Seems that update data is already updating the content
+
+        # self._plot.img_plot("imagedata", colormap=gray)[0]
+        # self._plot.img_plot("imagedata", colormap=gray)
         self._plot.request_redraw()
 
     def drawcross(self, str_x, str_y, x, y, color, mrk_size, marker="plus"):
@@ -325,129 +329,120 @@ class CameraWindow(HasTraits):
         self._plot.plot((str_x, str_y), type="line", color=color1)
 
 
-class TreeMenuHandler(Handler):
-    """TreeMenuHanlder contains all the callback actions of menu bar,
-    processing of tree editor, and reactions of the GUI to the user clicks
-    possible function declarations:
-        1) to process menubar actions:
-            def function(self, info):
-        parameters: self - needed for member function declaration,
-                info - contains pointer to calling parent class (e.g main_gui)
-                To access parent class objects use info.object, for example
-                info.object.exp1 gives access to exp1 member of main_gui class
-        2) to process tree editor actions:
-            def function(self,editor,object) - see examples below
+# ------------------------------------------
+# Message Window System for capturing print statements
+# ------------------------------------------
 
-    """
+class TreeMenuHandler(Handler):
+    """TreeMenuHandler handles the menu actions and tree node actions"""
 
     def configure_main_par(self, editor, object):
         experiment = editor.get_parent(object)
-        paramset = object
-        print("Total paramsets:", len(experiment.paramsets))
-        if paramset.m_params is None:
-            # TODO: is it possible that control reaches here? If not, probably
-            # the if should be removed.
-            paramset.m_params = par.PtvParams()
+        print("Configure main parameters via ParameterManager")
+        
+        # Create Main_Params GUI with current experiment
+        main_params_gui = Main_Params(experiment=experiment)
+        if main_params_gui is None:
+            raise RuntimeError("Failed to create Main_Params GUI (main_params_gui is None)")
+        
+        # Show the GUI in modal dialog
+        result = main_params_gui.edit_traits(view='Main_Params_View', kind='livemodal')
+        
+        if result:
+            print("Main parameters updated and saved to YAML")
         else:
-            paramset.m_params._reload()
-        paramset.m_params.edit_traits(kind="modal")
+            print("Main parameters dialog cancelled")
 
     def configure_cal_par(self, editor, object):
         experiment = editor.get_parent(object)
-        paramset = object
-        print(len(experiment.paramsets))
-        if paramset.c_params is None:
-            # TODO: is it possible that control reaches here? If not, probably
-            # the if should be removed.
-            paramset.c_params = par.CalOriParams()  # this is a very questionable line
+        print("Configure calibration parameters via ParameterManager")
+        
+        # Create Calib_Params GUI with current experiment
+        calib_params_gui = Calib_Params(experiment=experiment)
+        
+        # Show the GUI in modal dialog
+        result = calib_params_gui.edit_traits(view='Calib_Params_View', kind='livemodal')
+        
+        if result:
+            print("Calibration parameters updated and saved to YAML")
         else:
-            paramset.c_params._reload()
-        paramset.c_params.edit_traits(kind="modal")
+            print("Calibration parameters dialog cancelled")
 
     def configure_track_par(self, editor, object):
         experiment = editor.get_parent(object)
-        paramset = object
-        print(len(experiment.paramsets))
-        if paramset.t_params is None:
-            # TODO: is it possible that control reaches here? If not, probably
-            # the if should be removed.
-            paramset.t_params = par.TrackingParams()
-        paramset.t_params.edit_traits(kind="modal")
+        print("Configure tracking parameters via ParameterManager")
+        
+        # Create Tracking_Params GUI with current experiment
+        tracking_params_gui = Tracking_Params(experiment=experiment)
+        
+        # Show the GUI in modal dialog
+        result = tracking_params_gui.edit_traits(view='Tracking_Params_View', kind='livemodal')
+        
+        if result:
+            print("Tracking parameters updated and saved to YAML")
+        else:
+            print("Tracking parameters dialog cancelled")
 
     def set_active(self, editor, object):
         """sets a set of parameters as active"""
         experiment = editor.get_parent(object)
         paramset = object
-        # experiment.active_params = paramset
-        experiment.setActive(paramset)
-        experiment.changed_active_params = True
-        # editor.object.__init__()
+        experiment.set_active(paramset)
+        
+        # Invalidate parameter cache since we switched parameter sets
+        # The main GUI will need to get a reference to invalidate its cache
+        # This could be done through the experiment or by adding a callback
 
     def copy_set_params(self, editor, object):
         experiment = editor.get_parent(object)
         paramset = object
-        print(" Copying set of parameters \n")
+        print("Copying set of parameters")
         print(f"paramset is {paramset.name}")
-        if "Run" in paramset.name:
-            print(f"paramset id is {int(paramset.name.split('Run')[-1])}")
-        # print(f"paramset id is {int(paramset.name.split('Run')[-1])}")
-        # print(f"experiment is {experiment}\n")
 
-        i = 1
-        new_name = None
-        new_dir_path = None
-        flag = False
-        while not flag:
-            new_name = f"{paramset.name}_{i}"
-            new_dir_path = Path(f"{par.par_dir_prefix}{new_name}")
-            if not new_dir_path.is_dir():
-                flag = True
-            else:
-                i = i + 1
+        # Find the next available run number above the largest one
+        parent_dir = paramset.yaml_path.parent
+        existing_yamls = list(parent_dir.glob("parameters_*.yaml"))
+        numbers = [
+            int(yaml_file.stem.split("_")[-1]) for yaml_file in existing_yamls
+            if yaml_file.stem.split("_")[-1].isdigit()
+        ]
+        next_num = max(numbers, default=0) + 1
+        new_name = f"{paramset.name}_{next_num}"
+        new_yaml_path = parent_dir / f"parameters_{new_name}.yaml"
 
-        print(f"New parameter set in: {new_name}, {new_dir_path} \n")
-
-        # new_dir_path.mkdir() # copy should be in the copy_params_dir
-        par.copy_params_dir(paramset.par_path, new_dir_path)
-        experiment.addParamset(new_name, new_dir_path)
+        print(f"New parameter set: {new_name}, {new_yaml_path}")
+        
+        # Copy YAML file
+        import shutil
+        shutil.copy(paramset.yaml_path, new_yaml_path)
+        print(f"Copied {paramset.yaml_path} to {new_yaml_path}")
+            
+        experiment.addParamset(new_name, new_yaml_path)
 
     def rename_set_params(self, editor, object):
-        """rename_set_params renames the node name on the tree and also
-        the folder of parameters"""
-        # experiment = editor.get_parent(object)
-        # paramset = object
-        # # rename
-        # # import pdb; pdb.set_trace()
-        # editor._menu_rename_node(object)
-        # new_name = object.name
-        # new_dir_path = par.par_dir_prefix + new_name
-        # os.mkdir(new_dir_path)
-        # par.copy_params_dir(paramset.par_path, new_dir_path)
-        # [
-        #     os.remove(os.path.join(paramset.par_path, f))
-        #     for f in os.listdir(paramset.par_path)
-        # ]
-        # os.rmdir(paramset.par_path)
-        # experiment.removeParamset(paramset)
-        # experiment.addParamset(new_name, new_dir_path)
         print("Warning: This method is not implemented.")
-        print(
-            "Please open a folder, copy/paste the parameters directory, and rename it manually."
-        )
+        print("Please open a folder, copy/paste the parameters directory, and rename it manually.")
 
     def delete_set_params(self, editor, object):
-        """delete_set_params deletes the node and the folder of parameters"""
-        # experiment = editor.get_parent(object)
+        """delete_set_params deletes the node and the YAML file of parameters"""
+        experiment = editor.get_parent(object)
         paramset = object
-        # delete node
-        editor._menu_delete_node()
-        # delete all the parameter files
-        [
-            os.remove(os.path.join(paramset.par_path, f))
-            for f in os.listdir(paramset.par_path)
-        ]
-        # remove folder
-        os.rmdir(paramset.par_path)
+        print(f"Deleting parameter set: {paramset.name}")
+        
+        # Use the experiment's delete method which handles YAML files and validation
+        try:
+            experiment.delete_paramset(paramset)
+            
+            # The tree view should automatically update when the paramsets list changes
+            # Force a trait change event to ensure the GUI updates
+            experiment.trait_set(paramsets=experiment.paramsets)
+            
+            print(f"Successfully deleted parameter set: {paramset.name}")
+        except ValueError as e:
+            # Handle case where we try to delete the active parameter set
+            print(f"Cannot delete parameter set: {e}")
+        except Exception as e:
+            print(f"Error deleting parameter set: {e}")
 
     # ------------------------------------------
     # Menubar actions
@@ -456,12 +451,20 @@ class TreeMenuHandler(Handler):
         print("not implemented")
 
     def open_action(self, info):
-        directory_dialog = DirectoryEditorDialog()
-        directory_dialog.edit_traits()
-        exp_path = directory_dialog.dir_name
-        print(f"Changing experimental path to {exp_path}")
-        os.chdir(exp_path)
-        info.object.exp1.populate_runs(exp_path)
+
+        filtered_browser_instance = FilteredFileBrowserExample()
+        filtered_browser_instance.configure_traits()
+        if filtered_browser_instance.file_path:
+            print(f"\nYou selected the YAML file: {filtered_browser_instance.file_path}")
+            yaml_path = Path(filtered_browser_instance.file_path)
+            if yaml_path.is_file() and yaml_path.suffix in {".yaml", ".yml"}:
+                print(f"Initializing MainGUI with selected YAML: {yaml_path}")
+                os.chdir(yaml_path.parent)  # Change to the directory of the YAML file
+                main_gui = MainGUI(yaml_path)
+                main_gui.configure_traits()
+            else:
+                print("\nNo file was selected.")
+
 
     def exit_action(self, info):
         print("not implemented")
@@ -470,316 +473,278 @@ class TreeMenuHandler(Handler):
         print("not implemented")
 
     def init_action(self, info):
-        """init_action - clears existing plots from the camera windows,
-        initializes C image arrays with mainGui.orig_image and
-        calls appropriate start_proc_c
-         by using ptv.py_start_proc_c()
-        """
-        mainGui = info.object
-        # synchronize the active run params dir with the temp params dir
-        mainGui.exp1.syncActiveDir()
+        """init_action - initializes the system using ParameterManager"""
+        mainGui = info.object       
+        
+        if mainGui.exp1.active_params is None:
+            print("Warning: No active parameter set found, setting to default.")
+            mainGui.exp1.set_active(0)
 
-        for i in range(len(mainGui.camera_list)):
-            try:
-                im = imread(
-                    getattr(
-                        mainGui.exp1.active_params.m_params,
-                        f"Name_{i + 1}_Image",
-                    )
-                )
-                if im.ndim > 2:
-                    im = rgb2gray(im)
 
-                mainGui.orig_image[i] = img_as_ubyte(im)
-            except IOError:
-                print("Error reading image, setting zero image")
-                h_img = mainGui.exp1.active_params.m_params.imx
-                v_img = mainGui.exp1.active_params.m_params.imy
-                img_as_ubyte(np.zeros((v_img, h_img)))
-                # print(f"setting images of size {temp_img.shape}")
-                exec(f"mainGui.orig_image[{i}] = temp_img")
+        ptv_params = mainGui.get_parameter('ptv')
+    
+        
+        if ptv_params.get('splitter', False):
+            print("Using Splitter mode")
+            imname = ptv_params['img_name'][0]
+            if Path(imname).exists():
+                temp_img = imread(imname)
+                if temp_img.ndim > 2:
+                    temp_img = rgb2gray(temp_img)                
+                splitted_images = ptv.image_split(temp_img)
+                for i in range(len(mainGui.camera_list)):
+                    mainGui.orig_images[i] = img_as_ubyte(splitted_images[i])
+        else:
+            for i in range(len(mainGui.camera_list)):
+                imname = ptv_params['img_name'][i]
+                if Path(imname).exists():
+                    print(f"Reading image {imname}")
+                    im = imread(imname)
+                    if im.ndim > 2:
+                        im = rgb2gray(im)
+                else:
+                    print(f"Image {imname} does not exist, setting zero image")
+                    h_img = ptv_params['imx']
+                    v_img = ptv_params['imy']
+                    im = np.zeros((v_img, h_img), dtype=np.uint8)
+                    
+                mainGui.orig_images[i] = img_as_ubyte(im)
 
-            if hasattr(mainGui.camera_list[i], "img_plot"):
-                del mainGui.camera_list[i].img_plot
+        
+        # Reload YAML and Cython
+        (mainGui.cpar, 
+         mainGui.spar, 
+         mainGui.vpar, 
+         mainGui.track_par, 
+         mainGui.tpar, 
+         mainGui.cals, 
+         mainGui.epar
+         ) = ptv.py_start_proc_c(mainGui.exp1.pm)
+        
+
+        # Centralized: get target_filenames from ParameterManager
+        mainGui.target_filenames = mainGui.exp1.pm.get_target_filenames()
+
+            
+
         mainGui.clear_plots()
-        print("\n Init action \n")
-        # mainGui.update_plots(mainGui.orig_image, is_float=False)
-        mainGui.create_plots(mainGui.orig_image, is_float=False)
-        # mainGui.set_images(mainGui.orig_image)
+        print("Init action")
+        mainGui.create_plots(mainGui.orig_images, is_float=False)
 
-        (
-            info.object.cpar,
-            info.object.spar,
-            info.object.vpar,
-            info.object.track_par,
-            info.object.tpar,
-            info.object.cals,
-            info.object.epar,
-        ) = ptv.py_start_proc_c(info.object.n_cams)
+        # Initialize Cython parameter objects on demand when needed for processing
+        # The parameter data is now managed centrally by ParameterManager
+        # Individual functions can call py_start_proc_c when they need C objects
+        
         mainGui.pass_init = True
-        print("Read all the parameters and calibrations successfully ")
+        print("Read all the parameters and calibrations successfully")
 
     def draw_mask_action(self, info):
         """drawing masks GUI"""
-        print("\n Opening drawing mask GUI \n")
-
+        print("Opening drawing mask GUI")
         info.object.pass_init = False
-        print("Active parameters set \n")
-        print(info.object.exp1.active_params.par_path)
-        mask_gui = MaskGUI(info.object.exp1.active_params.par_path)
+        print("Active parameters set")
+        print(info.object.exp1.active_params.yaml_path)
+        mask_gui = MaskGUI(info.object.exp1)
         mask_gui.configure_traits()
 
     def highpass_action(self, info):
-        """highpass_action - calls ptv.py_pre_processing_c() binding which
-        does highpass on working images (object.orig_image) that were set
-        with init action
-        """
-        # I want to add here negative image if the parameter is set in the
-        # main parameters
-        if info.object.exp1.active_params.m_params.Inverse:
-            # print("Invert image")
-            for i, im in enumerate(info.object.orig_image):
-                info.object.orig_image[i] = 255 - im
+        """highpass_action - calls ptv.py_pre_processing_c()"""
+        mainGui = info.object
+        ptv_params = mainGui.get_parameter('ptv')
+        
+        # Check invert setting
+        if ptv_params.get('inverse', False):
+            print("Invert image")
+            for i, im in enumerate(mainGui.orig_images):
+                mainGui.orig_images[i] = ptv.negative(im)
 
-        if info.object.exp1.active_params.m_params.Subtr_Mask:
+        # Check mask flag
+        # masking_params = mainGui.get_parameter('masking')
+        masking_params = mainGui.get_parameter('masking') or {}
+        if masking_params.get('mask_flag', False):
             print("Subtracting mask")
             try:
-                for i, im in enumerate(info.object.orig_image):
-                    background_name = (
-                        info.object.exp1.active_params.m_params.Base_Name_Mask.replace(
-                            "#", str(i)
-                        )
-                    )
+                for i, im in enumerate(mainGui.orig_images):
+                    background_name = masking_params['mask_base_name'].replace("#", str(i))
                     print(f"Subtracting {background_name}")
                     background = imread(background_name)
-                    # im[mask] = 0
-                    info.object.orig_image[i] = np.clip(
-                        info.object.orig_image[i] - background, 0, 255
+                    mainGui.orig_images[i] = np.clip(
+                        mainGui.orig_images[i] - background, 0, 255
                     ).astype(np.uint8)
-
             except ValueError as exc:
                 raise ValueError("Failed subtracting mask") from exc
 
         print("highpass started")
-        info.object.orig_image = ptv.py_pre_processing_c(
-            info.object.orig_image, info.object.cpar
+        mainGui.orig_images = ptv.py_pre_processing_c(
+            mainGui.num_cams,
+            mainGui.orig_images, 
+            ptv_params
         )
-        # info.object.update_plots(info.object.orig_image)
-        info.object.update_plots(info.object.orig_image)
+        mainGui.update_plots(mainGui.orig_images)
         print("highpass finished")
 
     def img_coord_action(self, info):
-        """
-        img_coord_action - runs detection function by using
-        ptv.py_detection_proc_c()
-        binding. results are extracted with help of ptv.py_get_pix(x,y) binding
-        and plotted on the screen
-        """
+        """img_coord_action - runs detection function"""
+        mainGui = info.object
+    
+        
+        ptv_params = mainGui.get_parameter('ptv')
+        targ_rec_params = mainGui.get_parameter('targ_rec')
+        
+        # Format target_params correctly for _populate_tpar
+        target_params = {'targ_rec': targ_rec_params}
+
         print("Start detection")
         (
-            info.object.detections,
-            info.object.corrected,
+            mainGui.detections,
+            mainGui.corrected,
         ) = ptv.py_detection_proc_c(
-            info.object.orig_image,
-            info.object.cpar,
-            info.object.tpar,
-            info.object.cals,
+            mainGui.num_cams,
+            mainGui.orig_images,
+            ptv_params,
+            target_params,
         )
         print("Detection finished")
-        x = [[i.pos()[0] for i in row] for row in info.object.detections]
-        y = [[i.pos()[1] for i in row] for row in info.object.detections]
-        info.object.drawcross_in_all_cams("x", "y", x, y, "blue", 3)
+        x = [[i.pos()[0] for i in row] for row in mainGui.detections]
+        y = [[i.pos()[1] for i in row] for row in mainGui.detections]
+        mainGui.drawcross_in_all_cams("x", "y", x, y, "blue", 3)
 
     def _clean_correspondences(self, tmp):
-        """arr is a (n_cams,N,2) array that contains four lists of
-        correspondences (each per camera)
-        """
+        """Clean correspondences array"""
         x1, y1 = [], []
         for x in tmp:
-            tmp = x[(x != -999).any(axis=1)]  # remove all rows with -999
+            tmp = x[(x != -999).any(axis=1)]
             x1.append(tmp[:, 0])
             y1.append(tmp[:, 1])
-
         return x1, y1
 
     def corresp_action(self, info):
-        """corresp_action calls ptv.py_correspondences_proc_c()
-        Result of correspondence action is filled to quadriplets, triplets,
-        pairs, and unused arrays
-        """
-
+        """corresp_action calls ptv.py_correspondences_proc_c()"""
+        mainGui = info.object
+        
         print("correspondence proc started")
         (
-            info.object.sorted_pos,
-            info.object.sorted_corresp,
-            info.object.num_targs,
-        ) = ptv.py_correspondences_proc_c(info.object)
+            mainGui.sorted_pos,
+            mainGui.sorted_corresp,
+            mainGui.num_targs,
+        ) = ptv.py_correspondences_proc_c(mainGui)
 
-        # we will always use from pairs or the last iter in sorted_pos
-        # and go upwards. so we'll stop at either triplets or quadruplets
         names = ["pair", "tripl", "quad"]
         use_colors = ["yellow", "green", "red"]
 
-        if len(info.object.camera_list) > 1 and len(info.object.sorted_pos) > 0:
-            # this is valid only if there are more than 1 camera
-            # quadruplets = info.object.sorted_pos[0]
-            # triplets = info.object.sorted_pos[1]
-            # pairs = info.object.sorted_pos[2]
-            # unused = []  # temporary solution
-
-            # if there are less than 4 cameras, then
-            # there are no quadruplets
-            # only triplets and pairs if 3
-            # only pairs if 2
-
-            # import pdb; pdb.set_trace()
-            # info.object.clear_plots(remove_background=False)
-            for i, subset in enumerate(reversed(info.object.sorted_pos)):
+        if len(mainGui.camera_list) > 1 and len(mainGui.sorted_pos) > 0:
+            for i, subset in enumerate(reversed(mainGui.sorted_pos)):
                 x, y = self._clean_correspondences(subset)
-                info.object.drawcross_in_all_cams(
+                mainGui.drawcross_in_all_cams(
                     names[i] + "_x", names[i] + "_y", x, y, use_colors[i], 3
                 )
 
-        # x, y = self._clean_correspondences(triplets)
-        # info.object.drawcross("tripl_x", "tripl_y", x, y, "green", 3)
-        # x, y = self._clean_correspondences(pairs)
-        # info.object.drawcross("pair_x", "pair_y", x, y, "yellow", 3)
-        # info.object.drawcross("unused_x","unused_y",unused[:,0],unused[:,1],"blue",3)
-
     def calib_action(self, info):
-        """calib_action - initializes calib class with appropriate number of
-        plot windows, passes to calib class pointer to ptv module and to
-        exp1 class, invokes the calibration GUI
-        """
-        print("\n Starting calibration dialog \n")
-
-        # reset the main GUI so the user will have to press Start again
+        """calib_action - initializes calibration GUI"""
+        print("Starting calibration dialog")
         info.object.pass_init = False
-        print("Active parameters set \n")
-        print(info.object.exp1.active_params.par_path)
-        calib_gui = CalibrationGUI(info.object.exp1.active_params.par_path)
+        print("Active parameters set")
+        print(info.object.exp1.active_params.yaml_path)
+        calib_gui = CalibrationGUI(info.object.exp1.active_params.yaml_path)
         calib_gui.configure_traits()
 
     def detection_gui_action(self, info):
         """activating detection GUI"""
-        print("\n Starting detection GUI dialog \n")
-
-        # reset the main GUI so the user will have to press Start again
+        print("Starting detection GUI dialog")
         info.object.pass_init = False
-        print("Active parameters set \n")
-        print(info.object.exp1.active_params.par_path)
-        detection_gui = DetectionGUI(info.object.exp1.active_params.par_path)
+        print("Active parameters set")
+        print(info.object.exp1.active_params.yaml_path)
+        detection_gui = DetectionGUI(info.object.exp_path)
         detection_gui.configure_traits()
 
     def sequence_action(self, info):
-        """sequence action - implements binding to C sequence function.
-           Original function was split into 2 parts:
-        1) initialization - bonded by ptv.py_sequence_init(..) function
-        2) main loop processing - bonded by ptv.py_sequence_loop(..) function
-        """
+        """sequence action - implements binding to C sequence function"""
+        mainGui = info.object
 
-        extern_sequence = info.object.plugins.sequence_alg
+        
+        extern_sequence = mainGui.plugins.sequence_alg
         if extern_sequence != "default":
-            ptv.run_plugin(info.object)
+            ptv.run_sequence_plugin(mainGui)
         else:
-            ptv.py_sequence_loop(info.object)
+            ptv.py_sequence_loop(mainGui)
 
     def track_no_disp_action(self, info):
-        """track_no_disp_action uses ptv.py_trackcorr_loop(..) binding to
-        call tracking without display"""
-        extern_tracker = info.object.plugins.track_alg
+        """track_no_disp_action uses ptv.py_trackcorr_loop(..) binding"""
+        import contextlib
+        import io
+        mainGui = info.object
+        
+        extern_tracker = mainGui.plugins.track_alg
         if extern_tracker != "default":
-            try:
-                os.chdir(info.exp1.object.software_path)
-                track = importlib.import_module(extern_tracker)
-            except BaseException:
-                print(
-                    "Error loading "
-                    + extern_tracker
-                    + ". Falling back to default tracker"
-                )
-                extern_tracker = "default"
-            os.chdir(info.exp1.object.exp_path)  # change back to working path
-        if extern_tracker == "default":
-            print("Using default liboptv tracker")
-            info.object.tracker = ptv.py_trackcorr_init(info.object)
-            info.object.tracker.full_forward()
+            # If plugin is a batch script, run as subprocess and capture output
+            # plugin_script = getattr(mainGui.plugins, 'tracking_plugin_script', None)
+            # if plugin_script:
+            #     cmd = [sys.executable, plugin_script]  # Add args as needed
+            #     self.run_subprocess_and_capture(cmd, mainGui, description="Tracking plugin")
+            # else:
+            ptv.run_tracking_plugin(mainGui)
+            print("After plugin tracker")
         else:
-            print("Tracking by using " + extern_tracker)
-            tracker = track.Tracking(ptv=ptv, exp1=info.object.exp1)
-            tracker.do_tracking()
-
-        print("tracking without display finished")
+            print("Using default liboptv tracker")
+            mainGui.tracker = ptv.py_trackcorr_init(mainGui)
+            mainGui.tracker.full_forward()
+            print("tracking without display finished")
 
     def track_disp_action(self, info):
-        """tracking with display is handled by TrackThread which does
-        processing step by step and waits for GUI to update before
-        proceeding to the next step
-
-        This was not implemented in PyPTV
-        """
+        """tracking with display - not implemented"""
         info.object.clear_plots(remove_background=False)
-        # info.object.tr_thread = TrackThread()
-        # info.object.tr_thread.start()
 
     def track_back_action(self, info):
-        """tracking back action is handled by ptv.py_trackback_c() binding"""
+        """tracking back action"""
+        mainGui = info.object
         print("Starting back tracking")
-        info.object.tracker.full_backward()
+        if hasattr(mainGui, 'tracker') and mainGui.tracker is not None:
+            mainGui.tracker.full_backward()
+        else:
+            print("No tracker initialized. Please run forward tracking first.")
 
     def three_d_positions(self, info):
         """Extracts and saves 3D positions from the list of correspondences"""
+        
         ptv.py_determination_proc_c(
-            info.object.n_cams,
+            info.object.num_cams,
             info.object.sorted_pos,
             info.object.sorted_corresp,
             info.object.corrected,
+            info.object.cpar,
+            info.object.vpar,
+            info.object.cals,
         )
 
-    # def multigrid_demo(self, info):
-    #     demo_window = DemoGUI(ptv=ptv, exp1=info.object.exp1)
-    #     demo_window.configure_traits()
-
     def detect_part_track(self, info):
-        """track detected particles is handled by 2 bindings:
-        1) tracking_framebuf.read_targets(..)
-        2) ptv.py_get_mark_track_c(..)
-        """
-        info.object.clear_plots(remove_background=False)  # clear everything
-        info.object.update_plots(info.object.orig_image, is_float=False)
+        """track detected particles"""
+        info.object.clear_plots(remove_background=False)
+        
+        # Get sequence parameters from ParameterManager
+        seq_params = info.object.get_parameter('sequence')
+        seq_first = seq_params['first']
+        seq_last = seq_params['last']
+        base_names = seq_params['base_name']
+        short_base_names = info.object.target_filenames
 
-        prm = info.object.exp1.active_params.m_params
-        seq_first = prm.Seq_First  # get sequence parameters
-        seq_last = prm.Seq_Last
-        base_names = [
-            prm.Basename_1_Seq,
-            prm.Basename_2_Seq,
-            prm.Basename_3_Seq,
-            prm.Basename_4_Seq,
-        ]
-
-        # load first image from sequence
-        info.object.load_set_seq_image(seq_first)
-        info.object.overlay_set_images(seq_first, seq_last)
-
+        info.object.overlay_set_images(base_names, seq_first, seq_last)
+        
         print("Starting detect_part_track")
         x1_a, x2_a, y1_a, y2_a = [], [], [], []
-        for i in range(info.object.n_cams):  # initialize result arrays
+        for i in range(info.object.num_cams):
             x1_a.append([])
             x2_a.append([])
             y1_a.append([])
             y2_a.append([])
 
-        # imx, imy = info.object.cpar.get_image_size()
-
-        for i_img in range(info.object.n_cams):
-            for i_seq in range(seq_first, seq_last + 1):  # loop over sequences
+        for i_cam in range(info.object.num_cams):
+            for i_seq in range(seq_first, seq_last + 1):
                 intx_green, inty_green = [], []
                 intx_blue, inty_blue = [], []
 
-                # read targets from the current sequence
-                # file_name = ptv.replace_format_specifiers(base_names[i_img])
-                targets = ptv.read_targets(base_names[i_img], i_seq)
+                # print('Inside detected particles plot', short_base_names[i_cam])
+
+                targets = ptv.read_targets(short_base_names[i_cam], i_seq)
 
                 for t in targets:
                     if t.tnr() > -1:
@@ -789,37 +754,33 @@ class TreeMenuHandler(Handler):
                         intx_blue.append(t.pos()[0])
                         inty_blue.append(t.pos()[1])
 
-                x1_a[i_img] = (
-                    x1_a[i_img] + intx_green
-                )  # add current step to result array
-                x2_a[i_img] = x2_a[i_img] + intx_blue
-                y1_a[i_img] = y1_a[i_img] + inty_green
-                y2_a[i_img] = y2_a[i_img] + inty_blue
+                x1_a[i_cam] = x1_a[i_cam] + intx_green
+                x2_a[i_cam] = x2_a[i_cam] + intx_blue
+                y1_a[i_cam] = y1_a[i_cam] + inty_green
+                y2_a[i_cam] = y2_a[i_cam] + inty_blue
 
-        # plot result arrays
-        for i_img in range(info.object.n_cams):
-            info.object.camera_list[i_img].drawcross(
-                "x_tr_gr", "y_tr_gr", x1_a[i_img], y1_a[i_img], "green", 3
+        for i_cam in range(info.object.num_cams):
+            info.object.camera_list[i_cam].drawcross(
+                "x_tr_gr", "y_tr_gr", x1_a[i_cam], y1_a[i_cam], "green", 3
             )
-            info.object.camera_list[i_img].drawcross(
-                "x_tr_bl", "y_tr_bl", x2_a[i_img], y2_a[i_img], "blue", 2
+            info.object.camera_list[i_cam].drawcross(
+                "x_tr_bl", "y_tr_bl", x2_a[i_cam], y2_a[i_cam], "blue", 2
             )
-
-            info.object.camera_list[i_img]._plot.request_redraw()
+            info.object.camera_list[i_cam]._plot.request_redraw()
 
         print("Finished detect_part_track")
 
     def traject_action_flowtracks(self, info):
-        """Shows trajectories reading and organizing by flowtracks
-
-        Args:
-            info (_type_): _description_
-        """
+        """Shows trajectories reading and organizing by flowtracks"""
         info.object.clear_plots(remove_background=False)
-        seq_first = info.object.exp1.active_params.m_params.Seq_First
-        seq_last = info.object.exp1.active_params.m_params.Seq_Last
-        # info.object.load_set_seq_image(seq_first, display_only=True)
-        info.object.overlay_set_images(seq_first, seq_last)
+        
+        # Get parameters from ParameterManager
+        seq_params = info.object.get_parameter('sequence')
+        seq_first = seq_params['first']
+        seq_last = seq_params['last']
+        base_names = seq_params['base_name']
+
+        info.object.overlay_set_images(base_names, seq_first, seq_last)
 
         from flowtracks.io import trajectories_ptvis
 
@@ -830,34 +791,23 @@ class TreeMenuHandler(Handler):
         heads_x, heads_y = [], []
         tails_x, tails_y = [], []
         ends_x, ends_y = [], []
-        for i_cam in range(info.object.n_cams):
+        for i_cam in range(info.object.num_cams):
             head_x, head_y = [], []
             tail_x, tail_y = [], []
             end_x, end_y = [], []
             for traj in dataset:
-                # projected = optv.imgcoord.image_coordinates(
-                #     np.atleast_2d(traj.pos()[0]*1000),
-                #     info.object.cals[i_cam],
-                #     info.object.cpar.get_multimedia_params(),
-                # )
-                # pos = optv.transforms.convert_arr_metric_to_pixel(
-                #     projected, info.object.cpar)
-
-                # head_x.append(pos[0][0])
-                # head_y.append(pos[0][1])
-
-                projected = optv.imgcoord.image_coordinates(
-                    np.atleast_2d(traj.pos() * 1000),
+                projected = image_coordinates( # type: ignore
+                    np.atleast_2d(traj.pos() * 1000), # type: ignore
                     info.object.cals[i_cam],
                     info.object.cpar.get_multimedia_params(),
                 )
-                pos = optv.transforms.convert_arr_metric_to_pixel(
+                pos = convert_arr_metric_to_pixel( # type: ignore
                     projected, info.object.cpar
                 )
 
-                head_x.append(pos[0, 0])  # first row
+                head_x.append(pos[0, 0])
                 head_y.append(pos[0, 1])
-                tail_x.extend(list(pos[1:-1, 0]))  # all other rows,
+                tail_x.extend(list(pos[1:-1, 0]))
                 tail_y.extend(list(pos[1:-1, 1]))
                 end_x.append(pos[-1, 0])
                 end_y.append(pos[-1, 1])
@@ -869,7 +819,7 @@ class TreeMenuHandler(Handler):
             ends_x.append(end_x)
             ends_y.append(end_y)
 
-        for i_cam in range(info.object.n_cams):
+        for i_cam in range(info.object.num_cams):
             info.object.camera_list[i_cam].drawcross(
                 "heads_x", "heads_y", heads_x[i_cam], heads_y[i_cam], "red", 3
             )
@@ -883,21 +833,22 @@ class TreeMenuHandler(Handler):
     def plugin_action(self, info):
         """Configure plugins by using GUI"""
         info.object.plugins.read()
-        info.object.plugins.configure_traits()
+        result = info.object.plugins.configure_traits()
+        
+        # Save plugin selections back to parameters if user clicked OK
+        if result:
+            info.object.plugins.save()
+            print("Plugin configuration saved to parameters")
 
     def ptv_is_to_paraview(self, info):
         """Button that runs the ptv_is.# conversion to Paraview"""
-
-        print("Saving trajectories for Paraview\n")
+        print("Saving trajectories for Paraview")
         info.object.clear_plots(remove_background=False)
-        seq_first = info.object.exp1.active_params.m_params.Seq_First
+        
+        seq_params = info.object.get_parameter('sequence')
+        seq_first = seq_params['first']
         info.object.load_set_seq_image(seq_first, display_only=True)
 
-        # borrowed from flowtracks that does much better job on this
-        # I think it's too much to import also postptv here, later
-        # we will make a single conda package for the full stack
-
-        # Example notebook translating OpenPTV files for Paraview using flowtracks
         import pandas as pd
         from flowtracks.io import trajectories_ptvis
 
@@ -913,25 +864,20 @@ class TreeMenuHandler(Handler):
 
         df = pd.concat(dataframes, ignore_index=True)
         df["particle"] = df["particle"].astype(np.int32)
-
-        # Paraview does not recognize it as a set without _000001.txt, so we the first 10000
-        # ptv_is.10001 is becoming ptv_00001.txt
-
         df["frame"] = df["frame"].astype(np.int32)
-
         df.reset_index(inplace=True, drop=True)
         print(df.head())
 
         df_grouped = df.reset_index().groupby("frame")
         for index, group in df_grouped:
             group.to_csv(
-                f"./res/ptv_{int(index):05d}.txt",
+                f"./res/ptv_{index:05d}.txt",
                 mode="w",
                 columns=["particle", "x", "y", "z", "dx", "dy", "dz"],
                 index=False,
             )
 
-        print("Saving trajectories to Paraview finished\n")
+        print("Saving trajectories to Paraview finished")
 
 
 # ----------------------------------------------------------------
@@ -1025,8 +971,6 @@ menu_bar = MenuBar(
             action="track_no_disp_action",
             enabled_when="pass_init",
         ),
-        # not implemented Action(name='Tracking with
-        # display',action='track_disp_action',enabled_when='pass_init'),
         Action(
             name="Tracking backwards",
             action="track_back_action",
@@ -1084,9 +1028,7 @@ tree_editor_exp = TreeEditor(
             children="",
             label="name",
             menu=Menu(
-                # NewAction,
                 CopySetParams,
-                # RenameSetParams,
                 DeleteSetParams,
                 Separator(),
                 ConfigMainParams,
@@ -1100,88 +1042,137 @@ tree_editor_exp = TreeEditor(
     editable=False,
 )
 
-
 # -------------------------------------------------------------------------
 class Plugins(HasTraits):
-    track_list = List
-    seq_list = List
-    track_alg = Enum(values="track_list")
-    sequence_alg = Enum(values="seq_list")
+    track_alg = Enum('default')
+    sequence_alg = Enum('default')
+    
     view = View(
-        Group(
-            Item(name="track_alg", label="Choose tracking algorithm:"),
-            Item(name="sequence_alg", label="Choose sequence algorithm:"),
-        ),
+        Item(name="track_alg", label="Tracking:"),
+        Item(name="sequence_alg", label="Sequence:"),
         buttons=["OK"],
-        title="External plugins configuration",
+        title="Plugins",
     )
 
-    def __init__(self):
+    def __init__(self, experiment=None):
+        self.experiment = experiment
         self.read()
 
     def read(self):
-        # reading external tracking
-        tracking_plugins = os.path.join(
-            os.path.abspath(os.curdir), "tracking_plugins.txt"
-        )
-        sequence_plugins = os.path.join(
-            os.path.abspath(os.curdir), "sequence_plugins.txt"
-        )
-        print("Reading external plugins lists")
-        print(f"Reading from {tracking_plugins}, {sequence_plugins}")
-
-        # Initialize with default
-        self.track_list = ["default"]
-        self.seq_list = ["default"]
-        # Add additional plugins if files exist
-        if os.path.exists(tracking_plugins):
-            with open(tracking_plugins, "r", encoding="utf8") as f:
-                self.track_list.extend(f.read().split("\n"))
-
-        if os.path.exists(sequence_plugins):
-            with open(sequence_plugins, "r", encoding="utf8") as f:
-                self.seq_list.extend(f.read().split("\n"))
-
+        """Read plugin configuration from experiment parameters (YAML) with fallback to plugins.json"""
+        if self.experiment is not None:
+            # Primary source: YAML parameters
+            plugins_params = self.experiment.get_parameter('plugins')
+            if plugins_params is not None:
+                try:
+                    track_options = plugins_params.get('available_tracking', ['default'])
+                    seq_options = plugins_params.get('available_sequence', ['default'])
+                    
+                    self.add_trait('track_alg', Enum(*track_options))
+                    self.add_trait('sequence_alg', Enum(*seq_options))
+                    
+                    # Set selected algorithms from YAML
+                    self.track_alg = plugins_params.get('selected_tracking', track_options[0])
+                    self.sequence_alg = plugins_params.get('selected_sequence', seq_options[0])
+                    
+                    print(f"Loaded plugins from YAML: tracking={self.track_alg}, sequence={self.sequence_alg}")
+                    return
+                    
+                except Exception as e:
+                    print(f"Error reading plugins from YAML: {e}")
+        
+        # Fallback to plugins.json for backward compatibility
+        self._read_from_json()
+    
+    def _read_from_json(self):
+        """Fallback method to read from plugins.json"""
+        config_file = Path.cwd() / "plugins.json"
+        
+        if config_file.exists():
+            try:
+                with open(config_file, 'r') as f:
+                    config = json.load(f)
+                
+                track_options = config.get('tracking', ['default'])
+                seq_options = config.get('sequence', ['default'])
+                
+                self.add_trait('track_alg', Enum(*track_options))
+                self.add_trait('sequence_alg', Enum(*seq_options))
+                
+                self.track_alg = track_options[0]
+                self.sequence_alg = seq_options[0]
+                
+                print(f"Loaded plugins from plugins.json: tracking={self.track_alg}, sequence={self.sequence_alg}")
+                
+            except (json.JSONDecodeError, KeyError) as e:
+                print(f"Error reading plugins.json: {e}")
+                self._set_defaults()
+        else:
+            print("No plugins.json found, using defaults")
+            self._set_defaults()
+    
+    def save(self):
+        """Save plugin selections back to experiment parameters"""
+        if self.experiment is not None:
+            plugins_params = self.experiment.get_parameter('plugins', {})
+            plugins_params['selected_tracking'] = self.track_alg
+            plugins_params['selected_sequence'] = self.sequence_alg
+            
+            # Update the parameter manager
+            self.experiment.pm.parameters['plugins'] = plugins_params
+            print(f"Saved plugin selections: tracking={self.track_alg}, sequence={self.sequence_alg}")
+    
+    def _set_defaults(self):
+        self.add_trait('track_alg', Enum('default'))
+        self.add_trait('sequence_alg', Enum('default'))
+        self.track_alg = 'default'
+        self.sequence_alg = 'default'
+        
 
 # ----------------------------------------------
 class MainGUI(HasTraits):
     """MainGUI is the main class under which the Model-View-Control
     (MVC) model is defined"""
 
-    camera_list = List
-    # imgplt_flag = 0
+    camera_list = List(Instance(CameraWindow))
     pass_init = Bool(False)
     update_thread_plot = Bool(False)
-    # tr_thread = Instance(TrackThread)
-    selected = Any
-
+    selected = Instance(CameraWindow)
+    exp1 = Instance(Experiment)
+    yaml_file = Path()
+    exp_path = Path()
+    num_cams = Int(0)
+    orig_names = List()
+    orig_images = List()
+    
     # Defines GUI view --------------------------
     view = View(
-        Group(
-            Group(
-                Item(
-                    name="exp1",
-                    editor=tree_editor_exp,
-                    show_label=False,
-                    width=-400,
-                    resizable=False,
-                ),
-                Item(
-                    "camera_list",
-                    style="custom",
-                    editor=ListEditor(
-                        use_notebook=True,
-                        deletable=False,
-                        dock_style="tab",
-                        page_name=".name",
-                        selected="selected",
+        VSplit(
+            VGroup(
+                HGroup(
+                    Item(
+                        name="exp1",
+                        editor=tree_editor_exp,
+                        show_label=False,
+                        width=-400,
+                        resizable=False,
                     ),
-                    show_label=False,
+                    Item(
+                        "camera_list",
+                        style="custom",
+                        editor=ListEditor(
+                            use_notebook=True,
+                            deletable=False,
+                            dock_style="tab",
+                            page_name=".name",
+                            selected="selected",
+                        ),
+                        show_label=False,
+                    ),
+                    show_left=False,
                 ),
-                orientation="horizontal",
-                show_left=False,
             ),
-            orientation="vertical",
+            # Removed message_window from view
         ),
         title="pyPTV" + __version__,
         id="main_view",
@@ -1198,37 +1189,75 @@ class MainGUI(HasTraits):
     # ---------------------------------------------------
     # Constructor and Chaco windows initialization
     # ---------------------------------------------------
-    def __init__(self, exp_path: Path, software_path: Path):
+    def __init__(self, yaml_file: Path, experiment: Experiment):
         super(MainGUI, self).__init__()
+        if not yaml_file.is_file() or yaml_file.suffix not in {".yaml", ".yml"}:
+            raise ValueError("yaml_file must be a valid YAML file")
+        self.exp_path = yaml_file.parent
+        self.exp1 = experiment
+        self.plugins = Plugins(experiment=self.exp1)
 
-        colors = ["yellow", "green", "red", "blue"]
-        self.exp1 = Experiment()
-        self.exp1.populate_runs(exp_path)
-        self.plugins = Plugins()
-        self.n_cams = self.exp1.active_params.m_params.Num_Cam
-        self.orig_image = self.n_cams * [[]]
+        # Set the active paramset to the provided YAML file
+        # for idx, paramset in enumerate(self.exp1.paramsets):
+        #     if hasattr(paramset, 'yaml_path') and Path(paramset.yaml_path).resolve() == yaml_file.resolve():
+        #         self.exp1.set_active(idx)
+        #         print(f"Set active parameter set to: {paramset.name}")
+        #         break
+
+        # Get configuration from Experiment's ParameterManager
+        print(f"Initializing MainGUI with parameters from {yaml_file}")
+        ptv_params = self.exp1.get_parameter('ptv')
+        if ptv_params is None:
+            raise ValueError("PTV parameters not found in the provided YAML file")
+
+        
+        self.num_cams = self.exp1.get_n_cam()
+        self.orig_names = ptv_params['img_name']
+        self.orig_images = [
+                img_as_ubyte(np.zeros((ptv_params['imy'], ptv_params['imx'])))
+                for _ in range(self.num_cams)
+            ]
+        
         self.current_camera = 0
+        # Restore the four colors for camera windows
+        colors = ["yellow", "green", "red", "blue"]
+        # If more than 4 cameras, repeat colors as needed
+        cam_colors = (colors * ((self.num_cams + 3) // 4))[:self.num_cams]
         self.camera_list = [
-            CameraWindow(colors[i], f"Camera {i + 1}") for i in range(self.n_cams)
+            CameraWindow(cam_colors[i], f"Camera {i + 1}") for i in range(self.num_cams)
         ]
-        self.software_path = software_path
-        self.exp_path = exp_path
-        for i in range(self.n_cams):
-            self.camera_list[i].on_trait_change(self.right_click_process, "rclicked")
+             
+        for i in range(self.num_cams):
+            self.camera_list[i].on_trait_change(
+                self.right_click_process, 
+                "rclicked")
+        
+        # Ensure the active parameter set is the first in the paramsets list for correct tree display
+        if hasattr(self.exp1, "active_params") and self.exp1.active_params is not None:
+            active_yaml = Path(self.exp1.active_params.yaml_path)
+            # Find the index of the active paramset
+            idx = next(
+                (i for i, p in enumerate(self.exp1.paramsets)
+                 if hasattr(p, "yaml_path") and Path(p.yaml_path).resolve() == active_yaml.resolve()),
+                None
+            )
+            if idx is not None and idx != 0:
+                # Move active paramset to the front
+                self.exp1.paramsets.insert(0, self.exp1.paramsets.pop(idx))
+                self.exp1.set_active(0)
 
+    def get_parameter(self, key):
+        """Delegate parameter access to experiment"""
+        return self.exp1.get_parameter(key)
+        
     def right_click_process(self):
-        """
-        Shows a line in camera color code corresponding to a point on another
-        camera's view plane.
-        """
+        """Shows a line in camera color code corresponding to a point on another camera's view plane"""
         num_points = 2
-
 
         if hasattr(self, "sorted_pos") and self.sorted_pos is not None:
             plot_epipolar = True
         else:
             plot_epipolar = False
-
 
         if plot_epipolar:
             i = self.current_camera
@@ -1261,10 +1290,10 @@ class MainGUI(HasTraits):
                 )
 
                 # look for points along epipolars for other cameras
-                for j in range(self.n_cams):
+                for j in range(self.num_cams):
                     if i == j:
                         continue
-                    pts = optv.epipolar.epipolar_curve(
+                    pts = epipolar_curve(
                         point,
                         self.cals[i],
                         self.cals[j],
@@ -1287,32 +1316,31 @@ class MainGUI(HasTraits):
                 self.camera_list[i].rclicked = 0
 
     def create_plots(self, images, is_float=False) -> None:
-        """update_plots
+        """Create plots with images
 
         Args:
             images (_type_): images to update
             is_float (bool, optional): _description_. Defaults to False.
         """
-        print("inside update plots, images changed\n")
-        for i in range(self.n_cams):
+        print("inside create plots, images changed\n")
+        for i in range(self.num_cams):
             self.camera_list[i].create_image(images[i], is_float)
             self.camera_list[i]._plot.request_redraw()
 
     def update_plots(self, images, is_float=False) -> None:
-        """update_plots
+        """Update plots with new images
 
         Args:
             images (_type_): images to update
             is_float (bool, optional): _description_. Defaults to False.
         """
-        print("inside update plots, images changed\n")
-        for i in range(self.n_cams):
-            self.camera_list[i].update_image(images[i], is_float)
-            self.camera_list[i]._plot.request_redraw()
+        print("Update plots, images changed\n")
+        for cam, image in zip(self.camera_list, images):
+            cam.update_image(image, is_float)
 
     def drawcross_in_all_cams(self, str_x, str_y, x, y, color1, size1, marker="plus"):
         """
-        Draws crosses
+        Draws crosses in all cameras
         """
         for i, cam in enumerate(self.camera_list):
             cam.drawcross(str_x, str_y, x[i], y[i], color1, size1, marker=marker)
@@ -1321,19 +1349,14 @@ class MainGUI(HasTraits):
         # this function deletes all plots except basic image plot
 
         if not remove_background:
-            index = "plot0"
+            index = "plot0" 
         else:
             index = None
 
-        for i in range(self.n_cams):
+        for i in range(self.num_cams):
             plot_list = list(self.camera_list[i]._plot.plots.keys())
-            # if not remove_background:
-            #   index=None
             if index in plot_list:
-                # try:
                 plot_list.remove(index)
-            # except:
-            # pass
             self.camera_list[i]._plot.delplot(*plot_list[0:])
             self.camera_list[i]._plot.tools = []
             self.camera_list[i]._plot.request_redraw()
@@ -1345,150 +1368,92 @@ class MainGUI(HasTraits):
             self.camera_list[i].right_p_x1 = []
             self.camera_list[i].right_p_y1 = []
 
-    def _update_thread_plot_changed(self):
-        n_cams = len(self.camera_list)
+    def overlay_set_images(self, base_names: List, seq_first: int, seq_last: int):
+        """Overlay set of images"""
+        ptv_params = self.get_parameter('ptv')
+        h_img = ptv_params['imx'] # type: ignore
+        v_img = ptv_params['imy'] # type: ignore
 
-        if self.update_thread_plot and self.tr_thread:
-            print("updating plots..\n")
-            step = self.tr_thread.track_step
-
-            x0, x1, x2, y0, y1, y2 = (
-                self.tr_thread.intx0,
-                self.tr_thread.intx1,
-                self.tr_thread.intx2,
-                self.tr_thread.inty0,
-                self.tr_thread.inty1,
-                self.tr_thread.inty2,
-            )
-            for i in range(n_cams):
-                self.camera_list[i].drawcross(
-                    str(step) + "x0",
-                    str(step) + "y0",
-                    x0[i],
-                    y0[i],
-                    "green",
-                    2,
-                )
-                self.camera_list[i].drawcross(
-                    str(step) + "x1",
-                    str(step) + "y1",
-                    x1[i],
-                    y1[i],
-                    "yellow",
-                    2,
-                )
-                self.camera_list[i].drawcross(
-                    str(step) + "x2",
-                    str(step) + "y2",
-                    x2[i],
-                    y2[i],
-                    "white",
-                    2,
-                )
-                self.camera_list[i].drawquiver(x0[i], y0[i], x1[i], y1[i], "orange")
-                self.camera_list[i].drawquiver(x1[i], y1[i], x2[i], y2[i], "white")
-            # for j in range (m_tr):
-            # str_plt=str(step)+"_"+str(j)
-            ##
-            # self.camera_list[i].drawline\
-            # (str_plt+"vec_x0",str_plt+"vec_y0",x0[i][j],y0[i][j],x1[i][j],y1[i][j],"orange")
-            # self.camera_list[i].drawline\
-            # (str_plt+"vec_x1",str_plt+"vec_y1",x1[i][j],y1[i][j],x2[i][j],y2[i][j],"white")
-            self.load_set_seq_image(step, update_all=False, display_only=True)
-            self.camera_list[self.current_camera]._plot.request_redraw()
-            time.sleep(0.1)
-            self.tr_thread.can_continue = True
-            self.update_thread_plot = False
-
-    def load_set_seq_image(self, seq: int, update_all=True, display_only=False):
-        """load and set sequence image
-
-        Args:
-            seq (_type_): sequance properties
-            update_all (bool, optional): _description_. Defaults to True.
-            display_only (bool, optional): _description_. Defaults to False.
-        """
-        n_cams = len(self.camera_list)
-        # if not hasattr(self, "base_name"):
-        self.base_name = [
-            getattr(self.exp1.active_params.m_params, f"Basename_{i + 1}_Seq")
-            for i in range(n_cams)
-        ]
-
-        if update_all is False:
-            j = self.current_camera
-            # img_name = self.base_name[j] + seq_ch
-            # img_name = self.base_name[j].replace("#", seq_ch)
-            img_name = self.base_name[j] % seq  # works with jumps from 1 to 10
-            # print(f"Image name in load_set_seq is {img_name}")
-            self.load_disp_image(img_name, j, display_only)
-        else:
-            for j in range(n_cams):
-                # img_name = self.base_name[j] + seq_ch
-                # img_name = self.base_name[j].replace("#", seq_ch)
-                img_name = self.base_name[j] % seq  # works with jumps from 1 to 10
-                # print(f"Image name in load_set_seq is {img_name}")
-                self.load_disp_image(img_name, j, display_only)
-
-    def overlay_set_images(self, seq_first: int, seq_last: int):
-        """load and set sequence images and overlay them for tracking show
-
-        Args:
-            seq (_type_): sequance properties
-            update_all (bool, optional): _description_. Defaults to True.
-            display_only (bool, optional): _description_. Defaults to False.
-        """
-
-        n_cams = len(self.camera_list)
-        if not hasattr(self, "base_name"):
-            self.base_name = [
-                getattr(self.exp1.active_params.m_params, f"Basename_{i + 1}_Seq")
-                for i in range(len(self.camera_list))
-            ]
-
-        for cam_id in range(n_cams):
-            if os.path.exists(self.base_name[cam_id] % seq_first):
-                temp_img = []
-                for seq in range(seq_first, seq_last):
-                    _ = imread(self.base_name[cam_id] % seq)
+        if ptv_params.get('splitter', False):
+            temp_img = img_as_ubyte(np.zeros((v_img*2, h_img*2)))
+            for seq in range(seq_first, seq_last):
+                imname = Path(base_names[0] % seq) # type: ignore
+                if imname.exists():
+                    _ = imread(imname)
                     if _.ndim > 2:
                         _ = rgb2gray(_)
-                    temp_img.append(img_as_ubyte(_))
+                    temp_img = np.max([temp_img, _], axis=0)
 
-                temp_img = np.array(temp_img)
-                temp_img = np.max(temp_img, axis=0)
-            else:
-                h_img = self.exp1.active_params.m_params.imx
-                v_img = self.exp1.active_params.m_params.imy
+            list_of_images = ptv.image_split(temp_img)
+            for cam_id in range(self.num_cams):
+                self.camera_list[cam_id].update_image(img_as_ubyte(list_of_images[cam_id])) # type: ignore
+        else: 
+            for cam_id in range(self.num_cams):
                 temp_img = img_as_ubyte(np.zeros((v_img, h_img)))
-
-            self.camera_list[cam_id].update_image(temp_img)
+                for seq in range(seq_first, seq_last):
+                    base_name = base_names[cam_id]
+                    if base_name in ("--", "---", None):
+                        continue
+                    if "%" in base_name:
+                        imname = Path(base_name % seq)
+                    else:
+                        imname = Path(base_name)
+                    if imname.exists():
+                        _ = imread(imname)
+                        if _.ndim > 2:
+                            _ = rgb2gray(_)
+                        temp_img = np.max([temp_img, _], axis=0)
+                self.camera_list[cam_id].update_image(temp_img) # type: ignore
 
     def load_disp_image(self, img_name: str, j: int, display_only: bool = False):
-        """load and display image
-
-        Args:
-            img_name (_type_): filename of the image
-            j (_type_): integer counter
-            display_only (bool, optional): display only. Defaults to False.
-        """
-        # print(f"Setting image: {img_name}")
+        """Load and display single image"""
         try:
             temp_img = imread(img_name)
             if temp_img.ndim > 2:
                 temp_img = rgb2gray(temp_img)
-
             temp_img = img_as_ubyte(temp_img)
         except IOError:
             print("Error reading file, setting zero image")
-            h_img = self.exp1.active_params.m_params.imx
-            v_img = self.exp1.active_params.m_params.imy
+            ptv_params = self.get_parameter('ptv')
+            h_img = ptv_params['imx']
+            v_img = ptv_params['imy']
             temp_img = img_as_ubyte(np.zeros((v_img, h_img)))
 
-        # if not display_only:
-        #     ptv.py_set_img(temp_img, j)
         if len(temp_img) > 0:
             self.camera_list[j].update_image(temp_img)
+
+    def load_set_seq_image(self, seq_num: int, display_only: bool = False):
+        """Load and display sequence image for a specific sequence number"""
+        seq_params = self.get_parameter('sequence')
+        if seq_params is None:
+            print("No sequence parameters found")
+            return
+            
+        base_names = seq_params['base_name']
+        ptv_params = self.get_parameter('ptv')
+        
+        if ptv_params.get('splitter', False):
+            # Splitter mode - load one image and split it
+            imname = base_names[0] % seq_num
+            if Path(imname).exists():
+                temp_img = imread(imname)
+                if temp_img.ndim > 2:
+                    temp_img = rgb2gray(temp_img)
+                splitted_images = ptv.image_split(temp_img)
+                for i in range(self.num_cams):
+                    self.camera_list[i].update_image(img_as_ubyte(splitted_images[i]))
+            else:
+                print(f"Image {imname} does not exist")
+        else:
+            # Normal mode - load separate images for each camera
+            for i in range(self.num_cams):
+                imname = base_names[i] % seq_num
+                self.load_disp_image(imname, i, display_only)
+
+    def save_parameters(self):
+        """Save current parameters to YAML"""
+        self.exp1.save_parameters()
+        print("Parameters saved")
 
 
 def printException():
@@ -1502,48 +1467,87 @@ def printException():
     print("=" * 50)
 
 
-# -------------------------------------------------------------
 def main():
-    """main ()
-
-    Raises:
-        OSError: if software or folder path are missing
-    """
-    # Parse inputs:
+    """main function"""
     software_path = Path.cwd().resolve()
-    print(f"Software path is {software_path}")
+    print(f"Running PyPTV from {software_path}")
 
-    # Path to the experiment
-    if len(sys.argv) > 1:
-        exp_path = Path(sys.argv[1]).resolve()
-        print(f"Experimental path is {exp_path}")
+    yaml_file = None
+    exp_path = None
+    exp = None
+
+    if len(sys.argv) == 2:
+        arg_path = Path(sys.argv[1]).resolve()
+        # first option - suppy YAML file path and this would be your experiment
+        # we will also see what are additional parameter sets exist and 
+        # initialize the Experiment() object
+        if arg_path.is_file() and arg_path.suffix in {".yaml", ".yml"}:
+            yaml_file = arg_path
+            print(f"YAML parameter file provided: {yaml_file}")
+            from pyptv.parameter_manager import ParameterManager
+            pm = ParameterManager()
+            pm.from_yaml(yaml_file)
+
+            # prepare additional yaml files for other runs if not existing
+            print(f"Initialize  Experiment from {yaml_file.parent}")
+            exp_path = yaml_file.parent
+            exp = Experiment(pm=pm) # ensures pm is an active parameter set
+            exp.populate_runs(exp_path)
+            # exp.pm.from_yaml(yaml_file)
+        elif arg_path.is_dir(): # second option - supply directory
+            exp = Experiment()
+            exp.populate_runs(arg_path)
+            yaml_file = exp.active_params.yaml_path
+            # exp.pm.from_yaml(yaml_file)
+            print(f"Using top YAML file found: {yaml_file}")
+        else:
+            raise OSError(f"Argument must be a directory or YAML file, got: {arg_path}")
     else:
-        exp_path = software_path.parent / "test_cavity"
-        # exp_path = Path('/home/user/Downloads/one-dot-example/working_folder')
-        # exp_path = Path('/home/user/Downloads/test_crossing_particle')
-        # exp_path = Path('/home/user/Documents/repos/test_cavity')
-        # exp_path = Path('/media/user/ExtremePro/omer/exp2')
-        # exp_path = Path('/home/user/Dropbox/Open_Pro_My_PTV/Tracking/50000_30/')
-        # exp_path = Path("/home/user/Dropbox/Open_Pro_My_PTV/Tracking/949_particles/")
-        # exp_path = Path('/home/user/Documents/repos/blob_pyptv_folder')
-        # exp_path = Path("/home/user/Documents/repos/3dptv/test2/")
-        print(f"Without input, PyPTV fallbacks to a default {exp_path} \n")
+        # Fallback to default test directory
+        exp_path = software_path / "tests" / "test_cavity"
+        exp = Experiment()
+        exp.populate_runs(exp_path)
+        yaml_file = exp.active_params.yaml_path
+        # exp.pm.from_yaml(yaml_file)
+        print(f"Without inputs, PyPTV uses default case {yaml_file}")
+        print("Tip: in PyPTV use File -> Open to select another YAML file")
 
-    if not exp_path.is_dir() or not exp_path.exists():
-        raise OSError(f"Wrong experimental directory {exp_path}")
+    if not yaml_file or not yaml_file.exists():
+        raise OSError(f"YAML parameter file does not exist: {yaml_file}")
 
-    # Change directory to the path
-    os.chdir(exp_path)
+    print(f"Changing directory to the working folder {yaml_file.parent}")
+
+    print(f"YAML file to be used in GUI: {yaml_file}")
+    # Optional: Quality check on the YAML file
+    try:
+        with open(yaml_file) as f:
+            ydata = yaml.safe_load(f)
+            print('\n--- YAML OUTPUT ---')
+            print(yaml.dump(ydata, default_flow_style=False, sort_keys=False))
+
+        # print('\n--- ParameterManager parameters ---')
+        # print(dict(exp.pm.parameters))
+    except Exception as exc:
+        print(f"Error reading or validating YAML file: {exc}")
+    
 
     try:
-        main_gui = MainGUI(exp_path, software_path)
+        os.chdir(yaml_file.parent)
+        main_gui = MainGUI(yaml_file, exp)
         main_gui.configure_traits()
     except OSError:
-        print("something wrong with the software or folder")
+        print("Something wrong with the software or folder")
         printException()
-
-    os.chdir(software_path)  # get back to the original workdir
+    finally:
+        print(f"Changing back to the original {software_path}")
+        os.chdir(software_path)
 
 
 if __name__ == "__main__":
-    main()
+    try:
+        main()
+    except Exception as e:
+        print("An error occurred in the main function:")
+        print(e)
+        printException()
+        sys.exit(1)

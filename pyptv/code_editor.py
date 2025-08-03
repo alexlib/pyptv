@@ -1,6 +1,7 @@
 """
 Editor for editing the cameras ori files
 """
+import os
 
 # Imports:
 from traits.api import (
@@ -9,13 +10,12 @@ from traits.api import (
     Int,
     List,
     Button,
-    File,
 )
 
-from traitsui.api import Item, Group, View, Handler, ListEditor
+from traitsui.api import Item, Group, View, ListEditor
 
 from pathlib import Path
-from pyptv import parameters as par
+from pyptv.experiment import Experiment
 
 
 def get_path(filename):
@@ -35,7 +35,7 @@ def get_code(path: Path):
     return retCode
 
 
-class codeEditor(HasTraits):
+class CodeEditor(HasTraits):
     file_Path = Path
     _Code = Code()
     save_button = Button(label="Save")
@@ -52,7 +52,7 @@ class codeEditor(HasTraits):
     )
 
     def _save_button_fired(self):
-        with open(self.file_Path, "w", encoding="utf-8") as f:
+        with open(str(self.file_Path), "w", encoding="utf-8") as f:
             # print(f"Saving to {self.file_Path}")
             # print(f"Code: {self._Code}")
             f.write(self._Code)
@@ -68,7 +68,7 @@ class oriEditor(HasTraits):
     # number of images
     n_img = Int()
 
-    oriEditors = List
+    oriEditors = List()
 
     # view
     traits_view = View(
@@ -87,19 +87,19 @@ class oriEditor(HasTraits):
         title="Camera's orientation files",
     )
 
-    def __init__(self, path: Path):
+    def __init__(self, experiment: Experiment):
         """Initialize by reading parameters and filling the editor windows"""
-        # load ptv_par
-        ptvParams = par.PtvParams(path=path)
-        ptvParams.read()
-        self.n_img = ptvParams.n_img
-
-        # load cal_ori
-        calOriParams = par.CalOriParams(self.n_img)
-        calOriParams.read()
+        ptv_params = experiment.get_parameter('ptv')
+        cal_ori_params = experiment.get_parameter('cal_ori')
+        
+        if ptv_params is None or cal_ori_params is None:
+            raise ValueError("Failed to load required parameters")
+            
+        self.n_img = int(experiment.pm.num_cams)
+        img_ori = cal_ori_params['img_ori']
 
         for i in range(self.n_img):
-            self.oriEditors.append(codeEditor(Path(calOriParams.img_ori[i])))
+            self.oriEditors.append(CodeEditor(Path(img_ori[i])))
 
 
 class addparEditor(HasTraits):
@@ -125,18 +125,18 @@ class addparEditor(HasTraits):
         title="Camera's additional parameters files",
     )
 
-    def __init__(self, path):
+    def __init__(self, experiment: Experiment):
         """Initialize by reading parameters and filling the editor windows"""
-        # load ptv_par
-        ptvParams = par.PtvParams(path=path)
-        ptvParams.read()
-        self.n_img = ptvParams.n_img
-
-        # load cal_ori
-        calOriParams = par.CalOriParams(self.n_img, path=path)
-        calOriParams.read()
+        ptv_params = experiment.get_parameter('ptv')
+        cal_ori_params = experiment.get_parameter('cal_ori')
+        
+        if ptv_params is None or cal_ori_params is None:
+            raise ValueError("Failed to load required parameters")
+            
+        self.n_img = int(experiment.pm.num_cams)
+        img_ori = cal_ori_params['img_ori']
 
         for i in range(self.n_img):
             self.addparEditors.append(
-                codeEditor(Path(calOriParams.img_ori[i].replace("ori", "addpar")))
+                CodeEditor(Path(img_ori[i].replace("ori", "addpar")))
             )

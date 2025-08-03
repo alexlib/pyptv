@@ -46,7 +46,7 @@ def verify_environment():
     try:
         from optv.calibration import Calibration
 
-        cal = Calibration()
+        Calibration()
         print("OpenPTV calibration module: OK")
     except Exception as e:
         print(f"OpenPTV calibration module error: {str(e)}")

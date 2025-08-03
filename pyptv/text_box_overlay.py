@@ -46,8 +46,9 @@ class TextBoxOverlay(AbstractOverlay):
     # of the text box.	Must be a sequence of length 2.
     alternate_position = Any
 
+
     #### Public 'AbstractOverlay' interface ##################################
-    def overlay(self, component, gc, view_bounds=None, mode="normal"):
+    def overlay(self, component, gc, view_bounds=None, mode="normal"): # type: ignore
         """Draws the box overlaid on another component.
 
         Overrides AbstractOverlay.
@@ -59,7 +60,7 @@ class TextBoxOverlay(AbstractOverlay):
         # different shapes and put the text inside it without the label
         # filling a rectangle on top of it
         label = Label(
-            text=self.text,
+            text=self.text, # type: ignore
             font=self.font,
             bgcolor="transparent",
             color=self.text_color,
@@ -68,7 +69,7 @@ class TextBoxOverlay(AbstractOverlay):
         width, height = label.get_width_height(gc)
         valign, halign = self.align
         if self.alternate_position:
-            x, y = self.alternate_position
+            x, y = self.alternate_position # type: ignore
             if valign == "u":
                 y += self.padding
             else:
@@ -94,10 +95,10 @@ class TextBoxOverlay(AbstractOverlay):
         elif y < 0:
             y = 0
         # apply the alpha channel
-        color = self.bgcolor_
+        color = self.bgcolor_ # type: ignore
         if self.bgcolor != "transparent":
             if self.alpha:
-                color = list(self.bgcolor_)
+                color = list(self.bgcolor_) # type: ignore
                 if len(color) == 4:
                     color[3] = self.alpha
                 else:
@@ -107,7 +108,7 @@ class TextBoxOverlay(AbstractOverlay):
             gc.translate_ctm(x, y)
 
             gc.set_line_width(self.border_size)
-            gc.set_stroke_color(self.border_color_)
+            gc.set_stroke_color(self.border_color_) # type: ignore
             gc.set_fill_color(color)
 
             # draw a rounded rectangle
