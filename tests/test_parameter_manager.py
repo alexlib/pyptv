@@ -17,23 +17,25 @@ def test_man_ori_dat_roundtrip(tmp_path):
     ptv_par = param_dir / "ptv.par"
     # Write a valid ptv.par file with all required fields (example: 2 cameras)
     ptv_par.write_text(
-        "2\n"
-        "img/cam1.10002\n"
-        "cal/cam1.tif\n"
-        "img/cam2.10002\n"
-        "cal/cam2.tif\n"
-        "1\n"
-        "0\n"
-        "1\n"
-        "1280\n"
-        "1024\n"
-        "0.012\n"
-        "0.012\n"
-        "0\n"
-        "1\n"
-        "1.33\n"
-        "1.46\n"
-        "6\n"
+        "\n".join([
+            "2",
+            "img/cam1.10002",
+            "cal/cam1.tif",
+            "img/cam2.10002",
+            "cal/cam2.tif",
+            "1",
+            "0",
+            "1",
+            "1280",
+            "1024",
+            "0.012",
+            "0.012",
+            "0",
+            "1",
+            "1.33",
+            "1.46",
+            "6"
+        ]) + "\n"
     )
 
 
