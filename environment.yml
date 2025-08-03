@@ -1,0 +1,26 @@
+name: pyptv
+channels:
+  - conda-forge
+  - defaults
+dependencies:
+  - python=3.11
+  - numpy
+  - scipy
+  - matplotlib
+  - pandas
+  - opencv
+  - pytest
+  - pyyaml
+  - numba
+  - tables
+  - scikit-image
+  - pillow
+  - tqdm
+  - psutil
+  - packaging
+  - cython
+  - pip
+  - pip:
+      - optv
+      - flowtracks
+      - rembg
