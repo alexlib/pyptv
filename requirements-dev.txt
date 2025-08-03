@@ -5,7 +5,7 @@ pandas
 opencv-python-headless
 pytest
 PyYAML
-optv
+optv">=0.3.0"
 numba
 tables
 scikit-image
