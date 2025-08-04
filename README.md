@@ -13,12 +13,14 @@ Python GUI for the OpenPTV library `liboptv`
 
 Both PyPTV and the OpenPTV library are in the development phase and continuously refactored. Please follow the development on the community mailing list:
 
-	openptv@googlegroups.com
+  openptv@googlegroups.com
 
 
 ## Documentation:
 
-<http://openptv-python.readthedocs.io>
+ 👉 **[View full documentation at https://alexlib.github.io/pyptv](https://alexlib.github.io/pyptv)**
+ 
+ <http://openptv-python.readthedocs.io>
 
 ### New UI Documentation
 
@@ -52,7 +54,7 @@ Follow the instructions in our **screencasts and tutorials**:
   
 Ask for help on our mailing list:
 
-	openptv@googlegroups.com
+  openptv@googlegroups.com
 
 
 

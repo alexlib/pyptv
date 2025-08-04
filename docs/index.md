@@ -18,9 +18,6 @@ Welcome to the PyPTV documentation! This index provides an organized overview of
 - [Splitter Mode Guide](splitter-mode.md)
 - [Plugins System Guide](plugins.md)
 
-## System Administration
-- [Logging Guide](LOGGING_GUIDE.md)
-- [Environment Guide](PYPTV_ENVIRONMENT_GUIDE.md)
 
 ## Additional Resources
 - [Test Cavity Example](examples.md#test-cavity)
@@ -33,6 +30,18 @@ Welcome to the PyPTV documentation! This index provides an organized overview of
 - Use your browser's search to find keywords or topics.
 - For troubleshooting, check the FAQ sections in each guide.
 - For community help, visit [GitHub Issues](https://github.com/openptv/pyptv/issues) or [Discussions](https://github.com/openptv/pyptv/discussions).
+
+
+## Video Tutorials
+
+Explore our YouTube video tutorials for step-by-step demonstrations:
+
+- [PyPTV installation on Linux](https://youtu.be/mlpaJ64t3Kw)
+- [Installation on Windows](https://youtu.be/kWREmrGa7Z8)
+- [Calibration Process Explained]()
+- [Using Splitter Mode]()
+
+Find more videos on our [PyPTV YouTube Channel](https://www.youtube.com/@openptv1113).
 
 ---
 

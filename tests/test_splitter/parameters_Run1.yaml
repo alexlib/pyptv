@@ -2,8 +2,10 @@ num_cams: 4
 plugins:
   available_tracking:
   - default
+  - ext_tracker_splitter
   available_sequence:
   - default
+  - ext_sequence_splitter
   selected_tracking: default
   selected_sequence: default
 cal_ori:
