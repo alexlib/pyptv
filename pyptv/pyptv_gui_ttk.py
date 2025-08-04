@@ -62,13 +62,71 @@ class MainApp(tb.Window):
 
     def create_menu(self):
         menubar = Menu(self)
+
+        # File menu
         filemenu = Menu(menubar, tearoff=0)
-        filemenu.add_command(label='Open')
-        filemenu.add_command(label='Save As')
+        filemenu.add_command(label='New', command=self.not_implemented)
+        filemenu.add_command(label='Open', command=self.not_implemented)
+        filemenu.add_command(label='Save As', command=self.not_implemented)
         filemenu.add_separator()
         filemenu.add_command(label='Exit', command=self.quit)
         menubar.add_cascade(label='File', menu=filemenu)
+
+        # Start menu
+        startmenu = Menu(menubar, tearoff=0)
+        startmenu.add_command(label='Init / Reload', command=self.not_implemented)
+        menubar.add_cascade(label='Start', menu=startmenu)
+
+        # Preprocess menu
+        preprocessmenu = Menu(menubar, tearoff=0)
+        preprocessmenu.add_command(label='High pass filter', command=self.not_implemented)
+        preprocessmenu.add_command(label='Image coord', command=self.not_implemented)
+        preprocessmenu.add_command(label='Correspondences', command=self.not_implemented)
+        menubar.add_cascade(label='Preprocess', menu=preprocessmenu)
+
+        # 3D Positions menu
+        pos3dmenu = Menu(menubar, tearoff=0)
+        pos3dmenu.add_command(label='3D positions', command=self.not_implemented)
+        menubar.add_cascade(label='3D Positions', menu=pos3dmenu)
+
+        # Calibration menu
+        calibmenu = Menu(menubar, tearoff=0)
+        calibmenu.add_command(label='Create calibration', command=self.not_implemented)
+        menubar.add_cascade(label='Calibration', menu=calibmenu)
+
+        # Sequence menu
+        seqmenu = Menu(menubar, tearoff=0)
+        seqmenu.add_command(label='Sequence without display', command=self.not_implemented)
+        menubar.add_cascade(label='Sequence', menu=seqmenu)
+
+        # Tracking menu
+        trackingmenu = Menu(menubar, tearoff=0)
+        trackingmenu.add_command(label='Detected Particles', command=self.not_implemented)
+        trackingmenu.add_command(label='Tracking without display', command=self.not_implemented)
+        trackingmenu.add_command(label='Tracking backwards', command=self.not_implemented)
+        trackingmenu.add_command(label='Show trajectories', command=self.not_implemented)
+        trackingmenu.add_command(label='Save Paraview files', command=self.not_implemented)
+        menubar.add_cascade(label='Tracking', menu=trackingmenu)
+
+        # Plugins menu
+        pluginsmenu = Menu(menubar, tearoff=0)
+        pluginsmenu.add_command(label='Select plugin', command=self.not_implemented)
+        menubar.add_cascade(label='Plugins', menu=pluginsmenu)
+
+        # Detection demo menu
+        detectionmenu = Menu(menubar, tearoff=0)
+        detectionmenu.add_command(label='Detection GUI demo', command=self.not_implemented)
+        menubar.add_cascade(label='Detection demo', menu=detectionmenu)
+
+        # Drawing mask menu
+        maskmenu = Menu(menubar, tearoff=0)
+        maskmenu.add_command(label='Draw mask', command=self.not_implemented)
+        menubar.add_cascade(label='Drawing mask', menu=maskmenu)
+
         self.config(menu=menubar)
+
+    def not_implemented(self):
+        messagebox.showinfo('Not implemented', 'This feature is not yet implemented.')
 
     def create_layout(self):
         main_frame = ttk.Frame(self)
