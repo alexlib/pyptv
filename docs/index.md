@@ -39,7 +39,7 @@ Explore our YouTube video tutorials for step-by-step demonstrations:
 - [PyPTV installation on Linux](https://youtu.be/mlpaJ64t3Kw)
 - [Installation on Windows](https://youtu.be/kWREmrGa7Z8)
 - [Calibration Process Explained]()
-- [Using Splitter Mode]()
+- [Using Splitter Mode](https://youtu.be/FYZGZlL1yqs?si=4shcdja9CK3SEXGJ)
 
 Find more videos on our [PyPTV YouTube Channel](https://www.youtube.com/@openptv1113).
 
