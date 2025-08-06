@@ -8,7 +8,6 @@ dependencies:
   - scipy
   - matplotlib
   - pandas
-  - opencv
   - pytest
   - pyyaml
   - numba

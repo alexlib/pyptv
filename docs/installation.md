@@ -19,13 +19,13 @@ Before installing PyPTV, ensure you have:
 ```bash
 sudo apt update
 sudo apt install -y build-essential cmake git pkg-config
-sudo apt install -y libhdf5-dev libopencv-dev
+sudo apt install -y libhdf5-dev
 ```
 
 #### Fedora/RHEL/CentOS
 ```bash
 sudo dnf install -y gcc gcc-c++ cmake git pkg-config
-sudo dnf install -y hdf5-devel opencv-devel
+sudo dnf install -y hdf5-devel
 ```
 
 #### macOS
@@ -37,7 +37,7 @@ xcode-select --install
 /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
 
 # Install dependencies
-brew install cmake pkg-config hdf5 opencv
+brew install cmake pkg-config hdf5
 ```
 
 ## Installation Methods
@@ -154,12 +154,6 @@ cd pyptv
 ./install_pyptv.sh
 ```
 
-### Issue: "Cannot import cv2"
-**Solution**: OpenCV installation issue. Try:
-```bash
-conda activate pyptv
-conda install -c conda-forge opencv
-```
 
 ### Issue: "HDF5 headers not found"
 **Solution**: Install HDF5 development packages:
