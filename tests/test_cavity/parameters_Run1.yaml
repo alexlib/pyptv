@@ -2,8 +2,13 @@ num_cams: 4
 plugins:
   available_tracking:
   - default
+  - ext_tracker_denis
   available_sequence:
   - default
+  - ext_sequence_contour
+  - ext_sequence_denis
+  - ext_sequence_rembg
+  - ext_sequence_rembg_contour
   selected_tracking: default
   selected_sequence: default
 cal_ori:
