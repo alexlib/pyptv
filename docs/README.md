@@ -126,7 +126,7 @@ bash run_headless_tests.sh
 
 ## Environment Setup
 
-PyPTV uses a modern `environment.yml` and `requirements-dev.txt` for reproducible environments. Most dependencies are installed via conda, but some (e.g., `optv`, `opencv-python-headless`, `rembg`, `flowtracks`) are installed via pip in the conda environment.
+PyPTV uses a modern `environment.yml` and `requirements-dev.txt` for reproducible environments. Most dependencies are installed via conda, but some (e.g., `optv`, `rembg`, `flowtracks`) are installed via pip in the conda environment.
 
 See [PYPTV_ENVIRONMENT_GUIDE.md](PYPTV_ENVIRONMENT_GUIDE.md) for details.
 

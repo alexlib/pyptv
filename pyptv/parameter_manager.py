@@ -133,7 +133,7 @@ class ParameterManager:
             print("Info: Added default unsharp mask parameters")
 
         # Default plugins parameters or scan plugins directory
-        plugins_dir = dir_path / 'plugins'
+        plugins_dir = dir_path.parent / 'plugins'
         if not plugins_dir.exists() or not plugins_dir.is_dir():
             if 'plugins' not in self.parameters:
                 self.parameters['plugins'] = {

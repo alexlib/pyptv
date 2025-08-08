@@ -154,15 +154,6 @@ pip install -e . -v
 2. Navigate to: Computer Configuration → Administrative Templates → System → Filesystem
 3. Enable "Enable Win32 long paths"
 
-## GPU Acceleration (Optional)
-
-For improved performance with large datasets:
-
-```cmd
-conda activate pyptv
-# Install CUDA-enabled OpenCV (if you have NVIDIA GPU)
-conda install -c conda-forge opencv cuda-toolkit
-```
 
 ## Environment Management
 
