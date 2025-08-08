@@ -16,3 +16,6 @@ rembg
 Cython
 tqdm
 
+# Optional modern theming for Tkinter prototype GUI
+ttkbootstrap
+
