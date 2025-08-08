@@ -6,7 +6,9 @@ from pathlib import Path
 from pyptv.parameter_manager import ParameterManager
 
 def create_dummy_par_dir(tmpdir):
-    par_dir = Path(tmpdir)
+    tmp_dir = Path(tmpdir)
+    tmp_dir.mkdir(exist_ok=True)
+    par_dir = tmp_dir / 'parameters'
     par_dir.mkdir(exist_ok=True)
     n_img = 2
     # ptv.par
@@ -41,7 +43,7 @@ def create_dummy_par_dir(tmpdir):
     man_ori_lines = ["0", "0", "0", "0", "0", "0", "0", "0"]
     (par_dir / 'man_ori.par').write_text('\n'.join(man_ori_lines) + '\n')
     # plugins
-    plugins_dir = par_dir / 'plugins'
+    plugins_dir = tmp_dir / 'plugins'
     plugins_dir.mkdir(exist_ok=True)
     (plugins_dir / 'my_sequence_.py').write_text('# dummy sequence plugin')
     (plugins_dir / 'my_tracker_.py').write_text('# dummy tracking plugin')
