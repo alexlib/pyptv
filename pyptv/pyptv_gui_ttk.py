@@ -1,8 +1,13 @@
 import tkinter as tk
-from tkinter import ttk, Menu, Toplevel, messagebox
-import ttkbootstrap as tb
+from tkinter import ttk, Menu, Toplevel, messagebox, filedialog
+try:
+    import ttkbootstrap as tb
+except ModuleNotFoundError:
+    tb = None
 from pathlib import Path
 from pyptv.parameter_gui import Main_Params, Calib_Params, Tracking_Params
+from pyptv import ptv
+from pyptv.experiment import Experiment
 
 class CameraPanel(ttk.Frame):
     def __init__(self, parent, cam_name):
@@ -51,12 +56,20 @@ class TreeMenu(ttk.Treeview):
     def open_param_window(self, param_type):
         ParameterWindow(self.master, param_type, self.experiment)
 
-class MainApp(tb.Window):
+# Choose a base window class depending on ttkbootstrap availability
+BaseWindow = tb.Window if tb is not None else tk.Tk
+
+
+class MainApp(BaseWindow):
     def __init__(self, experiment=None):
-        super().__init__(themename='flatly')
+        if tb is not None:
+            super().__init__(themename='superhero') # or flatly 
+        else:
+            super().__init__()
         self.title('pyPTV Modern GUI')
         self.geometry('1200x700')
         self.experiment = experiment
+        self.layout_mode = 'tabs'  # 'tabs' or 'grid'
         self.create_menu()
         self.create_layout()
 
@@ -66,7 +79,7 @@ class MainApp(tb.Window):
         # File menu
         filemenu = Menu(menubar, tearoff=0)
         filemenu.add_command(label='New', command=self.not_implemented)
-        filemenu.add_command(label='Open', command=self.not_implemented)
+        filemenu.add_command(label='Open', command=self.open_yaml_action)
         filemenu.add_command(label='Save As', command=self.not_implemented)
         filemenu.add_separator()
         filemenu.add_command(label='Exit', command=self.quit)
@@ -123,33 +136,98 @@ class MainApp(tb.Window):
         maskmenu.add_command(label='Draw mask', command=self.not_implemented)
         menubar.add_cascade(label='Drawing mask', menu=maskmenu)
 
+        # View menu
+        viewmenu = Menu(menubar, tearoff=0)
+        viewmenu.add_command(label='Tabs', command=self.set_layout_tabs)
+        viewmenu.add_command(label='Panels (2x2 grid)', command=self.set_layout_grid)
+        menubar.add_cascade(label='View', menu=viewmenu)
+
         self.config(menu=menubar)
+
+    def refresh_tree(self):
+        # Rebuild the left tree when experiment changes
+        for child in self.left_panel.winfo_children():
+            child.destroy()
+        self.tree = TreeMenu(self.left_panel, self.experiment)
+        self.tree.pack(fill='both', expand=True)
+
+    def open_yaml_action(self):
+        # Ask user for a YAML file and open as Experiment using core helpers
+        filetypes = [("YAML files", "*.yaml *.yml"), ("All files", "*.*")]
+        path = filedialog.askopenfilename(title="Open parameters YAML", filetypes=filetypes)
+        if not path:
+            return
+        try:
+            exp = ptv.open_experiment_from_yaml(Path(path))
+        except Exception as e:
+            messagebox.showerror("Open failed", f"Could not open experiment:\n{e}")
+            return
+        self.experiment = exp
+        self.refresh_tree()
+        messagebox.showinfo("Experiment loaded", f"Loaded: {Path(path).name}\nParamsets: {len(exp.paramsets)}")
 
     def not_implemented(self):
         messagebox.showinfo('Not implemented', 'This feature is not yet implemented.')
 
     def create_layout(self):
-        main_frame = ttk.Frame(self)
-        main_frame.pack(fill='both', expand=True)
-        # Left: Tree
-        tree_frame = ttk.Frame(main_frame)
-        tree_frame.pack(side='left', fill='y', padx=5, pady=5)
-        self.tree = TreeMenu(tree_frame, self.experiment)
-        self.tree.pack(fill='y', expand=True)
-        # Right: Camera panels
-        cam_frame = ttk.Frame(main_frame)
-        cam_frame.pack(side='right', fill='both', expand=True, padx=5, pady=5)
-        cam_grid = ttk.Frame(cam_frame)
-        cam_grid.pack(fill='both', expand=True)
+        # Paned window for resizable left tree and right content
+        self.main_paned = ttk.Panedwindow(self, orient='horizontal')
+        self.main_paned.pack(fill='both', expand=True)
+
+        # Left: Tree panel
+        self.left_panel = ttk.Frame(self.main_paned, padding=(5, 5))
+        self.tree = TreeMenu(self.left_panel, self.experiment)
+        self.tree.pack(fill='both', expand=True)
+        self.main_paned.add(self.left_panel, weight=1)
+
+        # Right: Container for camera views (tabs or grid)
+        self.right_container = ttk.Frame(self.main_paned, padding=(5, 5))
+        self.main_paned.add(self.right_container, weight=4)
+
+        # Build initial layout
+        if self.layout_mode == 'tabs':
+            self.build_tabs()
+        else:
+            self.build_grid()
+
+    def clear_right_container(self):
+        for w in self.right_container.winfo_children():
+            w.destroy()
+        self.cameras = []
+
+    def build_tabs(self):
+        self.clear_right_container()
+        nb = ttk.Notebook(self.right_container)
+        nb.pack(fill='both', expand=True)
+        self.cameras = []
+        for i in range(4):
+            frame = ttk.Frame(nb)
+            cam_panel = CameraPanel(frame, f'Camera {i+1}')
+            cam_panel.pack(fill='both', expand=True)
+            nb.add(frame, text=f'Camera {i+1}')
+            self.cameras.append(cam_panel)
+
+    def build_grid(self):
+        self.clear_right_container()
+        grid = ttk.Frame(self.right_container)
+        grid.pack(fill='both', expand=True)
         self.cameras = []
         for i in range(2):
             for j in range(2):
-                cam_panel = CameraPanel(cam_grid, f'Camera {i*2+j+1}')
+                cam_panel = CameraPanel(grid, f'Camera {i*2+j+1}')
                 cam_panel.grid(row=i, column=j, padx=10, pady=10, sticky='nsew')
                 self.cameras.append(cam_panel)
         for i in range(2):
-            cam_grid.rowconfigure(i, weight=1)
-            cam_grid.columnconfigure(i, weight=1)
+            grid.rowconfigure(i, weight=1)
+            grid.columnconfigure(i, weight=1)
+
+    def set_layout_tabs(self):
+        self.layout_mode = 'tabs'
+        self.build_tabs()
+
+    def set_layout_grid(self):
+        self.layout_mode = 'grid'
+        self.build_grid()
 
 if __name__ == '__main__':
     # TODO: Load experiment object as needed

@@ -53,6 +53,7 @@ example from Tracker documentation:
 
 # PyPTV imports
 from pyptv.parameter_manager import ParameterManager
+from pyptv.experiment import Experiment
 
 # Constants
 NAMES = ["cc", "xh", "yh", "k1", "k2", "k3", "p1", "p2", "scale", "shear"]
@@ -1310,3 +1311,48 @@ def calib_particles(exp):
 
     print("End calibration with particles")
     return targs_all, targ_ix_all, residuals_all
+
+
+# ---------- GUI helpers (experiment loading) ----------
+def open_experiment_from_yaml(yaml_path: Path) -> Experiment:
+    """Open an experiment from a YAML file for GUI usage.
+
+    - Validates the YAML path
+    - Loads parameters into a ParameterManager
+    - Creates an Experiment bound to the ParameterManager
+    - Populates additional runs found in the YAML's directory
+    - Changes current working directory to the YAML parent (to match legacy expectations)
+    """
+    yaml_path = Path(yaml_path).resolve()
+    if not yaml_path.is_file() or yaml_path.suffix.lower() not in {".yaml", ".yml"}:
+        raise ValueError(f"Invalid YAML path: {yaml_path}")
+
+    pm = ParameterManager()
+    pm.from_yaml(yaml_path)
+
+    exp = Experiment(pm=pm)
+    exp.populate_runs(yaml_path.parent)
+
+    # Many downstream routines assume cwd is the experiment directory
+    os.chdir(yaml_path.parent)
+    return exp
+
+
+def open_experiment_from_directory(exp_dir: Path) -> Experiment:
+    """Open an experiment from a directory containing parameter sets.
+
+    - Scans the directory for YAML/legacy parameter sets and populates Experiment
+    - Sets the first discovered parameter set as active
+    - Changes cwd to the directory
+
+    Note:
+        The first discovered parameter set is set as the active set in the Experiment.
+    """
+    exp_dir = Path(exp_dir).resolve()
+    if not exp_dir.is_dir():
+        raise ValueError(f"Invalid experiment directory: {exp_dir}")
+
+    exp = Experiment()
+    exp.populate_runs(exp_dir)
+    os.chdir(exp_dir)
+    return exp
