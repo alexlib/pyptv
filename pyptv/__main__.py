@@ -52,8 +52,8 @@ def main():
             sys.argv.append(str(exp_path))
         gui.main()
     else:
-        print("Using modern UI")
-        from pyptv.ui.app import main as modern_main
+        print("Using modern Tk UI")
+        from pyptv.pyptv_gui_ttk import main as modern_main
         # Set argv for modern GUI
         sys.argv = [sys.argv[0]]
         if args.path:
