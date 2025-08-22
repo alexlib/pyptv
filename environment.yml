@@ -14,6 +14,7 @@ dependencies:
   - tables
   - scikit-image
   - pillow
+  - pillow=10.*
   - tqdm
   - psutil
   - packaging

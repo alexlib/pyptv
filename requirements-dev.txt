@@ -9,6 +9,8 @@ numba
 tables
 scikit-image
 pillow
+# Pin Pillow to <11 to remain compatible with ttkbootstrap
+Pillow<11,>=10
 # If you use flowtracks or rembg, keep them:
 flowtracks
 rembg
