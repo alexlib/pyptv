@@ -13,6 +13,8 @@ from numpy import (
     transpose,
     invert,
     isnan,
+    cos,
+    sin,
 )
 from traits.api import Array, Enum, Float, Instance, Int
 
@@ -21,7 +23,7 @@ class QuiverPlot(ScatterPlot):
     # Determines how to interpret the data in the **vectors** data source.
     # 	"vector": each tuple is a (dx, dy)
     # 	"radial": each tuple is an (r, theta)
-    data_type = Enum("vector", "radial")  # TODO: implement "radial"
+    data_type = Enum("vector", "radial")
 
     # A datasource that returns an Nx2 array array indicating directions
     # of the vectors.  The interpretation of this array is dependent on
@@ -106,9 +108,26 @@ class QuiverPlot(ScatterPlot):
         ends = self.map_screen(self._cached_end_epts)
 
         if len(starts) > 0:
+            # If vectors are provided as radial (r, theta) compute endpoints
+            if self.data_type == "radial":
+                # _cached_vector_data expected to be Nx2 array of (r, theta)
+                try:
+                    r = self._cached_vector_data[:, 0]
+                    theta = self._cached_vector_data[:, 1]
+                except Exception:
+                    r = None
+                    theta = None
+
+                if r is not None and theta is not None:
+                    # Convert polar (r,theta) to cartesian displacement
+                    dx = r * cos(theta)
+                    dy = r * sin(theta)
+                    # map_screen expects Nx2 arrays of screen coordinates
+                    displ = transpose(array((dx, dy)))
+                    ends = starts + displ
+
             gc.begin_path()
             gc.line_set(starts, ends)
-            # gc.line_set(starts, self.end_points)
             gc.stroke_path()
 
         if self.arrow_size > 0:
