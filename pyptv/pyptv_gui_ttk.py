@@ -744,14 +744,49 @@ class EnhancedMainApp(BaseWindow):
         path = filedialog.askopenfilename(title="Open parameters YAML", filetypes=filetypes)
         if not path:
             return
-        
         self.progress.start()
         self.status_var.set("Loading experiment...")
-        
+
         try:
-            # TODO: Implement proper experiment loading
+            # Use ptv helper to open an experiment from YAML
+            exp = ptv.open_experiment_from_yaml(Path(path))
+
+            # Set app experiment and update dependent widgets
+            self.experiment = exp
+            # Update the tree's experiment reference and refresh
+            try:
+                self.tree.experiment = self.experiment
+                self.tree.refresh_tree()
+            except Exception:
+                # If tree not yet created or has different API, ignore
+                pass
+
+            # Update camera count from ParameterManager if available
+            num_cams = None
+            try:
+                if hasattr(exp, 'pm') and hasattr(exp.pm, 'num_cams'):
+                    num_cams = int(exp.pm.num_cams)
+            except Exception:
+                num_cams = None
+
+            # Fallback: try to read ptv.num_cams or top-level num_cams
+            if num_cams is None:
+                try:
+                    # Some experiments expose a top-level num_cams or ptv section
+                    num_cams = int(exp.get_parameter('num_cams'))
+                except Exception:
+                    try:
+                        ptv_section = exp.get_parameter('ptv')
+                        num_cams = int(ptv_section.get('num_cams', self.num_cameras))
+                    except Exception:
+                        num_cams = None
+
+            if num_cams is not None:
+                self.num_cameras = num_cams
+            # Rebuild camera layout to reflect new experiment
+            self.rebuild_camera_layout()
+
             self.status_var.set(f"Loaded: {Path(path).name}")
-            self.tree.refresh_tree()
             messagebox.showinfo("Success", f"Loaded experiment from {Path(path).name}")
         except Exception as e:
             messagebox.showerror("Error", f"Could not load experiment:\n{e}")
