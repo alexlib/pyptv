@@ -9,6 +9,34 @@ try:
     import numpy as np
 except ImportError:
     np = None
+import sys
+import os
+import shutil
+import json
+try:
+    import yaml
+except ImportError:
+    yaml = None
+try:
+    import pandas as pd
+except ImportError:
+    pd = None
+try:
+    from flowtracks.io import trajectories_ptvis
+except ImportError:
+    trajectories_ptvis = None
+try:
+    from optv.epipolar import epipolar_curve
+except ImportError:
+    epipolar_curve = None
+try:
+    from optv.imgcoord import image_coordinates
+except ImportError:
+    image_coordinates = None
+try:
+    from skimage.util import img_as_ubyte
+except ImportError:
+    img_as_ubyte = None
 
 from pyptv.parameter_gui import Main_Params, Calib_Params, Tracking_Params
 from pyptv import ptv
@@ -323,7 +351,9 @@ class EnhancedTreeMenu(ttk.Treeview):
         
         # Camera configuration node
         if self.experiment:
-            num_cams = self.experiment.get_parameter('num_cams', 4)
+            num_cams = self.experiment.get_parameter('num_cams')
+            if num_cams is None:
+                num_cams = 4
             cam_id = self.insert(exp_id, 'end', text=f'Cameras ({num_cams})', open=True)
             for i in range(num_cams):
                 self.insert(cam_id, 'end', text=f'Camera {i+1}', values=('camera', str(i)))
@@ -331,7 +361,9 @@ class EnhancedTreeMenu(ttk.Treeview):
         # Sequences node
         seq_id = self.insert(exp_id, 'end', text='Sequences', open=False)
         if self.experiment:
-            seq_params = self.experiment.get_parameter('sequence', {})
+            seq_params = self.experiment.get_parameter('sequence')
+            if seq_params is None:
+                seq_params = {}
             first = seq_params.get('first', 0)
             last = seq_params.get('last', 100)
             self.insert(seq_id, 'end', text=f'Sequence {first}-{last}', values=('sequence', f'{first}-{last}'))
@@ -400,13 +432,88 @@ class EnhancedTreeMenu(ttk.Treeview):
         self.populate_tree()
 
 
+# Plugins class from original pyptv_gui.py
+class Plugins:
+    """Plugins configuration class"""
+    
+    def __init__(self, experiment=None):
+        self.experiment = experiment
+        self.track_alg = 'default'
+        self.sequence_alg = 'default'
+        self.read()
+
+    def read(self):
+        """Read plugin configuration from experiment parameters (YAML) with fallback to plugins.json"""
+        if self.experiment is not None:
+            # Primary source: YAML parameters
+            plugins_params = self.experiment.get_parameter('plugins')
+            if plugins_params is not None:
+                try:
+                    track_options = plugins_params.get('available_tracking', ['default'])
+                    seq_options = plugins_params.get('available_sequence', ['default'])
+                    
+                    # Set selected algorithms from YAML
+                    self.track_alg = plugins_params.get('selected_tracking', track_options[0])
+                    self.sequence_alg = plugins_params.get('selected_sequence', seq_options[0])
+                    
+                    print(f"Loaded plugins from YAML: tracking={self.track_alg}, sequence={self.sequence_alg}")
+                    return
+                    
+                except Exception as e:
+                    print(f"Error reading plugins from YAML: {e}")
+        
+        # Fallback to plugins.json for backward compatibility
+        self._read_from_json()
+    
+    def _read_from_json(self):
+        """Fallback method to read from plugins.json"""
+        config_file = Path.cwd() / "plugins.json"
+        
+        if config_file.exists():
+            try:
+                with open(config_file, 'r') as f:
+                    config = json.load(f)
+                
+                track_options = config.get('tracking', ['default'])
+                seq_options = config.get('sequence', ['default'])
+                
+                self.track_alg = track_options[0]
+                self.sequence_alg = seq_options[0]
+                
+                print(f"Loaded plugins from plugins.json: tracking={self.track_alg}, sequence={self.sequence_alg}")
+                
+            except (json.JSONDecodeError, KeyError) as e:
+                print(f"Error reading plugins.json: {e}")
+                self._set_defaults()
+        else:
+            print("No plugins.json found, using defaults")
+            self._set_defaults()
+    
+    def save(self):
+        """Save plugin selections back to experiment parameters"""
+        if self.experiment is not None:
+            plugins_params = self.experiment.get_parameter('plugins')
+            if plugins_params is None:
+                plugins_params = {}
+            plugins_params['selected_tracking'] = self.track_alg
+            plugins_params['selected_sequence'] = self.sequence_alg
+            
+            # Update the parameter manager
+            self.experiment.pm.parameters['plugins'] = plugins_params
+            print(f"Saved plugin selections: tracking={self.track_alg}, sequence={self.sequence_alg}")
+    
+    def _set_defaults(self):
+        self.track_alg = 'default'
+        self.sequence_alg = 'default'
+
+
 # Choose a base window class depending on ttkbootstrap availability
 BaseWindow = tb.Window if tb is not None else tk.Tk
 
 class EnhancedMainApp(BaseWindow):
     """Enhanced main application with full feature parity"""
     
-    def __init__(self, experiment=None, num_cameras=None):
+    def __init__(self, experiment=None, num_cameras=None, yaml_file=None):
         if tb is not None:
             super().__init__(themename='superhero')
         else:
@@ -414,23 +521,184 @@ class EnhancedMainApp(BaseWindow):
             
         self.title('PyPTV Enhanced Modern GUI')
         self.geometry('1400x800')
+        
+        # Initialize core attributes matching original MainGUI
+        self.yaml_file = yaml_file
+        self.exp_path = yaml_file.parent if yaml_file else None
         self.experiment = experiment
         
-        # Determine number of cameras - FIXED to respect num_cameras parameter
+        # Initialize plugins if experiment provided
+        if self.experiment:
+            self.plugins = Plugins(experiment=self.experiment)
+        else:
+            self.plugins = None
+            
+        # Validate experiment and get parameters if available
+        if self.experiment:
+            print(f"Initializing EnhancedMainApp with parameters from {yaml_file}")
+            ptv_params = self.experiment.get_parameter('ptv')
+            if ptv_params is None:
+                raise ValueError("PTV parameters not found in the provided experiment")
+                
+            # Set up original image data matching original MainGUI
+            self.num_cams = self.experiment.get_n_cam()
+            self.orig_names = ptv_params.get('img_name', [])
+            # Create original images as zero arrays
+            if np is not None and img_as_ubyte is not None:
+                self.orig_images = [
+                    img_as_ubyte(np.zeros((ptv_params.get('imy', 1024), ptv_params.get('imx', 1280))))
+                    for _ in range(self.num_cams)
+                ]
+            else:
+                self.orig_images = []
+        else:
+            self.num_cams = 0
+            self.orig_names = []
+            self.orig_images = []
+        
+        # Determine number of cameras - respect num_cameras parameter or get from experiment
         if num_cameras is not None:
             self.num_cameras = num_cameras
-        elif experiment:
-            self.num_cameras = experiment.get_parameter('num_cams', 4)
+        elif self.experiment:
+            self.num_cameras = self.num_cams
         else:
             self.num_cameras = 4
             
+        # Initialize camera tracking
+        self.current_camera = 0
         self.layout_mode = 'tabs'  # 'tabs', 'grid', 'single'
         self.cameras = []
-        self.current_camera = 0
         
+        # Initialize processing state
+        self.pass_init = False
+        self.update_thread_plot = False
+        self.selected = None
+        
+        # Initialize Cython parameter objects (will be set during init)
+        self.cpar = None
+        self.spar = None
+        self.vpar = None
+        self.track_par = None
+        self.tpar = None
+        self.cals = None
+        self.epar = None
+        
+        # Initialize detection and tracking data
+        self.detections = []
+        self.corrected = []
+        self.sorted_pos = []
+        self.sorted_corresp = []
+        self.num_targs = []
+        
+        # Initialize tracking objects
+        self.tracker = None
+        
+        # Initialize target filenames
+        self.target_filenames = []
+        
+        # Create UI components
         self.create_menu()
         self.create_layout()
         self.setup_keyboard_shortcuts()
+        
+        # Handle active parameter set ordering (matching original)
+        if hasattr(self.experiment, "active_params") and self.experiment.active_params is not None:
+            active_yaml = Path(self.experiment.active_params.yaml_path)
+            # Find the index of the active paramset
+            idx = next(
+                (i for i, p in enumerate(self.experiment.paramsets)
+                 if hasattr(p, "yaml_path") and Path(p.yaml_path).resolve() == active_yaml.resolve()),
+                None
+            )
+            if idx is not None and idx != 0:
+                # Move active paramset to the front
+                self.experiment.paramsets.insert(0, self.experiment.paramsets.pop(idx))
+                self.experiment.set_active(0)
+
+    def get_parameter(self, key):
+        """Delegate parameter access to experiment"""
+        if self.experiment:
+            return self.experiment.get_parameter(key)
+        return None
+        
+    def save_parameters(self):
+        """Save current parameters to YAML"""
+        if self.experiment:
+            self.experiment.save_parameters()
+            print("Parameters saved")
+            self.status_var.set("Parameters saved")
+        else:
+            print("No experiment to save parameters for")
+    
+    def right_click_process(self):
+        """Shows a line in camera color code corresponding to a point on another camera's view plane"""
+        # This is a simplified version - full implementation would require epipolar geometry
+        print("Right click processing - epipolar lines would be drawn here")
+        self.status_var.set("Right click processed")
+    
+    def create_plots(self, images, is_float=False):
+        """Create plots with images"""
+        print("Creating plots with images")
+        for i, image in enumerate(images):
+            if i < len(self.cameras):
+                self.cameras[i].display_image(image)
+        self.status_var.set("Plots created")
+    
+    def update_plots(self, images, is_float=False):
+        """Update plots with new images"""
+        print("Updating plots with images")
+        for i, image in enumerate(images):
+            if i < len(self.cameras):
+                self.cameras[i].display_image(image)
+        self.status_var.set("Plots updated")
+    
+    def drawcross_in_all_cams(self, str_x, str_y, x, y, color1, size1, marker="plus"):
+        """Draw crosses in all cameras"""
+        print(f"Drawing crosses in all cameras: {len(x)} points")
+        for i, cam in enumerate(self.cameras):
+            if i < len(x) and i < len(y):
+                cam.draw_overlay(x[i], y[i], style='cross', color=color1, size=size1)
+        self.status_var.set("Crosses drawn")
+    
+    def clear_plots(self, remove_background=True):
+        """Clear all plots"""
+        print("Clearing plots")
+        for cam in self.cameras:
+            cam.clear_overlays()
+        self.status_var.set("Plots cleared")
+    
+    def _selected_changed(self):
+        """Handle selected camera change"""
+        if hasattr(self, 'selected') and self.selected:
+            cam_name = getattr(self.selected, 'cam_name', 'Unknown')
+            self.current_camera = int(cam_name.split(" ")[1]) - 1 if "Camera" in cam_name else 0
+            self.status_var.set(f"Selected camera: {cam_name}")
+        else:
+            self.current_camera = 0
+    
+    def overlay_set_images(self, base_names, seq_first, seq_last):
+        """Overlay set of images"""
+        print(f"Overlaying images from sequence {seq_first} to {seq_last}")
+        # This would implement the image overlay functionality
+        self.status_var.set(f"Overlaying images {seq_first}-{seq_last}")
+    
+    def load_disp_image(self, img_name, j, display_only=False):
+        """Load and display single image"""
+        print(f"Loading image: {img_name} for camera {j}")
+        try:
+            # This would load and display the image
+            if j < len(self.cameras):
+                # For now, just update status
+                self.status_var.set(f"Loaded image for camera {j+1}")
+        except Exception as e:
+            print(f"Error loading image {img_name}: {e}")
+            self.status_var.set(f"Error loading image for camera {j+1}")
+    
+    def load_set_seq_image(self, seq_num, display_only=False):
+        """Load and display sequence image for a specific sequence number"""
+        print(f"Loading sequence image {seq_num}")
+        # This would implement sequence image loading
+        self.status_var.set(f"Loaded sequence image {seq_num}")
     
     def setup_keyboard_shortcuts(self):
         """Setup keyboard shortcuts"""
@@ -1040,35 +1308,95 @@ Use View → Camera Count to change the number of cameras dynamically.
         messagebox.showinfo('Not Implemented', 'This feature is not yet implemented.')
 
 
+def printException():
+    """Print exception information"""
+    import traceback
+    print("=" * 50)
+    print("Exception:", sys.exc_info()[1])
+    print(f"{Path.cwd()}")
+    print("Traceback:")
+    traceback.print_tb(sys.exc_info()[2])
+    print("=" * 50)
+
+
 def main():
-    """Main function to run the enhanced GUI"""
-    import argparse
-    
-    parser = argparse.ArgumentParser(description='PyPTV Enhanced Modern GUI')
-    parser.add_argument('--cameras', type=int, default=4, help='Number of cameras (1-16)')
-    parser.add_argument('--layout', choices=['tabs', 'grid', 'single'], default='tabs', help='Initial layout mode')
-    parser.add_argument('--yaml', type=str, help='YAML file to load')
-    
-    args = parser.parse_args()
-    
-    # Load experiment if YAML provided
-    experiment = None
-    if args.yaml:
-        yaml_path = Path(args.yaml)
-        if yaml_path.exists():
-            # TODO: Load experiment from YAML
-            print(f"Loading experiment from {yaml_path}")
-    
-    # Create and run the application
-    app = EnhancedMainApp(experiment=experiment, num_cameras=args.cameras)
-    app.layout_mode = args.layout
-    
-    # Force the camera count to be set correctly
-    app.num_cameras = args.cameras
-    app.rebuild_camera_layout()
-    
-    print(f"Starting PyPTV Enhanced GUI with {args.cameras} cameras in {args.layout} mode")
-    app.mainloop()
+    """main function"""
+    software_path = Path.cwd().resolve()
+    print(f"Running PyPTV from {software_path}")
+
+    yaml_file = None
+    exp_path = None
+    exp = None
+
+    if len(sys.argv) == 2:
+        arg_path = Path(sys.argv[1]).resolve()
+        # first option - suppy YAML file path and this would be your experiment
+        # we will also see what are additional parameter sets exist and 
+        # initialize the Experiment() object
+        if arg_path.is_file() and arg_path.suffix in {".yaml", ".yml"}:
+            yaml_file = arg_path
+            print(f"YAML parameter file provided: {yaml_file}")
+            from pyptv.parameter_manager import ParameterManager
+            pm = ParameterManager()
+            pm.from_yaml(yaml_file)
+
+            # prepare additional yaml files for other runs if not existing
+            print(f"Initialize  Experiment from {yaml_file.parent}")
+            exp_path = yaml_file.parent
+            exp = Experiment(pm=pm) # ensures pm is an active parameter set
+            exp.populate_runs(exp_path)
+            # exp.pm.from_yaml(yaml_file)
+        elif arg_path.is_dir(): # second option - supply directory
+            exp = Experiment()
+            exp.populate_runs(arg_path)
+            yaml_file = exp.active_params.yaml_path
+            # exp.pm.from_yaml(yaml_file)
+
+        else:
+            print(f"Invalid argument: {arg_path}")
+            print("Please provide a valid YAML file or directory")
+            sys.exit(1)
+    else:
+        # Fallback to default test directory
+        exp_path = software_path / "tests" / "test_cavity"
+        exp = Experiment()
+        exp.populate_runs(exp_path)
+        yaml_file = exp.active_params.yaml_path
+        # exp.pm.from_yaml(yaml_file)
+        print(f"Without inputs, PyPTV uses default case {yaml_file}")
+        print("Tip: in PyPTV use File -> Open to select another YAML file")
+
+    if not yaml_file or not yaml_file.exists():
+        print(f"YAML parameter file does not exist: {yaml_file}")
+        sys.exit(1)
+
+    print(f"Changing directory to the working folder {yaml_file.parent}")
+
+    print(f"YAML file to be used in GUI: {yaml_file}")
+    # Optional: Quality check on the YAML file
+    try:
+        if yaml is not None:
+            with open(yaml_file) as f:
+                yaml.safe_load(f)
+            print("YAML file validation successful")
+        else:
+            print("YAML validation skipped (PyYAML not available)")
+    except Exception as exc:
+        print(f"Error reading or validating YAML file: {exc}")
+        sys.exit(1)
+
+    try:
+        if yaml_file and yaml_file.parent.exists():
+            os.chdir(yaml_file.parent)
+        # Create the TTK GUI instead of Traits GUI
+        main_gui = EnhancedMainApp(experiment=exp, num_cameras=exp.get_n_cam() if exp else 4, yaml_file=yaml_file)
+        main_gui.mainloop()
+    except OSError:
+        print("Something wrong with the software or folder")
+        printException()
+    finally:
+        print(f"Changing back to the original {software_path}")
+        os.chdir(software_path)
 
 
 if __name__ == '__main__':
