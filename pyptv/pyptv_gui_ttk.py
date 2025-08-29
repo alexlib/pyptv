@@ -275,7 +275,9 @@ class DynamicParameterWindow(Toplevel):
         
         # Add parameter widgets
         if self.experiment:
-            ptv_params = self.experiment.get_parameter('ptv', {})
+            ptv_params = self.experiment.get_parameter('ptv')
+            if ptv_params is None:
+                ptv_params = {}
             
             row = 0
             ttk.Label(scrollable_frame, text="Number of Cameras:").grid(row=row, column=0, sticky='w', padx=5, pady=2)
@@ -335,38 +337,19 @@ class EnhancedTreeMenu(ttk.Treeview):
         # Clear existing items
         for item in self.get_children():
             self.delete(item)
-        
+
         if not self.experiment:
             self.insert('', 'end', text='No Experiment Loaded')
             return
-        
+
         # Main experiment node
         exp_id = self.insert('', 'end', text='Experiment', open=True)
-        
-        # Parameters node
+
+        # Parameters node - only show parameters like original
         params_id = self.insert(exp_id, 'end', text='Parameters', open=True)
         self.insert(params_id, 'end', text='Main Parameters', values=('main',))
         self.insert(params_id, 'end', text='Calibration Parameters', values=('calibration',))
         self.insert(params_id, 'end', text='Tracking Parameters', values=('tracking',))
-        
-        # Camera configuration node
-        if self.experiment:
-            num_cams = self.experiment.get_parameter('num_cams')
-            if num_cams is None:
-                num_cams = 4
-            cam_id = self.insert(exp_id, 'end', text=f'Cameras ({num_cams})', open=True)
-            for i in range(num_cams):
-                self.insert(cam_id, 'end', text=f'Camera {i+1}', values=('camera', str(i)))
-        
-        # Sequences node
-        seq_id = self.insert(exp_id, 'end', text='Sequences', open=False)
-        if self.experiment:
-            seq_params = self.experiment.get_parameter('sequence')
-            if seq_params is None:
-                seq_params = {}
-            first = seq_params.get('first', 0)
-            last = seq_params.get('last', 100)
-            self.insert(seq_id, 'end', text=f'Sequence {first}-{last}', values=('sequence', f'{first}-{last}'))
     
     def on_right_click(self, event):
         """Handle right-click context menu"""
@@ -384,12 +367,6 @@ class EnhancedTreeMenu(ttk.Treeview):
             param_type = item_values[0] if item_values else item_text.split()[0]
             menu.add_command(label=f'Edit {param_type} Parameters', 
                            command=lambda: self.open_param_window(param_type))
-        elif 'Camera' in item_text and item_values and item_values[0] == 'camera':
-            cam_id = int(item_values[1])
-            menu.add_command(label=f'Focus Camera {cam_id + 1}', 
-                           command=lambda: self.focus_camera(cam_id))
-            menu.add_command(label='Load Test Image', 
-                           command=lambda: self.load_test_image(cam_id))
         
         menu.add_separator()
         menu.add_command(label='Refresh Tree', command=self.refresh_tree)
@@ -411,21 +388,12 @@ class EnhancedTreeMenu(ttk.Treeview):
         DynamicParameterWindow(self.master, param_type, self.experiment)
     
     def focus_camera(self, cam_id):
-        """Focus on specific camera"""
-        if self.app_ref:
-            self.app_ref.focus_camera(cam_id)
+        """Focus on specific camera - placeholder for compatibility"""
+        print(f"Focus on camera {cam_id} requested")
     
     def load_test_image(self, cam_id):
-        """Load test image into camera"""
-        if self.app_ref:
-            # Create test image
-            test_img = np.random.randint(0, 255, (240, 320), dtype=np.uint8)
-            # Add some features
-            test_img[100:140, 150:170] = 255  # Bright rectangle
-            test_img[50, :] = 128  # Horizontal line
-            test_img[:, 160] = 128  # Vertical line
-            
-            self.app_ref.update_camera_image(cam_id, test_img)
+        """Load test image into camera - placeholder for compatibility"""
+        print(f"Load test image for camera {cam_id} requested")
     
     def refresh_tree(self):
         """Refresh tree content"""
