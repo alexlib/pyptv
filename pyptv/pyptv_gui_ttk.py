@@ -328,7 +328,23 @@ class EnhancedTreeMenu(ttk.Treeview):
         # Initialize TreeMenuHandler for parameter editing
         self.tree_handler = TreeMenuHandler(self.app_ref)
         
+        # Configure tags for visual styling - use system default font with bold weight
+        try:
+            # Try to get the system default font and make it bold
+            default_font = self.cget('font') or 'TkDefaultFont'
+            self.tag_configure('active_paramset', font=(default_font, 9, 'bold'))
+        except:
+            # Fallback to standard TkDefaultFont
+            self.tag_configure('active_paramset', font=('TkDefaultFont', 9, 'bold'))
+        
+        print("GUI Initialization: Bold font tag configured for active parameter sets")
+        
+        # Set column configuration
+        self.column('#0', width=250, minwidth=200)
+        
         self.heading('#0', text='PyPTV Experiments')
+        
+        # Populate tree immediately during initialization
         self.populate_tree()
         
         # Bind events
@@ -336,7 +352,7 @@ class EnhancedTreeMenu(ttk.Treeview):
         self.bind('<Double-1>', self.on_double_click)
     
     def populate_tree(self):
-        """Populate tree with experiment data"""
+        """Populate tree with experiment data - matching original TraitsUI structure"""
         # Clear existing items
         for item in self.get_children():
             self.delete(item)
@@ -348,24 +364,26 @@ class EnhancedTreeMenu(ttk.Treeview):
         # Main experiment node
         exp_id = self.insert('', 'end', text='Experiment', open=True)
 
-        # Parameters node - only show parameters like original
+        # Parameters node - matches original structure where paramsets are direct children
         params_id = self.insert(exp_id, 'end', text='Parameters', open=True)
-        self.insert(params_id, 'end', text='Main Parameters', values=('main',))
-        self.insert(params_id, 'end', text='Calibration Parameters', values=('calibration',))
-        self.insert(params_id, 'end', text='Tracking Parameters', values=('tracking',))
         
-        # Parameter sets node
+        # Add parameter sets as direct children of Parameters node (matching original)
         if hasattr(self.experiment, 'paramsets') and self.experiment.paramsets:
-            paramsets_id = self.insert(exp_id, 'end', text='Parameter Sets', open=True)
             for paramset in self.experiment.paramsets:
                 param_name = paramset.name if hasattr(paramset, 'name') else str(paramset)
                 is_active = (hasattr(self.experiment, 'active_params') and 
                            self.experiment.active_params == paramset)
                 display_name = f"{param_name} (Active)" if is_active else param_name
-                self.insert(paramsets_id, 'end', text=display_name, values=('paramset', param_name))
+                tags = ('active_paramset',) if is_active else ()
+                
+                # Debug: print active parameter set detection
+                if is_active:
+                    print(f"GUI Initialization: Applying bold font to active parameter set: {param_name}")
+                
+                self.insert(params_id, 'end', text=display_name, values=('paramset', param_name), tags=tags)
     
     def on_right_click(self, event):
-        """Handle right-click context menu"""
+        """Handle right-click context menu - matching original TraitsUI behavior"""
         item = self.identify_row(event.y)
         if not item:
             return
@@ -376,35 +394,47 @@ class EnhancedTreeMenu(ttk.Treeview):
         
         menu = Menu(self, tearoff=0)
         
-        if 'Parameters' in item_text:
-            param_type = item_values[0] if item_values else item_text.split()[0]
-            menu.add_command(label=f'Edit {param_type} Parameters', 
-                           command=lambda: self.open_param_window(param_type))
-        elif item_text.startswith('parameters_') or 'parameter set' in item_text.lower():
-            # Parameter set management menu
-            menu.add_command(label='Set as Active', 
-                           command=lambda: self.set_paramset_active(item))
+        # Check if this is a parameter set node (direct child of Parameters)
+        parent_item = self.parent(item)
+        if parent_item and self.item(parent_item, 'text') == 'Parameters':
+            # This is a parameter set - show full context menu like original
             menu.add_command(label='Copy Parameter Set', 
                            command=lambda: self.copy_paramset(item))
-            menu.add_command(label='Rename Parameter Set', 
-                           command=lambda: self.rename_paramset(item))
             menu.add_command(label='Delete Parameter Set', 
                            command=lambda: self.delete_paramset(item))
-        
-        menu.add_separator()
-        menu.add_command(label='Refresh Tree', command=self.refresh_tree)
+            menu.add_separator()
+            menu.add_command(label='Edit Main Parameters', 
+                           command=lambda: self.edit_main_params(item))
+            menu.add_command(label='Edit Calibration Parameters', 
+                           command=lambda: self.edit_calib_params(item))
+            menu.add_command(label='Edit Tracking Parameters', 
+                           command=lambda: self.edit_tracking_params(item))
+            menu.add_separator()
+            menu.add_command(label='Set as Active', 
+                           command=lambda: self.set_paramset_active(item))
+        elif item_text == 'Parameters':
+            # Right-click on Parameters node - could add "Add Parameter Set" option
+            menu.add_command(label='Add Parameter Set', 
+                           command=self.add_paramset)
+        else:
+            # Other nodes - basic refresh option
+            menu.add_command(label='Refresh Tree', command=self.refresh_tree)
         
         menu.post(event.x_root, event.y_root)
     
     def on_double_click(self, event):
-        """Handle double-click to open items"""
+        """Handle double-click to open parameter editing - matching original behavior"""
         item = self.identify_row(event.y)
         if not item:
             return
             
-        item_values = self.item(item, 'values')
-        if item_values and 'Parameters' in self.item(item, 'text'):
-            self.open_param_window(item_values[0])
+        item_text = self.item(item, 'text')
+        
+        # Check if this is a parameter set node (direct child of Parameters)
+        parent_item = self.parent(item)
+        if parent_item and self.item(parent_item, 'text') == 'Parameters':
+            # Double-click on parameter set opens main parameters (matching original)
+            self.edit_main_params(item)
     
     def open_param_window(self, param_type):
         """Open parameter window using TreeMenuHandler"""
@@ -471,17 +501,17 @@ class EnhancedTreeMenu(ttk.Treeview):
         print(f"Load test image for camera {cam_id} requested")
     
     def refresh_tree(self):
-        """Refresh tree content"""
+        """Refresh tree content - bold styling will be reapplied automatically"""
+        print("Tree refresh: Reapplying bold font styling for active parameter set")
         self.populate_tree()
     
     def set_paramset_active(self, item):
-        """Set parameter set as active"""
+        """Set parameter set as active - using TreeMenuHandler"""
         if not self.experiment:
             return
             
         item_text = self.item(item, 'text')
-        # Find the parameter set by name
-        paramset_name = item_text.replace('parameters_', '').replace('.yaml', '')
+        paramset_name = item_text.replace(' (Active)', '').replace('parameters_', '').replace('.yaml', '')
         
         for paramset in self.experiment.paramsets:
             if paramset.name == paramset_name:
@@ -503,12 +533,12 @@ class EnhancedTreeMenu(ttk.Treeview):
                 break
     
     def copy_paramset(self, item):
-        """Copy parameter set"""
+        """Copy parameter set - using TreeMenuHandler"""
         if not self.experiment:
             return
             
         item_text = self.item(item, 'text')
-        paramset_name = item_text.replace('parameters_', '').replace('.yaml', '')
+        paramset_name = item_text.replace(' (Active)', '').replace('parameters_', '').replace('.yaml', '')
         
         for paramset in self.experiment.paramsets:
             if paramset.name == paramset_name:
@@ -527,6 +557,33 @@ class EnhancedTreeMenu(ttk.Treeview):
                     print(f"Copied parameter set: {paramset_name}")
                 except Exception as e:
                     print(f"Error copying parameter set: {e}")
+                break
+    
+    def delete_paramset(self, item):
+        """Delete parameter set - using TreeMenuHandler"""
+        if not self.experiment:
+            return
+            
+        item_text = self.item(item, 'text')
+        paramset_name = item_text.replace(' (Active)', '').replace('parameters_', '').replace('.yaml', '')
+        
+        for paramset in self.experiment.paramsets:
+            if paramset.name == paramset_name:
+                # Create mock objects for TreeMenuHandler
+                class MockEditor:
+                    def __init__(self, experiment):
+                        self.experiment = experiment
+                    def get_parent(self, obj):
+                        return self.experiment
+                        
+                mock_editor = MockEditor(self.experiment)
+                
+                try:
+                    self.tree_handler.delete_set_params(mock_editor, paramset)
+                    self.refresh_tree()
+                    print(f"Deleted parameter set: {paramset_name}")
+                except Exception as e:
+                    print(f"Error deleting parameter set: {e}")
                 break
     
     def rename_paramset(self, item):
@@ -555,13 +612,13 @@ class EnhancedTreeMenu(ttk.Treeview):
                     print(f"Error renaming parameter set: {e}")
                 break
     
-    def delete_paramset(self, item):
-        """Delete parameter set"""
+    def edit_main_params(self, item):
+        """Edit main parameters for the selected parameter set"""
         if not self.experiment:
             return
             
         item_text = self.item(item, 'text')
-        paramset_name = item_text.replace('parameters_', '').replace('.yaml', '')
+        paramset_name = item_text.replace(' (Active)', '').replace('parameters_', '').replace('.yaml', '')
         
         for paramset in self.experiment.paramsets:
             if paramset.name == paramset_name:
@@ -575,12 +632,92 @@ class EnhancedTreeMenu(ttk.Treeview):
                 mock_editor = MockEditor(self.experiment)
                 
                 try:
-                    self.tree_handler.delete_set_params(mock_editor, paramset)
-                    self.refresh_tree()
-                    print(f"Deleted parameter set: {paramset_name}")
+                    self.tree_handler.configure_main_par(mock_editor, paramset)
+                    print(f"Opening main parameters for: {paramset_name}")
                 except Exception as e:
-                    print(f"Error deleting parameter set: {e}")
+                    print(f"Error opening main parameters: {e}")
                 break
+    
+    def edit_calib_params(self, item):
+        """Edit calibration parameters for the selected parameter set"""
+        if not self.experiment:
+            return
+            
+        item_text = self.item(item, 'text')
+        paramset_name = item_text.replace(' (Active)', '').replace('parameters_', '').replace('.yaml', '')
+        
+        for paramset in self.experiment.paramsets:
+            if paramset.name == paramset_name:
+                # Create mock objects for TreeMenuHandler
+                class MockEditor:
+                    def __init__(self, experiment):
+                        self.experiment = experiment
+                    def get_parent(self, obj):
+                        return self.experiment
+                        
+                mock_editor = MockEditor(self.experiment)
+                
+                try:
+                    self.tree_handler.configure_cal_par(mock_editor, paramset)
+                    print(f"Opening calibration parameters for: {paramset_name}")
+                except Exception as e:
+                    print(f"Error opening calibration parameters: {e}")
+                break
+    
+    def edit_tracking_params(self, item):
+        """Edit tracking parameters for the selected parameter set"""
+        if not self.experiment:
+            return
+            
+        item_text = self.item(item, 'text')
+        paramset_name = item_text.replace(' (Active)', '').replace('parameters_', '').replace('.yaml', '')
+        
+        for paramset in self.experiment.paramsets:
+            if paramset.name == paramset_name:
+                # Create mock objects for TreeMenuHandler
+                class MockEditor:
+                    def __init__(self, experiment):
+                        self.experiment = experiment
+                    def get_parent(self, obj):
+                        return self.experiment
+                        
+                mock_editor = MockEditor(self.experiment)
+                
+                try:
+                    self.tree_handler.configure_track_par(mock_editor, paramset)
+                    print(f"Opening tracking parameters for: {paramset_name}")
+                except Exception as e:
+                    print(f"Error opening tracking parameters: {e}")
+                break
+    
+    def add_paramset(self):
+        """Add a new parameter set"""
+        if not self.experiment:
+            return
+            
+        # Simple dialog to get new parameter set name
+        from tkinter import simpledialog
+        new_name = simpledialog.askstring("Add Parameter Set", "Enter name for new parameter set:")
+        if not new_name:
+            return
+            
+        try:
+            # Create new parameter set based on current active one
+            active_params = self.experiment.active_params
+            if active_params:
+                parent_dir = active_params.yaml_path.parent
+                new_yaml_path = parent_dir / f"parameters_{new_name}.yaml"
+                
+                # Copy the active parameter set
+                import shutil
+                shutil.copy(active_params.yaml_path, new_yaml_path)
+                
+                # Add to experiment
+                self.experiment.addParamset(new_name, new_yaml_path)
+                self.refresh_tree()
+                print(f"Added new parameter set: {new_name}")
+        except Exception as e:
+            print(f"Error adding parameter set: {e}")
 
 
 # Plugins class from original pyptv_gui.py
