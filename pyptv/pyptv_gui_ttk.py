@@ -38,7 +38,7 @@ try:
 except ImportError:
     img_as_ubyte = None
 
-from pyptv.parameter_gui import Main_Params, Calib_Params, Tracking_Params
+from pyptv.parameter_gui_ttk import MainParamsWindow, CalibParamsWindow, TrackingParamsWindow
 from pyptv import ptv
 from pyptv.experiment import Experiment
 
@@ -325,6 +325,9 @@ class EnhancedTreeMenu(ttk.Treeview):
         self.experiment = experiment
         self.app_ref = app_ref  # Reference to main app for callbacks
         
+        # Initialize TreeMenuHandler for parameter editing
+        self.tree_handler = TreeMenuHandler(self.app_ref)
+        
         self.heading('#0', text='PyPTV Experiments')
         self.populate_tree()
         
@@ -350,6 +353,16 @@ class EnhancedTreeMenu(ttk.Treeview):
         self.insert(params_id, 'end', text='Main Parameters', values=('main',))
         self.insert(params_id, 'end', text='Calibration Parameters', values=('calibration',))
         self.insert(params_id, 'end', text='Tracking Parameters', values=('tracking',))
+        
+        # Parameter sets node
+        if hasattr(self.experiment, 'paramsets') and self.experiment.paramsets:
+            paramsets_id = self.insert(exp_id, 'end', text='Parameter Sets', open=True)
+            for paramset in self.experiment.paramsets:
+                param_name = paramset.name if hasattr(paramset, 'name') else str(paramset)
+                is_active = (hasattr(self.experiment, 'active_params') and 
+                           self.experiment.active_params == paramset)
+                display_name = f"{param_name} (Active)" if is_active else param_name
+                self.insert(paramsets_id, 'end', text=display_name, values=('paramset', param_name))
     
     def on_right_click(self, event):
         """Handle right-click context menu"""
@@ -367,6 +380,16 @@ class EnhancedTreeMenu(ttk.Treeview):
             param_type = item_values[0] if item_values else item_text.split()[0]
             menu.add_command(label=f'Edit {param_type} Parameters', 
                            command=lambda: self.open_param_window(param_type))
+        elif item_text.startswith('parameters_') or 'parameter set' in item_text.lower():
+            # Parameter set management menu
+            menu.add_command(label='Set as Active', 
+                           command=lambda: self.set_paramset_active(item))
+            menu.add_command(label='Copy Parameter Set', 
+                           command=lambda: self.copy_paramset(item))
+            menu.add_command(label='Rename Parameter Set', 
+                           command=lambda: self.rename_paramset(item))
+            menu.add_command(label='Delete Parameter Set', 
+                           command=lambda: self.delete_paramset(item))
         
         menu.add_separator()
         menu.add_command(label='Refresh Tree', command=self.refresh_tree)
@@ -384,8 +407,60 @@ class EnhancedTreeMenu(ttk.Treeview):
             self.open_param_window(item_values[0])
     
     def open_param_window(self, param_type):
-        """Open parameter window"""
-        DynamicParameterWindow(self.master, param_type, self.experiment)
+        """Open parameter window using TreeMenuHandler"""
+        if not self.experiment:
+            print("No experiment loaded")
+            return
+            
+        # Create a simple mock editor/object for TreeMenuHandler compatibility
+        class MockEditor:
+            def __init__(self, experiment):
+                self.experiment = experiment
+            def get_parent(self, obj):
+                return self.experiment
+                
+        mock_editor = MockEditor(self.experiment)
+        
+        try:
+            if param_type.lower() == 'main':
+                self.tree_handler.configure_main_par(mock_editor, None)
+            elif param_type.lower() == 'calibration':
+                self.tree_handler.configure_cal_par(mock_editor, None)
+            elif param_type.lower() == 'tracking':
+                self.tree_handler.configure_track_par(mock_editor, None)
+            else:
+                print(f"Unknown parameter type: {param_type}")
+        except Exception as e:
+            print(f"Error opening parameter window: {e}")
+            # Fallback to direct window creation
+            self._fallback_open_param_window(param_type)
+    
+    def _fallback_open_param_window(self, param_type):
+        """Fallback method to open parameter windows directly"""
+        try:
+            from pyptv.parameter_gui_ttk import MainParamsWindow, CalibParamsWindow, TrackingParamsWindow
+            
+            if param_type.lower() == 'main':
+                MainParamsWindow(self.app_ref, self.experiment)
+            elif param_type.lower() == 'calibration':
+                CalibParamsWindow(self.app_ref, self.experiment)
+            elif param_type.lower() == 'tracking':
+                TrackingParamsWindow(self.app_ref, self.experiment)
+        except ImportError as e:
+            print(f"Import error in fallback: {e}")
+            # Try alternative import
+            try:
+                import parameter_gui_ttk
+                if param_type.lower() == 'main':
+                    parameter_gui_ttk.MainParamsWindow(self.app_ref, self.experiment)
+                elif param_type.lower() == 'calibration':
+                    parameter_gui_ttk.CalibParamsWindow(self.app_ref, self.experiment)
+                elif param_type.lower() == 'tracking':
+                    parameter_gui_ttk.TrackingParamsWindow(self.app_ref, self.experiment)
+            except Exception as e2:
+                print(f"Alternative import also failed in fallback: {e2}")
+        except Exception as e:
+            print(f"Error in fallback parameter window creation: {e}")
     
     def focus_camera(self, cam_id):
         """Focus on specific camera - placeholder for compatibility"""
@@ -398,6 +473,114 @@ class EnhancedTreeMenu(ttk.Treeview):
     def refresh_tree(self):
         """Refresh tree content"""
         self.populate_tree()
+    
+    def set_paramset_active(self, item):
+        """Set parameter set as active"""
+        if not self.experiment:
+            return
+            
+        item_text = self.item(item, 'text')
+        # Find the parameter set by name
+        paramset_name = item_text.replace('parameters_', '').replace('.yaml', '')
+        
+        for paramset in self.experiment.paramsets:
+            if paramset.name == paramset_name:
+                # Create mock objects for TreeMenuHandler
+                class MockEditor:
+                    def __init__(self, experiment):
+                        self.experiment = experiment
+                    def get_parent(self, obj):
+                        return self.experiment
+                        
+                mock_editor = MockEditor(self.experiment)
+                
+                try:
+                    self.tree_handler.set_active(mock_editor, paramset)
+                    self.refresh_tree()
+                    print(f"Set {paramset_name} as active parameter set")
+                except Exception as e:
+                    print(f"Error setting active parameter set: {e}")
+                break
+    
+    def copy_paramset(self, item):
+        """Copy parameter set"""
+        if not self.experiment:
+            return
+            
+        item_text = self.item(item, 'text')
+        paramset_name = item_text.replace('parameters_', '').replace('.yaml', '')
+        
+        for paramset in self.experiment.paramsets:
+            if paramset.name == paramset_name:
+                # Create mock objects for TreeMenuHandler
+                class MockEditor:
+                    def __init__(self, experiment):
+                        self.experiment = experiment
+                    def get_parent(self, obj):
+                        return self.experiment
+                        
+                mock_editor = MockEditor(self.experiment)
+                
+                try:
+                    self.tree_handler.copy_set_params(mock_editor, paramset)
+                    self.refresh_tree()
+                    print(f"Copied parameter set: {paramset_name}")
+                except Exception as e:
+                    print(f"Error copying parameter set: {e}")
+                break
+    
+    def rename_paramset(self, item):
+        """Rename parameter set"""
+        if not self.experiment:
+            return
+            
+        item_text = self.item(item, 'text')
+        paramset_name = item_text.replace('parameters_', '').replace('.yaml', '')
+        
+        for paramset in self.experiment.paramsets:
+            if paramset.name == paramset_name:
+                # Create mock objects for TreeMenuHandler
+                class MockEditor:
+                    def __init__(self, experiment):
+                        self.experiment = experiment
+                    def get_parent(self, obj):
+                        return self.experiment
+                        
+                mock_editor = MockEditor(self.experiment)
+                
+                try:
+                    self.tree_handler.rename_set_params(mock_editor, paramset)
+                    self.refresh_tree()
+                except Exception as e:
+                    print(f"Error renaming parameter set: {e}")
+                break
+    
+    def delete_paramset(self, item):
+        """Delete parameter set"""
+        if not self.experiment:
+            return
+            
+        item_text = self.item(item, 'text')
+        paramset_name = item_text.replace('parameters_', '').replace('.yaml', '')
+        
+        for paramset in self.experiment.paramsets:
+            if paramset.name == paramset_name:
+                # Create mock objects for TreeMenuHandler
+                class MockEditor:
+                    def __init__(self, experiment):
+                        self.experiment = experiment
+                    def get_parent(self, obj):
+                        return self.experiment
+                        
+                mock_editor = MockEditor(self.experiment)
+                
+                try:
+                    self.tree_handler.delete_set_params(mock_editor, paramset)
+                    self.refresh_tree()
+                    print(f"Deleted parameter set: {paramset_name}")
+                except Exception as e:
+                    print(f"Error deleting parameter set: {e}")
+                break
 
 
 # Plugins class from original pyptv_gui.py
@@ -1274,6 +1457,144 @@ Use View → Camera Count to change the number of cameras dynamically.
     def not_implemented(self):
         """Placeholder for unimplemented features"""
         messagebox.showinfo('Not Implemented', 'This feature is not yet implemented.')
+
+
+class TreeMenuHandler:
+    """TreeMenuHandler handles the menu actions and tree node actions for TTK GUI"""
+
+    def __init__(self, app_ref):
+        """Initialize with reference to main app"""
+        self.app_ref = app_ref
+
+    def configure_main_par(self, editor, object):
+        """Configure main parameters using TTK GUI"""
+        experiment = editor.experiment if hasattr(editor, 'experiment') else editor.get_parent(object)
+        print("Configure main parameters via ParameterManager")
+
+        # Create TTK Main Parameters GUI with current experiment
+        try:
+            from pyptv.parameter_gui_ttk import MainParamsWindow
+            main_params_window = MainParamsWindow(self.app_ref, experiment)
+            print("Main parameters TTK window created")
+        except ImportError as e:
+            print(f"Import error for MainParamsWindow: {e}")
+            # Try alternative import
+            try:
+                import parameter_gui_ttk
+                main_params_window = parameter_gui_ttk.MainParamsWindow(self.app_ref, experiment)
+                print("Main parameters TTK window created (alternative import)")
+            except Exception as e2:
+                print(f"Alternative import also failed: {e2}")
+        except Exception as e:
+            print(f"Error creating main parameters window: {e}")
+
+    def configure_cal_par(self, editor, object):
+        """Configure calibration parameters using TTK GUI"""
+        experiment = editor.experiment if hasattr(editor, 'experiment') else editor.get_parent(object)
+        print("Configure calibration parameters via ParameterManager")
+
+        # Create TTK Calibration Parameters GUI with current experiment
+        try:
+            from pyptv.parameter_gui_ttk import CalibParamsWindow
+            calib_params_window = CalibParamsWindow(self.app_ref, experiment)
+            print("Calibration parameters TTK window created")
+        except ImportError as e:
+            print(f"Import error for CalibParamsWindow: {e}")
+            # Try alternative import
+            try:
+                import parameter_gui_ttk
+                calib_params_window = parameter_gui_ttk.CalibParamsWindow(self.app_ref, experiment)
+                print("Calibration parameters TTK window created (alternative import)")
+            except Exception as e2:
+                print(f"Alternative import also failed: {e2}")
+        except Exception as e:
+            print(f"Error creating calibration parameters window: {e}")
+
+    def configure_track_par(self, editor, object):
+        """Configure tracking parameters using TTK GUI"""
+        experiment = editor.experiment if hasattr(editor, 'experiment') else editor.get_parent(object)
+        print("Configure tracking parameters via ParameterManager")
+
+        # Create TTK Tracking Parameters GUI with current experiment
+        try:
+            from pyptv.parameter_gui_ttk import TrackingParamsWindow
+            tracking_params_window = TrackingParamsWindow(self.app_ref, experiment)
+            print("Tracking parameters TTK window created")
+        except ImportError as e:
+            print(f"Import error for TrackingParamsWindow: {e}")
+            # Try alternative import
+            try:
+                import parameter_gui_ttk
+                tracking_params_window = parameter_gui_ttk.TrackingParamsWindow(self.app_ref, experiment)
+                print("Tracking parameters TTK window created (alternative import)")
+            except Exception as e2:
+                print(f"Alternative import also failed: {e2}")
+        except Exception as e:
+            print(f"Error creating tracking parameters window: {e}")
+
+    def set_active(self, editor, object):
+        """sets a set of parameters as active"""
+        experiment = editor.experiment if hasattr(editor, 'experiment') else editor.get_parent(object)
+        paramset = object
+        experiment.set_active(paramset)
+
+        # Invalidate parameter cache since we switched parameter sets
+        # The main GUI will need to get a reference to invalidate its cache
+        # This could be done through the experiment or by adding a callback
+        print(f"Set {paramset.name} as active parameter set")
+
+    def copy_set_params(self, editor, object):
+        """Copy a set of parameters"""
+        experiment = editor.experiment if hasattr(editor, 'experiment') else editor.get_parent(object)
+        paramset = object
+        print("Copying set of parameters")
+        print(f"paramset is {paramset.name}")
+
+        # Find the next available run number above the largest one
+        parent_dir = paramset.yaml_path.parent
+        existing_yamls = list(parent_dir.glob("parameters_*.yaml"))
+        numbers = [
+            int(yaml_file.stem.split("_")[-1]) for yaml_file in existing_yamls
+            if yaml_file.stem.split("_")[-1].isdigit()
+        ]
+        next_num = max(numbers, default=0) + 1
+        new_name = f"{paramset.name}_{next_num}"
+        new_yaml_path = parent_dir / f"parameters_{new_name}.yaml"
+
+        print(f"New parameter set: {new_name}, {new_yaml_path}")
+
+        # Copy YAML file
+        import shutil
+        shutil.copy(paramset.yaml_path, new_yaml_path)
+        print(f"Copied {paramset.yaml_path} to {new_yaml_path}")
+
+        experiment.addParamset(new_name, new_yaml_path)
+
+    def rename_set_params(self, editor, object):
+        """Rename a set of parameters"""
+        print("Warning: This method is not implemented.")
+        print("Please open a folder, copy/paste the parameters directory, and rename it manually.")
+
+    def delete_set_params(self, editor, object):
+        """delete_set_params deletes the node and the YAML file of parameters"""
+        experiment = editor.experiment if hasattr(editor, 'experiment') else editor.get_parent(object)
+        paramset = object
+        print(f"Deleting parameter set: {paramset.name}")
+
+        # Use the experiment's delete method which handles YAML files and validation
+        try:
+            experiment.delete_paramset(paramset)
+
+            # The tree view should automatically update when the paramsets list changes
+            # Force a trait change event to ensure the GUI updates
+            experiment.trait_set(paramsets=experiment.paramsets)
+
+            print(f"Successfully deleted parameter set: {paramset.name}")
+        except ValueError as e:
+            # Handle case where we try to delete the active parameter set
+            print(f"Cannot delete parameter set: {e}")
+        except Exception as e:
+            print(f"Error deleting parameter set: {e}")
 
 
 def printException():
