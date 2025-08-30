@@ -2,8 +2,13 @@ num_cams: 4
 plugins:
   available_tracking:
   - default
+  - ext_tracker_denis
   available_sequence:
   - default
+  - ext_sequence_contour
+  - ext_sequence_denis
+  - ext_sequence_rembg
+  - ext_sequence_rembg_contour
   selected_tracking: default
   selected_sequence: default
 cal_ori:
@@ -100,7 +105,7 @@ orient:
   xh: 0
   yh: 0
 pft_version:
-  Existing_Target: 1
+  Existing_Target: 0
 ptv:
   allcam_flag: false
   chfield: 0
@@ -111,10 +116,10 @@ ptv:
   - cal/cam3.tif
   - cal/cam4.tif
   img_name:
-  - cal/cam1.tif
-  - cal/cam2.tif
-  - cal/cam3.tif
-  - cal/cam4.tif
+  - img/cam1.10002
+  - img/cam2.10002
+  - img/cam3.10002
+  - img/cam4.10002
   imx: 1280
   imy: 1024
   mmp_d: 6.0
