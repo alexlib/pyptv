@@ -801,43 +801,13 @@ class TreeMenuHandler(Handler):
             print("Plugin configuration saved to parameters")
 
     def ptv_is_to_paraview(self, info):
-        """Button that runs the ptv_is.# conversion to Paraview"""
-        print("Saving trajectories for Paraview")
+        """Button that runs the ptv_is.# conversion to Paraview (calls utility function)"""
         info.object.clear_plots(remove_background=False)
-        
         seq_params = info.object.get_parameter('sequence')
         seq_first = seq_params['first']
         info.object.load_set_seq_image(seq_first, display_only=True)
-
-        import pandas as pd
-        from flowtracks.io import trajectories_ptvis
-
-        dataset = trajectories_ptvis("res/ptv_is.%d", xuap=False)
-
-        dataframes = []
-        for traj in dataset:
-            dataframes.append(
-                pd.DataFrame.from_records(
-                    traj, columns=["x", "y", "z", "dx", "dy", "dz", "frame", "particle"]
-                )
-            )
-
-        df = pd.concat(dataframes, ignore_index=True)
-        df["particle"] = df["particle"].astype(np.int32)
-        df["frame"] = df["frame"].astype(np.int32)
-        df.reset_index(inplace=True, drop=True)
-        print(df.head())
-
-        df_grouped = df.reset_index().groupby("frame")
-        for index, group in df_grouped:
-            group.to_csv(
-                f"./res/ptv_{index:05d}.txt",
-                mode="w",
-                columns=["particle", "x", "y", "z", "dx", "dy", "dz"],
-                index=False,
-            )
-
-        print("Saving trajectories to Paraview finished")
+        from pyptv.flowtracks_utils import export_ptv_is_to_paraview
+        export_ptv_is_to_paraview()
 
 
 # ----------------------------------------------------------------
