@@ -771,63 +771,23 @@ class TreeMenuHandler(Handler):
         print("Finished detect_part_track")
 
     def traject_action_flowtracks(self, info):
-        """Shows trajectories reading and organizing by flowtracks"""
+        """Shows trajectories reading and organizing by flowtracks (calls shared utility)."""
         info.object.clear_plots(remove_background=False)
+
+        # Compute trajectories using flowtracks utility
+        from pyptv.flowtracks_utils import compute_flowtracks_trajectories_from_guiobj
+        results = compute_flowtracks_trajectories_from_guiobj(info.object)
         
-        # Get parameters from ParameterManager
-        seq_params = info.object.get_parameter('sequence')
-        seq_first = seq_params['first']
-        seq_last = seq_params['last']
-        base_names = seq_params['base_name']
-
-        info.object.overlay_set_images(base_names, seq_first, seq_last)
-
-        from flowtracks.io import trajectories_ptvis
-
-        dataset = trajectories_ptvis(
-            "res/ptv_is.%d", first=seq_first, last=seq_last, xuap=False, traj_min_len=3
-        )
-
-        heads_x, heads_y = [], []
-        tails_x, tails_y = [], []
-        ends_x, ends_y = [], []
-        for i_cam in range(info.object.num_cams):
-            head_x, head_y = [], []
-            tail_x, tail_y = [], []
-            end_x, end_y = [], []
-            for traj in dataset:
-                projected = image_coordinates( # type: ignore
-                    np.atleast_2d(traj.pos() * 1000), # type: ignore
-                    info.object.cals[i_cam],
-                    info.object.cpar.get_multimedia_params(),
-                )
-                pos = convert_arr_metric_to_pixel( # type: ignore
-                    projected, info.object.cpar
-                )
-
-                head_x.append(pos[0, 0])
-                head_y.append(pos[0, 1])
-                tail_x.extend(list(pos[1:-1, 0]))
-                tail_y.extend(list(pos[1:-1, 1]))
-                end_x.append(pos[-1, 0])
-                end_y.append(pos[-1, 1])
-
-            heads_x.append(head_x)
-            heads_y.append(head_y)
-            tails_x.append(tail_x)
-            tails_y.append(tail_y)
-            ends_x.append(end_x)
-            ends_y.append(end_y)
-
+        # Draw trajectories on camera views
         for i_cam in range(info.object.num_cams):
             info.object.camera_list[i_cam].drawcross(
-                "heads_x", "heads_y", heads_x[i_cam], heads_y[i_cam], "red", 3
+                "heads_x", "heads_y", results['heads_x'][i_cam], results['heads_y'][i_cam], "red", 3
             )
             info.object.camera_list[i_cam].drawcross(
-                "tails_x", "tails_y", tails_x[i_cam], tails_y[i_cam], "green", 2
+                "tails_x", "tails_y", results['tails_x'][i_cam], results['tails_y'][i_cam], "green", 2
             )
             info.object.camera_list[i_cam].drawcross(
-                "ends_x", "ends_y", ends_x[i_cam], ends_y[i_cam], "orange", 3
+                "ends_x", "ends_y", results['ends_x'][i_cam], results['ends_y'][i_cam], "orange", 3
             )
 
     def plugin_action(self, info):
