@@ -160,16 +160,16 @@ class CalHandler(Handler):
                 'size_cross': calib_params.size_of_crosses
             })
 
-            # Update man_ori.par
+            # Update ONLY the 'man_ori' section (legacy indices), never touch 'man_ori_coordinates' here
             nr1 = [calib_params.img_1_p1, calib_params.img_1_p2, calib_params.img_1_p3, calib_params.img_1_p4]
             nr2 = [calib_params.img_2_p1, calib_params.img_2_p2, calib_params.img_2_p3, calib_params.img_2_p4]
             nr3 = [calib_params.img_3_p1, calib_params.img_3_p2, calib_params.img_3_p3, calib_params.img_3_p4]
             nr4 = [calib_params.img_4_p1, calib_params.img_4_p2, calib_params.img_4_p3, calib_params.img_4_p4]
-            # Flatten to 1D array as expected by legacy format: [cam1_p1, cam1_p2, cam1_p3, cam1_p4, cam2_p1, ...]
             nr = nr1 + nr2 + nr3 + nr4
             if 'man_ori' not in experiment.pm.parameters:
                 experiment.pm.parameters['man_ori'] = {}
             experiment.pm.parameters['man_ori']['nr'] = nr
+            # Do NOT update or remove 'man_ori_coordinates' here; that is managed only by calibration_gui
 
             # Update examine.par
             if 'examine' not in experiment.pm.parameters:

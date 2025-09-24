@@ -58,7 +58,7 @@ def compute_flowtracks_trajectories_from_guiobj(guiobj):
         ends_x=ends_x, ends_y=ends_y
     )
 
-  def export_ptv_is_to_paraview(ptv_is_pattern="res/ptv_is.%d", output_dir="./res", xuap=False):
+def export_ptv_is_to_paraview(ptv_is_pattern="res/ptv_is.%d", output_dir="./res", xuap=False):
     """
     Reads ptv_is.# files and exports per-frame CSVs for Paraview visualization.
     Each output file is named ptv_<frame>.txt and contains columns:

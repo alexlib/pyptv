@@ -547,14 +547,25 @@ class CalibrationGUI(HasTraits):
                         'y': float(self.camera[i]._y[j])
                     }
             
-            # Update the YAML parameters
+            # Update only the man_ori_coordinates section in YAML
             self.experiment.pm.parameters['man_ori_coordinates'] = man_ori_coords
-            self.experiment.save_parameters()
+            self._save_man_ori_coordinates()
             self.status_text = "Manual orientation coordinates saved to YAML."
-        else:
-            self.status_text = (
-                "Click on 4 points on each calibration image for manual orientation"
-            )
+
+    def _save_man_ori_coordinates(self):
+        """
+        Save only the man_ori_coordinates section to the YAML file, without touching other parameters.
+        """
+        import yaml
+        yaml_path = getattr(self.experiment.pm, 'yaml_path', None)
+        if yaml_path is None:
+            print("No YAML path found for saving man_ori_coordinates.")
+            return
+        with open(yaml_path, 'r') as f:
+            data = yaml.safe_load(f) or {}
+        # data['man_ori_coordinates'] = self.experiment.pm.parameters['man_ori_coordinates']
+        with open(yaml_path, 'w') as f:
+            yaml.safe_dump(data, f, default_flow_style=False, sort_keys=False)
 
     def _button_file_orient_fired(self):
         if self.need_reset:
