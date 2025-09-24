@@ -563,9 +563,10 @@ class CalibrationGUI(HasTraits):
             return
         with open(yaml_path, 'r') as f:
             data = yaml.safe_load(f) or {}
-        # data['man_ori_coordinates'] = self.experiment.pm.parameters['man_ori_coordinates']
+        data['man_ori_coordinates'] = self.experiment.pm.parameters['man_ori_coordinates']
         with open(yaml_path, 'w') as f:
             yaml.safe_dump(data, f, default_flow_style=False, sort_keys=False)
+        print('Saved man_ori_coordinates',data['man_ori_coordinates'])
 
     def _button_file_orient_fired(self):
         if self.need_reset:
