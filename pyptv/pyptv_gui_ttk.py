@@ -2093,7 +2093,9 @@ def main():
             exp = create_experiment_from_yaml(yaml_file)
         elif arg_path.is_dir(): # second option - supply directory
             exp = create_experiment_from_directory(arg_path)
-            yaml_file = exp.active_params.yaml_path if exp.active_params else None
+            yaml_file = getattr(exp.pm, 'yaml_path', None)
+            if not yaml_file and exp.active_params:
+                yaml_file = exp.active_params.yaml_path
 
         else:
             print(f"Invalid argument: {arg_path}")
@@ -2104,7 +2106,9 @@ def main():
         exp_path = software_path / "tests" / "test_cavity"
         if exp_path.exists():
             exp = create_experiment_from_directory(exp_path)
-            yaml_file = exp.active_params.yaml_path if exp.active_params else None
+            yaml_file = getattr(exp.pm, 'yaml_path', None)
+            if not yaml_file and exp.active_params:
+                yaml_file = exp.active_params.yaml_path
             print(f"Without inputs, PyPTV uses default case {yaml_file}")
             print("Tip: in PyPTV use File -> Open to select another YAML file")
         else:
@@ -2112,24 +2116,27 @@ def main():
             exp = ExperimentTTK()
             yaml_file = None
 
-    if not yaml_file or not yaml_file.exists():
-        print(f"YAML parameter file does not exist: {yaml_file}")
-        sys.exit(1)
-
-    print(f"Changing directory to the working folder {yaml_file.parent}")
-
-    print(f"YAML file to be used in GUI: {yaml_file}")
-    # Optional: Quality check on the YAML file
-    try:
-        if yaml is not None:
-            with open(yaml_file) as f:
-                yaml.safe_load(f)
-            print("YAML file validation successful")
-        else:
-            print("YAML validation skipped (PyYAML not available)")
-    except Exception as exc:
-        print(f"Error reading or validating YAML file: {exc}")
-        sys.exit(1)
+    # Validate YAML file if it exists
+    if yaml_file and yaml_file.exists():
+        print(f"Changing directory to the working folder {yaml_file.parent}")
+        print(f"YAML file to be used in GUI: {yaml_file}")
+        
+        # Optional: Quality check on the YAML file
+        try:
+            if yaml is not None:
+                with open(yaml_file) as f:
+                    yaml.safe_load(f)
+                print("YAML file validation successful")
+            else:
+                print("YAML validation skipped (PyYAML not available)")
+        except Exception as exc:
+            print(f"Error reading or validating YAML file: {exc}")
+            print("Continuing with potentially invalid YAML file...")
+    elif yaml_file:
+        print(f"Warning: YAML parameter file does not exist: {yaml_file}")
+        print("GUI will start with default parameters")
+    else:
+        print("No YAML file specified, GUI will start with default parameters")
 
     try:
         if yaml_file and yaml_file.parent.exists():

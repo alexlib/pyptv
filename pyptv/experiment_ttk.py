@@ -188,8 +188,27 @@ def create_experiment_from_yaml(yaml_path: Path) -> ExperimentTTK:
 
 def create_experiment_from_directory(dir_path: Path) -> ExperimentTTK:
     """Create an ExperimentTTK instance from a parameter directory"""
+    dir_path = Path(dir_path)
     pm = ParameterManager()
-    pm.from_directory(dir_path)
+    
+    # First, look for existing YAML files in the directory
+    yaml_files = list(dir_path.glob("*.yaml")) + list(dir_path.glob("*.yml"))
+    
+    if yaml_files:
+        # Use the first YAML file found
+        yaml_file = yaml_files[0]
+        pm.from_yaml(yaml_file)
+        pm.yaml_path = yaml_file
+        print(f"Found existing YAML file: {yaml_file}")
+    else:
+        # Load from .par files and create a default YAML file
+        pm.from_directory(dir_path)
+        
+        # Create a default YAML file
+        default_yaml = dir_path / "parameters_default.yaml"
+        pm.to_yaml(default_yaml)
+        pm.yaml_path = default_yaml
+        print(f"Created default YAML file: {default_yaml}")
     
     experiment = ExperimentTTK(pm=pm)
     return experiment
