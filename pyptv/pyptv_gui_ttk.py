@@ -37,10 +37,267 @@ try:
     from skimage.util import img_as_ubyte
 except ImportError:
     img_as_ubyte = None
+try:
+    from skimage.io import imread
+except ImportError:
+    imread = None
 
-from pyptv.parameter_gui_ttk import MainParamsWindow, CalibParamsWindow, TrackingParamsWindow
-from pyptv import ptv
-from pyptv.experiment import Experiment
+# Matplotlib imports for image display
+import matplotlib.pyplot as plt
+from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg, NavigationToolbar2Tk
+from matplotlib.patches import Circle
+import matplotlib.patches as patches
+
+try:
+    from pyptv.parameter_gui_ttk import MainParamsWindow, CalibParamsWindow, TrackingParamsWindow
+except ImportError:
+    MainParamsWindow = CalibParamsWindow = TrackingParamsWindow = None
+    print("Warning: parameter_gui_ttk not available")
+
+try:
+    from pyptv import ptv
+except ImportError:
+    ptv = None
+    print("Warning: pyptv module not available")
+
+try:
+    from pyptv.experiment_ttk import ExperimentTTK, create_experiment_from_yaml, create_experiment_from_directory
+    from pyptv.parameter_gui_ttk import MainParamsWindow, CalibParamsWindow, TrackingParamsWindow
+    Experiment = ExperimentTTK
+except ImportError:
+    Experiment = None
+    print("Warning: pyptv.experiment_ttk not available")
+
+
+class MatplotlibCameraPanel(ttk.Frame):
+    """Matplotlib-based camera panel for image display and interaction"""
+    
+    def __init__(self, parent, cam_name, cam_id=0):
+        super().__init__(parent, padding=5)
+        self.cam_name = cam_name
+        self.cam_id = cam_id
+        self.current_image = None
+        self.zoom_factor = 1.0
+        self.pan_x = 0
+        self.pan_y = 0
+        self.click_callbacks = []
+        self.overlays = {}  # Store overlay data (crosses, trajectories, etc.)
+        
+        # Create header with camera name and controls
+        self.header = ttk.Frame(self)
+        self.header.pack(fill='x', pady=(0, 5))
+        
+        ttk.Label(self.header, text=cam_name, font=('Arial', 12, 'bold')).pack(side='left')
+        
+        # Zoom controls
+        zoom_frame = ttk.Frame(self.header)
+        zoom_frame.pack(side='right')
+        ttk.Button(zoom_frame, text="Zoom In", command=self.zoom_in, width=8).pack(side='left', padx=2)
+        ttk.Button(zoom_frame, text="Zoom Out", command=self.zoom_out, width=8).pack(side='left', padx=2)
+        ttk.Button(zoom_frame, text="Reset", command=self.reset_view, width=6).pack(side='left', padx=2)
+        ttk.Button(zoom_frame, text="Clear", command=self.clear_overlays, width=6).pack(side='left', padx=2)
+        
+        # Create matplotlib figure and axis
+        self.figure = plt.Figure(figsize=(4, 3), dpi=100, facecolor='black')
+        self.ax = self.figure.add_subplot(111)
+        self.ax.set_facecolor('black')
+        self.ax.axis('off')
+        
+        # Create canvas
+        self.canvas = FigureCanvasTkAgg(self.figure, master=self)
+        self.canvas_widget = self.canvas.get_tk_widget()
+        self.canvas_widget.pack(fill='both', expand=True)
+        
+        # Status bar 
+        self.status_var = tk.StringVar()
+        self.status_var.set(f"{cam_name} ready")
+        ttk.Label(self, textvariable=self.status_var, relief='sunken').pack(fill='x', side='bottom')
+        
+        # Connect matplotlib events
+        self.canvas.mpl_connect('button_press_event', self.on_click)
+        self.canvas.mpl_connect('motion_notify_event', self.on_mouse_move_mpl)
+        self.canvas.mpl_connect('scroll_event', self.on_scroll_mpl)
+        
+        # Initialize with placeholder
+        self.display_placeholder()
+    
+    def display_placeholder(self):
+        """Display placeholder content when no image is loaded"""
+        self.ax.clear()
+        self.ax.set_facecolor('black')
+        self.ax.text(0.5, 0.5, f"{self.cam_name}\nReady", 
+                    transform=self.ax.transAxes, ha='center', va='center',
+                    color='white', fontsize=12)
+        self.ax.set_xlim(0, 320)
+        self.ax.set_ylim(240, 0)  # Inverted y-axis for image coordinates
+        self.ax.axis('off')
+        self.canvas.draw()
+    
+    def display_image(self, image_array):
+        """Display image array using matplotlib"""
+        if np is None or image_array is None:
+            self.display_placeholder()
+            return
+            
+        self.current_image = image_array
+        self.ax.clear()
+        self.ax.axis('off')
+        
+        # Display image
+        if len(image_array.shape) == 3:
+            self.ax.imshow(image_array)
+        else:
+            self.ax.imshow(image_array, cmap='gray')
+        
+        # Restore overlays
+        self._redraw_overlays()
+        
+        self.canvas.draw()
+        self.status_var.set(f"{self.cam_name}: {image_array.shape} pixels")
+    
+    def _redraw_overlays(self):
+        """Redraw all overlays on the current image"""
+        for overlay_name, overlay_data in self.overlays.items():
+            if overlay_name.startswith('crosses_'):
+                self._draw_crosses(overlay_data['x'], overlay_data['y'], 
+                                 overlay_data['color'], overlay_data['size'])
+            elif overlay_name.startswith('trajectories_'):
+                self._draw_trajectories(overlay_data['x'], overlay_data['y'], 
+                                      overlay_data['color'])
+    
+    def drawcross(self, x_name, y_name, x_data, y_data, color='red', size=3):
+        """Draw crosses at specified coordinates (compatible with original API)"""
+        overlay_name = f"crosses_{x_name}_{y_name}"
+        self.overlays[overlay_name] = {
+            'x': x_data, 'y': y_data, 'color': color, 'size': size
+        }
+        self._draw_crosses(x_data, y_data, color, size)
+        self.canvas.draw()
+    
+    def _draw_crosses(self, x_data, y_data, color, size):
+        """Internal method to draw crosses"""
+        for x, y in zip(x_data, y_data):
+            # Draw cross as two lines
+            self.ax.plot([x-size, x+size], [y, y], color=color, linewidth=1)
+            self.ax.plot([x, x], [y-size, y+size], color=color, linewidth=1)
+    
+    def _draw_trajectories(self, x_data, y_data, color):
+        """Internal method to draw trajectory lines"""
+        if len(x_data) > 1:
+            self.ax.plot(x_data, y_data, color=color, linewidth=1, alpha=0.7)
+    
+    def clear_overlays(self):
+        """Clear all overlays"""
+        self.overlays.clear()
+        if self.current_image is not None:
+            self.display_image(self.current_image)
+        else:
+            self.display_placeholder()
+    
+    def zoom_in(self):
+        """Zoom in by factor of 1.2"""
+        self.zoom_factor *= 1.2
+        xlim = self.ax.get_xlim()
+        ylim = self.ax.get_ylim()
+        center_x = (xlim[0] + xlim[1]) / 2
+        center_y = (ylim[0] + ylim[1]) / 2
+        width = (xlim[1] - xlim[0]) / 1.2
+        height = (ylim[1] - ylim[0]) / 1.2
+        self.ax.set_xlim(center_x - width/2, center_x + width/2)
+        self.ax.set_ylim(center_y - height/2, center_y + height/2)
+        self.canvas.draw()
+        self.status_var.set(f"{self.cam_name}: Zoom {self.zoom_factor:.1f}x")
+    
+    def zoom_out(self):
+        """Zoom out by factor of 1.2"""
+        self.zoom_factor /= 1.2
+        xlim = self.ax.get_xlim()
+        ylim = self.ax.get_ylim()
+        center_x = (xlim[0] + xlim[1]) / 2
+        center_y = (ylim[0] + ylim[1]) / 2
+        width = (xlim[1] - xlim[0]) * 1.2
+        height = (ylim[1] - ylim[0]) * 1.2
+        self.ax.set_xlim(center_x - width/2, center_x + width/2)
+        self.ax.set_ylim(center_y - height/2, center_y + height/2)
+        self.canvas.draw()
+        self.status_var.set(f"{self.cam_name}: Zoom {self.zoom_factor:.1f}x")
+    
+    def reset_view(self):
+        """Reset zoom and pan"""
+        self.zoom_factor = 1.0
+        self.pan_x = 0
+        self.pan_y = 0
+        if self.current_image is not None:
+            h, w = self.current_image.shape[:2]
+            self.ax.set_xlim(0, w)
+            self.ax.set_ylim(h, 0)
+        else:
+            self.ax.set_xlim(0, 320)
+            self.ax.set_ylim(240, 0)
+        self.canvas.draw()
+        self.status_var.set(f"{self.cam_name}: View reset")
+    
+    def on_click(self, event):
+        """Handle matplotlib click events"""
+        if event.xdata is not None and event.ydata is not None:
+            x, y = event.xdata, event.ydata
+            button = 'left' if event.button == 1 else 'right' if event.button == 3 else 'middle'
+            
+            print(f"{button.title()} click in {self.cam_name}: x={x:.1f}, y={y:.1f}")
+            
+            # Draw crosshair for left clicks
+            if button == 'left':
+                self.ax.plot([x-10, x+10], [y, y], color='red', linewidth=2, alpha=0.8)
+                self.ax.plot([x, x], [y-10, y+10], color='red', linewidth=2, alpha=0.8)
+                self.canvas.draw()
+            
+            self.status_var.set(f"{self.cam_name}: {button.title()} click at ({x:.0f},{y:.0f})")
+            
+            # Call registered callbacks
+            for callback in self.click_callbacks:
+                callback(self.cam_id, x, y, button)
+    
+    def on_scroll_mpl(self, event):
+        """Handle matplotlib scroll events"""
+        if event.step > 0:
+            self.zoom_in()
+        else:
+            self.zoom_out()
+    
+    def on_mouse_move_mpl(self, event):
+        """Handle matplotlib mouse movement"""
+        if event.xdata is not None and event.ydata is not None:
+            x, y = event.xdata, event.ydata
+            self.status_var.set(f"{self.cam_name}: Mouse at ({x:.0f},{y:.0f})")
+    
+    def add_click_callback(self, callback):
+        """Register a callback for click events"""
+        self.click_callbacks.append(callback)
+    
+    def remove_click_callback(self, callback):
+        """Unregister a callback for click events"""
+        if callback in self.click_callbacks:
+            self.click_callbacks.remove(callback)
+    
+    def draw_quiver(self, x_data, y_data, u_data, v_data, color='blue', scale=1.0):
+        """Draw quiver plot (velocity vectors)"""
+        self.ax.quiver(x_data, y_data, u_data, v_data, 
+                      color=color, scale=scale, alpha=0.7, width=0.003)
+        self.canvas.draw()
+    
+    def load_image_file(self, filepath):
+        """Load image from file and display it"""
+        try:
+            if imread is not None:
+                image = imread(filepath)
+                self.display_image(image)
+                return True
+            else:
+                print("skimage.io.imread not available")
+                return False
+        except Exception as e:
+            print(f"Error loading image {filepath}: {e}")
+            return False
 
 class EnhancedCameraPanel(ttk.Frame):
     """Enhanced camera panel with basic canvas display for compatibility"""
@@ -622,17 +879,12 @@ class EnhancedTreeMenu(ttk.Treeview):
         
         for paramset in self.experiment.paramsets:
             if paramset.name == paramset_name:
-                # Create mock objects for TreeMenuHandler
-                class MockEditor:
-                    def __init__(self, experiment):
-                        self.experiment = experiment
-                    def get_parent(self, obj):
-                        return self.experiment
-                        
-                mock_editor = MockEditor(self.experiment)
-                
                 try:
-                    self.tree_handler.configure_main_par(mock_editor, paramset)
+                    # Set this paramset as active for editing
+                    self.experiment.set_active_by_name(paramset_name)
+                    
+                    # Open TTK parameter dialog
+                    dialog = MainParamsWindow(self, self.experiment)
                     print(f"Opening main parameters for: {paramset_name}")
                 except Exception as e:
                     print(f"Error opening main parameters: {e}")
@@ -648,17 +900,12 @@ class EnhancedTreeMenu(ttk.Treeview):
         
         for paramset in self.experiment.paramsets:
             if paramset.name == paramset_name:
-                # Create mock objects for TreeMenuHandler
-                class MockEditor:
-                    def __init__(self, experiment):
-                        self.experiment = experiment
-                    def get_parent(self, obj):
-                        return self.experiment
-                        
-                mock_editor = MockEditor(self.experiment)
-                
                 try:
-                    self.tree_handler.configure_cal_par(mock_editor, paramset)
+                    # Set this paramset as active for editing
+                    self.experiment.set_active_by_name(paramset_name)
+                    
+                    # Open TTK parameter dialog
+                    dialog = CalibParamsWindow(self, self.experiment)
                     print(f"Opening calibration parameters for: {paramset_name}")
                 except Exception as e:
                     print(f"Error opening calibration parameters: {e}")
@@ -674,17 +921,12 @@ class EnhancedTreeMenu(ttk.Treeview):
         
         for paramset in self.experiment.paramsets:
             if paramset.name == paramset_name:
-                # Create mock objects for TreeMenuHandler
-                class MockEditor:
-                    def __init__(self, experiment):
-                        self.experiment = experiment
-                    def get_parent(self, obj):
-                        return self.experiment
-                        
-                mock_editor = MockEditor(self.experiment)
-                
                 try:
-                    self.tree_handler.configure_track_par(mock_editor, paramset)
+                    # Set this paramset as active for editing
+                    self.experiment.set_active_by_name(paramset_name)
+                    
+                    # Open TTK parameter dialog
+                    dialog = TrackingParamsWindow(self, self.experiment)
                     print(f"Opening tracking parameters for: {paramset_name}")
                 except Exception as e:
                     print(f"Error opening tracking parameters: {e}")
@@ -1052,6 +1294,14 @@ class EnhancedMainApp(BaseWindow):
         pluginmenu.add_command(label='Select plugin', command=self.plugin_action)
         menubar.add_cascade(label='Plugins', menu=pluginmenu)
 
+        # Images menu - new for TTK version
+        imagemenu = Menu(menubar, tearoff=0)
+        imagemenu.add_command(label='Load Test Images', command=self.load_test_images)
+        imagemenu.add_command(label='Load Image Files...', command=self.load_image_files_action)
+        imagemenu.add_separator()
+        imagemenu.add_command(label='Clear All Images', command=self.clear_all_images)
+        menubar.add_cascade(label='Images', menu=imagemenu)
+
         # Detection demo menu - matches original
         demomenu = Menu(menubar, tearoff=0)
         demomenu.add_command(label='Detection GUI demo', command=self.detection_gui_action)
@@ -1144,7 +1394,7 @@ class EnhancedMainApp(BaseWindow):
         
         for i in range(self.num_cameras):
             frame = ttk.Frame(nb)
-            cam_panel = EnhancedCameraPanel(frame, f'Camera {i+1}', cam_id=i)
+            cam_panel = MatplotlibCameraPanel(frame, f'Camera {i+1}', cam_id=i)
             cam_panel.pack(fill='both', expand=True)
             cam_panel.add_click_callback(self.on_camera_click)
             
@@ -1177,7 +1427,7 @@ class EnhancedMainApp(BaseWindow):
             row = i // cols
             col = i % cols
             
-            cam_panel = EnhancedCameraPanel(grid, f'Camera {i+1}', cam_id=i)
+            cam_panel = MatplotlibCameraPanel(grid, f'Camera {i+1}', cam_id=i)
             cam_panel.grid(row=row, column=col, padx=2, pady=2, sticky='nsew')
             cam_panel.add_click_callback(self.on_camera_click)
             self.cameras.append(cam_panel)
@@ -1205,7 +1455,7 @@ class EnhancedMainApp(BaseWindow):
         ttk.Button(nav_frame, text="Next ▶", command=self.next_camera).pack(side='left')
         
         # Single camera display
-        cam_panel = EnhancedCameraPanel(self.right_container, f'Camera {self.current_camera + 1}', 
+        cam_panel = MatplotlibCameraPanel(self.right_container, f'Camera {self.current_camera + 1}', 
                                       cam_id=self.current_camera)
         cam_panel.pack(fill='both', expand=True, padx=5, pady=5)
         cam_panel.add_click_callback(self.on_camera_click)
@@ -1266,6 +1516,77 @@ class EnhancedMainApp(BaseWindow):
         """Update specific camera with new image"""
         if cam_id < len(self.cameras):
             self.cameras[cam_id].display_image(image_array)
+    
+    def load_images_from_files(self, image_files):
+        """Load images from file list into cameras"""
+        for i, filepath in enumerate(image_files):
+            if i < len(self.cameras):
+                self.cameras[i].load_image_file(filepath)
+    
+    def load_test_images(self):
+        """Load test images for demonstration"""
+        if np is None:
+            messagebox.showwarning("Warning", "NumPy not available for test images")
+            return
+            
+        # Create test images with different patterns
+        test_images = []
+        
+        # Camera 1: Gradient pattern
+        img1 = np.zeros((240, 320), dtype=np.uint8)
+        for i in range(240):
+            img1[i, :] = int(255 * i / 240)
+        test_images.append(img1)
+        
+        # Camera 2: Circular pattern  
+        img2 = np.zeros((240, 320), dtype=np.uint8)
+        y, x = np.ogrid[:240, :320]
+        center_y, center_x = 120, 160
+        mask = (x - center_x)**2 + (y - center_y)**2 < 80**2
+        img2[mask] = 255
+        test_images.append(img2)
+        
+        # Camera 3: Grid pattern
+        img3 = np.zeros((240, 320), dtype=np.uint8)
+        img3[::20, :] = 128  # Horizontal lines
+        img3[:, ::20] = 128  # Vertical lines
+        test_images.append(img3)
+        
+        # Camera 4: Random particles
+        img4 = np.zeros((240, 320), dtype=np.uint8)
+        np.random.seed(42)
+        for _ in range(50):
+            x = np.random.randint(10, 310)
+            y = np.random.randint(10, 230)
+            img4[y-2:y+3, x-2:x+3] = 255
+        test_images.append(img4)
+        
+        # Load images into cameras
+        for i, img in enumerate(test_images):
+            if i < len(self.cameras):
+                self.cameras[i].display_image(img)
+        
+        self.status_var.set(f"Loaded {len(test_images)} test images")
+    
+    def load_image_files_action(self):
+        """Load image files from dialog"""
+        filetypes = [
+            ("Image files", "*.png *.jpg *.jpeg *.tiff *.tif *.bmp"),
+            ("All files", "*.*")
+        ]
+        files = filedialog.askopenfilenames(
+            title="Select image files for cameras",
+            filetypes=filetypes
+        )
+        if files:
+            self.load_images_from_files(files)
+            self.status_var.set(f"Loaded {len(files)} image files")
+    
+    def clear_all_images(self):
+        """Clear all camera images"""
+        for cam in self.cameras:
+            cam.display_placeholder()
+        self.status_var.set("Cleared all images")
 
     def on_camera_click(self, cam_id, x, y, button):
         """Handle camera click events"""
@@ -1769,14 +2090,10 @@ def main():
             # prepare additional yaml files for other runs if not existing
             print(f"Initialize  Experiment from {yaml_file.parent}")
             exp_path = yaml_file.parent
-            exp = Experiment(pm=pm) # ensures pm is an active parameter set
-            exp.populate_runs(exp_path)
-            # exp.pm.from_yaml(yaml_file)
+            exp = create_experiment_from_yaml(yaml_file)
         elif arg_path.is_dir(): # second option - supply directory
-            exp = Experiment()
-            exp.populate_runs(arg_path)
-            yaml_file = exp.active_params.yaml_path
-            # exp.pm.from_yaml(yaml_file)
+            exp = create_experiment_from_directory(arg_path)
+            yaml_file = exp.active_params.yaml_path if exp.active_params else None
 
         else:
             print(f"Invalid argument: {arg_path}")
@@ -1785,12 +2102,15 @@ def main():
     else:
         # Fallback to default test directory
         exp_path = software_path / "tests" / "test_cavity"
-        exp = Experiment()
-        exp.populate_runs(exp_path)
-        yaml_file = exp.active_params.yaml_path
-        # exp.pm.from_yaml(yaml_file)
-        print(f"Without inputs, PyPTV uses default case {yaml_file}")
-        print("Tip: in PyPTV use File -> Open to select another YAML file")
+        if exp_path.exists():
+            exp = create_experiment_from_directory(exp_path)
+            yaml_file = exp.active_params.yaml_path if exp.active_params else None
+            print(f"Without inputs, PyPTV uses default case {yaml_file}")
+            print("Tip: in PyPTV use File -> Open to select another YAML file")
+        else:
+            print("No default test directory found, creating empty experiment")
+            exp = ExperimentTTK()
+            yaml_file = None
 
     if not yaml_file or not yaml_file.exists():
         print(f"YAML parameter file does not exist: {yaml_file}")

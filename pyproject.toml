@@ -23,25 +23,34 @@ classifiers = [
     "Topic :: Scientific/Engineering :: Visualization"
 ]
 dependencies = [
-    "numpy==1.26.4",
+    "numpy>=1.26.0",
     "optv>=0.3.0",
-    "traits>=6.4.0",
-    "traitsui>=7.4.0",
-    "enable>=5.3.0",
-    "chaco>=5.1.0",
-    "PySide6>=6.0.0",
-    "Pillow>=10,<11",
+    # GUI dependencies - TTK + matplotlib replaces Chaco/Enable/Traits
+    "matplotlib>=3.7.0",
+    "ttkbootstrap>=1.10.0",  # Enhanced TTK widgets
+    "Pillow>=10.0.0",
+    # Scientific computing
     "scikit-image>=0.20.0",
     "scipy>=1.10.0",
     "pandas>=2.0.0",
-    "matplotlib>=3.7.0",
     "tables>=3.8.0",
     "tqdm>=4.65.0",
     "imagecodecs>=2023.1.23",
     "flowtracks>=0.3.0",
+    # Development and utilities
     "Pygments>=2.15.0",
     "pyparsing>=3.0.0",
     "pytest>=8.4.1",
+]
+
+# Optional dependencies for legacy compatibility
+[project.optional-dependencies]
+legacy = [
+    "traits>=6.4.0",
+    "traitsui>=7.4.0", 
+    "enable>=5.3.0",
+    "chaco>=5.1.0",
+    "PySide6>=6.0.0",
 ]
 
 [project.urls]
@@ -52,7 +61,9 @@ Issues = "https://github.com/alexlib/pyptv/issues"
 OpenPTV = "http://www.openptv.net"
 
 [project.scripts]
-pyptv = "pyptv.pyptv_gui:main"
+pyptv = "pyptv.pyptv_gui_ttk:main"
+pyptv-legacy = "pyptv.pyptv_gui:main"
+pyptv-demo = "pyptv.demo_matplotlib_gui:main"
 
 [tool.setuptools]
 packages = ["pyptv"]
