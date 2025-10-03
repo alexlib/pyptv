@@ -2047,25 +2047,120 @@ Use View → Camera Count to change the number of cameras dynamically.
     
     def img_coord_action(self):
         """Image coordinates action - runs detection function"""
+        if not self.pass_init:
+            messagebox.showerror("Error", "Please initialize the system first (Start/Init button)")
+            return
+            
+        if not hasattr(self, 'orig_images') or not self.orig_images:
+            messagebox.showerror("Error", "No images loaded. Please run Start/Init first.")
+            return
+            
         self.status_var.set("Running detection...")
         self.progress.start()
         
-        # TODO: Implement detection processing
-        print("Image coordinate detection started")
-        self.after(1500, lambda: self.progress.stop())
-        self.after(1500, lambda: self.status_var.set("Detection finished"))
-        messagebox.showinfo("Image Coordinates", "Detection processing completed")
+        try:
+            from pyptv import ptv
+            
+            # Get PTV and target recognition parameters
+            ptv_params = self.experiment.get_parameter('ptv')
+            targ_rec_params = self.experiment.get_parameter('targ_rec')
+            
+            if not ptv_params or not targ_rec_params:
+                error_msg = "PTV or target recognition parameters not found"
+                self.status_var.set("Error: " + error_msg)
+                messagebox.showerror("Error", error_msg)
+                return
+            
+            # Format target_params correctly for _populate_tpar
+            target_params = {'targ_rec': targ_rec_params}
+            
+            print("Start detection")
+            
+            # Run detection processing
+            (self.detections, self.corrected) = ptv.py_detection_proc_c(
+                self.num_cameras,
+                self.orig_images,
+                ptv_params,
+                target_params,
+            )
+            
+            print("Detection finished")
+            
+            # Extract x, y coordinates for drawing
+            x = [[i.pos()[0] for i in row] for row in self.detections]
+            y = [[i.pos()[1] for i in row] for row in self.detections]
+            
+            # Draw crosses on detected points
+            self.drawcross_in_all_cams("x", "y", x, y, "blue", 3)
+            
+            # Update status
+            total_detections = sum(len(row) for row in self.detections)
+            self.status_var.set(f"Detection finished - {total_detections} targets detected")
+            messagebox.showinfo("Image Coordinates", f"Detection completed.\n{total_detections} targets detected across all cameras.")
+            
+        except Exception as e:
+            error_msg = f"Detection failed: {str(e)}"
+            print(error_msg)
+            self.status_var.set("Error: Detection failed")
+            messagebox.showerror("Error", error_msg)
+        finally:
+            self.progress.stop()
     
     def corresp_action(self):
         """Correspondences action - calls ptv.py_correspondences_proc_c()"""
+        if not self.pass_init:
+            messagebox.showerror("Error", "Please initialize the system first (Start/Init button)")
+            return
+            
+        if not hasattr(self, 'detections') or not self.detections:
+            messagebox.showerror("Error", "No detections found. Please run Image Coordinates first.")
+            return
+            
         self.status_var.set("Running correspondences...")
         self.progress.start()
         
-        # TODO: Implement correspondence processing
-        print("Correspondence processing started")
-        self.after(2000, lambda: self.progress.stop())
-        self.after(2000, lambda: self.status_var.set("Correspondences finished"))
-        messagebox.showinfo("Correspondences", "Correspondence processing completed")
+        try:
+            from pyptv import ptv
+            
+            print("Correspondence processing started")
+            
+            # Run correspondence processing
+            (self.sorted_pos, self.sorted_corresp, self.num_targs) = ptv.py_correspondences_proc_c(self)
+            
+            print("Correspondence processing finished")
+            
+            # Define names and colors for different correspondence types
+            names = ["pair", "tripl", "quad"]
+            use_colors = ["yellow", "green", "red"]
+            
+            if len(self.camera_panels) > 1 and len(self.sorted_pos) > 0:
+                for i, subset in enumerate(reversed(self.sorted_pos)):
+                    x, y = self._clean_correspondences(subset)
+                    self.drawcross_in_all_cams(
+                        names[i] + "_x", names[i] + "_y", x, y, use_colors[i], 3
+                    )
+            
+            # Update status with results
+            total_correspondences = sum(len(subset) for subset in self.sorted_pos)
+            self.status_var.set(f"Correspondences finished - {total_correspondences} correspondences found")
+            messagebox.showinfo("Correspondences", f"Correspondence processing completed.\n{total_correspondences} correspondences found.")
+            
+        except Exception as e:
+            error_msg = f"Correspondence processing failed: {str(e)}"
+            print(error_msg)
+            self.status_var.set("Error: Correspondence processing failed")
+            messagebox.showerror("Error", error_msg)
+        finally:
+            self.progress.stop()
+    
+    def _clean_correspondences(self, tmp):
+        """Clean correspondences array"""
+        x1, y1 = [], []
+        for x in tmp:
+            tmp = x[(x != -999).any(axis=1)]
+            x1.append(tmp[:, 0])
+            y1.append(tmp[:, 1])
+        return x1, y1
     
     def three_d_positions(self):
         """3D positions action - extracts and saves 3D positions"""
