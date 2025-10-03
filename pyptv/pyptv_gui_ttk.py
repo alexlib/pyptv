@@ -29,6 +29,16 @@ try:
     from optv.epipolar import epipolar_curve
 except ImportError:
     epipolar_curve = None
+
+# Import parameter GUI classes
+try:
+    from pyptv.parameter_gui_ttk import MainParamsWindow, CalibParamsWindow, TrackingParamsWindow
+    PARAMETER_GUI_AVAILABLE = True
+except ImportError:
+    MainParamsWindow = None
+    CalibParamsWindow = None
+    TrackingParamsWindow = None
+    PARAMETER_GUI_AVAILABLE = False
 try:
     from optv.imgcoord import image_coordinates
 except ImportError:
@@ -872,6 +882,11 @@ class EnhancedTreeMenu(ttk.Treeview):
     def edit_main_params(self, item):
         """Edit main parameters for the selected parameter set"""
         if not self.experiment:
+            print("No experiment loaded")
+            return
+            
+        if not PARAMETER_GUI_AVAILABLE or MainParamsWindow is None:
+            print("Parameter GUI classes not available")
             return
             
         item_text = self.item(item, 'text')
@@ -881,18 +896,28 @@ class EnhancedTreeMenu(ttk.Treeview):
             if paramset.name == paramset_name:
                 try:
                     # Set this paramset as active for editing
-                    self.experiment.set_active_by_name(paramset_name)
+                    if hasattr(self.experiment, 'set_active_by_name'):
+                        self.experiment.set_active_by_name(paramset_name)
+                    else:
+                        self.experiment.active_params = paramset
                     
                     # Open TTK parameter dialog
-                    dialog = MainParamsWindow(self, self.experiment)
+                    dialog = MainParamsWindow(self.app_ref, self.experiment)
                     print(f"Opening main parameters for: {paramset_name}")
                 except Exception as e:
                     print(f"Error opening main parameters: {e}")
+                    import traceback
+                    traceback.print_exc()
                 break
     
     def edit_calib_params(self, item):
         """Edit calibration parameters for the selected parameter set"""
         if not self.experiment:
+            print("No experiment loaded")
+            return
+            
+        if not PARAMETER_GUI_AVAILABLE or CalibParamsWindow is None:
+            print("Parameter GUI classes not available")
             return
             
         item_text = self.item(item, 'text')
@@ -902,18 +927,28 @@ class EnhancedTreeMenu(ttk.Treeview):
             if paramset.name == paramset_name:
                 try:
                     # Set this paramset as active for editing
-                    self.experiment.set_active_by_name(paramset_name)
+                    if hasattr(self.experiment, 'set_active_by_name'):
+                        self.experiment.set_active_by_name(paramset_name)
+                    else:
+                        self.experiment.active_params = paramset
                     
                     # Open TTK parameter dialog
-                    dialog = CalibParamsWindow(self, self.experiment)
+                    dialog = CalibParamsWindow(self.app_ref, self.experiment)
                     print(f"Opening calibration parameters for: {paramset_name}")
                 except Exception as e:
                     print(f"Error opening calibration parameters: {e}")
+                    import traceback
+                    traceback.print_exc()
                 break
     
     def edit_tracking_params(self, item):
         """Edit tracking parameters for the selected parameter set"""
         if not self.experiment:
+            print("No experiment loaded")
+            return
+            
+        if not PARAMETER_GUI_AVAILABLE or TrackingParamsWindow is None:
+            print("Parameter GUI classes not available")
             return
             
         item_text = self.item(item, 'text')
@@ -923,13 +958,18 @@ class EnhancedTreeMenu(ttk.Treeview):
             if paramset.name == paramset_name:
                 try:
                     # Set this paramset as active for editing
-                    self.experiment.set_active_by_name(paramset_name)
+                    if hasattr(self.experiment, 'set_active_by_name'):
+                        self.experiment.set_active_by_name(paramset_name)
+                    else:
+                        self.experiment.active_params = paramset
                     
                     # Open TTK parameter dialog
-                    dialog = TrackingParamsWindow(self, self.experiment)
+                    dialog = TrackingParamsWindow(self.app_ref, self.experiment)
                     print(f"Opening tracking parameters for: {paramset_name}")
                 except Exception as e:
                     print(f"Error opening tracking parameters: {e}")
+                    import traceback
+                    traceback.print_exc()
                 break
     
     def add_paramset(self):
@@ -1691,13 +1731,139 @@ class EnhancedMainApp(BaseWindow):
             # TODO: Implement save as
 
     def init_system(self):
-        """Initialize the system"""
+        """Initialize the system - loads images and sets up parameters"""
         self.progress.start()
         self.status_var.set("Initializing system...")
         
-        # TODO: Implement initialization
-        self.after(2000, lambda: self.progress.stop())
-        self.after(2000, lambda: self.status_var.set("System initialized"))
+        try:
+            if not self.experiment or not self.experiment.active_params:
+                self.status_var.set("Error: No active parameter set found")
+                self.progress.stop()
+                return
+                
+            # Get PTV parameters
+            ptv_params = self.experiment.get_parameter('ptv')
+            if not ptv_params:
+                self.status_var.set("Error: PTV parameters not found")
+                self.progress.stop()
+                return
+                
+            # Load images based on parameters
+            self.load_images_from_params(ptv_params)
+            
+            # Initialize Cython parameter objects
+            self.initialize_cython_objects()
+            
+            # Update camera displays with loaded images
+            self.update_camera_displays()
+            
+            # Set initialization flag
+            self.pass_init = True
+            
+            self.status_var.set("System initialized successfully")
+            print("Read all the parameters and calibrations successfully")
+            
+        except Exception as e:
+            self.status_var.set(f"Initialization failed: {str(e)}")
+            print(f"Initialization error: {e}")
+            import traceback
+            traceback.print_exc()
+        finally:
+            self.progress.stop()
+
+    def load_images_from_params(self, ptv_params):
+        """Load images from PTV parameters"""
+        try:
+            # Import required modules
+            from skimage.io import imread
+            from skimage.color import rgb2gray
+            from skimage.util import img_as_ubyte
+            
+            # Check if using splitter mode
+            if ptv_params.get('splitter', False):
+                print("Using Splitter mode")
+                imname = ptv_params['img_name'][0]
+                if Path(imname).exists():
+                    temp_img = imread(imname)
+                    if temp_img.ndim > 2:
+                        temp_img = rgb2gray(temp_img)
+                    # Import ptv for image splitting
+                    from pyptv import ptv
+                    splitted_images = ptv.image_split(temp_img)
+                    for i in range(min(len(splitted_images), self.num_cameras)):
+                        self.orig_images[i] = img_as_ubyte(splitted_images[i])
+            else:
+                # Load individual images for each camera
+                for i in range(self.num_cameras):
+                    if i < len(ptv_params.get('img_name', [])):
+                        imname = ptv_params['img_name'][i]
+                        if Path(imname).exists():
+                            print(f"Reading image {imname}")
+                            im = imread(imname)
+                            if im.ndim > 2:
+                                im = rgb2gray(im)
+                        else:
+                            print(f"Image {imname} does not exist, setting zero image")
+                            h_img = ptv_params.get('imx', 1280)
+                            v_img = ptv_params.get('imy', 1024)
+                            im = np.zeros((v_img, h_img), dtype=np.uint8)
+                    else:
+                        # No image specified for this camera, create zero image
+                        h_img = ptv_params.get('imx', 1280)
+                        v_img = ptv_params.get('imy', 1024)
+                        im = np.zeros((v_img, h_img), dtype=np.uint8)
+                    
+                    if i < len(self.orig_images):
+                        self.orig_images[i] = img_as_ubyte(im)
+                        
+        except Exception as e:
+            print(f"Error loading images: {e}")
+            # Create default zero images
+            h_img = ptv_params.get('imx', 1280)
+            v_img = ptv_params.get('imy', 1024)
+            for i in range(self.num_cameras):
+                if i < len(self.orig_images):
+                    self.orig_images[i] = img_as_ubyte(np.zeros((v_img, h_img), dtype=np.uint8))
+
+    def initialize_cython_objects(self):
+        """Initialize Cython parameter objects"""
+        try:
+            from pyptv import ptv
+            
+            # Initialize Cython objects using parameter manager
+            (self.cpar, 
+             self.spar, 
+             self.vpar, 
+             self.track_par, 
+             self.tpar, 
+             self.cals, 
+             self.epar
+             ) = ptv.py_start_proc_c(self.experiment.pm)
+            
+            # Get target filenames from ParameterManager
+            self.target_filenames = self.experiment.pm.get_target_filenames()
+            
+        except Exception as e:
+            print(f"Error initializing Cython objects: {e}")
+            # Set defaults
+            self.cpar = None
+            self.spar = None
+            self.vpar = None
+            self.track_par = None
+            self.tpar = None
+            self.cals = None
+            self.epar = None
+            self.target_filenames = []
+
+    def update_camera_displays(self):
+        """Update camera displays with loaded images"""
+        try:
+            for i, camera_panel in enumerate(self.cameras):
+                if i < len(self.orig_images) and self.orig_images[i] is not None:
+                    camera_panel.display_image(self.orig_images[i])
+                    print(f"Updated camera {i+1} display")
+        except Exception as e:
+            print(f"Error updating camera displays: {e}")
 
     def show_about(self):
         """Show about dialog"""
