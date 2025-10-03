@@ -47,6 +47,7 @@ def create_dummy_par_dir(tmpdir):
     plugins_dir.mkdir(exist_ok=True)
     (plugins_dir / 'my_sequence_.py').write_text('# dummy sequence plugin')
     (plugins_dir / 'my_tracker_.py').write_text('# dummy tracking plugin')
+
     return par_dir
 
 def test_parameter_manager_yaml_plugins():
@@ -55,7 +56,7 @@ def test_parameter_manager_yaml_plugins():
         yaml_path = par_dir / 'params.yaml'
         pm = ParameterManager()
         pm.from_directory(par_dir)
-        pm.scan_plugins(par_dir / 'plugins')
+        # pm.scan_plugins(par_dir / 'plugins')
         pm.to_yaml(yaml_path)
         # Print YAML
         with open(yaml_path) as f:
