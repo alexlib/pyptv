@@ -708,27 +708,25 @@ class CalibrationGUI(ttk.Frame):
     def edit_cal_parameters(self):
         """Edit calibration parameters"""
         try:
-            from pyptv.parameter_gui import Calib_Params
-            calib_params_gui = Calib_Params(experiment=self.experiment)
-            calib_params_gui.edit_traits(view='Calib_Params_View', kind='livemodal')
+            from pyptv.parameter_gui_ttk import CalibParamsWindow
+            # This now opens the new TTK-based window
+            CalibParamsWindow(self, self.experiment)
         except Exception as e:
             messagebox.showerror("Parameter Edit Error", f"Failed to open parameter editor: {e}")
 
     def edit_ori_files(self):
         """Edit orientation files"""
         try:
-            from pyptv.code_editor import oriEditor
-            editor = oriEditor(experiment=self.experiment)
-            editor.edit_traits(kind="livemodal")
+            from pyptv.code_editor import open_ori_editors
+            open_ori_editors(self.experiment, self)
         except Exception as e:
             messagebox.showerror("ORI Editor Error", f"Failed to open ORI editor: {e}")
 
     def edit_addpar_files(self):
         """Edit additional parameter files"""
         try:
-            from pyptv.code_editor import addparEditor
-            editor = addparEditor(experiment=self.experiment)
-            editor.edit_traits(kind="livemodal")
+            from pyptv.code_editor import open_addpar_editors
+            open_addpar_editors(self.experiment, self)
         except Exception as e:
             messagebox.showerror("Addpar Editor Error", f"Failed to open addpar editor: {e}")
 

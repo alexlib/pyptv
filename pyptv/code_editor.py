@@ -1,142 +1,96 @@
 """
-Editor for editing the cameras ori files
+Tkinter-based editor for editing camera orientation and parameter files.
 """
-import os
-
-# Imports:
-from traits.api import (
-    HasTraits,
-    Code,
-    Int,
-    List,
-    Button,
-)
-
-from traitsui.api import Item, Group, View, ListEditor
-
+import tkinter as tk
+from tkinter import ttk, messagebox
 from pathlib import Path
 from pyptv.experiment import Experiment
 
+class CodeEditorFrame(ttk.Frame):
+    """A frame containing a text editor and a save button for a single file."""
+    def __init__(self, parent, file_path: Path):
+        super().__init__(parent)
+        self.file_path = file_path
 
-def get_path(filename):
-    splitted_filename = filename.split("/")
-    return os.getcwd() + os.sep + splitted_filename[0] + os.sep + splitted_filename[1]
+        # Create widgets
+        self.text_widget = tk.Text(self, wrap='word', undo=True)
+        self.scrollbar = ttk.Scrollbar(self, orient='vertical', command=self.text_widget.yview)
+        self.text_widget.config(yscrollcommand=self.scrollbar.set)
 
+        self.save_button = ttk.Button(self, text=f"Save {self.file_path.name}", command=self.save_file)
 
-def get_code(path: Path):
-    """Read the code from the file"""
+        # Layout
+        self.text_widget.pack(side='left', fill='both', expand=True)
+        self.scrollbar.pack(side='right', fill='y')
+        self.save_button.pack(fill='x', pady=5)
 
-    # print(f"Read from {path}: {path.exists()}")
-    with open(path, "r", encoding="utf-8") as f:
-        retCode = f.read()
+        # Load content
+        self.load_file()
 
-    # print(retCode)
+    def load_file(self):
+        """Load file content into the text widget."""
+        try:
+            content = self.file_path.read_text(encoding='utf-8')
+            self.text_widget.delete('1.0', 'end')
+            self.text_widget.insert('1.0', content)
+        except Exception as e:
+            self.text_widget.delete('1.0', 'end')
+            self.text_widget.insert('1.0', f"Error loading file: {e}")
 
-    return retCode
+    def save_file(self):
+        """Save content from the text widget back to the file."""
+        try:
+            content = self.text_widget.get('1.0', 'end-1c') # -1c to exclude trailing newline
+            self.file_path.write_text(content, encoding='utf-8')
+            messagebox.showinfo("Success", f"Saved {self.file_path.name}", parent=self)
+        except Exception as e:
+            messagebox.showerror("Save Error", f"Failed to save file: {e}", parent=self)
 
+class TabbedCodeEditor(tk.Toplevel):
+    """A Toplevel window with a tabbed interface for editing multiple files."""
+    def __init__(self, parent, file_paths: list, title: str):
+        super().__init__(parent)
+        self.title(title)
+        self.geometry("800x600")
 
-class CodeEditor(HasTraits):
-    file_Path = Path
-    _Code = Code()
-    save_button = Button(label="Save")
-    buttons_group = Group(
-        Item(name="file_Path", style="simple", show_label=True, width=0.3),
-        Item(name="save_button", show_label=True),
-        orientation="horizontal",
-    )
-    traits_view = View(
-        Group(
-            Item(name="_Code", show_label=False, height=300, width=650),
-            buttons_group,
-        )
-    )
+        notebook = ttk.Notebook(self)
+        notebook.pack(fill='both', expand=True, padx=10, pady=10)
 
-    def _save_button_fired(self):
-        with open(str(self.file_Path), "w", encoding="utf-8") as f:
-            # print(f"Saving to {self.file_Path}")
-            # print(f"Code: {self._Code}")
-            f.write(self._Code)
-
-        print(f"Saved to {self.file_Path}")
-
-    def __init__(self, file_path: Path):
-        self.file_Path = file_path
-        self._Code = get_code(file_path)
-
-
-class oriEditor(HasTraits):
-    # number of images
-    n_img = Int()
-
-    oriEditors = List()
-
-    # view
-    traits_view = View(
-        Item(
-            "oriEditors",
-            style="custom",
-            editor=ListEditor(
-                use_notebook=True,
-                deletable=False,
-                dock_style="tab",
-                page_name=".file_Path",
-            ),
-            show_label=False,
-        ),
-        buttons=["Cancel"],
-        title="Camera's orientation files",
-    )
-
-    def __init__(self, experiment: Experiment):
-        """Initialize by reading parameters and filling the editor windows"""
-        ptv_params = experiment.get_parameter('ptv')
-        cal_ori_params = experiment.get_parameter('cal_ori')
-        
-        if ptv_params is None or cal_ori_params is None:
-            raise ValueError("Failed to load required parameters")
+        for file_path in file_paths:
+            if not file_path.exists():
+                print(f"Warning: File not found, skipping: {file_path}")
+                continue
             
-        self.n_img = int(experiment.pm.num_cams)
-        img_ori = cal_ori_params['img_ori']
-
-        for i in range(self.n_img):
-            self.oriEditors.append(CodeEditor(Path(img_ori[i])))
-
-
-class addparEditor(HasTraits):
-    # number of images
-    n_img = Int()
-
-    addparEditors = List
-
-    # view
-    traits_view = View(
-        Item(
-            "addparEditors",
-            style="custom",
-            editor=ListEditor(
-                use_notebook=True,
-                deletable=False,
-                dock_style="tab",
-                page_name=".file_Path",
-            ),
-            show_label=False,
-        ),
-        buttons=["Cancel"],
-        title="Camera's additional parameters files",
-    )
-
-    def __init__(self, experiment: Experiment):
-        """Initialize by reading parameters and filling the editor windows"""
-        ptv_params = experiment.get_parameter('ptv')
-        cal_ori_params = experiment.get_parameter('cal_ori')
-        
-        if ptv_params is None or cal_ori_params is None:
-            raise ValueError("Failed to load required parameters")
+            editor_frame = ttk.Frame(notebook)
+            notebook.add(editor_frame, text=file_path.name)
             
-        self.n_img = int(experiment.pm.num_cams)
-        img_ori = cal_ori_params['img_ori']
+            # Embed the code editor frame
+            CodeEditorFrame(editor_frame, file_path).pack(fill='both', expand=True)
 
-        for i in range(self.n_img):
-            self.addparEditors.append(
-                CodeEditor(Path(img_ori[i].replace("ori", "addpar")))
-            )
+def open_ori_editors(experiment: Experiment, parent):
+    """Opens a tabbed editor for all .ori files in the experiment."""
+    try:
+        cal_ori_params = experiment.get_parameter('cal_ori')
+        if cal_ori_params is None:
+            raise ValueError("Calibration orientation parameters not found.")
+
+        num_cams = experiment.get_n_cam()
+        ori_files = [Path(p) for p in cal_ori_params['img_ori'][:num_cams]]
+        
+        TabbedCodeEditor(parent, ori_files, "Orientation Files Editor")
+    except Exception as e:
+        messagebox.showerror("Error", f"Could not open ORI editors: {e}")
+
+def open_addpar_editors(experiment: Experiment, parent):
+    """Opens a tabbed editor for all .addpar files in the experiment."""
+    try:
+        cal_ori_params = experiment.get_parameter('cal_ori')
+        if cal_ori_params is None:
+            raise ValueError("Calibration orientation parameters not found.")
+
+        num_cams = experiment.get_n_cam()
+        addpar_files = [Path(p.replace(".ori", ".addpar")) for p in cal_ori_params['img_ori'][:num_cams]]
+        
+        TabbedCodeEditor(parent, addpar_files, "Additional Parameters Editor")
+    except Exception as e:
+        messagebox.showerror("Error", f"Could not open addpar editors: {e}")

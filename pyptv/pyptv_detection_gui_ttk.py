@@ -175,104 +175,59 @@ class DetectionGUI(ttk.Frame):
         param_frame = ttk.LabelFrame(left_panel, text="Detection Parameters", padding=10)
         param_frame.pack(fill=tk.X, pady=(0, 10))
 
-        # Grey threshold
-        ttk.Label(param_frame, text="Grey threshold:").pack(anchor=tk.W)
-        grey_frame = ttk.Frame(param_frame)
-        grey_frame.pack(fill=tk.X, pady=(0, 5))
-        self.grey_thresh_slider = ttk.Scale(grey_frame, from_=1, to=255,
-                                          variable=self.grey_thresh_val,
-                                          command=self.on_param_change)
-        self.grey_thresh_slider.pack(side=tk.LEFT, fill=tk.X, expand=True)
-        self.grey_thresh_label = ttk.Label(grey_frame, text="40", width=4)
-        self.grey_thresh_label.pack(side=tk.RIGHT)
+        self.slider_configs = {}
 
-        # Min pixels
-        ttk.Label(param_frame, text="Min pixels:").pack(anchor=tk.W)
-        minpix_frame = ttk.Frame(param_frame)
-        minpix_frame.pack(fill=tk.X, pady=(0, 5))
-        self.min_npix_slider = ttk.Scale(minpix_frame, from_=1, to=100,
-                                       variable=self.min_npix_val,
-                                       command=self.on_param_change)
-        self.min_npix_slider.pack(side=tk.LEFT, fill=tk.X, expand=True)
-        self.min_npix_label = ttk.Label(minpix_frame, text="25", width=4)
-        self.min_npix_label.pack(side=tk.RIGHT)
+        def add_slider(parent, text, var, from_, to, label_widget):
+            ttk.Label(parent, text=text).pack(anchor=tk.W)
+            frame = ttk.Frame(parent)
+            frame.pack(fill=tk.X, pady=(0, 2))
+            
+            slider = ttk.Scale(frame, from_=from_, to=to, variable=var, command=self.on_param_change)
+            slider.pack(side=tk.LEFT, fill=tk.X, expand=True)
+            label_widget.pack(side=tk.RIGHT, padx=(5,0))
+            
+            range_frame = ttk.Frame(parent)
+            range_frame.pack(fill=tk.X, pady=(0, 10))
+            min_var = tk.StringVar(value=str(from_))
+            max_var = tk.StringVar(value=str(to))
+            ttk.Label(range_frame, text="Range:").pack(side=tk.LEFT, padx=(10, 5))
+            ttk.Entry(range_frame, textvariable=min_var, width=5).pack(side=tk.LEFT)
+            ttk.Label(range_frame, text="-").pack(side=tk.LEFT, padx=2)
+            ttk.Entry(range_frame, textvariable=max_var, width=5).pack(side=tk.LEFT)
 
-        # Max pixels
-        ttk.Label(param_frame, text="Max pixels:").pack(anchor=tk.W)
-        maxpix_frame = ttk.Frame(param_frame)
-        maxpix_frame.pack(fill=tk.X, pady=(0, 5))
-        self.max_npix_slider = ttk.Scale(maxpix_frame, from_=1, to=500,
-                                       variable=self.max_npix_val,
-                                       command=self.on_param_change)
-        self.max_npix_slider.pack(side=tk.LEFT, fill=tk.X, expand=True)
-        self.max_npix_label = ttk.Label(maxpix_frame, text="400", width=4)
-        self.max_npix_label.pack(side=tk.RIGHT)
+            self.slider_configs[text] = {
+                'slider': slider, 'var': var, 'min_var': min_var, 'max_var': max_var
+            }
 
-        # Min pixels X
-        ttk.Label(param_frame, text="Min pixels X:").pack(anchor=tk.W)
-        minx_frame = ttk.Frame(param_frame)
-        minx_frame.pack(fill=tk.X, pady=(0, 5))
-        self.min_npix_x_slider = ttk.Scale(minx_frame, from_=1, to=20,
-                                         variable=self.min_npix_x_val,
-                                         command=self.on_param_change)
-        self.min_npix_x_slider.pack(side=tk.LEFT, fill=tk.X, expand=True)
-        self.min_npix_x_label = ttk.Label(minx_frame, text="5", width=4)
-        self.min_npix_x_label.pack(side=tk.RIGHT)
+        self.grey_thresh_label = ttk.Label(param_frame, text="40", width=4)
+        add_slider(param_frame, "Grey threshold:", self.grey_thresh_val, 1, 255, self.grey_thresh_label)
 
-        # Max pixels X
-        ttk.Label(param_frame, text="Max pixels X:").pack(anchor=tk.W)
-        maxx_frame = ttk.Frame(param_frame)
-        maxx_frame.pack(fill=tk.X, pady=(0, 5))
-        self.max_npix_x_slider = ttk.Scale(maxx_frame, from_=1, to=100,
-                                         variable=self.max_npix_x_val,
-                                         command=self.on_param_change)
-        self.max_npix_x_slider.pack(side=tk.LEFT, fill=tk.X, expand=True)
-        self.max_npix_x_label = ttk.Label(maxx_frame, text="50", width=4)
-        self.max_npix_x_label.pack(side=tk.RIGHT)
+        self.min_npix_label = ttk.Label(param_frame, text="25", width=4)
+        add_slider(param_frame, "Min pixels:", self.min_npix_val, 1, 100, self.min_npix_label)
 
-        # Min pixels Y
-        ttk.Label(param_frame, text="Min pixels Y:").pack(anchor=tk.W)
-        miny_frame = ttk.Frame(param_frame)
-        miny_frame.pack(fill=tk.X, pady=(0, 5))
-        self.min_npix_y_slider = ttk.Scale(miny_frame, from_=1, to=20,
-                                         variable=self.min_npix_y_val,
-                                         command=self.on_param_change)
-        self.min_npix_y_slider.pack(side=tk.LEFT, fill=tk.X, expand=True)
-        self.min_npix_y_label = ttk.Label(miny_frame, text="5", width=4)
-        self.min_npix_y_label.pack(side=tk.RIGHT)
+        self.max_npix_label = ttk.Label(param_frame, text="400", width=4)
+        add_slider(param_frame, "Max pixels:", self.max_npix_val, 1, 500, self.max_npix_label)
 
-        # Max pixels Y
-        ttk.Label(param_frame, text="Max pixels Y:").pack(anchor=tk.W)
-        maxy_frame = ttk.Frame(param_frame)
-        maxy_frame.pack(fill=tk.X, pady=(0, 5))
-        self.max_npix_y_slider = ttk.Scale(maxy_frame, from_=1, to=100,
-                                         variable=self.max_npix_y_val,
-                                         command=self.on_param_change)
-        self.max_npix_y_slider.pack(side=tk.LEFT, fill=tk.X, expand=True)
-        self.max_npix_y_label = ttk.Label(maxy_frame, text="50", width=4)
-        self.max_npix_y_label.pack(side=tk.RIGHT)
+        self.min_npix_x_label = ttk.Label(param_frame, text="5", width=4)
+        add_slider(param_frame, "Min pixels X:", self.min_npix_x_val, 1, 20, self.min_npix_x_label)
 
-        # Discontinuity
-        ttk.Label(param_frame, text="Discontinuity:").pack(anchor=tk.W)
-        disco_frame = ttk.Frame(param_frame)
-        disco_frame.pack(fill=tk.X, pady=(0, 5))
-        self.disco_slider = ttk.Scale(disco_frame, from_=0, to=255,
-                                    variable=self.disco_val,
-                                    command=self.on_param_change)
-        self.disco_slider.pack(side=tk.LEFT, fill=tk.X, expand=True)
-        self.disco_label = ttk.Label(disco_frame, text="100", width=4)
-        self.disco_label.pack(side=tk.RIGHT)
+        self.max_npix_x_label = ttk.Label(param_frame, text="50", width=4)
+        add_slider(param_frame, "Max pixels X:", self.max_npix_x_val, 1, 100, self.max_npix_x_label)
 
-        # Sum of grey
-        ttk.Label(param_frame, text="Sum of grey:").pack(anchor=tk.W)
-        grey_frame = ttk.Frame(param_frame)
-        grey_frame.pack(fill=tk.X, pady=(0, 5))
-        self.sum_grey_slider = ttk.Scale(grey_frame, from_=50, to=200,
-                                       variable=self.sum_grey_val,
-                                       command=self.on_param_change)
-        self.sum_grey_slider.pack(side=tk.LEFT, fill=tk.X, expand=True)
-        self.sum_grey_label = ttk.Label(grey_frame, text="100", width=4)
-        self.sum_grey_label.pack(side=tk.RIGHT)
+        self.min_npix_y_label = ttk.Label(param_frame, text="5", width=4)
+        add_slider(param_frame, "Min pixels Y:", self.min_npix_y_val, 1, 20, self.min_npix_y_label)
+
+        self.max_npix_y_label = ttk.Label(param_frame, text="50", width=4)
+        add_slider(param_frame, "Max pixels Y:", self.max_npix_y_val, 1, 100, self.max_npix_y_label)
+
+        self.disco_label = ttk.Label(param_frame, text="100", width=4)
+        add_slider(param_frame, "Discontinuity:", self.disco_val, 0, 255, self.disco_label)
+
+        self.sum_grey_label = ttk.Label(param_frame, text="100", width=4)
+        add_slider(param_frame, "Sum of grey:", self.sum_grey_val, 50, 200, self.sum_grey_label)
+
+        ttk.Button(param_frame, text="Update Slider Ranges", command=self.update_slider_ranges).pack(fill=tk.X, pady=10)
+
 
         # Right panel - Image display
         self.image_frame = ttk.Frame(main_frame)
@@ -285,17 +240,42 @@ class DetectionGUI(ttk.Frame):
         status_bar.pack(side=tk.BOTTOM, fill=tk.X)
 
         # Initially disable parameter controls
-        self.set_parameter_controls_state(False)
+        self.set_parameter_controls_state(tk.DISABLED)
 
-    def set_parameter_controls_state(self, state: bool):
+    def update_slider_ranges(self):
+        """Update slider ranges based on user input in the Entry widgets."""
+        try:
+            for config in self.slider_configs.values():
+                slider = config['slider']
+                min_val = int(config['min_var'].get())
+                max_val = int(config['max_var'].get())
+                var = config['var']
+
+                if min_val >= max_val:
+                    messagebox.showwarning("Invalid Range", f"Minimum value ({min_val}) must be less than maximum value ({max_val}).")
+                    continue
+
+                slider.config(from_=min_val, to=max_val)
+
+                # Ensure current value is within the new range
+                current_val = var.get()
+                if current_val < min_val:
+                    var.set(min_val)
+                elif current_val > max_val:
+                    var.set(max_val)
+            
+            self.on_param_change() # Trigger a detection run with the potentially adjusted values
+            self.status_var.set("Slider ranges updated.")
+
+        except ValueError:
+            messagebox.showerror("Invalid Input", "Please enter valid integers for slider ranges.")
+        except Exception as e:
+            messagebox.showerror("Error", f"Failed to update slider ranges: {e}")
+
+    def set_parameter_controls_state(self, state):
         """Enable/disable parameter controls"""
-        controls = [
-            self.grey_thresh_slider, self.min_npix_slider, self.max_npix_slider,
-            self.min_npix_x_slider, self.max_npix_x_slider, self.min_npix_y_slider,
-            self.max_npix_y_slider, self.disco_slider, self.sum_grey_slider
-        ]
-        for control in controls:
-            control.config(state=tk.NORMAL if state else tk.DISABLED)
+        for config in self.slider_configs.values():
+            config['slider'].config(state=state)
 
     def load_image(self):
         """Load image and initialize parameters"""

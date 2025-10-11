@@ -7,22 +7,18 @@ and experiment configuration for PyPTV.
 
 import shutil
 from pathlib import Path
-from traits.api import HasTraits, Instance, List, Str, Bool, Any
 from pyptv.parameter_manager import ParameterManager
 
 
-class Paramset(HasTraits):
+class Paramset(object):
     """A parameter set with a name and YAML file path"""
-    name = Str()
-    yaml_path = Path()
     
-    def __init__(self, name: str, yaml_path: Path, **traits):
-        super().__init__(**traits)
+    def __init__(self, name: str, yaml_path: Path):
         self.name = name
         self.yaml_path = yaml_path
 
 
-class Experiment(HasTraits):
+class Experiment(object):
     """
     The Experiment class manages parameter sets and experiment configuration.
 
@@ -30,12 +26,8 @@ class Experiment(HasTraits):
     It delegates parameter management to ParameterManager while handling
     the organization of multiple parameter sets.
     """
-    active_params = Instance(Paramset)
-    paramsets = List(Instance(Paramset))
-    pm = Instance(ParameterManager)
     
-    def __init__(self, pm: ParameterManager = None, **traits):
-        super().__init__(**traits)
+    def __init__(self, pm: ParameterManager = None):
         self.paramsets = []
         self.pm = pm if pm is not None else ParameterManager()
         # If pm has a loaded YAML path, add it as a paramset and set active

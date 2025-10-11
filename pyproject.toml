@@ -43,26 +43,8 @@ dependencies = [
     "pytest>=8.4.1",
 ]
 
-# Optional dependencies for legacy compatibility
-[project.optional-dependencies]
-legacy = [
-    "traits>=6.4.0",
-    "traitsui>=7.4.0", 
-    "enable>=5.3.0",
-    "chaco>=5.1.0",
-    "PySide6>=6.0.0",
-]
-
-[project.urls]
-Homepage = "https://github.com/alexlib/pyptv"
-Documentation = "https://openptv-python.readthedocs.io"
-Repository = "https://github.com/alexlib/pyptv.git"
-Issues = "https://github.com/alexlib/pyptv/issues"
-OpenPTV = "http://www.openptv.net"
-
 [project.scripts]
 pyptv = "pyptv.pyptv_gui_ttk:main"
-pyptv-legacy = "pyptv.pyptv_gui:main"
 pyptv-demo = "pyptv.demo_matplotlib_gui:main"
 
 [tool.setuptools]

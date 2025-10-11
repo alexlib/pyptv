@@ -485,177 +485,397 @@ class MainParamsWindow(BaseParamWindow):
 
 class CalibParamsWindow(BaseParamWindow):
     """TTK version of Calibration Parameters GUI"""
-    
+
     def __init__(self, parent, experiment):
         super().__init__(parent, experiment, "Calibration Parameters")
         self.create_tabs()
         self.load_values()
-    
+
     def create_tabs(self):
         """Create calibration parameter tabs"""
-        self.create_orientation_tab()
+        self.create_images_data_tab()
+        self.create_detection_tab()
         self.create_manual_orientation_tab()
-    
-    def create_orientation_tab(self):
-        """Create Orientation tab"""
-        tab = self.create_tab("Orientation")
-        
-        ttk.Label(tab, text="Calibration orientation parameters").pack(pady=20)
-        
-        # Add orientation parameter widgets here
-        ttk.Label(tab, text="Fixp_x:").grid(row=0, column=0, sticky='w', pady=5)
-        self.add_widget(tab, "", 'entry', 'fixp_x').grid(row=0, column=1, sticky='ew', pady=5)
-        
-        ttk.Label(tab, text="Fixp_y:").grid(row=1, column=0, sticky='w', pady=5)
-        self.add_widget(tab, "", 'entry', 'fixp_y').grid(row=1, column=1, sticky='ew', pady=5)
-        
-        ttk.Label(tab, text="Fixp_z:").grid(row=2, column=0, sticky='w', pady=5)
-        self.add_widget(tab, "", 'entry', 'fixp_z').grid(row=2, column=1, sticky='ew', pady=5)
-        
-        tab.columnconfigure(1, weight=1)
-    
-    def create_manual_orientation_tab(self):
-        """Create Manual Orientation tab"""
-        tab = self.create_tab("Manual Orientation")
-        
-        ttk.Label(tab, text="Manual orientation parameters").pack(pady=20)
-        
-        # Add manual orientation widgets here
+        self.create_orientation_params_tab()
+        self.create_shaking_tab()
+        self.create_dumbbell_tab()
+
+    def create_images_data_tab(self):
+        tab = self.create_tab("Images Data")
+        self.add_widget(tab, "Split calib images?", 'checkbutton', 'cal_splitter').grid(row=0, column=0, columnspan=2, sticky='w', pady=5)
+
+        # Calibration images
+        cal_frame = ttk.LabelFrame(tab, text="Calibration Images")
+        cal_frame.grid(row=1, column=0, columnspan=2, sticky='ew', padx=5, pady=5)
         for i in range(4):
-            ttk.Label(tab, text=f"Camera {i+1} parameters:", font=('Arial', 10, 'bold')).grid(row=i*3, column=0, columnspan=2, sticky='w', pady=(10,5))
-            
-            ttk.Label(tab, text="X0:").grid(row=i*3+1, column=0, sticky='w', pady=2)
-            self.add_widget(tab, "", 'entry', f'x0_{i}').grid(row=i*3+1, column=1, sticky='ew', pady=2)
-            
-            ttk.Label(tab, text="Y0:").grid(row=i*3+2, column=0, sticky='w', pady=2)
-            self.add_widget(tab, "", 'entry', f'y0_{i}').grid(row=i*3+2, column=1, sticky='ew', pady=2)
-        
+            ttk.Label(cal_frame, text=f"Calib. pic cam {i+1}").grid(row=i, column=0, sticky='w', padx=5, pady=2)
+            self.add_widget(cal_frame, "", 'entry', f'cam_{i+1}').grid(row=i, column=1, sticky='ew', padx=5, pady=2)
+        cal_frame.columnconfigure(1, weight=1)
+
+        # Orientation data
+        ori_frame = ttk.LabelFrame(tab, text="Orientation Data")
+        ori_frame.grid(row=1, column=2, columnspan=2, sticky='ew', padx=5, pady=5)
+        for i in range(4):
+            ttk.Label(ori_frame, text=f"Orientation data cam {i+1}").grid(row=i, column=0, sticky='w', padx=5, pady=2)
+            self.add_widget(ori_frame, "", 'entry', f'ori_cam_{i+1}').grid(row=i, column=1, sticky='ew', padx=5, pady=2)
+        ori_frame.columnconfigure(1, weight=1)
+
+        # Coordinates file
+        ttk.Label(tab, text="File of Coordinates on plate").grid(row=2, column=0, sticky='w', pady=5)
+        self.add_widget(tab, "", 'entry', 'fixp_name').grid(row=2, column=1, columnspan=3, sticky='ew', pady=5)
+
         tab.columnconfigure(1, weight=1)
-    
+        tab.columnconfigure(3, weight=1)
+
+    def create_detection_tab(self):
+        tab = self.create_tab("Detection")
+        
+        # Image properties
+        props_frame = ttk.LabelFrame(tab, text="Image Properties")
+        props_frame.pack(fill='x', expand=True, padx=5, pady=5)
+        
+        ttk.Label(props_frame, text="Image size horizontal").grid(row=0, column=0, sticky='w', padx=5, pady=2)
+        self.add_widget(props_frame, "", 'entry', 'h_image_size').grid(row=0, column=1, sticky='ew', padx=5, pady=2)
+        ttk.Label(props_frame, text="Image size vertical").grid(row=1, column=0, sticky='w', padx=5, pady=2)
+        self.add_widget(props_frame, "", 'entry', 'v_image_size').grid(row=1, column=1, sticky='ew', padx=5, pady=2)
+        ttk.Label(props_frame, text="Pixel size horizontal").grid(row=0, column=2, sticky='w', padx=5, pady=2)
+        self.add_widget(props_frame, "", 'entry', 'h_pixel_size').grid(row=0, column=3, sticky='ew', padx=5, pady=2)
+        ttk.Label(props_frame, text="Pixel size vertical").grid(row=1, column=2, sticky='w', padx=5, pady=2)
+        self.add_widget(props_frame, "", 'entry', 'v_pixel_size').grid(row=1, column=3, sticky='ew', padx=5, pady=2)
+        props_frame.columnconfigure(1, weight=1)
+        props_frame.columnconfigure(3, weight=1)
+
+        # Thresholds
+        thresh_frame = ttk.LabelFrame(tab, text="Grayvalue Threshold")
+        thresh_frame.pack(fill='x', expand=True, padx=5, pady=5)
+        for i in range(4):
+            ttk.Label(thresh_frame, text=f"Image {i+1}").grid(row=0, column=i, sticky='w', padx=5)
+            self.add_widget(thresh_frame, "", 'entry', f'gvth_{i+1}').grid(row=1, column=i, sticky='ew', padx=5)
+            thresh_frame.columnconfigure(i, weight=1)
+
+        # Particle size params
+        parts_frame = ttk.LabelFrame(tab, text="Particle Size")
+        parts_frame.pack(fill='x', expand=True, padx=5, pady=5)
+        
+        ttk.Label(parts_frame, text="min npix").grid(row=0, column=0, sticky='w', padx=5, pady=2)
+        self.add_widget(parts_frame, "", 'entry', 'min_npix').grid(row=0, column=1)
+        ttk.Label(parts_frame, text="max npix").grid(row=1, column=0, sticky='w', padx=5, pady=2)
+        self.add_widget(parts_frame, "", 'entry', 'max_npix').grid(row=1, column=1)
+        
+        ttk.Label(parts_frame, text="min npix in x").grid(row=0, column=2, sticky='w', padx=5, pady=2)
+        self.add_widget(parts_frame, "", 'entry', 'min_npix_x').grid(row=0, column=3)
+        ttk.Label(parts_frame, text="max npix in x").grid(row=1, column=2, sticky='w', padx=5, pady=2)
+        self.add_widget(parts_frame, "", 'entry', 'max_npix_x').grid(row=1, column=3)
+
+        ttk.Label(parts_frame, text="min npix in y").grid(row=0, column=4, sticky='w', padx=5, pady=2)
+        self.add_widget(parts_frame, "", 'entry', 'min_npix_y').grid(row=0, column=5)
+        ttk.Label(parts_frame, text="max npix in y").grid(row=1, column=4, sticky='w', padx=5, pady=2)
+        self.add_widget(parts_frame, "", 'entry', 'max_npix_y').grid(row=1, column=5)
+
+        ttk.Label(parts_frame, text="Sum of greyvalue").grid(row=2, column=0, sticky='w', padx=5, pady=2)
+        self.add_widget(parts_frame, "", 'entry', 'sum_of_grey').grid(row=2, column=1)
+        ttk.Label(parts_frame, text="Tolerable discontinuity").grid(row=2, column=2, sticky='w', padx=5, pady=2)
+        self.add_widget(parts_frame, "", 'entry', 'tolerable_discontinuity').grid(row=2, column=3)
+        ttk.Label(parts_frame, text="Size of crosses").grid(row=2, column=4, sticky='w', padx=5, pady=2)
+        self.add_widget(parts_frame, "", 'entry', 'size_of_crosses').grid(row=2, column=5)
+
+    def create_manual_orientation_tab(self):
+        tab = self.create_tab("Manual Orientation")
+        for i in range(4):
+            frame = ttk.LabelFrame(tab, text=f"Image {i+1}")
+            frame.pack(fill='x', expand=True, padx=5, pady=5)
+            for j in range(4):
+                ttk.Label(frame, text=f"P{j+1}").grid(row=0, column=j*2, sticky='w', padx=5)
+                self.add_widget(frame, "", 'entry', f'img_{i+1}_p{j+1}').grid(row=0, column=j*2+1, padx=5)
+
+    def create_orientation_params_tab(self):
+        tab = self.create_tab("Orientation Params")
+        
+        frame1 = ttk.LabelFrame(tab, text="Flags")
+        frame1.pack(fill='x', expand=True, padx=5, pady=5)
+        self.add_widget(frame1, "Calibrate with different Z", 'checkbutton', 'Examine_Flag').pack(side='left', padx=5)
+        self.add_widget(frame1, "Combine preprocessed planes", 'checkbutton', 'Combine_Flag').pack(side='left', padx=5)
+
+        frame2 = ttk.LabelFrame(tab, text="Orientation Parameters")
+        frame2.pack(fill='x', expand=True, padx=5, pady=5)
+        ttk.Label(frame2, text="Point number of orientation").grid(row=0, column=0, sticky='w', padx=5, pady=2)
+        self.add_widget(frame2, "", 'entry', 'point_number_of_orientation').grid(row=0, column=1, padx=5, pady=2)
+        
+        self.add_widget(frame2, "cc", 'checkbutton', 'cc').grid(row=1, column=0, sticky='w')
+        self.add_widget(frame2, "xh", 'checkbutton', 'xh').grid(row=1, column=1, sticky='w')
+        self.add_widget(frame2, "yh", 'checkbutton', 'yh').grid(row=1, column=2, sticky='w')
+
+        frame3 = ttk.LabelFrame(tab, text="Lens distortion (Brown)")
+        frame3.pack(fill='x', expand=True, padx=5, pady=5)
+        self.add_widget(frame3, "k1", 'checkbutton', 'k1').grid(row=0, column=0, sticky='w')
+        self.add_widget(frame3, "k2", 'checkbutton', 'k2').grid(row=0, column=1, sticky='w')
+        self.add_widget(frame3, "k3", 'checkbutton', 'k3').grid(row=0, column=2, sticky='w')
+        self.add_widget(frame3, "p1", 'checkbutton', 'p1').grid(row=0, column=3, sticky='w')
+        self.add_widget(frame3, "p2", 'checkbutton', 'p2').grid(row=0, column=4, sticky='w')
+
+        frame4 = ttk.LabelFrame(tab, text="Affin transformation")
+        frame4.pack(fill='x', expand=True, padx=5, pady=5)
+        self.add_widget(frame4, "scale", 'checkbutton', 'scale').grid(row=0, column=0, sticky='w')
+        self.add_widget(frame4, "shear", 'checkbutton', 'shear').grid(row=0, column=1, sticky='w')
+        
+        self.add_widget(tab, "interfaces check box are available", 'checkbutton', 'interf').pack(pady=5)
+
+    def create_shaking_tab(self):
+        tab = self.create_tab("Shaking")
+        frame = ttk.LabelFrame(tab, text="Shaking calibration parameters")
+        frame.pack(fill='both', expand=True, padx=5, pady=5)
+        
+        ttk.Label(frame, text="shaking first frame").grid(row=0, column=0, sticky='w', padx=5, pady=2)
+        self.add_widget(frame, "", 'entry', 'shaking_first_frame').grid(row=0, column=1, sticky='ew', padx=5, pady=2)
+        ttk.Label(frame, text="shaking last frame").grid(row=1, column=0, sticky='w', padx=5, pady=2)
+        self.add_widget(frame, "", 'entry', 'shaking_last_frame').grid(row=1, column=1, sticky='ew', padx=5, pady=2)
+        ttk.Label(frame, text="shaking max num points").grid(row=2, column=0, sticky='w', padx=5, pady=2)
+        self.add_widget(frame, "", 'entry', 'shaking_max_num_points').grid(row=2, column=1, sticky='ew', padx=5, pady=2)
+        ttk.Label(frame, text="shaking max num frames").grid(row=3, column=0, sticky='w', padx=5, pady=2)
+        self.add_widget(frame, "", 'entry', 'shaking_max_num_frames').grid(row=3, column=1, sticky='ew', padx=5, pady=2)
+        frame.columnconfigure(1, weight=1)
+
+    def create_dumbbell_tab(self):
+        tab = self.create_tab("Dumbbell")
+        frame = ttk.LabelFrame(tab, text="Dumbbell calibration parameters")
+        frame.pack(fill='both', expand=True, padx=5, pady=5)
+
+        ttk.Label(frame, text="dumbbell epsilon").grid(row=0, column=0, sticky='w', padx=5, pady=2)
+        self.add_widget(frame, "", 'entry', 'dumbbell_eps').grid(row=0, column=1, sticky='ew', padx=5, pady=2)
+        ttk.Label(frame, text="dumbbell scale").grid(row=1, column=0, sticky='w', padx=5, pady=2)
+        self.add_widget(frame, "", 'entry', 'dumbbell_scale').grid(row=1, column=1, sticky='ew', padx=5, pady=2)
+        ttk.Label(frame, text="dumbbell gradient descent factor").grid(row=2, column=0, sticky='w', padx=5, pady=2)
+        self.add_widget(frame, "", 'entry', 'dumbbell_gradient_descent').grid(row=2, column=1, sticky='ew', padx=5, pady=2)
+        ttk.Label(frame, text="weight for dumbbell penalty").grid(row=3, column=0, sticky='w', padx=5, pady=2)
+        self.add_widget(frame, "", 'entry', 'dumbbell_penalty_weight').grid(row=3, column=1, sticky='ew', padx=5, pady=2)
+        ttk.Label(frame, text="step size through sequence").grid(row=4, column=0, sticky='w', padx=5, pady=2)
+        self.add_widget(frame, "", 'entry', 'dumbbell_step').grid(row=4, column=1, sticky='ew', padx=5, pady=2)
+        ttk.Label(frame, text="number of iterations per click").grid(row=5, column=0, sticky='w', padx=5, pady=2)
+        self.add_widget(frame, "", 'entry', 'dumbbell_niter').grid(row=5, column=1, sticky='ew', padx=5, pady=2)
+        frame.columnconfigure(1, weight=1)
+
     def load_values(self):
         """Load calibration parameter values"""
         params = self.experiment.pm.parameters
-        
-        # Load cal_ori parameters
+        num_cams = self.experiment.get_n_cam()
+
+        # PTV params
+        ptv_params = params.get('ptv', {})
+        self.set_widget_value('h_image_size', ptv_params.get('imx', 1024))
+        self.set_widget_value('v_image_size', ptv_params.get('imy', 1024))
+        self.set_widget_value('h_pixel_size', ptv_params.get('pix_x', 0.01))
+        self.set_widget_value('v_pixel_size', ptv_params.get('pix_y', 0.01))
+
+        # Cal_ori params
         cal_ori_params = params.get('cal_ori', {})
-        self.set_widget_value('fixp_x', str(cal_ori_params.get('fixp_x', 0.0)))
-        self.set_widget_value('fixp_y', str(cal_ori_params.get('fixp_y', 0.0)))
-        self.set_widget_value('fixp_z', str(cal_ori_params.get('fixp_z', 0.0)))
-        
-        # Load manual orientation parameters
-        man_ori_params = params.get('man_ori', {})
+        self.set_widget_value('cal_splitter', cal_ori_params.get('cal_splitter', False))
+        self.set_widget_value('fixp_name', cal_ori_params.get('fixp_name', ''))
+        cal_names = cal_ori_params.get('img_cal_name', [])
+        ori_names = cal_ori_params.get('img_ori', [])
         for i in range(4):
-            cam_params = man_ori_params.get(f'cam_{i}', {})
-            self.set_widget_value(f'x0_{i}', str(cam_params.get('x0', 0.0)))
-            self.set_widget_value(f'y0_{i}', str(cam_params.get('y0', 0.0)))
-    
+            self.set_widget_value(f'cam_{i+1}', cal_names[i] if i < len(cal_names) else '')
+            self.set_widget_value(f'ori_cam_{i+1}', ori_names[i] if i < len(ori_names) else '')
+
+        # Detect_plate params
+        detect_plate_params = params.get('detect_plate', {})
+        for i in range(4):
+            self.set_widget_value(f'gvth_{i+1}', detect_plate_params.get(f'gvth_{i+1}', 0))
+        self.set_widget_value('tolerable_discontinuity', detect_plate_params.get('tol_dis', 0))
+        self.set_widget_value('min_npix', detect_plate_params.get('min_npix', 1))
+        self.set_widget_value('max_npix', detect_plate_params.get('max_npix', 100))
+        self.set_widget_value('min_npix_x', detect_plate_params.get('min_npix_x', 1))
+        self.set_widget_value('max_npix_x', detect_plate_params.get('max_npix_x', 100))
+        self.set_widget_value('min_npix_y', detect_plate_params.get('min_npix_y', 1))
+        self.set_widget_value('max_npix_y', detect_plate_params.get('max_npix_y', 100))
+        self.set_widget_value('sum_of_grey', detect_plate_params.get('sum_grey', 0))
+        self.set_widget_value('size_of_crosses', detect_plate_params.get('size_cross', 3))
+
+        # Man_ori params
+        man_ori_params = params.get('man_ori', {})
+        nr = man_ori_params.get('nr', [0]*16)
+        for i in range(4):
+            for j in range(4):
+                self.set_widget_value(f'img_{i+1}_p{j+1}', nr[i*4+j] if (i*4+j) < len(nr) else 0)
+
+        # Examine params
+        examine_params = params.get('examine', {})
+        self.set_widget_value('Examine_Flag', examine_params.get('Examine_Flag', False))
+        self.set_widget_value('Combine_Flag', examine_params.get('Combine_Flag', False))
+
+        # Orient params
+        orient_params = params.get('orient', {})
+        self.set_widget_value('point_number_of_orientation', orient_params.get('pnfo', 0))
+        self.set_widget_value('cc', orient_params.get('cc', False))
+        self.set_widget_value('xh', orient_params.get('xh', False))
+        self.set_widget_value('yh', orient_params.get('yh', False))
+        self.set_widget_value('k1', orient_params.get('k1', False))
+        self.set_widget_value('k2', orient_params.get('k2', False))
+        self.set_widget_value('k3', orient_params.get('k3', False))
+        self.set_widget_value('p1', orient_params.get('p1', False))
+        self.set_widget_value('p2', orient_params.get('p2', False))
+        self.set_widget_value('scale', orient_params.get('scale', False))
+        self.set_widget_value('shear', orient_params.get('shear', False))
+        self.set_widget_value('interf', orient_params.get('interf', False))
+
+        # Shaking params
+        shaking_params = params.get('shaking', {})
+        self.set_widget_value('shaking_first_frame', shaking_params.get('shaking_first_frame', 0))
+        self.set_widget_value('shaking_last_frame', shaking_params.get('shaking_last_frame', 0))
+        self.set_widget_value('shaking_max_num_points', shaking_params.get('shaking_max_num_points', 0))
+        self.set_widget_value('shaking_max_num_frames', shaking_params.get('shaking_max_num_frames', 0))
+
+        # Dumbbell params
+        dumbbell_params = params.get('dumbbell', {})
+        self.set_widget_value('dumbbell_eps', dumbbell_params.get('dumbbell_eps', 0.0))
+        self.set_widget_value('dumbbell_scale', dumbbell_params.get('dumbbell_scale', 0.0))
+        self.set_widget_value('dumbbell_gradient_descent', dumbbell_params.get('dumbbell_gradient_descent', 0.0))
+        self.set_widget_value('dumbbell_penalty_weight', dumbbell_params.get('dumbbell_penalty_weight', 0.0))
+        self.set_widget_value('dumbbell_step', dumbbell_params.get('dumbbell_step', 0))
+        self.set_widget_value('dumbbell_niter', dumbbell_params.get('dumbbell_niter', 0))
+
     def save_values(self):
         """Save calibration parameter values"""
         params = self.experiment.pm.parameters
-        
-        # Save cal_ori parameters
-        if 'cal_ori' not in params:
-            params['cal_ori'] = {}
-        
-        params['cal_ori'].update({
-            'fixp_x': float(self.get_widget_value('fixp_x')),
-            'fixp_y': float(self.get_widget_value('fixp_y')),
-            'fixp_z': float(self.get_widget_value('fixp_z')),
-        })
-        
-        # Save manual orientation parameters
-        if 'man_ori' not in params:
-            params['man_ori'] = {}
-        
+        num_cams = self.experiment.get_n_cam()
+
+        # Ensure sections exist
+        for key in ['ptv', 'cal_ori', 'detect_plate', 'man_ori', 'examine', 'orient', 'shaking', 'dumbbell']:
+            if key not in params:
+                params[key] = {}
+
+        # PTV params
+        params['ptv']['imx'] = int(self.get_widget_value('h_image_size'))
+        params['ptv']['imy'] = int(self.get_widget_value('v_image_size'))
+        params['ptv']['pix_x'] = float(self.get_widget_value('h_pixel_size'))
+        params['ptv']['pix_y'] = float(self.get_widget_value('v_pixel_size'))
+
+        # Cal_ori params
+        params['cal_ori']['cal_splitter'] = self.get_widget_value('cal_splitter')
+        params['cal_ori']['fixp_name'] = self.get_widget_value('fixp_name')
+        params['cal_ori']['img_cal_name'] = [self.get_widget_value(f'cam_{i+1}') for i in range(num_cams)]
+        params['cal_ori']['img_ori'] = [self.get_widget_value(f'ori_cam_{i+1}') for i in range(num_cams)]
+
+        # Detect_plate params
         for i in range(4):
-            cam_key = f'cam_{i}'
-            if cam_key not in params['man_ori']:
-                params['man_ori'][cam_key] = {}
-            
-            params['man_ori'][cam_key].update({
-                'x0': float(self.get_widget_value(f'x0_{i}')),
-                'y0': float(self.get_widget_value(f'y0_{i}')),
-            })
+            params['detect_plate'][f'gvth_{i+1}'] = int(self.get_widget_value(f'gvth_{i+1}'))
+        params['detect_plate']['tol_dis'] = int(self.get_widget_value('tolerable_discontinuity'))
+        params['detect_plate']['min_npix'] = int(self.get_widget_value('min_npix'))
+        params['detect_plate']['max_npix'] = int(self.get_widget_value('max_npix'))
+        params['detect_plate']['min_npix_x'] = int(self.get_widget_value('min_npix_x'))
+        params['detect_plate']['max_npix_x'] = int(self.get_widget_value('max_npix_x'))
+        params['detect_plate']['min_npix_y'] = int(self.get_widget_value('min_npix_y'))
+        params['detect_plate']['max_npix_y'] = int(self.get_widget_value('max_npix_y'))
+        params['detect_plate']['sum_grey'] = int(self.get_widget_value('sum_of_grey'))
+        params['detect_plate']['size_cross'] = int(self.get_widget_value('size_of_crosses'))
+
+        # Man_ori params
+        nr = []
+        for i in range(4):
+            for j in range(4):
+                nr.append(int(self.get_widget_value(f'img_{i+1}_p{j+1}')))
+        params['man_ori']['nr'] = nr
+
+        # Examine params
+        params['examine']['Examine_Flag'] = self.get_widget_value('Examine_Flag')
+        params['examine']['Combine_Flag'] = self.get_widget_value('Combine_Flag')
+
+        # Orient params
+        params['orient']['pnfo'] = int(self.get_widget_value('point_number_of_orientation'))
+        params['orient']['cc'] = self.get_widget_value('cc')
+        params['orient']['xh'] = self.get_widget_value('xh')
+        params['orient']['yh'] = self.get_widget_value('yh')
+        params['orient']['k1'] = self.get_widget_value('k1')
+        params['orient']['k2'] = self.get_widget_value('k2')
+        params['orient']['k3'] = self.get_widget_value('k3')
+        params['orient']['p1'] = self.get_widget_value('p1')
+        params['orient']['p2'] = self.get_widget_value('p2')
+        params['orient']['scale'] = self.get_widget_value('scale')
+        params['orient']['shear'] = self.get_widget_value('shear')
+        params['orient']['interf'] = self.get_widget_value('interf')
+
+        # Shaking params
+        params['shaking']['shaking_first_frame'] = int(self.get_widget_value('shaking_first_frame'))
+        params['shaking']['shaking_last_frame'] = int(self.get_widget_value('shaking_last_frame'))
+        params['shaking']['shaking_max_num_points'] = int(self.get_widget_value('shaking_max_num_points'))
+        params['shaking']['shaking_max_num_frames'] = int(self.get_widget_value('shaking_max_num_frames'))
+
+        # Dumbbell params
+        params['dumbbell']['dumbbell_eps'] = float(self.get_widget_value('dumbbell_eps'))
+        params['dumbbell']['dumbbell_scale'] = float(self.get_widget_value('dumbbell_scale'))
+        params['dumbbell']['dumbbell_gradient_descent'] = float(self.get_widget_value('dumbbell_gradient_descent'))
+        params['dumbbell']['dumbbell_penalty_weight'] = float(self.get_widget_value('dumbbell_penalty_weight'))
+        params['dumbbell']['dumbbell_step'] = int(self.get_widget_value('dumbbell_step'))
+        params['dumbbell']['dumbbell_niter'] = int(self.get_widget_value('dumbbell_niter'))
 
 
 class TrackingParamsWindow(BaseParamWindow):
     """TTK version of Tracking Parameters GUI"""
-    
+
     def __init__(self, parent, experiment):
         super().__init__(parent, experiment, "Tracking Parameters")
-        self.create_tabs()
+        self.geometry('500x400')
+        self.create_widgets()
         self.load_values()
-    
-    def create_tabs(self):
-        """Create tracking parameter tabs"""
-        self.create_tracking_tab()
-        self.create_examine_tab()
-    
-    def create_tracking_tab(self):
-        """Create Tracking tab"""
-        tab = self.create_tab("Tracking")
+
+    def create_widgets(self):
+        """Create all tracking parameter widgets in a single tab"""
+        tab = self.create_tab("Tracking Parameters")
         
-        ttk.Label(tab, text="Velocity range [mm/timestep]:").grid(row=0, column=0, sticky='w', pady=5)
-        self.add_widget(tab, "", 'entry', 'dvxmin').grid(row=0, column=1, sticky='ew', pady=5)
-        self.add_widget(tab, "", 'entry', 'dvxmax').grid(row=0, column=2, sticky='ew', pady=5)
-        
-        ttk.Label(tab, text="Acceleration range [mm/timestep²]:").grid(row=1, column=0, sticky='w', pady=5)
-        self.add_widget(tab, "", 'entry', 'daxmin').grid(row=1, column=1, sticky='ew', pady=5)
-        self.add_widget(tab, "", 'entry', 'daxmax').grid(row=1, column=2, sticky='ew', pady=5)
-        
-        ttk.Label(tab, text="Angle range [rad]:").grid(row=2, column=0, sticky='w', pady=5)
-        self.add_widget(tab, "", 'entry', 'angle_acc').grid(row=2, column=1, sticky='ew', pady=5)
-        
-        for i in range(3):
-            tab.columnconfigure(i, weight=1)
-    
-    def create_examine_tab(self):
-        """Create Examine tab"""
-        tab = self.create_tab("Examine")
-        
-        ttk.Label(tab, text="Examine parameters").pack(pady=20)
-        
-        ttk.Label(tab, text="Post processing flag:").grid(row=0, column=0, sticky='w', pady=5)
-        self.add_widget(tab, "", 'checkbutton', 'post_flag').grid(row=0, column=1, sticky='w', pady=5)
-        
-        tab.columnconfigure(1, weight=1)
-    
+        frame = ttk.Frame(tab)
+        frame.pack(fill='both', expand=True, padx=10, pady=10)
+
+        ttk.Label(frame, text="dvxmin:").grid(row=0, column=0, sticky='w', pady=2)
+        self.add_widget(frame, "", 'entry', 'dvxmin').grid(row=0, column=1, sticky='ew', pady=2)
+        ttk.Label(frame, text="dvxmax:").grid(row=0, column=2, sticky='w', padx=5, pady=2)
+        self.add_widget(frame, "", 'entry', 'dvxmax').grid(row=0, column=3, sticky='ew', pady=2)
+
+        ttk.Label(frame, text="dvymin:").grid(row=1, column=0, sticky='w', pady=2)
+        self.add_widget(frame, "", 'entry', 'dvymin').grid(row=1, column=1, sticky='ew', pady=2)
+        ttk.Label(frame, text="dvymax:").grid(row=1, column=2, sticky='w', padx=5, pady=2)
+        self.add_widget(frame, "", 'entry', 'dvymax').grid(row=1, column=3, sticky='ew', pady=2)
+
+        ttk.Label(frame, text="dvzmin:").grid(row=2, column=0, sticky='w', pady=2)
+        self.add_widget(frame, "", 'entry', 'dvzmin').grid(row=2, column=1, sticky='ew', pady=2)
+        ttk.Label(frame, text="dvzmax:").grid(row=2, column=2, sticky='w', padx=5, pady=2)
+        self.add_widget(frame, "", 'entry', 'dvzmax').grid(row=2, column=3, sticky='ew', pady=2)
+
+        ttk.Label(frame, text="angle [gon]:").grid(row=3, column=0, sticky='w', pady=5)
+        self.add_widget(frame, "", 'entry', 'angle').grid(row=3, column=1, columnspan=3, sticky='ew', pady=5)
+
+        ttk.Label(frame, text="dacc:").grid(row=4, column=0, sticky='w', pady=5)
+        self.add_widget(frame, "", 'entry', 'dacc').grid(row=4, column=1, columnspan=3, sticky='ew', pady=5)
+
+        self.add_widget(frame, "Add new particles?", 'checkbutton', 'flagNewParticles').grid(row=5, column=0, columnspan=4, sticky='w', pady=10)
+
+        frame.columnconfigure(1, weight=1)
+        frame.columnconfigure(3, weight=1)
+
     def load_values(self):
         """Load tracking parameter values"""
-        params = self.experiment.pm.parameters
-        
-        # Load tracking parameters
-        track_params = params.get('tracking', {})
-        self.set_widget_value('dvxmin', str(track_params.get('dvxmin', -10.0)))
-        self.set_widget_value('dvxmax', str(track_params.get('dvxmax', 10.0)))
-        self.set_widget_value('daxmin', str(track_params.get('daxmin', -1.0)))
-        self.set_widget_value('daxmax', str(track_params.get('daxmax', 1.0)))
-        self.set_widget_value('angle_acc', str(track_params.get('angle_acc', 0.1)))
-        
-        # Load examine parameters
-        examine_params = params.get('examine', {})
-        self.set_widget_value('post_flag', examine_params.get('post_flag', False))
-    
+        params = self.experiment.pm.parameters.get('track', {})
+        self.set_widget_value('dvxmin', params.get('dvxmin', 0.0))
+        self.set_widget_value('dvxmax', params.get('dvxmax', 0.0))
+        self.set_widget_value('dvymin', params.get('dvymin', 0.0))
+        self.set_widget_value('dvymax', params.get('dvymax', 0.0))
+        self.set_widget_value('dvzmin', params.get('dvzmin', 0.0))
+        self.set_widget_value('dvzmax', params.get('dvzmax', 0.0))
+        self.set_widget_value('angle', params.get('angle', 0.0))
+        self.set_widget_value('dacc', params.get('dacc', 0.0))
+        self.set_widget_value('flagNewParticles', params.get('flagNewParticles', True))
+
     def save_values(self):
         """Save tracking parameter values"""
-        params = self.experiment.pm.parameters
-        
-        # Save tracking parameters
-        if 'tracking' not in params:
-            params['tracking'] = {}
-        
-        params['tracking'].update({
+        if 'track' not in self.experiment.pm.parameters:
+            self.experiment.pm.parameters['track'] = {}
+            
+        self.experiment.pm.parameters['track'].update({
             'dvxmin': float(self.get_widget_value('dvxmin')),
             'dvxmax': float(self.get_widget_value('dvxmax')),
-            'daxmin': float(self.get_widget_value('daxmin')),
-            'daxmax': float(self.get_widget_value('daxmax')),
-            'angle_acc': float(self.get_widget_value('angle_acc')),
-        })
-        
-        # Save examine parameters
-        if 'examine' not in params:
-            params['examine'] = {}
-        
-        params['examine'].update({
-            'post_flag': self.get_widget_value('post_flag'),
+            'dvymin': float(self.get_widget_value('dvymin')),
+            'dvymax': float(self.get_widget_value('dvymax')),
+            'dvzmin': float(self.get_widget_value('dvzmin')),
+            'dvzmax': float(self.get_widget_value('dvzmax')),
+            'angle': float(self.get_widget_value('angle')),
+            'dacc': float(self.get_widget_value('dacc')),
+            'flagNewParticles': self.get_widget_value('flagNewParticles')
         })
