@@ -1704,7 +1704,6 @@ class EnhancedMainApp(BaseWindow):
             self.rebuild_camera_layout()
 
             self.status_var.set(f"Loaded: {Path(path).name}")
-            messagebox.showinfo("Success", f"Loaded experiment from {Path(path).name}")
         except Exception as e:
             messagebox.showerror("Error", f"Could not load experiment:\n{e}")
         finally:
@@ -1715,7 +1714,6 @@ class EnhancedMainApp(BaseWindow):
         if self.experiment:
             self.status_var.set("Saving experiment...")
             # TODO: Implement save
-            messagebox.showinfo("Save", "Experiment saved successfully")
         else:
             messagebox.showwarning("Warning", "No experiment to save")
 
@@ -1941,109 +1939,35 @@ Use View → Camera Count to change the number of cameras dynamically.
         print("Init action called")
     
     def highpass_action(self):
-        """High pass filter action - applies highpass filter using optv directly"""
-        if not hasattr(self, 'experiment') or self.experiment is None:
-            messagebox.showerror("Error", "No experiment loaded. Please initialize first.")
+        """High pass filter action - calls the main preprocessing function."""
+        if not self.pass_init:
+            messagebox.showerror("Error", "Please initialize the system first.")
             return
-            
-        if not hasattr(self, 'orig_images') or not self.orig_images:
-            messagebox.showerror("Error", "No images loaded. Please initialize first.")
-            return
-            
+
         self.status_var.set("Running high pass filter...")
         self.progress.start()
         
         try:
-            from optv.image_processing import preprocess_image
-            from optv.parameters import ControlParams
-            from scipy.ndimage import gaussian_filter
-            
-            # Get PTV parameters
             ptv_params = self.experiment.get_parameter('ptv')
             if not ptv_params:
-                messagebox.showerror("Error", "PTV parameters not found")
-                self.progress.stop()
-                return
+                raise ValueError("PTV parameters not found in experiment.")
+
+            # Delegate all preprocessing to the dedicated function
+            processed_images = ptv.py_pre_processing_c(
+                self.num_cams, self.orig_images, ptv_params
+            )
             
-            print("High pass filter started")
-            
-            # Check invert setting
-            if ptv_params.get('inverse', False):
-                print("Inverting images")
-                for i, im in enumerate(self.orig_images):
-                    self.orig_images[i] = 255 - im  # Simple negative
-            
-            # Check mask flag and apply masks if needed
-            if ptv_params.get('mask_flag', False):
-                print("Applying masks")
-                try:
-                    for i in range(len(self.orig_images)):
-                        img_names = self.experiment.get_parameter('img_name')
-                        if img_names and i < len(img_names):
-                            mask_path = img_names[i].replace('.tif', '_mask.tif')
-                            if os.path.exists(mask_path):
-                                from skimage import io
-                                mask = io.imread(mask_path)
-                                if mask.ndim == 3:
-                                    mask = mask[:, :, 0]  # Use first channel if RGB
-                                # Apply mask (subtract mask from image)
-                                self.orig_images[i] = np.clip(
-                                    self.orig_images[i].astype(np.int16) - mask.astype(np.int16), 
-                                    0, 255
-                                ).astype(np.uint8)
-                except Exception as e:
-                    print(f"Warning: Failed to apply masks: {e}")
-            
-            # Apply highpass filter using scipy (fallback implementation)
-            print("Applying highpass filter...")
-            processed_images = []
-            
-            for i, img in enumerate(self.orig_images):
-                try:
-                    # Simple highpass filter using Gaussian blur subtraction
-                    # This is a common highpass filter technique
-                    sigma = 5.0  # Gaussian blur sigma
-                    
-                    # Convert to float for processing
-                    img_float = img.astype(np.float32)
-                    
-                    # Create lowpass version using Gaussian blur
-                    lowpass = gaussian_filter(img_float, sigma=sigma)
-                    
-                    # Highpass = original - lowpass
-                    highpass = img_float - lowpass
-                    
-                    # Add offset to center around 128 and clip to valid range
-                    highpass_centered = np.clip(highpass + 128, 0, 255)
-                    
-                    # Convert back to uint8
-                    processed_img = highpass_centered.astype(np.uint8)
-                    processed_images.append(processed_img)
-                    
-                    print(f"Processed camera {i+1}: {img.shape} -> {processed_img.shape}")
-                    
-                except Exception as e:
-                    print(f"Warning: Failed to process camera {i+1}: {e}")
-                    # Use original image if processing fails
-                    processed_images.append(img.copy())
-            
-            # Update orig_images with processed images
-            self.orig_images = processed_images
-            
-            # Update camera displays with processed images
-            self.update_camera_displays()
-            
-            print("High pass filter finished")
-            self.progress.stop()
-            self.status_var.set("High pass filter completed")
-            messagebox.showinfo("High Pass Filter", "High pass filter processing completed")
+            # Update the display with the results
+            self.update_plots(processed_images)
+            self.status_var.set("High pass filter applied.")
             
         except Exception as e:
+            self.status_var.set(f"High pass filter failed: {e}")
+            messagebox.showerror("Error", f"High pass filter failed: {e}")
+            import traceback
+            traceback.print_exc()
+        finally:
             self.progress.stop()
-            self.status_var.set("High pass filter failed")
-            error_msg = f"High pass filter failed: {str(e)}"
-            print(error_msg)
-            messagebox.showerror("Error", error_msg)
     
     def img_coord_action(self):
         """Image coordinates action - runs detection function"""
@@ -2096,7 +2020,6 @@ Use View → Camera Count to change the number of cameras dynamically.
             # Update status
             total_detections = sum(len(row) for row in self.detections)
             self.status_var.set(f"Detection finished - {total_detections} targets detected")
-            messagebox.showinfo("Image Coordinates", f"Detection completed.\n{total_detections} targets detected across all cameras.")
             
         except Exception as e:
             error_msg = f"Detection failed: {str(e)}"
@@ -2142,8 +2065,7 @@ Use View → Camera Count to change the number of cameras dynamically.
             
             # Update status with results
             total_correspondences = sum(len(subset) for subset in self.sorted_pos)
-            self.status_var.set(f"Correspondences finished - {total_correspondences} correspondences found")
-            messagebox.showinfo("Correspondences", f"Correspondence processing completed.\n{total_correspondences} correspondences found.")
+            self.status_var.set(f"Correspondence completed: {total_correspondences} found")
             
         except Exception as e:
             error_msg = f"Correspondence processing failed: {str(e)}"
@@ -2170,8 +2092,7 @@ Use View → Camera Count to change the number of cameras dynamically.
         # TODO: Implement 3D position extraction
         print("3D position computation started")
         self.after(1500, lambda: self.progress.stop())
-        self.after(1500, lambda: self.status_var.set("3D positions computed"))
-        messagebox.showinfo("3D Positions", "3D position extraction completed")
+        self.status_var.set("3D position extraction completed")
     
     def calib_action(self):
         """Calibration action - initializes calibration GUI"""
@@ -2189,7 +2110,7 @@ Use View → Camera Count to change the number of cameras dynamically.
         print("Sequence processing started")
         self.after(3000, lambda: self.progress.stop())
         self.after(3000, lambda: self.status_var.set("Sequence processing finished"))
-        messagebox.showinfo("Sequence", "Sequence processing completed")
+        self.status_var.set("Sequence processing completed")
     
     def detect_part_track(self):
         """Detect particles and track - shows detected particles"""
@@ -2199,8 +2120,7 @@ Use View → Camera Count to change the number of cameras dynamically.
         # TODO: Implement particle detection and tracking display
         print("Starting detect_part_track")
         self.after(2500, lambda: self.progress.stop())
-        self.after(2500, lambda: self.status_var.set("Particle detection finished"))
-        messagebox.showinfo("Detected Particles", "Particle detection and tracking completed")
+        self.status_var.set("Particle detection and tracking completed")
     
     def track_no_disp_action(self):
         """Tracking without display - uses ptv.py_trackcorr_loop(..) binding"""
@@ -2210,8 +2130,7 @@ Use View → Camera Count to change the number of cameras dynamically.
         # TODO: Implement tracking without display
         print("Tracking without display started")
         self.after(4000, lambda: self.progress.stop())
-        self.after(4000, lambda: self.status_var.set("Tracking finished"))
-        messagebox.showinfo("Tracking", "Tracking without display completed")
+        self.status_var.set("Tracking without display completed")
     
     def track_back_action(self):
         """Tracking backwards action"""
@@ -2221,8 +2140,7 @@ Use View → Camera Count to change the number of cameras dynamically.
         # TODO: Implement backward tracking
         print("Starting backward tracking")
         self.after(3000, lambda: self.progress.stop())
-        self.after(3000, lambda: self.status_var.set("Backward tracking finished"))
-        messagebox.showinfo("Tracking Backwards", "Backward tracking completed")
+        self.status_var.set("Backward tracking completed")
     
     def traject_action_flowtracks(self):
         """Show trajectories using flowtracks"""
@@ -2232,8 +2150,7 @@ Use View → Camera Count to change the number of cameras dynamically.
         # TODO: Implement trajectory display using flowtracks
         print("Loading trajectories using flowtracks")
         self.after(2000, lambda: self.progress.stop())
-        self.after(2000, lambda: self.status_var.set("Trajectories loaded"))
-        messagebox.showinfo("Show Trajectories", "Trajectory visualization completed")
+        self.status_var.set("Trajectory visualization completed")
     
     def ptv_is_to_paraview(self):
         """Save Paraview files - converts ptv_is.# to Paraview format"""
@@ -2243,8 +2160,7 @@ Use View → Camera Count to change the number of cameras dynamically.
         # TODO: Implement Paraview file conversion
         print("Saving trajectories for Paraview")
         self.after(2500, lambda: self.progress.stop())
-        self.after(2500, lambda: self.status_var.set("Paraview files saved"))
-        messagebox.showinfo("Save Paraview Files", "Paraview file conversion completed")
+        self.status_var.set("Paraview file conversion completed")
     
     def plugin_action(self):
         """Configure plugins using GUI"""

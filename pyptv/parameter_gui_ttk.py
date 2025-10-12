@@ -112,7 +112,6 @@ class BaseParamWindow(tb.Window):
         try:
             self.save_values()
             self.experiment.save_parameters()
-            messagebox.showinfo("Success", "Parameters saved successfully!")
             self.destroy()
         except Exception as e:
             messagebox.showerror("Error", f"Failed to save parameters: {e}")

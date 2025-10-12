@@ -42,7 +42,7 @@ class CodeEditorFrame(ttk.Frame):
         try:
             content = self.text_widget.get('1.0', 'end-1c') # -1c to exclude trailing newline
             self.file_path.write_text(content, encoding='utf-8')
-            messagebox.showinfo("Success", f"Saved {self.file_path.name}", parent=self)
+            print(f"Saved {self.file_path.name}")
         except Exception as e:
             messagebox.showerror("Save Error", f"Failed to save file: {e}", parent=self)
 
