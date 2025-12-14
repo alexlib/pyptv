@@ -304,12 +304,12 @@ class CameraWindow(HasTraits):
         """
         dx, dy = 2, 2  # minimum allowable dx,dy
         x1f, y1f, x2f, y2f = [], [], [], []
-        for i in range(len(x1)):
-            if abs(x1[i] - x2[i]) > dx or abs(y1[i] - y2[i]) > dy:
-                x1f.append(x1[i])
-                y1f.append(y1[i])
-                x2f.append(x2[i])
-                y2f.append(y2[i])
+        for x1_val, y1_val, x2_val, y2_val in zip(x1, y1, x2, y2):
+            if abs(x1_val - x2_val) > dx or abs(y1_val - y2_val) > dy:
+                x1f.append(x1_val)
+                y1f.append(y1_val)
+                x2f.append(x2_val)
+                y2f.append(y2_val)
         return x1f, y1f, x2f, y2f
 
     def drawline(self, str_x, str_y, x1, y1, x2, y2, color1):
@@ -492,11 +492,10 @@ class TreeMenuHandler(Handler):
                 if temp_img.ndim > 2:
                     temp_img = rgb2gray(temp_img)                
                 splitted_images = ptv.image_split(temp_img)
-                for i in range(len(mainGui.camera_list)):
-                    mainGui.orig_images[i] = img_as_ubyte(splitted_images[i])
+                for i, split_img in enumerate(splitted_images):
+                    mainGui.orig_images[i] = img_as_ubyte(split_img)
         else:
-            for i in range(len(mainGui.camera_list)):
-                imname = ptv_params['img_name'][i]
+            for i, imname in enumerate(ptv_params['img_name']):
                 if Path(imname).exists():
                     print(f"Reading image {imname}")
                     im = imread(imname)
