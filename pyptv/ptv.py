@@ -403,7 +403,7 @@ def py_determination_proc_c(
     concatenated_corresp = np.concatenate(sorted_corresp, axis=1)
 
     flat = np.array(
-        [corrected[i].get_by_pnrs(concatenated_corresp[i]) for i in range(num_cams)]
+        [corr.get_by_pnrs(corresp) for corr, corresp in zip(corrected, concatenated_corresp)]
     )
 
     pos, _ = point_positions(flat.transpose(1, 0, 2), cpar, cals, vpar)
@@ -591,7 +591,7 @@ def py_sequence_loop(exp) -> None:
         sorted_pos = np.concatenate(sorted_pos, axis=1)
         sorted_corresp = np.concatenate(sorted_corresp, axis=1)
         flat = np.array(
-            [corrected[i].get_by_pnrs(sorted_corresp[i]) for i in range(len(exp.cals))]
+            [corr.get_by_pnrs(corresp) for corr, corresp in zip(corrected, sorted_corresp)]
         )
         pos, _ = point_positions(flat.transpose(1, 0, 2), exp.cpar, exp.cals, exp.vpar)
         if len(exp.cals) < 4:

@@ -731,8 +731,8 @@ class DetectionGUI(HasTraits):
         """Resets all the images and overlays"""
         self.camera[0]._plot.delplot(*self.camera[0]._plot.plots.keys())
         self.camera[0]._plot.overlays = []
-        for j in range(len(self.camera[0]._quiverplots)):
-            self.camera[0]._plot.remove(self.camera[0]._quiverplots[j])
+        for quiver in self.camera[0]._quiverplots:
+            self.camera[0]._plot.remove(quiver)
         self.camera[0]._quiverplots = []
 
     def reset_show_images(self):

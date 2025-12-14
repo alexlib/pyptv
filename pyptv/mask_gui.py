@@ -325,8 +325,8 @@ class MaskGUI(HasTraits):
         ) = ptv.py_start_proc_c(self.experiment.pm)
 
         self.images = []
+        ptv_params = self.experiment.get_parameter('ptv')
         for i in range(len(self.camera)):
-            ptv_params = self.experiment.get_parameter('ptv')
             imname = ptv_params['img_name'][i] if ptv_params else ""
             im = imread(imname)
             if im.ndim > 2:

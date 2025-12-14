@@ -1289,8 +1289,8 @@ class MainGUI(HasTraits):
             self.camera_list[i]._plot.delplot(*plot_list[0:])
             self.camera_list[i]._plot.tools = []
             self.camera_list[i]._plot.request_redraw()
-            for j in range(len(self.camera_list[i]._quiverplots)):
-                self.camera_list[i]._plot.remove(self.camera_list[i]._quiverplots[j])
+            for quiver in self.camera_list[i]._quiverplots:
+                self.camera_list[i]._plot.remove(quiver)
             self.camera_list[i]._quiverplots = []
             self.camera_list[i].right_p_x0 = []
             self.camera_list[i].right_p_y0 = []

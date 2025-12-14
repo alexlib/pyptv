@@ -460,14 +460,14 @@ class CalibrationGUI(HasTraits):
                 if temp_img.ndim > 2:
                     im = rgb2gray(temp_img)
                 splitted_images = ptv.image_split(temp_img)
-                for i in range(len(self.camera)):
-                    self.cal_images.append(img_as_ubyte(splitted_images[i]))
+                for split_img in splitted_images:
+                    self.cal_images.append(img_as_ubyte(split_img))
             else:
                 print(f"Calibration image not found: {imname}")
-                for i in range(len(self.camera)):
+                for _ in self.camera:
                     self.cal_images.append(img_as_ubyte(np.zeros((ptv_params['imy'], ptv_params['imx']), dtype=np.uint8)))
         else:
-            for i in range(len(self.camera)):
+            for i, cam in enumerate(self.camera):
                 imname = self.get_parameter('cal_ori')['img_cal_name'][i]
                 if Path(imname).exists():
                     im = imread(imname)
@@ -792,9 +792,8 @@ class CalibrationGUI(HasTraits):
                 all_detected = np.vstack(all_detected)
 
                 targs = TargetArray(len(all_detected))
-                for tix in range(len(all_detected)):
+                for tix, det in enumerate(all_detected):
                     targ = targs[tix]
-                    det = all_detected[tix]
 
                     targ.set_pnr(tix)
                     targ.set_pos(det[1:])
@@ -999,9 +998,9 @@ class CalibrationGUI(HasTraits):
 
     def reset_plots(self):
         """ Resets all plots in the camera windows."""
-        for i in range(len(self.camera)):
-            self.camera[i]._plot.delplot(*self.camera[i]._plot.plots.keys()[0:])
-            self.camera[i]._plot.overlays.clear()
+        for cam in self.camera:
+            cam._plot.delplot(*cam._plot.plots.keys()[0:])
+            cam._plot.overlays.clear()
 
     def reset_show_images(self):
         """ Resets the images in all camera windows."""
