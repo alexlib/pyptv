@@ -219,7 +219,7 @@ class PlotWindow(HasTraits):
                 component=self._plot,
                 text=str(txt_val),
                 alternate_position=(coord_x, coord_y),
-                real_position=(x[i], y[i]),
+                real_position=(x_val, y_val),
                 text_color=text_color,
                 border_color=border_color,
             )
@@ -464,7 +464,8 @@ class CalibrationGUI(HasTraits):
                     self.cal_images.append(img_as_ubyte(split_img))
             else:
                 print(f"Calibration image not found: {imname}")
-                for _ in self.camera:
+                # Create zero images for each camera when calibration image not found
+                for _ in range(len(self.camera)):
                     self.cal_images.append(img_as_ubyte(np.zeros((ptv_params['imy'], ptv_params['imx']), dtype=np.uint8)))
         else:
             for i, cam in enumerate(self.camera):
