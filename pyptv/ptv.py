@@ -382,11 +382,7 @@ def py_correspondences_proc_c(exp):
         print("Warning: No sequence parameters found, skipping target writing")
 
     print(
-        "Frame "
-        + str(frame)
-        + " had "
-        + repr([s.shape[1] for s in sorted_pos])
-        + " correspondences."
+        f"Frame {frame} had {[s.shape[1] for s in sorted_pos]!r} correspondences."
     )
     
     return sorted_pos, sorted_corresp, num_targs
@@ -407,7 +403,7 @@ def py_determination_proc_c(
     concatenated_corresp = np.concatenate(sorted_corresp, axis=1)
 
     flat = np.array(
-        [corrected[i].get_by_pnrs(concatenated_corresp[i]) for i in range(num_cams)]
+        [corr.get_by_pnrs(corresp) for corr, corresp in zip(corrected, concatenated_corresp)]
     )
 
     pos, _ = point_positions(flat.transpose(1, 0, 2), cpar, cals, vpar)
@@ -418,14 +414,14 @@ def py_determination_proc_c(
     else:
         print_corresp = concatenated_corresp
 
-    fname = (default_naming["corres"].decode() + "." + str(DEFAULT_FRAME_NUM)).encode()
+    fname = f"{default_naming['corres'].decode()}.{DEFAULT_FRAME_NUM}".encode()
 
     print(f"Prepared {fname} to write positions")
 
     try:
         with open(fname, "w", encoding="utf-8") as rt_is:
             print(f"Opened {fname}")
-            rt_is.write(str(pos.shape[0]) + "\n")
+            rt_is.write(f"{pos.shape[0]}\n")
             for pix, pt in enumerate(pos):
                 pt_args = (pix + 1,) + tuple(pt) + tuple(print_corresp[:, pix])
                 rt_is.write("%4d %9.3f %9.3f %9.3f %4d %4d %4d %4d\n" % pt_args)
@@ -595,7 +591,7 @@ def py_sequence_loop(exp) -> None:
         sorted_pos = np.concatenate(sorted_pos, axis=1)
         sorted_corresp = np.concatenate(sorted_corresp, axis=1)
         flat = np.array(
-            [corrected[i].get_by_pnrs(sorted_corresp[i]) for i in range(len(exp.cals))]
+            [corr.get_by_pnrs(corresp) for corr, corresp in zip(corrected, sorted_corresp)]
         )
         pos, _ = point_positions(flat.transpose(1, 0, 2), exp.cpar, exp.cals, exp.vpar)
         if len(exp.cals) < 4:
@@ -607,7 +603,7 @@ def py_sequence_loop(exp) -> None:
         rt_is_filename = default_naming["corres"].decode()
         rt_is_filename = f"{rt_is_filename}.{frame}"
         with open(rt_is_filename, "w", encoding="utf8") as rt_is:
-            rt_is.write(str(pos.shape[0]) + "\n")
+            rt_is.write(f"{pos.shape[0]}\n")
             for pix, pt in enumerate(pos):
                 pt_args = (pix + 1,) + tuple(pt) + tuple(print_corresp[:, pix])
                 rt_is.write("%4d %9.3f %9.3f %9.3f %4d %4d %4d %4d\n" % pt_args)
@@ -1283,17 +1279,17 @@ def calib_particles(exp):
 
         targs = TargetArray(len(used_detects))
 
-        for tix in range(len(used_detects)):
+        for tix, detect in enumerate(used_detects):
             targ = targs[tix]
             targ.set_pnr(tix)
-            targ.set_pos(used_detects[tix])
+            targ.set_pos(detect)
 
         residuals = full_scipy_calibration(
             calibs[cam], used_known, targs, exp.cpar, flags=flags
         )
         print(f"After scipy full calibration, {np.sum(residuals**2)}")
 
-        print(("Camera %d" % (cam + 1)))
+        print(f"Camera {cam + 1}")
         print((calibs[cam].get_pos()))
         print((calibs[cam].get_angles()))
 

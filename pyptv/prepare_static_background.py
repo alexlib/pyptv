@@ -27,13 +27,15 @@ for cam_num in range(4):
     filelist.sort()
     print(filelist[:3], filelist[-3:])
 
-    image_array = []
-    for i, file in enumerate(filelist[:N]):
-        image_array.append(skio.imread(file))
+    # Preallocate array for better performance
+    first_img = skio.imread(filelist[0])
+    image_array = np.empty((N, *first_img.shape), dtype=first_img.dtype)
+    image_array[0] = first_img
+    
+    for i, file in enumerate(filelist[1:N], start=1):
+        image_array[i] = skio.imread(file)
 
-    image_array = np.array(image_array)
-
-    # Create median
+    # Create median using axis parameter for clarity
     median_image = np.median(image_array, axis=0)
     plt.figure()
     plt.imshow(median_image, cmap="gray")
@@ -41,7 +43,7 @@ for cam_num in range(4):
 
     plt.figure()
     plt.imshow(
-        np.clip(image_array[0, :, :] - median_image, 0, 255).astype(np.uint8),
+        np.clip(image_array[0] - median_image, 0, 255).astype(np.uint8),
         cmap="gray",
     )
     plt.show()

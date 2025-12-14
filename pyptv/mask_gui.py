@@ -200,12 +200,12 @@ class PlotWindow(HasTraits):
 
     def remove_short_lines(self, x1, y1, x2, y2, min_length=2):
         x1f, y1f, x2f, y2f = [], [], [], []
-        for i in range(len(x1)):
-            if abs(x1[i] - x2[i]) > min_length or abs(y1[i] - y2[i]) > min_length:
-                x1f.append(x1[i])
-                y1f.append(y1[i])
-                x2f.append(x2[i])
-                y2f.append(y2[i])
+        for x1_val, y1_val, x2_val, y2_val in zip(x1, y1, x2, y2):
+            if abs(x1_val - x2_val) > min_length or abs(y1_val - y2_val) > min_length:
+                x1f.append(x1_val)
+                y1f.append(y1_val)
+                x2f.append(x2_val)
+                y2f.append(y2_val)
         return x1f, y1f, x2f, y2f
 
     def handle_mapper(self):
@@ -220,8 +220,8 @@ class PlotWindow(HasTraits):
                 )
 
     def plot_num_overlay(self, x, y, txt, text_color="white", border_color="red"):
-        for i in range(len(x)):
-            coord_x, coord_y = self._plot.map_screen([(x[i], y[i])])[0]
+        for i, (x_val, y_val) in enumerate(zip(x, y)):
+            coord_x, coord_y = self._plot.map_screen([(x_val, y_val)])[0]
             ovlay = TextBoxOverlay(
                 component=self._plot,
                 text=str(txt[i]),
@@ -270,7 +270,7 @@ class MaskGUI(HasTraits):
         self.num_cams = experiment.get_n_cam()
         self.camera = [PlotWindow() for i in range(self.num_cams)]
         for i in range(self.num_cams):
-            self.camera[i].name = "Camera" + str(i + 1)
+            self.camera[i].name = f"Camera{i + 1}"
             self.camera[i].cameraN = i
             # self.camera[i].py_rclick_delete = ptv.py_rclick_delete
             # self.camera[i].py_get_pix_N = ptv.py_get_pix_N
@@ -325,8 +325,8 @@ class MaskGUI(HasTraits):
         ) = ptv.py_start_proc_c(self.experiment.pm)
 
         self.images = []
-        for i in range(len(self.camera)):
-            ptv_params = self.experiment.get_parameter('ptv')
+        ptv_params = self.experiment.get_parameter('ptv')
+        for i, cam in enumerate(self.camera):
             imname = ptv_params['img_name'][i] if ptv_params else ""
             im = imread(imname)
             if im.ndim > 2:

@@ -210,12 +210,12 @@ class PlotWindow(HasTraits):
 
     def remove_short_lines(self, x1, y1, x2, y2, min_length=2):
         x1f, y1f, x2f, y2f = [], [], [], []
-        for i in range(len(x1)):
-            if abs(x1[i] - x2[i]) > min_length or abs(y1[i] - y2[i]) > min_length:
-                x1f.append(x1[i])
-                y1f.append(y1[i])
-                x2f.append(x2[i])
-                y2f.append(y2[i])
+        for x1_val, y1_val, x2_val, y2_val in zip(x1, y1, x2, y2):
+            if abs(x1_val - x2_val) > min_length or abs(y1_val - y2_val) > min_length:
+                x1f.append(x1_val)
+                y1f.append(y1_val)
+                x2f.append(x2_val)
+                y2f.append(y2_val)
         return x1f, y1f, x2f, y2f
 
     def handle_mapper(self):
@@ -731,8 +731,8 @@ class DetectionGUI(HasTraits):
         """Resets all the images and overlays"""
         self.camera[0]._plot.delplot(*self.camera[0]._plot.plots.keys())
         self.camera[0]._plot.overlays = []
-        for j in range(len(self.camera[0]._quiverplots)):
-            self.camera[0]._plot.remove(self.camera[0]._quiverplots[j])
+        for quiver in self.camera[0]._quiverplots:
+            self.camera[0]._plot.remove(quiver)
         self.camera[0]._quiverplots = []
 
     def reset_show_images(self):
