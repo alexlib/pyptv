@@ -85,8 +85,9 @@ The workflow was set up to use trusted publishing, but the corresponding configu
 
 If you encounter issues:
 1. See the detailed guide in `DEPLOYMENT.md`
-2. Check PyPI's troubleshooting guide: https://docs.pypi.org/trusted-publishers/troubleshooting/
+2. Check the GitHub Actions workflow logs for specific error messages
 3. Verify the configuration values match exactly
+4. Consult PyPI's help documentation at https://pypi.org/help/
 
 ## References
 

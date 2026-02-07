@@ -77,7 +77,7 @@ Note, the specific branch `plugin_remback` requires installation of the `pip ins
 ```bash
 pip install build
 python -m build
-pip install dist/pyptv-0.3.2-py3-none-any.whl
+pip install dist/pyptv-*.whl  # Install the built wheel
 pip install twine
 python -m twine upload dist/*
 ```
