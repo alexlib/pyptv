@@ -9,7 +9,16 @@ name: Publish Python Package to PyPI
 #    - Repository: pyptv
 #    - Workflow: publish-to-pypi.yml
 #    - Environment: testpypi (for TestPyPI) or pypi (for PyPI)
-# See DEPLOYMENT.md for detailed instructions.
+# 
+# TROUBLESHOOTING:
+# If you see "invalid-publisher" error, it means the trusted publisher is not configured
+# correctly on PyPI/TestPyPI. The configuration MUST match these exact values:
+# - Repository owner: alexlib
+# - Repository name: pyptv  
+# - Workflow filename: publish-to-pypi.yml (must be exact match)
+# - Environment name: testpypi or pypi (must match exactly)
+# 
+# For detailed setup instructions, see DEPLOYMENT.md
 
 on:
   release: 

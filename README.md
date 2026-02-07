@@ -69,7 +69,8 @@ Note, the specific branch `plugin_remback` requires installation of the `pip ins
 
 
 1. how to bump the version: ```python bump_version.py --patch```
-2. how to build and publish: 
+2. how to build and publish: See [DEPLOYMENT.md](DEPLOYMENT.md) for comprehensive deployment instructions using GitHub Actions and trusted publishing
+3. legacy manual publishing:
       pip install build
       python -m build
       pip install dist/pyptv-0.3.2-py3-none-any.whl
