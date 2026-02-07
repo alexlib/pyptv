@@ -10,8 +10,59 @@ def _():
     import matplotlib.pyplot as plt
     import numpy as np
     from wigglystuff import ChartPuck
+    import sys, os
 
-    return ChartPuck, mo, np, plt
+    return ChartPuck, mo, plt, sys
+
+
+@app.cell
+def _(mo):
+    mo.md(f"""
+    ## Reading parameters from YAML using `pyptv`
+
+    This example demonstrates how to use `pyptv.parameter_manager.ParameterManager` to load parameters from a YAML file and extract manual orientation data.
+
+    The relevant parameters are:
+    - `man_ori`: Contains orientation parameters (e.g., point IDs).
+    - `man_ori_coordinates`: Contains the manual orientation coordinates (x, y) for each camera.
+    """)
+    return
+
+
+@app.cell
+def _(sys):
+    from pathlib import Path
+
+    # Add the parent directory to sys.path if not present to import pyptv package
+    parent_dir = str(Path('.').absolute())
+    if parent_dir not in sys.path:
+        sys.path.insert(0, parent_dir)
+
+    from pyptv.parameter_manager import ParameterManager
+
+    # Path to the YAML file
+    yaml_path = Path("tests/test_cavity/parameters_Run1.yaml")
+
+    # Check if file exists
+    if yaml_path.exists():
+        pm = ParameterManager()
+        pm.from_yaml(yaml_path)
+        print("YAML loaded successfully.")
+    
+        # Check keys
+        print("Keys in parameters:", pm.parameters.keys())
+    
+        # Look for manual orientation parameters
+        if 'man_ori' in pm.parameters:
+            print("\nManual Orientation Parameters (man_ori):")
+            print(pm.parameters['man_ori'])
+        
+        if 'man_ori_coordinates' in pm.parameters:
+            print("\nManual Orientation Coordinates (man_ori_coordinates):")
+            print(pm.parameters['man_ori_coordinates'])
+    else:
+        print(f"File not found: {yaml_path}")
+    return
 
 
 @app.cell
@@ -23,19 +74,13 @@ def _():
 
 
 @app.cell
-def _(ChartPuck, image, np, plt):
-    x_multi = np.random.randn(50)
-    y_multi = np.random.randn(50)
-
-    fig, ax = plt.subplots(figsize=(12, 12))
-    # ax2.scatter(x_multi, y_multi, alpha=0.6)
+def _(ChartPuck, image, plt):
+    fig, ax = plt.subplots(figsize=(8, 8))
     ax.imshow(image, cmap="gray")
-    # ax2.set_xlim(-3, 3)
-    # ax2.set_ylim(-3, 3)
     ax.set_xlabel("X")
     ax.set_ylabel("Y")
     ax.set_title("Drag any puck - closest one will move")
-    ax.grid(True, alpha=0.3)
+    # ax.grid(True, alpha=0.3)
 
     multi_puck = ChartPuck(
         fig,
@@ -74,7 +119,7 @@ def _(multi_widget):
 @app.cell
 def _(mo, multi_widget):
     positions = [
-        f"Puck {i + 1}: ({x:.2f}, {y:.2f})"
+        f"Puck {i + 1}: ({x:.1f}, {y:.1f})"
         for i, (x, y) in enumerate(zip(multi_widget.x, multi_widget.y))
     ]
     mo.callout("\n".join(positions))
