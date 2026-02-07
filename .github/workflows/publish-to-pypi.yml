@@ -1,5 +1,16 @@
 name: Publish Python Package to PyPI
 
+# This workflow uses GitHub's OIDC trusted publishing to authenticate with PyPI.
+# For this to work, you must configure trusted publishers on PyPI/TestPyPI:
+# 1. Go to https://test.pypi.org/ or https://pypi.org/
+# 2. Navigate to your project settings → Publishing
+# 3. Add a new publisher with these details:
+#    - Owner: alexlib
+#    - Repository: pyptv
+#    - Workflow: publish-to-pypi.yml
+#    - Environment: testpypi (for TestPyPI) or pypi (for PyPI)
+# See DEPLOYMENT.md for detailed instructions.
+
 on:
   release: 
     types: [published]
@@ -50,10 +61,10 @@ jobs:
     needs: [build]
     runs-on: ubuntu-latest
     environment:
-      name:  pypi
+      name:  pypi  # This must match the environment name in PyPI's trusted publisher config
       url: https://pypi.org/p/pyptv
     permissions:
-      id-token: write
+      id-token: write  # Required for trusted publishing via OIDC
     
     steps:
     - name:  Download distributions
@@ -71,10 +82,10 @@ jobs:
     needs: [build]
     runs-on: ubuntu-latest
     environment:
-      name: testpypi
+      name: testpypi  # This must match the environment name in TestPyPI's trusted publisher config
       url: https://test.pypi.org/p/pyptv
     permissions:
-      id-token: write
+      id-token: write  # Required for trusted publishing via OIDC
     
     steps: 
     - name: Download distributions
