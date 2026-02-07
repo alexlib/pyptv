@@ -34,7 +34,7 @@ def _(sys):
     from pathlib import Path
 
     # Add the parent directory to sys.path if not present to import pyptv package
-    parent_dir = str(Path('.').absolute())
+    parent_dir = str(Path(".").absolute())
     if parent_dir not in sys.path:
         sys.path.insert(0, parent_dir)
 
@@ -48,21 +48,21 @@ def _(sys):
         pm = ParameterManager()
         pm.from_yaml(yaml_path)
         print("YAML loaded successfully.")
-    
+
         # Check keys
         print("Keys in parameters:", pm.parameters.keys())
-    
+
         # Look for manual orientation parameters
-        if 'man_ori' in pm.parameters:
+        if "man_ori" in pm.parameters:
             print("\nManual Orientation Parameters (man_ori):")
-            print(pm.parameters['man_ori'])
-        
-        if 'man_ori_coordinates' in pm.parameters:
+            print(pm.parameters["man_ori"])
+
+        if "man_ori_coordinates" in pm.parameters:
             print("\nManual Orientation Coordinates (man_ori_coordinates):")
-            print(pm.parameters['man_ori_coordinates'])
+            print(pm.parameters["man_ori_coordinates"])
     else:
         print(f"File not found: {yaml_path}")
-    return
+    return (pm,)
 
 
 @app.cell
@@ -123,6 +123,20 @@ def _(mo, multi_widget):
         for i, (x, y) in enumerate(zip(multi_widget.x, multi_widget.y))
     ]
     mo.callout("\n".join(positions))
+    return
+
+
+@app.cell
+def _(pm):
+    # Inspect cal_ori to find calibration image names
+    if 'cal_ori' in pm.parameters:
+        print("\nCalibration Orientation Parameters (cal_ori):")
+        print(pm.parameters['cal_ori'])
+    
+    # Inspect sequence to see if it helps with paths
+    if 'sequence' in pm.parameters:
+        print("\nSequence Parameters:")
+        print(pm.parameters['sequence'])
     return
 
 
