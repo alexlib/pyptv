@@ -171,7 +171,7 @@ Always test on TestPyPI before publishing to PyPI:
 
 ## References
 
-- [PyPI Trusted Publishers Documentation](https://docs.pypi.org/trusted-publishers/)
-- [PyPI Trusted Publishers Troubleshooting](https://docs.pypi.org/trusted-publishers/troubleshooting/)
-- [GitHub Actions: OIDC with PyPI](https://docs.github.com/en/actions/deployment/security-hardening-your-deployments/configuring-openid-connect-in-pypi)
-- [pypa/gh-action-pypi-publish](https://github.com/pypa/gh-action-pypi-publish)
+- [PyPI Help - Publishing](https://pypi.org/help/#publishing) - Official PyPI publishing documentation
+- [GitHub OIDC with PyPI](https://docs.github.com/en/actions/deployment/security-hardening-your-deployments/configuring-openid-connect-in-pypi) - GitHub's guide for trusted publishing
+- [pypa/gh-action-pypi-publish](https://github.com/pypa/gh-action-pypi-publish) - The GitHub Action used for publishing
+- [Trusted Publishers on PyPI](https://blog.pypi.org/posts/2023-04-20-introducing-trusted-publishers/) - Introduction to trusted publishers
