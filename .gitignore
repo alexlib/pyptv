@@ -81,3 +81,4 @@ tests/test_cavity/parameters__test_new.yaml
 pyptv_session_log_*.txt
 tests/track/res/*
 uv.lock
+/pyptv/__marimo__
