@@ -98,4 +98,21 @@ conda install numpy>=1.23.5 optv>=0.3.0
 pip install -e .
 ```
 
+## Marimo UIs (uv)
+
+This repo includes Marimo-based interactive UIs.
+
+Run the Detection UI:
+
+```bash
+uv pip install marimo
+uv run marimo run pyptv/marimo_ui_detection.py
+```
+
+Or use the helper script:
+
+```bash
+./run_marimo_detection.sh
+```
+
 
