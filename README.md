@@ -115,4 +115,17 @@ Or use the helper script:
 ./run_marimo_detection.sh
 ```
 
+Run the Parameters UI:
+
+```bash
+uv pip install marimo
+uv run marimo run pyptv/marimo_ui_parameters.py
+```
+
+Or use the helper script:
+
+```bash
+./run_marimo_parameters.sh
+```
+
 
