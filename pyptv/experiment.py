@@ -43,6 +43,7 @@ class Experiment(HasTraits):
         super().__init__(**traits)
         self.paramsets = []
         self.pm = pm if pm is not None else ParameterManager()
+        self._override_save_path = None
         # If pm has a loaded YAML path, add it as a paramset and set active
         yaml_path = getattr(self.pm, 'yaml_path', None)
         if yaml_path is not None:
@@ -60,9 +61,13 @@ class Experiment(HasTraits):
     
     def save_parameters(self):
         """Save current parameters to the active parameter set's YAML file"""
-        if self.active_params is not None:
-            self.pm.to_yaml(self.active_params.yaml_path)
-            print(f"Parameters saved to {self.active_params.yaml_path}")
+        target_path = self._override_save_path
+        if target_path is None and self.active_params is not None:
+            target_path = self.active_params.yaml_path
+
+        if target_path is not None:
+            self.pm.to_yaml(target_path)
+            print(f"Parameters saved to {target_path}")
 
     def load_parameters_for_active(self):
         """Load parameters for the active parameter set"""
@@ -168,6 +173,51 @@ class Experiment(HasTraits):
         # Load parameters for the newly active set
         self.load_parameters_for_active()
 
+    def _collect_yaml_files(self, exp_path: Path):
+        yaml_files = list(exp_path.glob("*parameters_*.yaml"))
+
+        subdirs = [
+            d for d in exp_path.iterdir()
+            if d.is_dir() and d.name.startswith("parameters")
+        ]
+
+        for subdir in subdirs:
+            run_name = subdir.name.replace("parameters", "") or "Run1"
+            yaml_file = exp_path / f"parameters_{run_name}.yaml"
+
+            if not yaml_file.exists():
+                print(f"Converting legacy directory {subdir} to {yaml_file}")
+                pm = ParameterManager()
+                pm.from_directory(subdir)
+                pm.to_yaml(yaml_file)
+
+            yaml_files.append(yaml_file)
+
+        return sorted(set(yaml_files))
+
+    def _run_name_from_yaml(self, yaml_file: Path):
+        filename = yaml_file.stem
+        if "parameters_" in filename:
+            return filename.split("parameters_", 1)[1]
+        if filename.startswith("parameters"):
+            return filename[10:] or "Run1"
+        if "_parameters" in filename:
+            return filename.split("_parameters", 1)[0]
+        return filename
+
+    def _load_paramset_from_yaml(self, yaml_file: Path):
+        run_name = self._run_name_from_yaml(yaml_file)
+        print(f"Adding parameter set: {run_name} from {yaml_file}")
+        paramset = self.addParamset(run_name, yaml_file)
+        try:
+            pm = ParameterManager()
+            pm.from_yaml(yaml_file)
+            paramset.parameters = copy.deepcopy(pm.parameters)
+            paramset.num_cams = pm.num_cams
+        except Exception as e:
+            print(f"Warning: Failed to load parameters from {yaml_file}: {e}")
+        return paramset
+
     # def export_legacy_directory(self, output_dir: Path):
     #     """Export current parameters to legacy .par files directory (for compatibility)"""
     #     if self.active_params is not None:
@@ -179,56 +229,11 @@ class Experiment(HasTraits):
     def populate_runs(self, exp_path: Path):
         """Populate parameter sets from an experiment directory"""
         self.paramsets = []
-        
-        # Look for YAML files with parameter naming patterns
-        yaml_patterns = ['*parameters_*.yaml']
-        yaml_files = []
-        
-        for pattern in yaml_patterns:
-            yaml_files.extend(exp_path.glob(pattern))
-        
-        # Also look in subdirectories for legacy structure
-        subdirs = [d for d in exp_path.iterdir() if d.is_dir() and d.name.startswith('parameters')]
-        
-        # Convert legacy directories to YAML files if needed
-        for subdir in subdirs:
-            run_name = subdir.name.replace('parameters', '') or 'Run1'
-            yaml_file = exp_path / f"parameters_{run_name}.yaml"
-            
-            if not yaml_file.exists():
-                print(f"Converting legacy directory {subdir} to {yaml_file}")
-                pm = ParameterManager()
-                pm.from_directory(subdir)
-                pm.to_yaml(yaml_file)
-                
-            yaml_files.append(yaml_file)
-        
-        # Remove duplicates and sort
-        yaml_files = list(set(yaml_files))
-        yaml_files.sort()
-        
-        # Create parameter sets from YAML files
+
+        yaml_files = self._collect_yaml_files(exp_path)
+
         for yaml_file in yaml_files:
-            # Extract run name from filename
-            filename = yaml_file.stem
-            if 'parameters_' in filename:
-                run_name = filename.split('parameters_', 1)[1]
-            elif filename.startswith('parameters'):
-                run_name = filename[10:] or 'Run1'  # Remove 'parameters' prefix
-            elif '_parameters' in filename:
-                run_name = filename.split('_parameters', 1)[0]
-            else:
-                run_name = filename
-                
-            print(f"Adding parameter set: {run_name} from {yaml_file}")
-            paramset = self.addParamset(run_name, yaml_file)
-            try:
-                pm = ParameterManager()
-                pm.from_yaml(yaml_file)
-                paramset.parameters = copy.deepcopy(pm.parameters)
-                paramset.num_cams = pm.num_cams
-            except Exception as e:
-                print(f"Warning: Failed to load parameters from {yaml_file}: {e}")
+            self._load_paramset_from_yaml(yaml_file)
         
         # Set the first parameter set as active if none is active
         if self.nParamsets() > 0 and self.active_params is None:
