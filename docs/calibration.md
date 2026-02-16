@@ -105,6 +105,37 @@ Create a target coordinate file (`cal/target_coordinates.txt`) with known 3D poi
 
 ## Advanced Calibration Features
 
+### Dumbbell Calibration Parameters
+
+PyPTV supports dumbbell-based calibration to refine camera extrinsics. The dumbbell length is specified in millimeters.
+
+Key parameters in the `dumbbell` section:
+
+- `dumbbell_scale`: Expected dumbbell length (mm). Measure the physical dumbbell length and enter it here.
+- `dumbbell_penalty_weight`: Weight of the length constraint relative to ray convergence. Start at 0.1-1.0 and increase only if length drift is visible.
+- `dumbbell_eps`: Frame filter threshold (mm). Frames with reconstructed length deviating by more than this are excluded. Typical range: 3-10.
+- `dumbbell_step`: Frame stride. Use 1 for full data; increase to 2-5 to speed up or reduce correlated frames.
+- `dumbbell_fixed_camera`: Camera index to fix (1-based). Set to 0 for automatic selection (most valid detections).
+- `dumbbell_niter`: Legacy parameter (not used by the current least-squares solver).
+- `dumbbell_gradient_descent`: Legacy parameter (not used by the current least-squares solver).
+
+Suggested starting values:
+
+```yaml
+dumbbell:
+  dumbbell_scale: 25.0
+  dumbbell_penalty_weight: 0.5
+  dumbbell_eps: 5.0
+  dumbbell_step: 1
+  dumbbell_fixed_camera: 0
+```
+
+Tuning tips:
+
+- If many frames are filtered, increase `dumbbell_eps`.
+- If the length drifts but convergence is stable, increase `dumbbell_penalty_weight`.
+- If optimization becomes unstable or flat, reduce `dumbbell_penalty_weight` and remove outlier frames.
+
 ### Multi-Plane Calibration
 
 For improved accuracy with large measurement volumes:

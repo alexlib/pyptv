@@ -207,7 +207,8 @@ class CalHandler(Handler):
                 'dumbbell_gradient_descent': calib_params.dumbbell_gradient_descent,
                 'dumbbell_penalty_weight': calib_params.dumbbell_penalty_weight,
                 'dumbbell_step': calib_params.dumbbell_step,
-                'dumbbell_niter': calib_params.dumbbell_niter
+                'dumbbell_niter': calib_params.dumbbell_niter,
+                'dumbbell_fixed_camera': calib_params.dumbbell_fixed_camera
             })
 
             # Save all changes to the YAML file through the experiment
@@ -893,6 +894,7 @@ class Calib_Params(HasTraits):
     dumbbell_penalty_weight = Float(label="weight for dumbbell penalty")
     dumbbell_step = Int(label="step size through sequence")
     dumbbell_niter = Int(label="number of iterations per click")
+    dumbbell_fixed_camera = Int(label="fixed camera (0=auto)")
 
     Group5 = HGroup(
         VGroup(
@@ -902,6 +904,7 @@ class Calib_Params(HasTraits):
             Item(name="dumbbell_penalty_weight"),
             Item(name="dumbbell_step"),
             Item(name="dumbbell_niter"),
+            Item(name="dumbbell_fixed_camera"),
         ),
         spring,
         label="Dumbbell calibration parameters",
@@ -1029,6 +1032,7 @@ class Calib_Params(HasTraits):
         self.dumbbell_penalty_weight = dumbbell_params['dumbbell_penalty_weight']
         self.dumbbell_step = dumbbell_params['dumbbell_step']
         self.dumbbell_niter = dumbbell_params['dumbbell_niter']
+        self.dumbbell_fixed_camera = dumbbell_params.get('dumbbell_fixed_camera', 0)
 
         shaking_params = params['shaking']
         self.shaking_first_frame = shaking_params['shaking_first_frame']
