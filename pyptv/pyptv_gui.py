@@ -313,6 +313,38 @@ class CameraWindow(HasTraits):
                 y2f.append(y2_val)
         return x1f, y1f, x2f, y2f
 
+    @staticmethod
+    def _clip_line_to_rect(x1, y1, x2, y2, width, height):
+        """Clip a line segment to image bounds using Liang-Barsky."""
+        if width <= 0 or height <= 0:
+            return None
+
+        dx = x2 - x1
+        dy = y2 - y1
+        p = [-dx, dx, -dy, dy]
+        q = [x1, (width - 1) - x1, y1, (height - 1) - y1]
+
+        u1 = 0.0
+        u2 = 1.0
+        for pi, qi in zip(p, q):
+            if pi == 0:
+                if qi < 0:
+                    return None
+            else:
+                t = qi / pi
+                if pi < 0:
+                    u1 = max(u1, t)
+                else:
+                    u2 = min(u2, t)
+                if u1 > u2:
+                    return None
+
+        nx1 = x1 + u1 * dx
+        ny1 = y1 + u1 * dy
+        nx2 = x1 + u2 * dx
+        ny2 = y1 + u2 * dy
+        return nx1, ny1, nx2, ny2
+
     def drawline(self, str_x, str_y, x1, y1, x2, y2, color1):
         """drawline draws 1 line on the screen by using lineplot x1,y1->x2,y2
         parameters:
@@ -324,7 +356,14 @@ class CameraWindow(HasTraits):
             drawline("x_coord","y_coord",100,100,200,200,red)
             draws a red line 100,100->200,200
         """
-        # imx, imy = self._plot_data.get_data('imagedata').shape
+        imagedata = self._plot_data.get_data("imagedata")
+        if imagedata is not None:
+            height, width = imagedata.shape[:2]
+            clipped = self._clip_line_to_rect(x1, y1, x2, y2, width, height)
+            if clipped is None:
+                return
+            x1, y1, x2, y2 = clipped
+
         self._plot_data.set_data(str_x, [x1, x2])
         self._plot_data.set_data(str_y, [y1, y2])
         self._plot.plot((str_x, str_y), type="line", color=color1)
