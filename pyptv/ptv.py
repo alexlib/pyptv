@@ -15,6 +15,7 @@ from typing import List, Tuple
 # Third-party imports
 import numpy as np
 from scipy.optimize import least_squares, minimize
+from scipy import sparse
 from imageio.v3 import imread
 from skimage.util import img_as_ubyte
 from skimage.color import rgb2gray
@@ -1089,6 +1090,128 @@ def dumbbell_target_residuals(targets, cpar, calibs, db_length, db_weight):
     return np.nan_to_num(residuals, nan=1e6, posinf=1e6, neginf=-1e6)
 
 
+def dumbbell_ba_residuals(
+    calib_vec,
+    targets,
+    cpar,
+    calibs,
+    active_cams,
+    db_length,
+    db_weight,
+    pos_scale=1.0,
+):
+    """Bundle adjustment residuals for dumbbell calibration.
+
+    calib_vec packs active camera extrinsics and per-frame 3D endpoints.
+    targets is shaped (num_cams, num_frames, 2, 2) in metric coordinates.
+    """
+    from optv.imgcoord import image_coordinates
+
+    if db_length <= 0:
+        raise ValueError("Dumbbell length must be positive")
+    if db_weight < 0:
+        raise ValueError("Dumbbell weight must be non-negative")
+
+    num_cams, num_frames, num_pts, _ = targets.shape
+    if num_pts != 2:
+        raise ValueError("Targets must contain exactly 2 points per frame")
+
+    active_cams = np.asarray(active_cams, dtype=bool)
+    num_active = int(np.sum(active_cams))
+    cam_params_len = num_active * 6
+    if calib_vec.shape[0] < cam_params_len:
+        raise ValueError("calib_vec too short for active camera parameters")
+
+    calib_pars = calib_vec[:cam_params_len].reshape(-1, 2, 3)
+
+    ptr = 0
+    for cam, cal in enumerate(calibs):
+        if not active_cams[cam]:
+            continue
+        pars = calib_pars[ptr]
+        cal.set_pos(pars[0] * pos_scale)
+        cal.set_angles(pars[1])
+        ptr += 1
+
+    points = calib_vec[cam_params_len:]
+    expected_len = num_frames * 2 * 3
+    if points.shape[0] != expected_len:
+        raise ValueError(
+            f"Expected {expected_len} point parameters, got {points.shape[0]}"
+        )
+    points = points.reshape(num_frames, 2, 3)
+
+    mm_params = cpar.get_multimedia_params()
+    residuals = []
+
+    for frame_idx in range(num_frames):
+        xyz = points[frame_idx]
+        for cam in range(num_cams):
+            proj = image_coordinates(xyz, calibs[cam], mm_params)
+            diff = targets[cam, frame_idx] - proj
+            residuals.extend(diff.ravel())
+
+        if db_weight > 0:
+            length_err = np.linalg.norm(xyz[0] - xyz[1]) - db_length
+            residuals.append(np.sqrt(db_weight) * length_err)
+
+    residuals = np.asarray(residuals, dtype=float)
+    return np.nan_to_num(residuals, nan=1e6, posinf=1e6, neginf=-1e6)
+
+
+def dumbbell_ba_jac_sparsity(
+    targets: np.ndarray,
+    active_cams: np.ndarray,
+    db_weight: float,
+) -> sparse.csr_matrix:
+    """Return Jacobian sparsity pattern for dumbbell bundle adjustment."""
+    num_cams, num_frames, num_pts, _ = targets.shape
+    if num_pts != 2:
+        raise ValueError("Targets must contain exactly 2 points per frame")
+
+    active_cams = np.asarray(active_cams, dtype=bool)
+    num_active = int(np.sum(active_cams))
+    cam_params_len = num_active * 6
+
+    per_frame_cam_residuals = num_cams * 4
+    per_frame_len_residuals = 1 if db_weight > 0 else 0
+    residuals_per_frame = per_frame_cam_residuals + per_frame_len_residuals
+    total_residuals = num_frames * residuals_per_frame
+    total_params = cam_params_len + num_frames * 6
+
+    pattern = sparse.lil_matrix((total_residuals, total_params), dtype=bool)
+
+    active_map = {}
+    active_idx = 0
+    for cam_idx, is_active in enumerate(active_cams):
+        if is_active:
+            active_map[cam_idx] = active_idx
+            active_idx += 1
+
+    row = 0
+    for frame_idx in range(num_frames):
+        point_base = cam_params_len + frame_idx * 6
+        point_cols = list(range(point_base, point_base + 6))
+
+        for cam_idx in range(num_cams):
+            cam_cols = []
+            if cam_idx in active_map:
+                cam_base = active_map[cam_idx] * 6
+                cam_cols = list(range(cam_base, cam_base + 6))
+
+            for _ in range(4):
+                if cam_cols:
+                    pattern[row, cam_cols] = True
+                pattern[row, point_cols] = True
+                row += 1
+
+        if db_weight > 0:
+            pattern[row, point_cols] = True
+            row += 1
+
+    return pattern.tocsr()
+
+
 
 def calib_convergence(calib_vec, targets, calibs, active_cams, cpar,
     db_length, db_weight, pos_scale=1.0):
@@ -1267,7 +1390,7 @@ def calib_dumbbell(cal_gui)-> None:
         print(f"{label} per-camera RMS (metric): {rms.tolist()}")
 
     print(f"Using {num_frames} frame(s) for dumbbell calibration")
-    all_targs = metric_by_cam.reshape(n_cams, num_frames * num_targs, num_pos)
+    per_frame_metric = metric_by_cam
     
     # Generate initial guess vector and bounds for optimization:
     if 1 <= fixed_cam_param <= num_cams:
@@ -1300,16 +1423,38 @@ def calib_dumbbell(cal_gui)-> None:
         # converge to the trivial solution where all cameras are in the same 
         # place.
     calib_vec = calib_vec.flatten()
+
+    def _init_dumbbell_points(metric_targets: np.ndarray) -> np.ndarray:
+        from optv.orientation import multi_cam_point_positions
+
+        num_cams_local, num_frames_local, _, _ = metric_targets.shape
+        points = np.zeros((num_frames_local, 2, 3), dtype=float)
+
+        for frame_idx in range(num_frames_local):
+            frame_targets = metric_targets[:, frame_idx, :, :]
+            xyz1, _err1 = multi_cam_point_positions(
+                frame_targets[:, 0, :][np.newaxis], cpar, cals
+            )
+            xyz2, _err2 = multi_cam_point_positions(
+                frame_targets[:, 1, :][np.newaxis], cpar, cals
+            )
+            points[frame_idx, 0] = xyz1[0]
+            points[frame_idx, 1] = xyz2[0]
+
+        return points
+
+    points_init = _init_dumbbell_points(per_frame_metric)
+    x0 = np.concatenate([calib_vec, points_init.reshape(-1)])
     
     # Test optimizer-ready target function:
     print("Initial values (1 row per active camera, scaled pos, then angle):")
     print(calib_vec.reshape(num_active, -1))
     print("Current target function (sum of squared residuals):", end=' ')
-    init_residuals = calib_convergence_residuals(
-        calib_vec, all_targs, cals, active, cpar, db_length, db_weight, pos_scale
+    init_residuals = dumbbell_ba_residuals(
+        x0, per_frame_metric, cpar, cals, active, db_length, db_weight, pos_scale
     )
     print(np.sum(init_residuals**2))
-    _print_camera_residuals("Initial", metric_by_cam)
+    _print_camera_residuals("Initial", per_frame_metric)
     
     # Optimization:
     method = "trf"
@@ -1324,19 +1469,22 @@ def calib_dumbbell(cal_gui)-> None:
     nfev_per_round = 200
     min_improvement = 1e-3
 
-    best_x = calib_vec
+    best_x = x0
     best_fun = float(np.sum(init_residuals**2))
     res = None
+
+    jac_sparsity = dumbbell_ba_jac_sparsity(per_frame_metric, active, db_weight)
 
     for idx in range(max_rounds):
         xtol, ftol, gtol = tol_steps[min(idx, len(tol_steps) - 1)]
         res = least_squares(
-            calib_convergence_residuals,
+            dumbbell_ba_residuals,
             best_x,
-            args=(all_targs, cals, active, cpar, db_length, db_weight, pos_scale),
+            args=(per_frame_metric, cpar, cals, active, db_length, db_weight, pos_scale),
             xtol=xtol,
             ftol=ftol,
             gtol=gtol,
+            jac_sparsity=jac_sparsity,
             x_scale="jac",
             max_nfev=nfev_per_round,
             loss=loss,
@@ -1359,17 +1507,19 @@ def calib_dumbbell(cal_gui)-> None:
         raise RuntimeError("Adaptive least_squares did not run")
         
     print("Result of dumbbell calibration")
-    print(best_x.reshape(num_active, -1))
+    cam_params_len = num_active * 6
+    print(best_x[:cam_params_len].reshape(num_active, -1))
     print("Success:", res.success, res.message)
     print("Final target function (sum of squared residuals):", end=' ')
-    final_residuals = calib_convergence_residuals(
-        best_x, all_targs, cals, active, cpar, db_length, db_weight, pos_scale
+    final_residuals = dumbbell_ba_residuals(
+        best_x, per_frame_metric, cpar, cals, active, db_length, db_weight, pos_scale
     )
     print(np.sum(final_residuals**2))
 
 
     # convert calib_vec back to Calibration objects:
-    calib_pars = best_x.reshape(-1, 2, 3)
+    cam_params_len = num_active * 6
+    calib_pars = best_x[:cam_params_len].reshape(-1, 2, 3)
     
     for cam, cal in enumerate(cals):
         if not active[cam]:
@@ -1382,7 +1532,7 @@ def calib_dumbbell(cal_gui)-> None:
         cal.set_pos(pars[0] * pos_scale)
         cal.set_angles(pars[1])
 
-        _print_camera_residuals("Final", metric_by_cam)
+        _print_camera_residuals("Final", per_frame_metric)
 
 
         # Write the calibration results to files:

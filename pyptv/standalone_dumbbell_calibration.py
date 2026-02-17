@@ -261,15 +261,35 @@ def run_dumbbell_calibration(
         calib_vec[ptr, 1] = cals[cam].get_angles()
         ptr += 1
 
-    x0 = calib_vec.reshape(-1)
+    def _init_dumbbell_points(metric_targets: np.ndarray) -> np.ndarray:
+        from optv.orientation import multi_cam_point_positions
+
+        num_cams_local, num_frames_local, _, _ = metric_targets.shape
+        points = np.zeros((num_frames_local, 2, 3), dtype=float)
+
+        for frame_idx in range(num_frames_local):
+            frame_targets = metric_targets[:, frame_idx, :, :]
+            xyz1, _err1 = multi_cam_point_positions(
+                frame_targets[:, 0, :][np.newaxis], cpar, cals
+            )
+            xyz2, _err2 = multi_cam_point_positions(
+                frame_targets[:, 1, :][np.newaxis], cpar, cals
+            )
+            points[frame_idx, 0] = xyz1[0]
+            points[frame_idx, 1] = xyz2[0]
+
+        return points
+
+    points_init = _init_dumbbell_points(per_frame_metric)
+    x0 = np.concatenate([calib_vec.reshape(-1), points_init.reshape(-1)])
 
     def residuals(x: np.ndarray) -> np.ndarray:
-        return ptv.calib_convergence_residuals(
+        return ptv.dumbbell_ba_residuals(
             x,
-            all_targs_metric,
+            per_frame_metric,
+            cpar,
             cals,
             active,
-            cpar,
             float(db_length),
             float(db_weight),
             pos_scale,
@@ -296,6 +316,12 @@ def run_dumbbell_calibration(
     best_fun = float(np.sum(initial_residuals**2))
     res = None
 
+    jac_sparsity = ptv.dumbbell_ba_jac_sparsity(
+        per_frame_metric,
+        active,
+        float(db_weight),
+    )
+
     for idx in range(max_rounds):
         xtol, ftol, gtol = tol_steps[min(idx, len(tol_steps) - 1)]
         res = least_squares(
@@ -304,6 +330,7 @@ def run_dumbbell_calibration(
             xtol=xtol,
             ftol=ftol,
             gtol=gtol,
+            jac_sparsity=jac_sparsity,
             x_scale="jac",
             max_nfev=nfev_per_round,
             loss=loss,
@@ -326,7 +353,8 @@ def run_dumbbell_calibration(
         raise RuntimeError("Adaptive least_squares did not run")
 
     # Apply solution back to calibration objects
-    calib_pars = np.asarray(best_x, dtype=float).reshape(-1, 2, 3)
+    cam_params_len = num_active * 6
+    calib_pars = np.asarray(best_x[:cam_params_len], dtype=float).reshape(-1, 2, 3)
     ptr = 0
     for cam in range(num_cams):
         if not active[cam]:
