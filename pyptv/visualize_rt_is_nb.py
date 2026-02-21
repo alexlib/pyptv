@@ -14,7 +14,7 @@ def _():
 @app.cell(hide_code=True)
 def _(mo):
     mo.md(r"""
-    # Visualize Camera Poses
+    # Visualize rt_is.12345678
     Load camera poses from `.ori/.addpar` files (via the YAML) and plot world + camera axes.
     """)
     return
@@ -145,7 +145,52 @@ def _(load_calibrations, mo, np, plt, set_axes_equal, yaml_path):
 
 
 @app.cell
-def _():
+def _(np, plt):
+    # How to run:
+    # python .\draw_3d_target.py .\cal\pyramide_target.txt
+
+    # %%
+    # filename = '../cal/small_target_cam2.txt'
+    def plot_3d_target(filename="rt_is.123456878"):
+        d = np.loadtxt(filename, usecols=(0, 1, 2, 3), skiprows=1)
+
+        # %%
+
+        ax = plt.figure(figsize=(12, 10)).add_subplot(projection="3d")
+
+        #
+        for row in d:
+            ax.plot(row[1], row[2], row[3], "ro")
+            ax.text(row[1], row[2], row[3], f"{row[0]:.0f}", None)
+
+        ax.set_xlim(d[:, 1].min(), d[:, 1].max())
+        ax.set_ylim(d[:, 2].min(), d[:, 2].max())
+        ax.set_zlim(d[:, 3].min(), d[:, 3].max())
+
+        ax.set_xlabel("x")
+        ax.set_ylabel("y")
+        ax.set_zlabel("z")
+        # ax.set_title(filename.split("/")[-1])
+
+        return ax
+
+    return (plot_3d_target,)
+
+
+@app.cell
+def _(mo):
+    file_selected = mo.ui.file_browser(
+        label="Select 3D target file",
+        initial_path="/home/user/Downloads/Illmenau/pyPTV_folder/res/",
+    )
+    file_selected
+    return (file_selected,)
+
+
+@app.cell
+def _(file_selected, mo, plot_3d_target):
+    print(file_selected.path(index=0))
+    mo.mpl.interactive(plot_3d_target(file_selected.path(index=0)))
     return
 
 
