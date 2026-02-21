@@ -617,8 +617,8 @@ class TreeMenuHandler(Handler):
         ptv_params = mainGui.get_parameter('ptv')
         
         # Check invert setting
-        if ptv_params.get('inverse', False):
-            print("Invert image")
+        if ptv_params.get('negative', False):
+            print("Negative image")
             for i, im in enumerate(mainGui.orig_images):
                 mainGui.orig_images[i] = ptv.negative(im)
 

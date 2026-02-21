@@ -550,8 +550,8 @@ def py_sequence_loop(exp) -> None:
                         img = rgb2gray(img)
                     if img.dtype != np.uint8:
                         img = img_as_ubyte(img)
-                if pm.get_parameter('ptv').get('inverse', False):
-                    print("Invert image")
+                if pm.get_parameter('ptv').get('negative', False):
+                    print("Negative image")
                     img = negative(img)
                 masking_params = pm.get_parameter('masking')
                 if masking_params and masking_params.get('mask_flag', False):

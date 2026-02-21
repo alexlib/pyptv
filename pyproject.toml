@@ -41,6 +41,7 @@ dependencies = [
     "Pygments>=2.15.0",
     "pyparsing>=3.0.0",
     "pytest>=8.4.1",
+    "marimo>=0.19.10",
 ]
 
 [project.urls]

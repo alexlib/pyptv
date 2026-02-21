@@ -256,7 +256,7 @@ class DetectionGUI(HasTraits):
     image_name = Str("cal/cam1.tif", label="Image file name")
     button_load_image = Button(label="Load Image")
     hp_flag = Bool(False, label="highpass")
-    inverse_flag = Bool(False, label="inverse")
+    negative_flag = Bool(False, label="Negative")
     button_detection = Button(label="Detect dots")
     
     # Default traits that will be updated when parameters are loaded
@@ -470,8 +470,8 @@ class DetectionGUI(HasTraits):
             # Start with raw image
             im = self.raw_image.copy()
             
-            # Apply inverse flag
-            if self.inverse_flag:
+            # Apply negative flag
+            if self.negative_flag:
                 im = 255 - im
             
             # Apply highpass filter if enabled
@@ -492,7 +492,7 @@ class DetectionGUI(HasTraits):
                     Item(name="button_load_image"),
                     "_",  # Separator
                     Item(name="hp_flag"),
-                    Item(name="inverse_flag"),
+                    Item(name="negative_flag"),
                     Item(name="button_detection", enabled_when="image_loaded"),
                     "_",  # Separator
                     # Detection parameter sliders
@@ -562,8 +562,8 @@ class DetectionGUI(HasTraits):
         self.reset_show_images()
 
 
-    def _inverse_flag_changed(self):
-        """Handle inverse flag change"""
+    def _negative_flag_changed(self):
+        """Handle negative flag change"""
         if self.image_loaded:
             self._update_processed_image()
             self.reset_show_images()
@@ -681,8 +681,8 @@ class DetectionGUI(HasTraits):
             # Start with the raw image
             im = self.raw_image.copy()
 
-            # Apply inverse flag
-            if self.inverse_flag:
+            # Apply negative flag
+            if self.negative_flag:
                 im = 255 - im
 
             # Apply highpass filter if enabled
