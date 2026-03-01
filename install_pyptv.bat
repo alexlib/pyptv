@@ -106,12 +106,17 @@ if exist "wheels\optv-0.3.2-cp311-cp311-linux_x86_64.whl" (
     cd %REPO_DIR%
 )
 
-REM Install pyptv from local repository
-echo === Installing pyptv from local repository ===
-call conda activate %ENV_NAME% && ^
-pip install -e .
+REM Install pyptv from local wheel or repository
+echo === Installing pyptv ===
+if exist "wheels\pyptv-*.whl" (
+    call conda activate %ENV_NAME% && pip install wheels\pyptv-*.whl
+    echo Installed pyptv from wheel
+) else (
+    call conda activate %ENV_NAME% && pip install -e .
+    echo Installed pyptv in editable mode
+)
 if %ERRORLEVEL% NEQ 0 (
-    echo Failed to install pyptv from local repository.
+    echo Failed to install pyptv.
     exit /b 1
 )
 

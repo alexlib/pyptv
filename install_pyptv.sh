@@ -56,9 +56,15 @@ fi
 # Build and install Python bindings
 run_in_conda "cd $REPO_DIR/openptv/py_bind && python setup.py prepare && python setup.py build_ext --inplace && pip install ."
 
-# Install pyptv from local repository
-echo "=== Installing pyptv from local repository ==="
-run_in_conda "pip install -e $REPO_DIR"
+# Install pyptv from local wheel or repository
+echo "=== Installing pyptv ==="
+if [ -f "wheels/pyptv-*.whl" ]; then
+    run_in_conda "pip install wheels/pyptv-*.whl"
+    echo "Installed pyptv from wheel"
+else
+    run_in_conda "pip install -e $REPO_DIR"
+    echo "Installed pyptv in editable mode"
+fi
 
 # Set up test data
 echo "=== Setting up test data ==="
