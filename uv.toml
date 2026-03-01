@@ -1,0 +1,10 @@
+# uv configuration for pyptv
+# Uses local optv wheel until it's available on PyPI
+
+# Use local wheels directory for packages not yet on PyPI
+find-links = ["wheels"]
+
+# When optv is published on PyPI, you can simply:
+# 1. Delete this file entirely, OR
+# 2. Comment out the find-links line above
+# Then run: uv sync --upgrade optv
