@@ -1,7 +1,7 @@
 import marimo
 
 __generated_with = "0.20.2"
-app = marimo.App(width="columns")
+app = marimo.App(width="full")
 
 with app.setup:
     import marimo as mo
@@ -154,116 +154,7 @@ def _(cals, cpar, images_8bit, tpar, vpar):
     print(f"Total targets used: {num_targs}")
     print("cpar image size:", cpar.get_image_size())
     print(sorted_pos[0][0, 0, :])
-    return (sorted_pos,)
-
-
-@app.cell
-def _():
-
-    # # We create a 2x2 grid of subplots for the 4 cameras
-    # fig, axes = plt.subplots(2, 2, figsize=(12, 10))
-    # axes_flat = axes.flatten()
-
-    # # Colors by order of images: red, green, blue, yellow
-    # colors = ['red', 'green', 'blue', 'yellow']
-
-    # for cam_idx in range(num_cams):
-    #     axes_flat[cam_idx].imshow(images[cam_idx], cmap='gray')
-    #     axes_flat[cam_idx].set_title(f"Camera {cam_idx+1}")
-    #     axes_flat[cam_idx].axis('on')
-    #     # Set limits to image bounds and prevent expanding
-    #     img_h, img_w = images[cam_idx].shape[:2]
-    #     axes_flat[cam_idx].set_xlim(0, img_w)
-    #     axes_flat[cam_idx].set_ylim(img_h, 0)
-    #     axes_flat[cam_idx].autoscale(False)
-
-    # # Display detected points from correspondences:
-    # clique_colors = ['red', 'green', 'yellow']
-    # clique_labels = ['Quadruplets', 'Triplets', 'Pairs']
-
-    # for clique_idx, pos_type in enumerate(sorted_pos):
-    #     c_color = clique_colors[clique_idx]
-    #     c_label = clique_labels[clique_idx]
-
-    #     for cam_idx in range(num_cams):
-    #         if len(pos_type) == 0:
-    #             continue
-
-    #         pts = pos_type[cam_idx]
-    #         # Filter out invalid points (-999)
-    #         valid = (pts[:, 0] > -900) & (pts[:, 1] > -900)
-    #         valid_pts = pts[valid]
-    #         if len(valid_pts) > 0:
-    #             axes_flat[cam_idx].scatter(
-    #                 valid_pts[:, 0], valid_pts[:, 1],
-    #                 facecolors='none', edgecolors=c_color, s=60,
-    #                 label=c_label if cam_idx == 0 else ""
-    #             )
-
-    # # Add a legend to the first subplot to explain the colors
-    # axes_flat[0].legend(loc='upper right', fontsize=8)
-
-    # def onclick(event):
-    #     if not event.inaxes:
-    #         return
-
-    #     ax = event.inaxes
-
-    #     # Find which camera was clicked
-    #     clicked_i = None
-    #     for j_cam, a in enumerate(axes_flat):
-    #         if a == ax:
-    #             clicked_i = j_cam
-    #             break
-
-    #     if clicked_i is None:
-    #         return
-
-    #     x, y = event.xdata, event.ydata
-
-    #     # Draw a point on the clicked image
-    #     ax.plot(x, y, 'o', color=colors[clicked_i], markersize=6)
-
-    #     point = np.array([x, y])
-    #     num_points = 100
-
-    #     # Draw epipolar lines on other images
-    #     for j_other in range(num_cams):
-    #         if clicked_i == j_other:
-    #             continue
-
-    #         try:
-    #             pts_epipolar = epipolar_curve(
-    #                 point,
-    #                 cals[clicked_i],
-    #                 cals[j_other],
-    #                 num_points,
-    #                 cpar,
-    #                 vpar
-    #             )
-
-    #             if len(pts_epipolar) > 1:
-    #                 # Also we can mathematically filter to only those points inside the image
-    #                 img_h, img_w = images[j_other].shape[:2]
-    #                 valid_mask = (pts_epipolar[:, 0] >= 0) & (pts_epipolar[:, 0] <= img_w) & \
-    #                              (pts_epipolar[:, 1] >= 0) & (pts_epipolar[:, 1] <= img_h)
-
-    #                 # If you just want it not to exceed the axis visually, 
-    #                 # autoscale(False) and axis limits already handle it!
-    #                 axes_flat[j_other].plot(pts_epipolar[:, 0], pts_epipolar[:, 1], color=colors[clicked_i], linewidth=1.5)
-    #         except Exception as e:
-    #             print(f"Error drawing epipolar line for camera {j_other+1}: {e}")
-
-    #     fig.canvas.draw_idle()
-
-    # # Connect the click event
-    # cid = fig.canvas.mpl_connect('button_press_event', onclick)
-
-    # plt.tight_layout()
-    # # In Marimo, the last expression is displayed. If the user has an interactive backend,
-    # # it will support clicks. mo.mpl.interactive(fig) also helps for browser interactivity.
-    # mo.mpl.interactive(fig)
-    return
+    return matched, sorted_corresp, sorted_pos
 
 
 @app.cell
@@ -376,6 +267,47 @@ def _(cals, cpar, images, num_cams, sorted_pos, vpar):
     # In Marimo, the last expression is displayed. If the user has an interactive backend,
     # it will support clicks. mo.mpl.interactive(fig) also helps for browser interactivity.
     mo.mpl.interactive(fig_corr)
+    return
+
+
+@app.cell
+def _(cals, cpar, matched, sorted_corresp, sorted_pos, vpar):
+    from optv.orientation import point_positions
+    concatenated_pos = np.concatenate(sorted_pos, axis=1)
+    concatenated_corresp = np.concatenate(sorted_corresp, axis=1)
+
+    flat = np.array(
+        [corr.get_by_pnrs(corresp) for corr, corresp in zip(matched, concatenated_corresp)]
+    )
+
+    pos, _ = point_positions(flat.transpose(1, 0, 2), cpar, cals, vpar)
+    return (pos,)
+
+
+@app.cell
+def _(pos):
+    fig = plt.figure(figsize=(12, 10))
+    ax = fig.add_subplot(projection="3d")
+
+    #
+    for row in pos:
+        ax.plot(row[0], row[1], row[2], "ro")
+        ax.text(row[0], row[1], row[2], f"{row[0]:.0f}", None)
+
+    ax.set_xlim(pos[:, 0].min(), pos[:, 0].max())
+    ax.set_ylim(pos[:, 1].min(), pos[:, 1].max())
+    ax.set_zlim(pos[:, 2].min(), pos[:, 2].max())
+
+    ax.set_xlabel("x")
+    ax.set_ylabel("y")
+    ax.set_zlabel("z")
+
+    mo.mpl.interactive(ax.figure)
+    return
+
+
+@app.cell
+def _():
     return
 
 
