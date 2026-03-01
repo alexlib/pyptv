@@ -15,7 +15,7 @@ def verify_environment():
     print(f"Python version: {sys.version}")
 
     # Check NumPy version
-    min_numpy = "1.26.4"
+    min_numpy = "2.0.0"
     max_numpy = "2.7"
     np_version = np.__version__
     if not (version.parse(min_numpy) <= version.parse(np_version) < version.parse(max_numpy)):

@@ -23,8 +23,8 @@ classifiers = [
     "Topic :: Scientific/Engineering :: Visualization"
 ]
 dependencies = [
-    "numpy>=1.26.4,<2.7",
-    "optv>=0.3.1",
+    "numpy>=2.0.0,<2.7",
+    "optv>=0.3.2",
     "traits>=6.4.0",
     "traitsui>=7.4.0",
     "enable>=6.1.0",

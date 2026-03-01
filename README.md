@@ -85,16 +85,17 @@ python -m twine upload dist/*
 ## Compatibility Notes
 
 ### NumPy Compatibility
-- Supported NumPy versions: >=1.26.4,<2.7
+- Supported NumPy versions: >=2.0.0,<2.7
+- NumPy 2.x required for optv 0.3.2+
 - Tested with NumPy arrays in both float64 and uint8 formats
 - Array operations maintained for image processing and coordinate transformations
 - NumPy 2.x support requires chaco>=6.1.0 and enable>=6.1.0
 
 ### OpenPTV (optv) Compatibility
-- Compatible with optv versions 0.3.1+
+- Compatible with optv 0.3.2+
+- optv 0.3.2+ requires NumPy >=2.0.0
 - Core functionality tested with latest optv release
 - Calibration and tracking functions verified
-- optv 0.3.1+ requires NumPy >=2.0.0
 
 ## Development Setup
 For development work with latest NumPy:

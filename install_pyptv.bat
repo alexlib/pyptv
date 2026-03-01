@@ -76,33 +76,35 @@ if %ERRORLEVEL% NEQ 0 (
 REM Get the current directory
 set REPO_DIR=%CD%
 
-REM Clone and build OpenPTV
-echo === Building OpenPTV ===
-
-REM Clone OpenPTV if not already present
-if not exist "openptv" (
+REM Install optv from local wheel (NumPy 2 compatible)
+echo === Installing optv from local wheel ===
+if exist "wheels\optv-0.3.2-cp311-cp311-linux_x86_64.whl" (
+    call conda activate %ENV_NAME% && pip install wheels\optv-0.3.2-cp311-cp311-linux_x86_64.whl
+) else (
+    echo WARNING: Local optv wheel not found, will build from source
+    REM Clone and build OpenPTV
+    echo === Building OpenPTV ===
+    if not exist "openptv" (
+        call conda activate %ENV_NAME% && ^
+        git clone https://github.com/openptv/openptv
+        if %ERRORLEVEL% NEQ 0 (
+            echo Failed to clone OpenPTV repository.
+            exit /b 1
+        )
+    )
+    REM Build and install Python bindings
+    echo === Building and installing OpenPTV Python bindings ===
     call conda activate %ENV_NAME% && ^
-    git clone https://github.com/openptv/openptv
+    cd %REPO_DIR%\openptv\py_bind && ^
+    python setup.py prepare && ^
+    python -m build --wheel --outdir dist\ && ^
+    pip install dist\*.whl --force-reinstall
     if %ERRORLEVEL% NEQ 0 (
-        echo Failed to clone OpenPTV repository.
+        echo Failed to build and install OpenPTV Python bindings.
         exit /b 1
     )
+    cd %REPO_DIR%
 )
-
-REM Build and install Python bindings
-echo === Building and installing OpenPTV Python bindings ===
-call conda activate %ENV_NAME% && ^
-cd %REPO_DIR%\openptv\py_bind && ^
-python setup.py prepare && ^
-python -m build --wheel --outdir dist\ && ^
-pip install dist\*.whl --force-reinstall
-if %ERRORLEVEL% NEQ 0 (
-    echo Failed to build and install OpenPTV Python bindings.
-    exit /b 1
-)
-
-REM Return to the repository directory
-cd %REPO_DIR%
 
 REM Install pyptv from local repository
 echo === Installing pyptv from local repository ===

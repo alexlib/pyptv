@@ -35,6 +35,14 @@ run_in_conda "pip install traits traitsui pyface PySide6 enable chaco"
 echo "=== Installing additional dependencies ==="
 run_in_conda "pip install scikit-image scipy pandas tables imagecodecs flowtracks pygments pyparsing"
 
+# Install optv from local wheel (NumPy 2 compatible)
+echo "=== Installing optv from local wheel ==="
+if [ -f "wheels/optv-0.3.2-cp311-cp311-linux_x86_64.whl" ]; then
+    run_in_conda "pip install wheels/optv-0.3.2-cp311-cp311-linux_x86_64.whl"
+else
+    echo "WARNING: Local optv wheel not found in wheels/ directory"
+fi
+
 # Clone and build OpenPTV
 echo "=== Building OpenPTV ==="
 cd "$(dirname "$0")"  # Change to script directory
