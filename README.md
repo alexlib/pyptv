@@ -1,5 +1,4 @@
-# PyPTV
-Python GUI for the OpenPTV library `liboptv`
+# Project Title
 
 [![Python package](https://github.com/alexlib/pyptv/actions/workflows/python-package.yml/badge.svg)](https://github.com/alexlib/pyptv/actions/workflows/python-package.yml)
 [![DOI](https://zenodo.org/badge/121291437.svg)](https://zenodo.org/badge/latestdoi/121291437)
@@ -161,3 +160,4 @@ Or use the helper script:
 ```
 
 
+This is a detailed description of the project...
