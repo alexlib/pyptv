@@ -25,7 +25,7 @@ run_in_conda() {
 
 # Install Python dependencies
 echo "=== Installing Python dependencies ==="
-run_in_conda "pip install setuptools numpy==1.26.4 matplotlib pytest tqdm cython pyyaml build"
+run_in_conda "pip install setuptools 'numpy>=1.26.4,<2.7' matplotlib pytest tqdm cython pyyaml build"
 
 # Install UI dependencies
 echo "=== Installing UI dependencies ==="

@@ -58,7 +58,7 @@ if %ERRORLEVEL% NEQ 0 (
 REM Install Python dependencies
 echo === Installing Python dependencies ===
 call conda activate %ENV_NAME% && ^
-pip install setuptools numpy==1.26.4 matplotlib pytest flake8 tqdm cython pyyaml build
+pip install setuptools "numpy>=1.26.4,<2.7" matplotlib pytest flake8 tqdm cython pyyaml build
 if %ERRORLEVEL% NEQ 0 (
     echo Failed to install Python dependencies.
     exit /b 1

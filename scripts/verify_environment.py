@@ -3,6 +3,7 @@ Verification script to check numpy and optv compatibility
 """
 
 import sys
+from packaging import version
 import numpy as np
 import optv
 import pyptv
@@ -14,13 +15,15 @@ def verify_environment():
     print(f"Python version: {sys.version}")
 
     # Check NumPy version
-    required_numpy = "1.26.4"
-    if np.__version__ != required_numpy:
+    min_numpy = "1.26.4"
+    max_numpy = "2.7"
+    np_version = np.__version__
+    if not (version.parse(min_numpy) <= version.parse(np_version) < version.parse(max_numpy)):
         print(
-            f"WARNING: NumPy version mismatch. Required: {required_numpy}, Found: {np.__version__}"
+            f"WARNING: NumPy version out of range. Required: >={min_numpy} <{max_numpy}, Found: {np_version}"
         )
     else:
-        print(f"NumPy version: {np.__version__} (OK)")
+        print(f"NumPy version: {np_version} (OK)")
 
     # Check OpenPTV version
     required_optv = "0.3.0"

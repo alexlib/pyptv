@@ -1,10 +1,15 @@
 import numpy as np
 import optv
+from packaging import version
 
 
 def test_numpy_version():
     """Verify numpy version compatibility"""
-    assert np.__version__ == "1.26.4", f"Expected numpy 1.26.4, got {np.__version__}"
+    min_version = "1.26.4"
+    max_version = "2.7"
+    np_version = np.__version__
+    assert version.parse(min_version) <= version.parse(np_version) < version.parse(max_version), \
+        f"Expected numpy >={min_version} <{max_version}, got {np_version}"
 
 
 def test_optv_version():
