@@ -24,13 +24,36 @@ Both PyPTV and the OpenPTV library are in the development phase and continuously
 
 ## Installation instructions
 
+### Using uv (recommended for development)
+
+This project uses [uv](https://github.com/astral-sh/uv) for fast dependency management. A local wheel of `optv>=0.3.2` is included in the `wheels/` directory until it's available on PyPI.
+
+```bash
+# Install uv if you haven't already
+curl -LsSf https://astral.sh/uv/install.sh | sh
+
+# Create virtual environment and install dependencies
+uv sync
+
+# Or to create environment from scratch
+rm -rf .venv && uv sync
+```
+
+The `uv.toml` configuration automatically uses the local wheel from `wheels/`. The `uv.lock` file pins all dependencies for reproducible builds.
+
+### Using pip
+
 Short version:
 
     pip install numpy
     python -m pip install pyptv --index-url https://pypi.fury.io/pyptv --extra-index-url https://pypi.org/simple
 
+**Note:** If `optv>=0.3.2` is not yet available on PyPI, install it from the local wheel first:
 
-Detailed instructions for various platforms are in our documentation: 
+    pip install wheels/optv-0.3.2-*.whl
+    python -m pip install pyptv --index-url https://pypi.fury.io/pyptv --extra-index-url https://pypi.org/simple
+
+Detailed instructions for various platforms are in our documentation:
 https://openptv-python.readthedocs.io/en/latest/installation_instruction.html
 
 
