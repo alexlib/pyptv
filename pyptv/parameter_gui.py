@@ -38,13 +38,22 @@ class ParamHandler(Handler):
             img_cal_name = img_cal_name[:main_params.Num_Cam]
 
             experiment.pm.parameters['ptv'].update({
-                'img_name': img_name, 'img_cal': img_cal_name,
-                'hp_flag': main_params.HighPass, 'allcam_flag': main_params.Accept_OnlyAllCameras,
-                'tiff_flag': main_params.tiff_flag, 'imx': main_params.imx, 'imy': main_params.imy,
-                'pix_x': main_params.pix_x, 'pix_y': main_params.pix_y, 'chfield': main_params.chfield,
-                'mmp_n1': main_params.Refr_Air, 'mmp_n2': main_params.Refr_Glass,
-                'mmp_n3': main_params.Refr_Water, 'mmp_d': main_params.Thick_Glass,
-                'splitter': main_params.Splitter
+                'img_name': img_name,
+                'img_cal': img_cal_name,
+                'hp_flag': main_params.HighPass,
+                'allcam_flag': main_params.Accept_OnlyAllCameras,
+                'tiff_flag': main_params.tiff_flag,
+                'imx': main_params.imx,
+                'imy': main_params.imy,
+                'pix_x': main_params.pix_x,
+                'pix_y': main_params.pix_y,
+                'chfield': main_params.chfield,
+                'mmp_n1': main_params.Refr_Air,
+                'mmp_n2': main_params.Refr_Glass,
+                'mmp_n3': main_params.Refr_Water,
+                'mmp_d': main_params.Thick_Glass,
+                'splitter': main_params.Splitter,
+                'negative': main_params.Negative
             })
 
             # Update cal_ori.par
@@ -103,6 +112,8 @@ class ParamHandler(Handler):
             # Save all changes to the YAML file through the experiment
             experiment.save_parameters()
             print("Parameters saved successfully!")
+            if main_params.Negative:
+                print("[WARNING] You must reload images for 'Negative images?' to take effect.")
 
 
 # define handler function for calibration parameters
@@ -207,7 +218,8 @@ class CalHandler(Handler):
                 'dumbbell_gradient_descent': calib_params.dumbbell_gradient_descent,
                 'dumbbell_penalty_weight': calib_params.dumbbell_penalty_weight,
                 'dumbbell_step': calib_params.dumbbell_step,
-                'dumbbell_niter': calib_params.dumbbell_niter
+                'dumbbell_niter': calib_params.dumbbell_niter,
+                'dumbbell_fixed_camera': calib_params.dumbbell_fixed_camera
             })
 
             # Save all changes to the YAML file through the experiment
@@ -300,7 +312,7 @@ class Main_Params(HasTraits):
     pair_enable_flag = True
     all_enable_flag = False
     # hp_enable_flag = Bool()
-    inverse_image_flag = Bool()
+    negative_image_flag = Bool()
     Splitter = Bool(label="Split images into 4?")
 
     tiff_flag = Bool()
@@ -346,7 +358,7 @@ class Main_Params(HasTraits):
     Subtr_Mask = Bool(label="Subtract mask")
     Base_Name_Mask = Str(label="Base name for the mask")
     Existing_Target = Bool(label="Use existing_target files?")
-    Inverse = Bool(label="Negative images?")
+    Negative = Bool(label="Negative images?")
 
     # New panel 3: Sequence
     Seq_First = Int(label="First sequence image:")
@@ -450,7 +462,7 @@ class Main_Params(HasTraits):
             Item(name="Base_Name_Mask"),
             Item(name="Existing_Target"),
             Item(name="HighPass"),
-            Item(name="Inverse"),
+            Item(name="Negative"),
             orientation="horizontal",
         ),
         orientation="vertical",
@@ -555,7 +567,7 @@ class Main_Params(HasTraits):
         self.pix_x = ptv_params['pix_x']
         self.pix_y = ptv_params['pix_y']
         self.chfield = ptv_params['chfield']
-        self.Splitter = bool(ptv_params['splitter'])
+        self.Negative = bool(ptv_params.get('negative', False))
 
         # cal_ori_params = params['cal_ori']
         # # self.pair_Flag = bool(cal_ori_params['pair_flag'])
@@ -893,6 +905,7 @@ class Calib_Params(HasTraits):
     dumbbell_penalty_weight = Float(label="weight for dumbbell penalty")
     dumbbell_step = Int(label="step size through sequence")
     dumbbell_niter = Int(label="number of iterations per click")
+    dumbbell_fixed_camera = Int(label="fixed camera (0=auto)")
 
     Group5 = HGroup(
         VGroup(
@@ -902,6 +915,7 @@ class Calib_Params(HasTraits):
             Item(name="dumbbell_penalty_weight"),
             Item(name="dumbbell_step"),
             Item(name="dumbbell_niter"),
+            Item(name="dumbbell_fixed_camera"),
         ),
         spring,
         label="Dumbbell calibration parameters",
@@ -1029,6 +1043,7 @@ class Calib_Params(HasTraits):
         self.dumbbell_penalty_weight = dumbbell_params['dumbbell_penalty_weight']
         self.dumbbell_step = dumbbell_params['dumbbell_step']
         self.dumbbell_niter = dumbbell_params['dumbbell_niter']
+        self.dumbbell_fixed_camera = dumbbell_params.get('dumbbell_fixed_camera', 0)
 
         shaking_params = params['shaking']
         self.shaking_first_frame = shaking_params['shaking_first_frame']

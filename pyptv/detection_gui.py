@@ -256,7 +256,7 @@ class DetectionGUI(HasTraits):
     image_name = Str("cal/cam1.tif", label="Image file name")
     button_load_image = Button(label="Load Image")
     hp_flag = Bool(False, label="highpass")
-    inverse_flag = Bool(False, label="inverse")
+    negative_flag = Bool(False, label="Negative")
     button_detection = Button(label="Detect dots")
     
     # Default traits that will be updated when parameters are loaded
@@ -326,10 +326,17 @@ class DetectionGUI(HasTraits):
             self.image_loaded = False
             try: 
                 self.raw_image = imread(self.image_name)
+                print("Image loaded successfully")
+
                 if self.raw_image.ndim > 2:
+                    print("Converting image to grayscale")
                     self.raw_image = rgb2gray(self.raw_image) 
                 
+                print("Converting image to 8-bit unsigned integer format")
                 self.raw_image = img_as_ubyte(self.raw_image)
+                print(f"self.raw_image.shape: {self.raw_image.shape}")
+
+
                 self.image_loaded = True
             except Exception as e:
                 self.status_text = f"Error reading image: {str(e)}"
@@ -340,7 +347,7 @@ class DetectionGUI(HasTraits):
             self.cpar = ptv.ControlParams(1)
             self.cpar.set_image_size((self.raw_image.shape[1], self.raw_image.shape[0]))        
             self.cpar.set_pixel_size((0.01, 0.01))  # Default pixel size, can be overridden later
-            self.cpar.set_hp_flag(self.hp_flag) 
+            self.cpar.set_hp_flag(self.hp_flag)
 
             # Initialize target parameters for detection
             self.tpar = ptv.TargetParams()
@@ -455,7 +462,7 @@ class DetectionGUI(HasTraits):
             self.status_text = f"Image loaded: {self.image_name}"
             
             # Run initial detection
-            self._run_detection()
+            # self._run_detection()
             
         except Exception as e:
             self.status_text = f"Error loading image: {str(e)}"
@@ -470,9 +477,9 @@ class DetectionGUI(HasTraits):
             # Start with raw image
             im = self.raw_image.copy()
             
-            # Apply inverse flag
-            if self.inverse_flag:
-                im = 255 - im
+            # Apply negative flag
+            if self.negative_flag:
+                im = np.clip(255 - im.astype(np.uint8), 0, 255)
             
             # Apply highpass filter if enabled
             if self.hp_flag:
@@ -492,7 +499,7 @@ class DetectionGUI(HasTraits):
                     Item(name="button_load_image"),
                     "_",  # Separator
                     Item(name="hp_flag"),
-                    Item(name="inverse_flag"),
+                    Item(name="negative_flag"),
                     Item(name="button_detection", enabled_when="image_loaded"),
                     "_",  # Separator
                     # Detection parameter sliders
@@ -562,8 +569,8 @@ class DetectionGUI(HasTraits):
         self.reset_show_images()
 
 
-    def _inverse_flag_changed(self):
-        """Handle inverse flag change"""
+    def _negative_flag_changed(self):
+        """Handle negative flag change"""
         if self.image_loaded:
             self._update_processed_image()
             self.reset_show_images()
@@ -681,8 +688,8 @@ class DetectionGUI(HasTraits):
             # Start with the raw image
             im = self.raw_image.copy()
 
-            # Apply inverse flag
-            if self.inverse_flag:
+            # Apply negative flag
+            if self.negative_flag:
                 im = 255 - im
 
             # Apply highpass filter if enabled

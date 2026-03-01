@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "pyptv"
-version = "0.4.0"
+version = "0.4.1"
 description = "Python GUI for the OpenPTV library `liboptv`"
 authors = [
     {name = "Alex Liberzon", email = "alex.liberzon@gmail.com"}
@@ -41,6 +41,7 @@ dependencies = [
     "Pygments>=2.15.0",
     "pyparsing>=3.0.0",
     "pytest>=8.4.1",
+    "marimo>=0.19.10",
 ]
 
 [project.urls]
@@ -66,7 +67,7 @@ profile = "black"
 multi_line_output = 3
 
 [tool.pytest.ini_options]
-minversion = "0.4.0"
+minversion = "0.4.1"
 addopts = "-v -x --tb=short"
 testpaths = ["tests"]
 filterwarnings = [

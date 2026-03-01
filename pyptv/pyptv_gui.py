@@ -1,4 +1,5 @@
 import os
+import copy
 import sys
 import json
 import yaml
@@ -312,6 +313,38 @@ class CameraWindow(HasTraits):
                 y2f.append(y2_val)
         return x1f, y1f, x2f, y2f
 
+    @staticmethod
+    def _clip_line_to_rect(x1, y1, x2, y2, width, height):
+        """Clip a line segment to image bounds using Liang-Barsky."""
+        if width <= 0 or height <= 0:
+            return None
+
+        dx = x2 - x1
+        dy = y2 - y1
+        p = [-dx, dx, -dy, dy]
+        q = [x1, (width - 1) - x1, y1, (height - 1) - y1]
+
+        u1 = 0.0
+        u2 = 1.0
+        for pi, qi in zip(p, q):
+            if pi == 0:
+                if qi < 0:
+                    return None
+            else:
+                t = qi / pi
+                if pi < 0:
+                    u1 = max(u1, t)
+                else:
+                    u2 = min(u2, t)
+                if u1 > u2:
+                    return None
+
+        nx1 = x1 + u1 * dx
+        ny1 = y1 + u1 * dy
+        nx2 = x1 + u2 * dx
+        ny2 = y1 + u2 * dy
+        return nx1, ny1, nx2, ny2
+
     def drawline(self, str_x, str_y, x1, y1, x2, y2, color1):
         """drawline draws 1 line on the screen by using lineplot x1,y1->x2,y2
         parameters:
@@ -323,7 +356,14 @@ class CameraWindow(HasTraits):
             drawline("x_coord","y_coord",100,100,200,200,red)
             draws a red line 100,100->200,200
         """
-        # imx, imy = self._plot_data.get_data('imagedata').shape
+        imagedata = self._plot_data.get_data("imagedata")
+        if imagedata is not None:
+            height, width = imagedata.shape[:2]
+            clipped = self._clip_line_to_rect(x1, y1, x2, y2, width, height)
+            if clipped is None:
+                return
+            x1, y1, x2, y2 = clipped
+
         self._plot_data.set_data(str_x, [x1, x2])
         self._plot_data.set_data(str_y, [y1, y2])
         self._plot.plot((str_x, str_y), type="line", color=color1)
@@ -336,48 +376,73 @@ class CameraWindow(HasTraits):
 class TreeMenuHandler(Handler):
     """TreeMenuHandler handles the menu actions and tree node actions"""
 
-    def configure_main_par(self, editor, object):
+    def _open_param_dialog(self, editor, object, dialog_cls, view_name, label):
         experiment = editor.get_parent(object)
-        print("Configure main parameters via ParameterManager")
-        
-        # Create Main_Params GUI with current experiment
-        main_params_gui = Main_Params(experiment=experiment)
-        if main_params_gui is None:
-            raise RuntimeError("Failed to create Main_Params GUI (main_params_gui is None)")
-        
-        # Show the GUI in modal dialog
-        result = main_params_gui.edit_traits(view='Main_Params_View', kind='livemodal')
-        
+        paramset = object
+        active_paramset = experiment.active_params
+        previous_override = getattr(experiment, "_override_save_path", None)
+        switched = False
+
+        try:
+            if isinstance(paramset, Paramset) and paramset != active_paramset:
+                experiment._override_save_path = paramset.yaml_path
+                experiment.pm.from_yaml(paramset.yaml_path)
+                switched = True
+
+            print(label)
+            dialog = dialog_cls(experiment=experiment)
+            if dialog is None:
+                raise RuntimeError("Failed to create parameters GUI (dialog is None)")
+
+            result = dialog.edit_traits(view=view_name, kind="livemodal")
+
+            if switched:
+                paramset.parameters = copy.deepcopy(experiment.pm.parameters)
+                paramset.num_cams = experiment.pm.num_cams
+
+            return result
+        finally:
+            experiment._override_save_path = previous_override
+            if switched and active_paramset is not None:
+                experiment.load_parameters_for_active()
+
+    def configure_main_par(self, editor, object):
+        result = self._open_param_dialog(
+            editor,
+            object,
+            Main_Params,
+            "Main_Params_View",
+            "Configure main parameters via ParameterManager",
+        )
+
         if result:
             print("Main parameters updated and saved to YAML")
         else:
             print("Main parameters dialog cancelled")
 
     def configure_cal_par(self, editor, object):
-        experiment = editor.get_parent(object)
-        print("Configure calibration parameters via ParameterManager")
-        
-        # Create Calib_Params GUI with current experiment
-        calib_params_gui = Calib_Params(experiment=experiment)
-        
-        # Show the GUI in modal dialog
-        result = calib_params_gui.edit_traits(view='Calib_Params_View', kind='livemodal')
-        
+        result = self._open_param_dialog(
+            editor,
+            object,
+            Calib_Params,
+            "Calib_Params_View",
+            "Configure calibration parameters via ParameterManager",
+        )
+
         if result:
             print("Calibration parameters updated and saved to YAML")
         else:
             print("Calibration parameters dialog cancelled")
 
     def configure_track_par(self, editor, object):
-        experiment = editor.get_parent(object)
-        print("Configure tracking parameters via ParameterManager")
-        
-        # Create Tracking_Params GUI with current experiment
-        tracking_params_gui = Tracking_Params(experiment=experiment)
-        
-        # Show the GUI in modal dialog
-        result = tracking_params_gui.edit_traits(view='Tracking_Params_View', kind='livemodal')
-        
+        result = self._open_param_dialog(
+            editor,
+            object,
+            Tracking_Params,
+            "Tracking_Params_View",
+            "Configure tracking parameters via ParameterManager",
+        )
+
         if result:
             print("Tracking parameters updated and saved to YAML")
         else:
@@ -552,8 +617,8 @@ class TreeMenuHandler(Handler):
         ptv_params = mainGui.get_parameter('ptv')
         
         # Check invert setting
-        if ptv_params.get('inverse', False):
-            print("Invert image")
+        if ptv_params.get('negative', False):
+            print("Negative image")
             for i, im in enumerate(mainGui.orig_images):
                 mainGui.orig_images[i] = ptv.negative(im)
 

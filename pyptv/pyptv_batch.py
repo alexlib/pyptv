@@ -258,7 +258,6 @@ def parse_command_line_args() -> tuple[Path, int, int]:
     pm = ParameterManager()
     pm.from_yaml(yaml_file)
 
-
     if args.first_frame is not None:
         first_frame = args.first_frame
     else:
@@ -268,12 +267,8 @@ def parse_command_line_args() -> tuple[Path, int, int]:
         last_frame = args.last_frame
     else:
         last_frame = pm.parameters.get("sequence").get("last")
-    
-    if mode is not None:
-        mode = args.mode
-    else:
-        mode = "both"
 
+    mode = args.mode
 
     return yaml_file, first_frame, last_frame, mode
 

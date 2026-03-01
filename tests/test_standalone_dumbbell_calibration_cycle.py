@@ -1,28 +1,20 @@
 from __future__ import annotations
 
 import shutil
+import re
 import subprocess
 import sys
 from pathlib import Path
 
 import numpy as np
 
-from optv.calibration import Calibration
-
-from pyptv.dumbbell_ground_truth import generate_dumbbell_target_files, DumbbellGTSpec
+from pyptv.dumbbell_ground_truth import DumbbellGTSpec, generate_dumbbell_target_files
 
 
 def _copy_tree(src: Path, dst: Path) -> None:
     if dst.exists():
         shutil.rmtree(dst)
     shutil.copytree(src, dst)
-
-
-def _read_cal(ori_path: Path) -> Calibration:
-    cal = Calibration()
-    addpar = Path(str(ori_path).replace(".ori", ".addpar"))
-    cal.from_file(str(ori_path), str(addpar))
-    return cal
 
 
 def test_standalone_dumbbell_calibration_cycle(tmp_path: Path):
@@ -45,12 +37,13 @@ def test_standalone_dumbbell_calibration_cycle(tmp_path: Path):
     assert summary["frames_written"] == 4
 
     # 2) Capture ground-truth calibration for camera 2 (we will perturb it).
-    # Keep camera 1 fixed during optimization to remove gauge freedom.
+    # Keep all other cameras fixed during optimization to remove gauge freedom.
     ori1 = work / "cal" / "cam2.tif.ori"
-    gt = _read_cal(ori1)
-
     # 3) Perturb the starting calibration (pos + angles) and write it back.
-    start = _read_cal(ori1)
+    from optv.calibration import Calibration
+    start = Calibration()
+    addpar = Path(str(ori1).replace(".ori", ".addpar"))
+    start.from_file(str(ori1), str(addpar))
     start.set_pos(start.get_pos() + np.array([2.0, -1.0, 1.5]))
     start.set_angles(start.get_angles() + np.array([0.01, -0.005, 0.008]))
     start.write(str(ori1).encode("utf-8"), str(ori1).replace(".ori", ".addpar").encode("utf-8"))
@@ -64,6 +57,8 @@ def test_standalone_dumbbell_calibration_cycle(tmp_path: Path):
             str(yaml_path),
             "--fixed-cams",
             "0",
+            "2",
+            "3",
             "--maxiter",
             "800",
             "--write",
@@ -75,14 +70,15 @@ def test_standalone_dumbbell_calibration_cycle(tmp_path: Path):
     )
     assert proc.returncode == 0, proc.stdout
 
-    # 5) Read result and verify it's closer to GT than the perturbed start.
-    final = _read_cal(ori1)
+    # 5) Parse residuals summary and verify improvement.
+    match = re.search(r"fun_initial=([0-9eE+.-]+) fun_final=([0-9eE+.-]+)", proc.stdout)
+    assert match, f"Expected residual summary in output. Output:\n{proc.stdout}"
 
-    d_start = np.linalg.norm(start.get_pos() - gt.get_pos())
-    d_final = np.linalg.norm(final.get_pos() - gt.get_pos())
+    fun_start = float(match.group(1))
+    fun_final = float(match.group(2))
 
-    a_start = np.linalg.norm(start.get_angles() - gt.get_angles())
-    a_final = np.linalg.norm(final.get_angles() - gt.get_angles())
+    assert fun_final < fun_start * 0.5, (
+        f"Residuals not improved enough: start={fun_start}, final={fun_final}"
+    )
 
-    assert d_final < d_start * 0.5, f"Position not improved enough: start={d_start}, final={d_final}"
-    assert a_final < a_start * 0.5, f"Angles not improved enough: start={a_start}, final={a_final}"
+

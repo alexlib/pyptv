@@ -34,7 +34,7 @@ def _parse_args() -> argparse.Namespace:
     p.add_argument("yaml", type=Path, help="Path to parameters_*.yaml")
     p.add_argument("--step", type=int, default=None, help="Frame step (default: dumbbell.dumbbell_step or 1)")
     p.add_argument("--fixed-cams", nargs="*", type=int, default=[], help="0-based camera indices to keep fixed")
-    p.add_argument("--maxiter", type=int, default=1000, help="SciPy minimize maxiter")
+    p.add_argument("--maxiter", type=int, default=1000, help="SciPy least_squares max function evaluations")
     p.add_argument("--write", action="store_true", help="Write updated .ori/.addpar")
     p.add_argument("--no-write", action="store_true", help="Do not write outputs")
     return p.parse_args()
