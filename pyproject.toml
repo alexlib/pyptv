@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "pyptv"
-version = "0.4.1"
+version = "0.4.2"
 description = "Python GUI for the OpenPTV library `liboptv`"
 authors = [
     {name = "Alex Liberzon", email = "alex.liberzon@gmail.com"}
@@ -23,12 +23,12 @@ classifiers = [
     "Topic :: Scientific/Engineering :: Visualization"
 ]
 dependencies = [
-    "numpy==1.26.4",
-    "optv>=0.3.0",
+    "numpy>=2.0.0,<2.7",
+    "optv>=0.3.2",
     "traits>=6.4.0",
     "traitsui>=7.4.0",
-    "enable>=5.3.0",
-    "chaco>=5.1.0",
+    "enable>=6.1.0",
+    "chaco>=6.1.0",
     "PySide6>=6.0.0",
     "scikit-image>=0.20.0",
     "scipy>=1.10.0",
@@ -67,7 +67,7 @@ profile = "black"
 multi_line_output = 3
 
 [tool.pytest.ini_options]
-minversion = "0.4.1"
+minversion = "0.4.2"
 addopts = "-v -x --tb=short"
 testpaths = ["tests"]
 filterwarnings = [

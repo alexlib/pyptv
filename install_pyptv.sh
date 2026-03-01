@@ -25,7 +25,7 @@ run_in_conda() {
 
 # Install Python dependencies
 echo "=== Installing Python dependencies ==="
-run_in_conda "pip install setuptools numpy==1.26.4 matplotlib pytest tqdm cython pyyaml build"
+run_in_conda "pip install setuptools 'numpy>=1.26.4,<2.7' matplotlib pytest tqdm cython pyyaml build"
 
 # Install UI dependencies
 echo "=== Installing UI dependencies ==="
@@ -34,6 +34,14 @@ run_in_conda "pip install traits traitsui pyface PySide6 enable chaco"
 # Install additional dependencies for PyPTV
 echo "=== Installing additional dependencies ==="
 run_in_conda "pip install scikit-image scipy pandas tables imagecodecs flowtracks pygments pyparsing"
+
+# Install optv from local wheel (NumPy 2 compatible)
+echo "=== Installing optv from local wheel ==="
+if [ -f "wheels/optv-0.3.2-cp311-cp311-linux_x86_64.whl" ]; then
+    run_in_conda "pip install wheels/optv-0.3.2-cp311-cp311-linux_x86_64.whl"
+else
+    echo "WARNING: Local optv wheel not found in wheels/ directory"
+fi
 
 # Clone and build OpenPTV
 echo "=== Building OpenPTV ==="
