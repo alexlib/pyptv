@@ -25,7 +25,7 @@ run_in_conda() {
 
 # Install Python dependencies
 echo "=== Installing Python dependencies ==="
-run_in_conda "pip install setuptools numpy==1.26.4 matplotlib pytest tqdm cython pyyaml build"
+run_in_conda "pip install setuptools 'numpy>=1.26.4,<2.7' matplotlib pytest tqdm cython pyyaml build"
 
 # Install UI dependencies
 echo "=== Installing UI dependencies ==="
@@ -34,6 +34,14 @@ run_in_conda "pip install traits traitsui pyface PySide6 enable chaco"
 # Install additional dependencies for PyPTV
 echo "=== Installing additional dependencies ==="
 run_in_conda "pip install scikit-image scipy pandas tables imagecodecs flowtracks pygments pyparsing"
+
+# Install optv from local wheel (NumPy 2 compatible)
+echo "=== Installing optv from local wheel ==="
+if [ -f "wheels/optv-0.3.2-cp311-cp311-linux_x86_64.whl" ]; then
+    run_in_conda "pip install wheels/optv-0.3.2-cp311-cp311-linux_x86_64.whl"
+else
+    echo "WARNING: Local optv wheel not found in wheels/ directory"
+fi
 
 # Clone and build OpenPTV
 echo "=== Building OpenPTV ==="
@@ -48,9 +56,15 @@ fi
 # Build and install Python bindings
 run_in_conda "cd $REPO_DIR/openptv/py_bind && python setup.py prepare && python setup.py build_ext --inplace && pip install ."
 
-# Install pyptv from local repository
-echo "=== Installing pyptv from local repository ==="
-run_in_conda "pip install -e $REPO_DIR"
+# Install pyptv from local wheel or repository
+echo "=== Installing pyptv ==="
+if [ -f "wheels/pyptv-*.whl" ]; then
+    run_in_conda "pip install wheels/pyptv-*.whl"
+    echo "Installed pyptv from wheel"
+else
+    run_in_conda "pip install -e $REPO_DIR"
+    echo "Installed pyptv in editable mode"
+fi
 
 # Set up test data
 echo "=== Setting up test data ==="
