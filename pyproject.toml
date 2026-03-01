@@ -24,7 +24,7 @@ classifiers = [
 ]
 dependencies = [
     "numpy>=1.26.4,<2.7",
-    "optv>=0.3.0",
+    "optv>=0.3.1",
     "traits>=6.4.0",
     "traitsui>=7.4.0",
     "enable>=6.1.0",
