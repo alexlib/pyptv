@@ -30,6 +30,7 @@ with app.setup:
 
     import glob
     import pickle
+    import cv2
 
 
 @app.cell
@@ -162,6 +163,11 @@ def _(cals, cpar, images_8bit, tpar, vpar):
     print("cpar image size:", cpar.get_image_size())
     print(sorted_pos[0][0, 0, :])
     return matched, sorted_corresp, sorted_pos
+
+
+@app.cell
+def _():
+    return
 
 
 @app.cell
@@ -319,7 +325,109 @@ def _(pos):
 
 
 @app.cell(column=1)
-def _(cv2, pd):
+def _():
+    test_img = cv2.imread("/home/user/Downloads/Illmenau/KalibrierungA/Kalibrierung1a/00000030_00000000849B30C6.tiff",0)
+    plt.imshow(test_img,cmap="gray")
+    plt.title("One of the calibration images")
+
+    return (test_img,)
+
+
+@app.cell
+def _(test_img):
+    # Setup SimpleBlobDetector parameters.
+    board_params = cv2.SimpleBlobDetector_Params()
+
+    # # Change thresholds
+    # params.filterByColor = False #True
+    # params.minThreshold = 50
+    # params.maxThreshold = 250
+
+
+    # # Filter by Area.
+    # params.filterByArea = True
+    # params.minArea = 10
+
+    # # Filter by Circularity
+    # params.filterByCircularity = True
+    # params.minCircularity = 0.1
+
+    # # Filter by Convexity
+    # params.filterByConvexity = True
+    # params.minConvexity = 0.2
+
+    # # Filter by Inertia
+    # params.filterByInertia = True
+    # params.minInertiaRatio = 0.01
+
+    # THIS IS THE KEY:
+    board_params.filterByColor = False 
+
+    # Ensure other filters are set so it doesn't pick up noise
+    board_params.filterByArea = True
+    board_params.minArea = 50
+    board_params.filterByCircularity = True
+    board_params.minCircularity = 0.7 # Adjust based on how round they are
+
+    # Create a detector with the parameters
+    # OLD: detector = cv2.SimpleBlobDetector(params)
+    detector = cv2.SimpleBlobDetector_create(board_params)
+
+
+    # Detect blobs.
+    keypoints = detector.detect(test_img)
+
+    # Draw detected blobs as red circles.
+    # cv2.DRAW_MATCHES_FLAGS_DRAW_RICH_KEYPOINTS ensures
+    # the size of the circle corresponds to the size of blob
+
+    blank = np.zeros((1, 1))
+    im_with_keypoints = cv2.drawKeypoints(test_img, keypoints, blank, (255, 0, 0), cv2.DRAW_MATCHES_FLAGS_DRAW_RICH_KEYPOINTS)
+
+    # Show blobs
+    # plt.figure()
+    plt.figure(figsize=(10,10))
+
+    # Displaying the image
+    # plt.subplot(121)
+    # plt.title('Original')
+    # plt.imshow(test_img, cmap='gray')
+
+    # plt.subplot(122)
+    # plt.title('Blobs')
+    plt.imshow(im_with_keypoints)
+    return (detector,)
+
+
+@app.cell
+def _(detector, test_img):
+    found, corners = cv2.findCirclesGrid(test_img,(7,6),
+                                            flags=cv2.CALIB_CB_SYMMETRIC_GRID,
+                                            blobDetector=detector
+                                            )
+    vis = cv2.cvtColor(test_img, cv2.COLOR_GRAY2BGR)
+    cv2.drawChessboardCorners(vis, (7,6), corners, found)
+    plt.figure(figsize=(8,8))
+    for corner in corners:
+        plt.scatter(corner[0][0], corner[0][1], color='yellow', s=10)
+    # for corner in corners[::7]:
+    #     plt.text(corner[0][0], corner[0][1], f"({corner[0][0]:.1f}, {corner[0][1]:.1f})", color='yellow', fontsize=8, ha='right')
+    plt.imshow(vis)
+    return
+
+
+@app.cell
+def _():
+    return
+
+
+@app.cell
+def _():
+    return
+
+
+@app.cell(column=2)
+def _(pd):
     class Camera_Calibration_API:
         """ A complete API to calibrate camera with chessboard or symmetric_circles or asymmetric_circles.
             also runs on multi-threads
@@ -855,7 +963,7 @@ def _():
 
 
 @app.cell
-def _(cm, cv2, linspace):
+def _(cm, linspace):
     def _draw_camera_boards(ax, camera_matrix, cam_width, cam_height, scale_focal,
                            extrinsics, board_width, board_height, square_size,
                            patternCentric):
