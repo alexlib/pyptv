@@ -188,7 +188,7 @@ def _(cals, cpar, images_8bit, images_cv2, tpar, vpar):
             targ.set_pos(corner)
 
 
-        targs_cv2.sort_y()  
+        # targs_cv2.sort_y()  
         mc_cv2 = MatchedCoords(targs_cv2, cpar, cals[i_cam])
 
         #collect
@@ -213,7 +213,17 @@ def _(cals, cpar, images_8bit, images_cv2, tpar, vpar):
 
     # vpar.set_eps0(eps_slider.value)
     # sorted_pos, sorted_corresp, num_targs = correspondences(targets, matched, cals, vpar, cpar)
-    sorted_pos_cv2, sorted_corresp_cv2, num_targs_cv2 = correspondences(targets_cv2, matched_cv2, cals, vpar, cpar)
+    # sorted_pos_cv2, sorted_corresp_cv2, num_targs_cv2 = correspondences(targets_cv2, matched_cv2, cals, vpar, cpar)
+
+
+    # create manually sorted_corresp
+    sorted_corresp_cv2 = [np.zeros((4, 0), dtype=np.int64) for _ in range(3)]
+    sorted_corresp_cv2[0] = np.array([np.array([t.pnr() for t in targ]).astype(np.int64) for targ in targets_cv2])
+
+    sorted_pos_cv2 = [np.array([]),np.array([]),np.array([])]
+    sorted_pos_cv2[0] = np.array([np.array([t.pos() for t in targ]).astype(np.float64) for targ in targets_cv2])
+    num_targs_cv2 = sorted_corresp_cv2[0].shape[1]
+
     sorted_pos, sorted_corresp, num_targs = correspondences(targets, matched, cals, vpar, cpar)
 
 
@@ -224,15 +234,12 @@ def _(cals, cpar, images_8bit, images_cv2, tpar, vpar):
         matched_cv2,
         sorted_corresp,
         sorted_corresp_cv2,
-        sorted_pos,
         sorted_pos_cv2,
-        targets,
-        targets_cv2,
     )
 
 
 @app.cell
-def _(cals, cpar, images, num_cams, sorted_pos, vpar):
+def _(cals, cpar, images, num_cams, sorted_pos_cv2, vpar):
 
     # We create a 2x2 grid of subplots for the 4 cameras
     fig_corr, axes_corr = plt.subplots(2, 2, figsize=(12, 10))
@@ -255,7 +262,8 @@ def _(cals, cpar, images, num_cams, sorted_pos, vpar):
     clique_colors_corr = ['red', 'green', 'yellow']
     clique_labels_corr = ['Quadruplets', 'Triplets', 'Pairs']
 
-    for clique_idx_corr, pos_type_corr in enumerate(sorted_pos):
+    # for clique_idx_corr, pos_type_corr in enumerate(sorted_pos):
+    for clique_idx_corr, pos_type_corr in enumerate(sorted_pos_cv2):
         c_color_corr = clique_colors_corr[clique_idx_corr]
         c_label_corr = clique_labels_corr[clique_idx_corr]
 
@@ -346,6 +354,12 @@ def _(cals, cpar, images, num_cams, sorted_pos, vpar):
 
 
 @app.cell
+def _(matched_cv2):
+    matched_cv2[0].get_by_pnrs(np.array([1]).astype(np.int64))
+    return
+
+
+@app.cell
 def _(
     cals,
     cpar,
@@ -404,49 +418,59 @@ def _(pos, pos_cv2):
 
 
 @app.cell
-def _(targets, targets_cv2):
-    for _i in range(4):
-        _flat = np.array([tr.pos() for tr in targets[_i]])
-        _flat_cv2 = np.array([tr.pos() for tr in targets_cv2[_i]])
+def _():
+    # for _i in range(4):
+    #     _flat = np.array([tr.pos() for tr in targets[_i]])
+    #     _flat_cv2 = np.array([tr.pos() for tr in targets_cv2[_i]])
 
-        plt.figure()
-        plt.plot(_flat[:,0],_flat[:,1],'ro')
-        for _c, _j in enumerate(_flat):
-            plt.text(_j[0], _j[1]+10, f"{_c:d}", color='red', fontsize=8, ha='right')
-        plt.plot(_flat_cv2[:,0], _flat_cv2[:,1],'bx')
-        for _c, _j in enumerate(_flat_cv2):
-            plt.text(_j[0], _j[1]-10, f"{_c:d}", color='blue', fontsize=8, ha='right')    
-    
-        plt.show()
-    return
-
-
-@app.cell
-def _(matched, matched_cv2):
-    for _i in range(4):
-        _flat = matched[_i].as_arrays()[0]
-        _flat_cv2 = matched_cv2[_i].as_arrays()[0]
-        plt.figure()
-        plt.plot(_flat[:,0],_flat[:,1],'ro')
-        plt.plot(_flat_cv2[:,0], _flat_cv2[:,1],'bx')
-        plt.show()
-    return
-
-
-@app.cell
-def _(sorted_pos, sorted_pos_cv2):
-    for _i in range(4):
-        _flat = sorted_pos[0][_i] # quadruplets
-        _flat_cv2 = sorted_pos_cv2[0][_i]
-        plt.figure()
-        plt.plot(_flat[:,0],_flat[:,1],'ro')
-        plt.plot(_flat_cv2[:,0], _flat_cv2[:,1],'bx')
-        plt.show()
+    #     plt.figure()
+    #     plt.plot(_flat[:,0],_flat[:,1],'ro')
+    #     for _c, _j in enumerate(_flat):
+    #         plt.text(_j[0], _j[1]+10, f"{_c:d}", color='red', fontsize=8, ha='right')
+    #     plt.plot(_flat_cv2[:,0], _flat_cv2[:,1],'bx')
+    #     for _c, _j in enumerate(_flat_cv2):
+    #         plt.text(_j[0], _j[1]-10, f"{_c:d}", color='blue', fontsize=8, ha='right')    
+    #     plt.gca().invert_yaxis()
+    #     plt.show()
     return
 
 
 @app.cell
 def _():
+    # for _i in range(4):
+    #     _flat = matched[_i].as_arrays()[0]
+    #     _text = matched[_i].as_arrays()[1]
+    #     _flat_cv2 = matched_cv2[_i].as_arrays()[0]
+    #     _text_cv2 = matched_cv2[_i].as_arrays()[1]
+    #     plt.figure()
+    #     plt.plot(_flat[:,0],_flat[:,1],'ro')
+    #     for _c, _j in enumerate(_flat):
+    #         plt.text(_j[0],_j[1],_text[_c],color='red')
+        
+    #     plt.plot(_flat_cv2[:,0], _flat_cv2[:,1],'bx')
+    #     for _c, _j in enumerate(_flat_cv2):
+    #         plt.text(_j[0],_j[1],_text_cv2[_c],color='blue')
+
+    #     plt.show()
+    return
+
+
+@app.cell
+def _():
+    # for _i in range(4):
+    #     _flat = sorted_pos[0][_i] # quadruplets
+    #     _flat_cv2 = sorted_pos_cv2[0][_i]
+    #     plt.figure()
+    #     plt.plot(_flat[:,0],_flat[:,1],'ro')
+    #     plt.plot(_flat_cv2[:,0], _flat_cv2[:,1],'bx')
+    #     plt.show()
+    return
+
+
+@app.cell
+def _():
+
+
     return
 
 
