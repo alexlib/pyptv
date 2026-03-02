@@ -14,7 +14,7 @@ with app.setup:
     from optv.segmentation import target_recognition
     from optv.correspondences import MatchedCoords, correspondences
     from optv.tracking_framebuf import TargetArray
-
+    from optv.orientation import point_positions
     from pyptv import ptv
     from pyptv.parameter_manager import ParameterManager
     from pyptv.experiment import Experiment
@@ -58,6 +58,7 @@ def _(num_cams, pm, yaml_path):
 
     cals = []
     images = []
+    images_cv2 = []
 
     ptv_params = pm.parameters.get('ptv', {})
     img_names = ptv_params.get('img_name', [])
@@ -76,9 +77,9 @@ def _(num_cams, pm, yaml_path):
             img_path = base_path / img_path
 
         try:
-            # img = iio.imread(img_path)
-            img = cv2.imread(img_path,0)
+            img = iio.imread(img_path)
             images.append(img)
+            images_cv2.append(cv2.imread(img_path,0))
         except Exception as e:
             print(f"Failed to load image {img_path}: {e}")
             # fallback to a blank image
@@ -108,7 +109,7 @@ def _(num_cams, pm, yaml_path):
             print(f"Missing calibration files for camera {i+1}: {ori_file_path} / {addpar_file_path}")
 
         cals.append(cal)
-    return cals, images, img_names
+    return cals, images, images_cv2, img_names
 
 
 @app.cell
@@ -116,22 +117,22 @@ def _(num_cams, params, pm):
     cpar = ptv._populate_cpar(pm.parameters['ptv'], num_cams)
     vpar = ptv._populate_vpar(pm.parameters['criteria'])
     tpar = ptv._populate_tpar({'targ_rec': params['targ_rec']}, num_cams)
-    print("cpar image size:", cpar.get_image_size())
-    return cpar, vpar
+    # print("cpar image size:", cpar.get_image_size())
+    return cpar, tpar, vpar
 
 
 @app.cell
-def _(images):
+def _(cpar, images, pm):
     images_8bit = [ptv.img_as_ubyte(im) for im in images]
 
-    ## Check if negative flag is set, if so, invert the 8-bit images
-    # is_negative = pm.parameters.get('ptv', {}).get('negative', False)
-    # if is_negative:
-    #     # Invert images: 255 - image
-    #     images_8bit = [np.clip(255 - im, 0, 255) for im in images_8bit]
-    #     print("Applied negative inversion to images.")
+    # Check if negative flag is set, if so, invert the 8-bit images
+    is_negative = pm.parameters.get('ptv', {}).get('negative', False)
+    if is_negative:
+        # Invert images: 255 - image
+        images_8bit = [np.clip(255 - im, 0, 255) for im in images_8bit]
+        print("Applied negative inversion to images.")
 
-    # images_8bit = [ptv.simple_highpass(img, cpar) for img in images_8bit]
+    images_8bit = [ptv.simple_highpass(img, cpar) for img in images_8bit]
     return (images_8bit,)
 
 
@@ -147,12 +148,20 @@ def _():
 
 
 @app.cell
-def _(cals, cpar, images_8bit, vpar):
+def _(cals, cpar, images_8bit, images_cv2, tpar, vpar):
+
+
+
     rows = 7
     cols = 6
 
     targets = []
+    targets_cv2 = []
+
     matched = []
+    matched_cv2 = []
+
+    all_corners = []
 
     board_params = cv2.SimpleBlobDetector_Params()
     board_params.filterByColor = False 
@@ -163,32 +172,63 @@ def _(cals, cpar, images_8bit, vpar):
     detector = cv2.SimpleBlobDetector_create(board_params)
 
 
-    for i_cam, im in enumerate(images_8bit):
-        found, corners = cv2.findCirclesGrid(im, (rows,cols),
+    for i_cam, (im,im_cv2) in enumerate(zip(images_8bit, images_cv2)):
+
+        # based on OpenCV
+        found, corners = cv2.findCirclesGrid(im_cv2, (rows,cols),
                                                 flags=cv2.CALIB_CB_SYMMETRIC_GRID,
                                                 blobDetector=detector
                                                 )
-    
-        targs = TargetArray(len(corners))
+        corners = np.squeeze(corners) # one unnecessary dimension
+        # print(corners.shape)
+        targs_cv2 = TargetArray(corners.shape[0]) # should be rows * columns
         for tix, corner in enumerate(corners):
-            targ = targs[tix]
+            targ = targs_cv2[tix]
             targ.set_pnr(tix)
-            targ.set_pos(corner[0])
+            targ.set_pos(corner)
+
+
+        targs_cv2.sort_y()  
+        mc_cv2 = MatchedCoords(targs_cv2, cpar, cals[i_cam])
+
+        #collect
+        targets_cv2.append(targs_cv2)
+        matched_cv2.append(mc_cv2)    
+        all_corners.append(corners)
+        
 
     
-        # targs = target_recognition(im, tpar, i_cam, cpar)
-    
+        # based on OpenPTV
+        targs = target_recognition(im, tpar, i_cam, cpar)
         targs.sort_y()
-        targets.append(targs)
-
         mc = MatchedCoords(targs, cpar, cals[i_cam])
+
+        # collect
+        targets.append(targs)
         matched.append(mc)
 
+
+
+
+
+    # vpar.set_eps0(eps_slider.value)
+    # sorted_pos, sorted_corresp, num_targs = correspondences(targets, matched, cals, vpar, cpar)
+    sorted_pos_cv2, sorted_corresp_cv2, num_targs_cv2 = correspondences(targets_cv2, matched_cv2, cals, vpar, cpar)
     sorted_pos, sorted_corresp, num_targs = correspondences(targets, matched, cals, vpar, cpar)
 
-    print(f"Total targets used: {num_targs}")
-    print("cpar image size:", cpar.get_image_size())
-    return detector, matched, sorted_corresp, sorted_pos
+
+    print(f"Total targets used: {num_targs} and {num_targs_cv2} for OpenPTV and OpenCV respectively")
+    return (
+        detector,
+        matched,
+        matched_cv2,
+        sorted_corresp,
+        sorted_corresp_cv2,
+        sorted_pos,
+        sorted_pos_cv2,
+        targets,
+        targets_cv2,
+    )
 
 
 @app.cell
@@ -300,14 +340,22 @@ def _(cals, cpar, images, num_cams, sorted_pos, vpar):
     plt.tight_layout()
     # In Marimo, the last expression is displayed. If the user has an interactive backend,
     # it will support clicks. mo.mpl.interactive(fig) also helps for browser interactivity.
+
     mo.mpl.interactive(fig_corr)
     return
 
 
 @app.cell
-def _(cals, cpar, matched, sorted_corresp, sorted_pos, vpar):
-    from optv.orientation import point_positions
-    concatenated_pos = np.concatenate(sorted_pos, axis=1)
+def _(
+    cals,
+    cpar,
+    matched,
+    matched_cv2,
+    sorted_corresp,
+    sorted_corresp_cv2,
+    vpar,
+):
+    # concatenated_pos = np.concatenate(sorted_pos, axis=1)
     concatenated_corresp = np.concatenate(sorted_corresp, axis=1)
 
     flat = np.array(
@@ -315,22 +363,37 @@ def _(cals, cpar, matched, sorted_corresp, sorted_pos, vpar):
     )
 
     pos, _ = point_positions(flat.transpose(1, 0, 2), cpar, cals, vpar)
-    return (pos,)
+
+
+
+    concatenated_corresp_cv2 = np.concatenate(sorted_corresp_cv2, axis=1)
+
+    flat_cv2 = np.array(
+        [corr.get_by_pnrs(corresp) for corr, corresp in zip(matched_cv2, concatenated_corresp_cv2)]
+    )
+
+    pos_cv2, _ = point_positions(flat_cv2.transpose(1, 0, 2), cpar, cals, vpar)
+    return pos, pos_cv2
 
 
 @app.cell
-def _(pos):
+def _(pos, pos_cv2):
     fig = plt.figure(figsize=(12, 10))
     ax = fig.add_subplot(projection="3d")
 
-    #
+
     for row in pos:
         ax.plot(row[0], row[1], row[2], "ro")
         ax.text(row[0], row[1], row[2], f"{row[0]:.0f}", None)
 
-    ax.set_xlim(pos[:, 0].min(), pos[:, 0].max())
-    ax.set_ylim(pos[:, 1].min(), pos[:, 1].max())
-    ax.set_zlim(pos[:, 2].min(), pos[:, 2].max())
+    for row in pos_cv2:
+        ax.plot(row[0], row[1], row[2], "gs")
+        ax.text(row[0], row[1], row[2], f"{row[0]:.0f}", None)
+
+
+    # ax.set_xlim(pos[:, 0].min(), pos[:, 0].max())
+    # ax.set_ylim(pos[:, 1].min(), pos[:, 1].max())
+    # ax.set_zlim(pos[:, 2].min(), pos[:, 2].max())
 
     ax.set_xlabel("x")
     ax.set_ylabel("y")
@@ -340,19 +403,45 @@ def _(pos):
     return
 
 
-@app.cell(column=1)
-def _(img_names):
-    test_img = cv2.imread(img_names[0],0)
-    # test_img = images_8bit[0]
-    plt.imshow(test_img,cmap="gray")
-    plt.title("One of the calibration images")
+@app.cell
+def _(targets, targets_cv2):
+    for _i in range(4):
+        _flat = np.array([tr.pos() for tr in targets[_i]])
+        _flat_cv2 = np.array([tr.pos() for tr in targets_cv2[_i]])
 
-    return (test_img,)
+        plt.figure()
+        plt.plot(_flat[:,0],_flat[:,1],'ro')
+        for _c, _j in enumerate(_flat):
+            plt.text(_j[0], _j[1]+10, f"{_c:d}", color='red', fontsize=8, ha='right')
+        plt.plot(_flat_cv2[:,0], _flat_cv2[:,1],'bx')
+        for _c, _j in enumerate(_flat_cv2):
+            plt.text(_j[0], _j[1]-10, f"{_c:d}", color='blue', fontsize=8, ha='right')    
+    
+        plt.show()
+    return
 
 
 @app.cell
-def _(test_img):
-    test_img
+def _(matched, matched_cv2):
+    for _i in range(4):
+        _flat = matched[_i].as_arrays()[0]
+        _flat_cv2 = matched_cv2[_i].as_arrays()[0]
+        plt.figure()
+        plt.plot(_flat[:,0],_flat[:,1],'ro')
+        plt.plot(_flat_cv2[:,0], _flat_cv2[:,1],'bx')
+        plt.show()
+    return
+
+
+@app.cell
+def _(sorted_pos, sorted_pos_cv2):
+    for _i in range(4):
+        _flat = sorted_pos[0][_i] # quadruplets
+        _flat_cv2 = sorted_pos_cv2[0][_i]
+        plt.figure()
+        plt.plot(_flat[:,0],_flat[:,1],'ro')
+        plt.plot(_flat_cv2[:,0], _flat_cv2[:,1],'bx')
+        plt.show()
     return
 
 
@@ -361,8 +450,8 @@ def _():
     return
 
 
-@app.cell
-def _(detector, test_img):
+@app.cell(column=1)
+def _(detector, img_names, num_cams):
     # # Setup SimpleBlobDetector parameters.
     # board_params = cv2.SimpleBlobDetector_Params()
 
@@ -401,50 +490,47 @@ def _(detector, test_img):
     # # OLD: detector = cv2.SimpleBlobDetector(params)
     # detector = cv2.SimpleBlobDetector_create(board_params)
 
+    for _i in range(num_cams):
+        test_img = cv2.imread(img_names[_i],0)
+        # test_img = images_8bit[0]
+        # plt.imshow(test_img,cmap="gray")
+        # plt.title("One of the calibration images")
+        # plt.show()
+        # Detect blobs.
+        keypoints = detector.detect(test_img)
 
-    # Detect blobs.
-    keypoints = detector.detect(test_img)
+        # Draw detected blobs as red circles.
+        # cv2.DRAW_MATCHES_FLAGS_DRAW_RICH_KEYPOINTS ensures
+        # the size of the circle corresponds to the size of blob
 
-    # Draw detected blobs as red circles.
-    # cv2.DRAW_MATCHES_FLAGS_DRAW_RICH_KEYPOINTS ensures
-    # the size of the circle corresponds to the size of blob
+        blank = np.zeros((1, 1))
+        im_with_keypoints = cv2.drawKeypoints(test_img, keypoints, blank, (255, 0, 0), cv2.DRAW_MATCHES_FLAGS_DRAW_RICH_KEYPOINTS)
 
-    blank = np.zeros((1, 1))
-    im_with_keypoints = cv2.drawKeypoints(test_img, keypoints, blank, (255, 0, 0), cv2.DRAW_MATCHES_FLAGS_DRAW_RICH_KEYPOINTS)
+        # Show blobs
+        # plt.figure()
+        plt.figure(figsize=(10,10))
 
-    # Show blobs
-    # plt.figure()
-    plt.figure(figsize=(10,10))
+        # Displaying the image
+        # plt.subplot(121)
+        # plt.title('Original')
+        # plt.imshow(test_img, cmap='gray')
 
-    # Displaying the image
-    # plt.subplot(121)
-    # plt.title('Original')
-    # plt.imshow(test_img, cmap='gray')
-
-    # plt.subplot(122)
-    # plt.title('Blobs')
-    plt.imshow(im_with_keypoints)
-    return
-
-
-@app.cell
-def _(detector, test_img):
-    def _():
-        found, corners = cv2.findCirclesGrid(test_img,(7,6),
+        # plt.subplot(122)
+        # plt.title('Blobs')
+        # plt.imshow(im_with_keypoints)
+        _found, _corners = cv2.findCirclesGrid(test_img,(7,6),
                                                 flags=cv2.CALIB_CB_SYMMETRIC_GRID,
                                                 blobDetector=detector
                                                 )
         vis = cv2.cvtColor(test_img, cv2.COLOR_GRAY2BGR)
-        cv2.drawChessboardCorners(vis, (7,6), corners, found)
-        plt.figure(figsize=(8,8))
-        for corner in corners:
-            plt.scatter(corner[0][0], corner[0][1], color='yellow', s=10)
+        cv2.drawChessboardCorners(vis, (7,6), _corners, _found)
+
+        for _corner in _corners:
+            plt.scatter(_corner[0][0], _corner[0][1], color='yellow', s=10)
         # for corner in corners[::7]:
         #     plt.text(corner[0][0], corner[0][1], f"({corner[0][0]:.1f}, {corner[0][1]:.1f})", color='yellow', fontsize=8, ha='right')
-        return plt.imshow(vis)
-
-
-    _()
+        plt.imshow(vis)
+        plt.show()
     return
 
 
