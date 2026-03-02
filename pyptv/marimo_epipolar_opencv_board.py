@@ -13,6 +13,7 @@ with app.setup:
     from optv.parameters import ControlParams, VolumeParams
     from optv.segmentation import target_recognition
     from optv.correspondences import MatchedCoords, correspondences
+    from optv.tracking_framebuf import TargetArray
 
     from pyptv import ptv
     from pyptv.parameter_manager import ParameterManager
@@ -75,7 +76,8 @@ def _(num_cams, pm, yaml_path):
             img_path = base_path / img_path
 
         try:
-            img = iio.imread(img_path)
+            # img = iio.imread(img_path)
+            img = cv2.imread(img_path,0)
             images.append(img)
         except Exception as e:
             print(f"Failed to load image {img_path}: {e}")
@@ -106,7 +108,7 @@ def _(num_cams, pm, yaml_path):
             print(f"Missing calibration files for camera {i+1}: {ori_file_path} / {addpar_file_path}")
 
         cals.append(cal)
-    return cals, images
+    return cals, images, img_names
 
 
 @app.cell
@@ -115,21 +117,21 @@ def _(num_cams, params, pm):
     vpar = ptv._populate_vpar(pm.parameters['criteria'])
     tpar = ptv._populate_tpar({'targ_rec': params['targ_rec']}, num_cams)
     print("cpar image size:", cpar.get_image_size())
-    return cpar, tpar, vpar
+    return cpar, vpar
 
 
 @app.cell
-def _(cpar, images, pm):
+def _(images):
     images_8bit = [ptv.img_as_ubyte(im) for im in images]
 
-    # # Check if negative flag is set, if so, invert the 8-bit images
-    is_negative = pm.parameters.get('ptv', {}).get('negative', False)
-    if is_negative:
-        # Invert images: 255 - image
-        images_8bit = [np.clip(255 - im, 0, 255) for im in images_8bit]
-        print("Applied negative inversion to images.")
+    ## Check if negative flag is set, if so, invert the 8-bit images
+    # is_negative = pm.parameters.get('ptv', {}).get('negative', False)
+    # if is_negative:
+    #     # Invert images: 255 - image
+    #     images_8bit = [np.clip(255 - im, 0, 255) for im in images_8bit]
+    #     print("Applied negative inversion to images.")
 
-    images_8bit = [ptv.simple_highpass(img, cpar) for img in images_8bit]
+    # images_8bit = [ptv.simple_highpass(img, cpar) for img in images_8bit]
     return (images_8bit,)
 
 
@@ -145,12 +147,37 @@ def _():
 
 
 @app.cell
-def _(cals, cpar, images_8bit, tpar, vpar):
+def _(cals, cpar, images_8bit, vpar):
+    rows = 7
+    cols = 6
+
     targets = []
     matched = []
 
+    board_params = cv2.SimpleBlobDetector_Params()
+    board_params.filterByColor = False 
+    board_params.filterByArea = True
+    board_params.minArea = 50
+    board_params.filterByCircularity = True
+    board_params.minCircularity = 0.7 # Adjust based on how round they are
+    detector = cv2.SimpleBlobDetector_create(board_params)
+
+
     for i_cam, im in enumerate(images_8bit):
-        targs = target_recognition(im, tpar, i_cam, cpar)
+        found, corners = cv2.findCirclesGrid(im, (rows,cols),
+                                                flags=cv2.CALIB_CB_SYMMETRIC_GRID,
+                                                blobDetector=detector
+                                                )
+    
+        targs = TargetArray(len(corners))
+        for tix, corner in enumerate(corners):
+            targ = targs[tix]
+            targ.set_pnr(tix)
+            targ.set_pos(corner[0])
+
+    
+        # targs = target_recognition(im, tpar, i_cam, cpar)
+    
         targs.sort_y()
         targets.append(targs)
 
@@ -161,18 +188,7 @@ def _(cals, cpar, images_8bit, tpar, vpar):
 
     print(f"Total targets used: {num_targs}")
     print("cpar image size:", cpar.get_image_size())
-    print(sorted_pos[0][0, 0, :])
-    return matched, sorted_corresp, sorted_pos
-
-
-@app.cell
-def _():
-    return
-
-
-@app.cell
-def _():
-    return
+    return detector, matched, sorted_corresp, sorted_pos
 
 
 @app.cell
@@ -325,8 +341,9 @@ def _(pos):
 
 
 @app.cell(column=1)
-def _():
-    test_img = cv2.imread("/home/user/Downloads/Illmenau/KalibrierungA/Kalibrierung1a/00000030_00000000849B30C6.tiff",0)
+def _(img_names):
+    test_img = cv2.imread(img_names[0],0)
+    # test_img = images_8bit[0]
     plt.imshow(test_img,cmap="gray")
     plt.title("One of the calibration images")
 
@@ -335,43 +352,54 @@ def _():
 
 @app.cell
 def _(test_img):
-    # Setup SimpleBlobDetector parameters.
-    board_params = cv2.SimpleBlobDetector_Params()
-
-    # # Change thresholds
-    # params.filterByColor = False #True
-    # params.minThreshold = 50
-    # params.maxThreshold = 250
+    test_img
+    return
 
 
-    # # Filter by Area.
-    # params.filterByArea = True
-    # params.minArea = 10
+@app.cell
+def _():
+    return
 
-    # # Filter by Circularity
-    # params.filterByCircularity = True
-    # params.minCircularity = 0.1
 
-    # # Filter by Convexity
-    # params.filterByConvexity = True
-    # params.minConvexity = 0.2
+@app.cell
+def _(detector, test_img):
+    # # Setup SimpleBlobDetector parameters.
+    # board_params = cv2.SimpleBlobDetector_Params()
 
-    # # Filter by Inertia
-    # params.filterByInertia = True
-    # params.minInertiaRatio = 0.01
+    # # # Change thresholds
+    # # params.filterByColor = False #True
+    # # params.minThreshold = 50
+    # # params.maxThreshold = 250
 
-    # THIS IS THE KEY:
-    board_params.filterByColor = False 
 
-    # Ensure other filters are set so it doesn't pick up noise
-    board_params.filterByArea = True
-    board_params.minArea = 50
-    board_params.filterByCircularity = True
-    board_params.minCircularity = 0.7 # Adjust based on how round they are
+    # # # Filter by Area.
+    # # params.filterByArea = True
+    # # params.minArea = 10
 
-    # Create a detector with the parameters
-    # OLD: detector = cv2.SimpleBlobDetector(params)
-    detector = cv2.SimpleBlobDetector_create(board_params)
+    # # # Filter by Circularity
+    # # params.filterByCircularity = True
+    # # params.minCircularity = 0.1
+
+    # # # Filter by Convexity
+    # # params.filterByConvexity = True
+    # # params.minConvexity = 0.2
+
+    # # # Filter by Inertia
+    # # params.filterByInertia = True
+    # # params.minInertiaRatio = 0.01
+
+    # # THIS IS THE KEY:
+    # board_params.filterByColor = False 
+
+    # # Ensure other filters are set so it doesn't pick up noise
+    # board_params.filterByArea = True
+    # board_params.minArea = 50
+    # board_params.filterByCircularity = True
+    # board_params.minCircularity = 0.7 # Adjust based on how round they are
+
+    # # Create a detector with the parameters
+    # # OLD: detector = cv2.SimpleBlobDetector(params)
+    # detector = cv2.SimpleBlobDetector_create(board_params)
 
 
     # Detect blobs.
@@ -396,23 +424,27 @@ def _(test_img):
     # plt.subplot(122)
     # plt.title('Blobs')
     plt.imshow(im_with_keypoints)
-    return (detector,)
+    return
 
 
 @app.cell
 def _(detector, test_img):
-    found, corners = cv2.findCirclesGrid(test_img,(7,6),
-                                            flags=cv2.CALIB_CB_SYMMETRIC_GRID,
-                                            blobDetector=detector
-                                            )
-    vis = cv2.cvtColor(test_img, cv2.COLOR_GRAY2BGR)
-    cv2.drawChessboardCorners(vis, (7,6), corners, found)
-    plt.figure(figsize=(8,8))
-    for corner in corners:
-        plt.scatter(corner[0][0], corner[0][1], color='yellow', s=10)
-    # for corner in corners[::7]:
-    #     plt.text(corner[0][0], corner[0][1], f"({corner[0][0]:.1f}, {corner[0][1]:.1f})", color='yellow', fontsize=8, ha='right')
-    plt.imshow(vis)
+    def _():
+        found, corners = cv2.findCirclesGrid(test_img,(7,6),
+                                                flags=cv2.CALIB_CB_SYMMETRIC_GRID,
+                                                blobDetector=detector
+                                                )
+        vis = cv2.cvtColor(test_img, cv2.COLOR_GRAY2BGR)
+        cv2.drawChessboardCorners(vis, (7,6), corners, found)
+        plt.figure(figsize=(8,8))
+        for corner in corners:
+            plt.scatter(corner[0][0], corner[0][1], color='yellow', s=10)
+        # for corner in corners[::7]:
+        #     plt.text(corner[0][0], corner[0][1], f"({corner[0][0]:.1f}, {corner[0][1]:.1f})", color='yellow', fontsize=8, ha='right')
+        return plt.imshow(vis)
+
+
+    _()
     return
 
 
