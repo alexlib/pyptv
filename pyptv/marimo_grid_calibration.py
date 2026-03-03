@@ -3,31 +3,8 @@ import marimo
 __generated_with = "0.20.2"
 app = marimo.App(width="full")
 
-
-@app.cell
-def _():
+with app.setup:
     import marimo as mo
-
-    mo.md("""
-    # Grid-Based Calibration Refinement for OpenPTV
-
-    This notebook performs bundle adjustment calibration refinement using a planar grid target.
-
-    **Workflow:**
-    1. Load PyPTV experiment parameters from YAML file
-    2. Load calibration images and initial calibration
-    3. Detect grid points using OpenCV
-    4. Optimize camera exterior orientation using geometric constraints:
-       - **Planarity**: All grid points lie on a single plane
-       - **Distance**: Adjacent points at known spacing (e.g., 120 mm)
-
-    This is analogous to dumbbell calibration but uses a planar grid with multiple constraints.
-    """)
-    return (mo,)
-
-
-@app.cell
-def _():
     from pathlib import Path
     import numpy as np
     import cv2
@@ -43,28 +20,32 @@ def _():
     from scipy.optimize import least_squares
     from scipy import sparse
     import imageio.v3 as iio
-
-
-    return (
-        Calibration,
-        Experiment,
-        ParameterManager,
-        Path,
-        convert_arr_pixel_to_metric,
-        cv2,
-        iio,
-        image_coordinates,
-        least_squares,
-        multi_cam_point_positions,
-        np,
-        plt,
-        ptv,
-        sparse,
-    )
+    from mpl_toolkits.mplot3d.art3d import Poly3DCollection
+    from scipy.spatial.transform import Rotation as R
 
 
 @app.cell
-def _(mo):
+def _():
+    mo.md("""
+    # Grid-Based Calibration Refinement for OpenPTV
+
+    This notebook performs bundle adjustment calibration refinement using a planar grid target.
+
+    **Workflow:**
+    1. Load PyPTV experiment parameters from YAML file
+    2. Load calibration images and initial calibration
+    3. Detect grid points using OpenCV
+    4. Optimize camera exterior orientation using geometric constraints:
+       - **Planarity**: All grid points lie on a single plane
+       - **Distance**: Adjacent points at known spacing (e.g., 120 mm)
+
+    This is analogous to dumbbell calibration but uses a planar grid with multiple constraints.
+    """)
+    return
+
+
+@app.cell
+def _():
     # File selection for YAML parameters
     yaml_path_str = mo.ui.text(
         value='/home/user/Downloads/Illmenau/pyPTV_folder/parameters_Run4.yaml',
@@ -76,7 +57,7 @@ def _(mo):
 
 
 @app.cell
-def _(Path, mo, yaml_path_str):
+def _(yaml_path_str):
     yaml_path = Path(yaml_path_str.value).expanduser().resolve()
 
     status_msg = f"**⚠️ File not found:** {yaml_path}" if not yaml_path.exists() else f"**✓ Loaded:** {yaml_path}"
@@ -85,7 +66,7 @@ def _(Path, mo, yaml_path_str):
 
 
 @app.cell
-def _(Experiment, ParameterManager, mo, yaml_path):
+def _(yaml_path):
     # Load parameters from YAML
     pm = ParameterManager()
     pm.from_yaml(yaml_path)
@@ -106,14 +87,14 @@ def _(Experiment, ParameterManager, mo, yaml_path):
 
 
 @app.cell
-def _(Calibration, Path, cv2, iio, mo, np, num_cams, pm, ptv, yaml_path):
+def _(num_cams, pm, yaml_path):
     # Load images and calibrations
     cals = []
     images = []
     images_cv2 = []
 
     ptv_params = pm.parameters.get('ptv', {})
-    cpar = ptv._populate_cpar(pm.parameters['ptv'], num_cams)
+    cpar = ptv._populate_cpar(ptv_params, num_cams)
     img_names = ptv_params.get('img_name', [])
     _cal_ori = pm.parameters.get('cal_ori', {})
     ori_names = _cal_ori.get('img_ori', [])
@@ -165,8 +146,119 @@ def _(Calibration, Path, cv2, iio, mo, np, num_cams, pm, ptv, yaml_path):
     return cals, cpar, images, images_cv2
 
 
+@app.function
+def draw_origin_axes(ax, length=2.0):
+    """Draws X, Y, Z axes at the origin (0,0,0)."""
+    # X axis - Red, Y axis - Green, Z axis - Blue
+    origins = np.zeros((3, 3))  # [0,0,0] for all three arrows
+    directions = np.eye(3) * length # [[L,0,0], [0,L,0], [0,0,L]]
+    colors = ['r', 'g', 'b']
+    labels = ['X', 'Y', 'Z']
+
+    for i in range(3):
+        ax.quiver(origins[i,0], origins[i,1], origins[i,2], 
+                  directions[i,0], directions[i,1], directions[i,2], 
+                  color=colors[i], arrow_length_ratio=0.1, label=labels[i])
+
+
+@app.function
+def create_camera_figure(positions, euler_angles, scale=1.0, euler_order='xyz'):
+    """
+    Generates a 3D plot showing camera positions as pyramids.
+    
+    Args:
+        positions: List or array of [x, y, z] coordinates.
+        euler_angles: List or array of [a, b, c] angles in degrees.
+        scale: Size of the camera pyramid.
+        euler_order: Convention for Euler angles (e.g., 'xyz', 'zyx').
+    """
+    fig = plt.figure(figsize=(10, 8))
+    ax = fig.add_subplot(111, projection='3d')
+    
+    # 1. Define base pyramid geometry (local coordinates)
+    # Apex at (0,0,0), looking towards +Z
+    w, h, d = 0.5 * scale, 0.4 * scale, 1.0 * scale
+    local_verts = np.array([
+        [0, 0, 0],         # 0: Apex (Focal point)
+        [-w, -h, d],       # 1: Top-Left
+        [w, -h, d],        # 2: Top-Right
+        [w, h, d],         # 3: Bottom-Right
+        [-w, h, d]         # 4: Bottom-Left
+    ])
+
+    for pos, angles in zip(positions, euler_angles):
+        # 2. Compute Rotation and Translation
+        rot_matrix = R.from_euler(euler_order, angles, degrees=True).as_matrix()
+        
+        # Transform local vertices: (Rotate then Translate)
+        world_verts = (rot_matrix @ local_verts.T).T + pos
+
+        # 3. Define the faces of the pyramid
+        # Each face is a list of vertex indices
+        faces = [
+            [world_verts[0], world_verts[1], world_verts[2]], # Top side
+            [world_verts[0], world_verts[2], world_verts[3]], # Right side
+            [world_verts[0], world_verts[3], world_verts[4]], # Bottom side
+            [world_verts[0], world_verts[4], world_verts[1]], # Left side
+            [world_verts[1], world_verts[2], world_verts[3], world_verts[4]] # Base
+        ]
+
+        # 4. Add to plot
+        poly = Poly3DCollection(faces, alpha=0.3, linewidths=1, edgecolors='k')
+        # Use a random color or specific logic for different cameras
+        poly.set_facecolor(np.random.rand(3,))
+        ax.add_collection3d(poly)
+        
+        # Plot the focal point as a dot
+        ax.scatter(pos[0], pos[1], pos[2], color='black', s=20)
+
+    # 5. Set axis labels and viewing angle
+    ax.set_xlabel('X Axis')
+    ax.set_ylabel('Y Axis')
+    ax.set_zlabel('Z Axis')
+    
+    # Adjust plot limits based on positions
+    all_pos = np.array(positions)
+    max_range = np.array([all_pos[:,0].max()-all_pos[:,0].min(), 
+                          all_pos[:,1].max()-all_pos[:,1].min(), 
+                          all_pos[:,2].max()-all_pos[:,2].min()]).max() / 2.0
+    mid_x, mid_y, mid_z = all_pos.mean(axis=0)
+    ax.set_xlim(mid_x - max_range - scale, mid_x + max_range + scale)
+    ax.set_ylim(mid_y - max_range - scale, mid_y + max_range + scale)
+    ax.set_zlim(mid_z - max_range - scale, mid_z + max_range + scale)
+
+    draw_origin_axes(ax, length=scale)
+
+    plt.title("3D Camera Pose Visualization")
+    # plt.show()
+    return mo.mpl.interactive(fig)
+
+
 @app.cell
-def _(mo):
+def _(cals):
+    # --- Example Usage ---
+    # Camera 1 at origin, no rotation
+    # Camera 2 at (3, 3, 3), rotated 45 degrees around Y
+    # Camera 3 at (-2, 4, 1), rotated 90 around X and 20 around Z
+    # cam_positions = [
+    #     [0, 0, 0],
+    #     [3, 3, 3],
+    #     [-2, 4, 1]
+    # ]
+    # cam_angles = [
+    #     [0, 0, 0],
+    #     [0, 45, 0],
+    #     [90, 0, 20]
+    # ]
+    cam_positions = [cal.get_pos() for cal in cals]
+    cam_angles = [cal.get_angles() for cal in cals]
+
+    create_camera_figure(cam_positions, cam_angles, scale=1000)
+    return
+
+
+@app.cell
+def _():
     # Grid configuration
     GRID_ROWS = 7
     GRID_COLS = 6
@@ -187,7 +279,7 @@ def _(mo):
 
 
 @app.cell
-def _(GRID_COLS, GRID_ROWS, cv2, images, images_cv2, mo, np):
+def _(GRID_COLS, GRID_ROWS, images, images_cv2):
     """Detect grid points using OpenCV's findCirclesGrid."""
     board_params = cv2.SimpleBlobDetector_Params()
     board_params.filterByColor = False
@@ -221,7 +313,7 @@ def _(GRID_COLS, GRID_ROWS, cv2, images, images_cv2, mo, np):
 
 
 @app.cell
-def _(GRID_COLS, GRID_ROWS, all_corners, images, mo, num_cams, plt):
+def _(GRID_COLS, GRID_ROWS, all_corners, images, num_cams):
     """Visualize detected grid points on each camera image."""
     fig, axes = plt.subplots(2, 2, figsize=(16, 12))
     axes_flat = axes.flatten()
@@ -252,16 +344,7 @@ def _(GRID_COLS, GRID_ROWS, all_corners, images, mo, num_cams, plt):
 
 
 @app.cell
-def _(
-    GRID_COLS,
-    GRID_ROWS,
-    all_corners,
-    convert_arr_pixel_to_metric,
-    cpar,
-    mo,
-    np,
-    num_cams,
-):
+def _(GRID_COLS, GRID_ROWS, all_corners, cpar, num_cams):
     """Prepare detected points in metric coordinates for bundle adjustment."""
     num_points = GRID_ROWS * GRID_COLS
     valid_cams = [i for i, c in enumerate(all_corners) if c is not None]
@@ -295,24 +378,20 @@ def _(
     return num_points, targets_metric, valid_cams
 
 
-@app.cell
-def _(np):
-    def compute_planarity_error(points_3d):
-        """Fit plane and compute perpendicular deviations."""
-        centroid = np.mean(points_3d, axis=0)
-        centered = points_3d - centroid
-        _, _, Vt = np.linalg.svd(centered)
-        normal = Vt[2, :]
-        deviations = np.dot(centered, normal)
-        rms = np.sqrt(np.mean(deviations**2))
-        return deviations, rms, normal, centroid
-
-
-    return (compute_planarity_error,)
+@app.function
+def compute_planarity_error(points_3d):
+    """Fit plane and compute perpendicular deviations."""
+    centroid = np.mean(points_3d, axis=0)
+    centered = points_3d - centroid
+    _, _, Vt = np.linalg.svd(centered)
+    normal = Vt[2, :]
+    deviations = np.dot(centered, normal)
+    rms = np.sqrt(np.mean(deviations**2))
+    return deviations, rms, normal, centroid
 
 
 @app.cell
-def _(GRID_COLS, GRID_ROWS, GRID_SPACING, np):
+def _(GRID_COLS, GRID_ROWS, GRID_SPACING):
     def compute_distance_errors(points_3d, rows=GRID_ROWS, cols=GRID_COLS, spacing=GRID_SPACING):
         """Compute distance constraint errors."""
         errors = []
@@ -349,14 +428,7 @@ def _(GRID_COLS, GRID_ROWS, GRID_SPACING, np):
 
 
 @app.cell
-def _(
-    GRID_COLS,
-    GRID_ROWS,
-    compute_distance_errors,
-    compute_planarity_error,
-    image_coordinates,
-    np,
-):
+def _(GRID_COLS, GRID_ROWS, compute_distance_errors):
     def grid_ba_residuals(
         calib_vec, targets_metric, cpar, calibs, active_cams,
         w_planarity, w_distance, pos_scale=1.0,
@@ -411,7 +483,7 @@ def _(
 
 
 @app.cell
-def _(GRID_COLS, GRID_ROWS, np, sparse):
+def _(GRID_COLS, GRID_ROWS):
     def grid_ba_jac_sparsity(active_cams, w_planarity, w_distance, num_points):
         """Jacobian sparsity pattern."""
         num_cams = len(active_cams)
@@ -499,20 +571,12 @@ def _(GRID_COLS, GRID_ROWS, np, sparse):
 
 @app.cell
 def _(
-    Calibration,
     GRID_COLS,
     GRID_SPACING,
     cals,
-    compute_distance_errors,
-    compute_planarity_error,
     cpar,
     grid_ba_jac_sparsity,
     grid_ba_residuals,
-    image_coordinates,
-    least_squares,
-    mo,
-    multi_cam_point_positions,
-    np,
     num_cams,
     num_points,
     targets_metric,
@@ -581,10 +645,42 @@ def _(
     calib_pars = result.x[:cam_params_len].reshape(-1, 2, 3)
     points_3d_opt = result.x[cam_params_len:].reshape(num_points, 3)
 
+    return (
+        active_cams,
+        calib_pars,
+        fun_initial,
+        points_3d_opt,
+        pos_scale,
+        result,
+        w_distance,
+        w_planarity,
+    )
+
+
+@app.cell
+def _(
+    active_cams,
+    calib_pars,
+    cals,
+    compute_distance_errors,
+    cpar,
+    fun_initial,
+    grid_ba_residuals,
+    num_cams,
+    points_3d_opt,
+    pos_scale,
+    result,
+    targets_metric,
+    w_distance,
+    w_planarity,
+):
+    import copy
     cals_optimized = [Calibration() for _ in range(num_cams)]
+    cals_optimized = copy.copy(cals)
+
     _ptr = 0
     for _cam in range(num_cams):
-        cals_optimized[_cam].copy_from(cals[_cam])
+        # cals_optimized[_cam].copy_from(cals[_cam])
         if active_cams[_cam]:
             cals_optimized[_cam].set_pos(calib_pars[_ptr, 0] * pos_scale)
             cals_optimized[_cam].set_angles(calib_pars[_ptr, 1])
@@ -630,7 +726,11 @@ def _(
         'rms_distance': rms_distance, 'max_distance': np.max(np.abs(distance_errors)),
         'success': result.success, 'n_function_evals': result.nfev,
     }
+    return cals_optimized, diagnostics
 
+
+@app.cell
+def _(active_cams, diagnostics, num_cams):
     results_summary = f"""
     ### Bundle Adjustment Results
 
@@ -663,21 +763,11 @@ def _(
 
     mo.md(results_summary)
 
-    return cals_optimized, diagnostics, points_3d_opt
+    return
 
 
 @app.cell
-def _(
-    GRID_COLS,
-    GRID_ROWS,
-    compute_planarity_error,
-    diagnostics,
-    mo,
-    np,
-    plt,
-    points_3d_opt,
-    targets_metric,
-):
+def _(GRID_COLS, GRID_ROWS, points_3d_opt, targets_metric):
     """Visualize bundle adjustment results."""
     _num_cams_viz = len(targets_metric)
 
@@ -702,7 +792,12 @@ def _(
     ax_3d.set_title('Optimized 3D Grid Points')
     ax_3d.view_init(elev=20, azim=45)
     plt.tight_layout()
-    mo.pyplot(fig_3d)
+    mo.mpl.interactive(fig_3d)
+    return
+
+
+@app.cell
+def _(GRID_COLS, GRID_ROWS, points_3d_opt):
 
     # Plot 2: Planarity heatmap
     fig_planarity, ax_planarity = plt.subplots(figsize=(10, 4))
@@ -716,11 +811,15 @@ def _(
     ax_planarity.set_title('Planarity Deviation (mm)')
     plt.colorbar(_im, ax=ax_planarity, label='Deviation (mm)')
     plt.tight_layout()
-    mo.pyplot(fig_planarity)
+    mo.mpl.interactive(fig_planarity)
+    return
 
+
+@app.cell
+def _(diagnostics, num_cams):
     # Plot 3: Reprojection comparison
     fig_reproj, ax_reproj = plt.subplots(figsize=(10, 4))
-    _cameras = np.arange(1, _num_cams_viz + 1)
+    _cameras = np.arange(1, num_cams + 1)
     _width = 0.35
 
     ax_reproj.bar(_cameras - _width/2, diagnostics['rms_initial_per_cam'], _width,
@@ -736,37 +835,43 @@ def _(
     ax_reproj.legend()
     ax_reproj.grid(True, alpha=0.3, axis='y')
     plt.tight_layout()
-    mo.pyplot(fig_reproj)
+    mo.mpl.interactive(fig_reproj)
 
     return
 
 
 @app.cell
-def _(Path, cals_optimized, mo, pm, yaml_path):
-    """Save optimized calibration."""
-    save_calibration = mo.ui.checkbox(label="Save optimized calibration to .ori/.addpar files")
+def _(cals, cals_optimized):
+    cals_optimized[0].get_pos(), cals[0].get_pos()
+    return
 
-    _save_msg = mo.md("✓ Check the box above to save optimized calibration files.")
-    if save_calibration.value:
-        _cal_ori = pm.get_parameter("cal_ori")
-        _img_ori = _cal_ori.get("img_ori") if isinstance(_cal_ori, dict) else []
-        _base_path = yaml_path.parent
 
-        _saved_files = []
-        for _cam_idx, _cal in enumerate(cals_optimized):
-            if _cam_idx < len(_img_ori):
-                _ori_path = Path(_img_ori[_cam_idx])
-                if not _ori_path.is_absolute():
-                    _ori_path = _base_path / _ori_path
-                _addpar_path = Path(str(_ori_path).replace(".ori", ".addpar"))
+@app.cell
+def _():
+    # """Save optimized calibration."""
+    # save_calibration = mo.ui.checkbox(label="Save optimized calibration to .ori/.addpar files")
 
-                _ori_path.parent.mkdir(parents=True, exist_ok=True)
-                _cal.write(str(_ori_path).encode("utf-8"), str(_addpar_path).encode("utf-8"))
-                _saved_files.append(f"✓ Camera {_cam_idx+1}: {_ori_path.name}, {_addpar_path.name}")
+    # _save_msg = mo.md("✓ Check the box above to save optimized calibration files.")
+    # if save_calibration.value:
+    #     _cal_ori = pm.get_parameter("cal_ori")
+    #     _img_ori = _cal_ori.get("img_ori") if isinstance(_cal_ori, dict) else []
+    #     _base_path = yaml_path.parent
 
-        _save_msg = mo.md("### Calibration Files Saved\n\n" + "\n".join(_saved_files))
+    #     _saved_files = []
+    #     for _cam_idx, _cal in enumerate(cals_optimized):
+    #         if _cam_idx < len(_img_ori):
+    #             _ori_path = Path(_img_ori[_cam_idx])
+    #             if not _ori_path.is_absolute():
+    #                 _ori_path = _base_path / _ori_path
+    #             _addpar_path = Path(str(_ori_path).replace(".ori", ".addpar"))
 
-    _save_msg
+    #             _ori_path.parent.mkdir(parents=True, exist_ok=True)
+    #             _cal.write(str(_ori_path).encode("utf-8"), str(_addpar_path).encode("utf-8"))
+    #             _saved_files.append(f"✓ Camera {_cam_idx+1}: {_ori_path.name}, {_addpar_path.name}")
+
+    #     _save_msg = mo.md("### Calibration Files Saved\n\n" + "\n".join(_saved_files))
+
+    # _save_msg
 
     return
 
