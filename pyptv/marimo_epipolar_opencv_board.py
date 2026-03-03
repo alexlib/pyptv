@@ -545,7 +545,6 @@ def _():
         GRID_ROWS,
         GRID_SPACING,
         estimate_planarity,
-        least_squares,
         optimize_grid_geometry,
     )
 
@@ -635,23 +634,23 @@ def _(deviations, rms_planarity):
     return
 
 
-@app.cell
-def _(GRID_COLS, GRID_ROWS, GRID_SPACING, least_squares):
+app._unparsable_cell(
     """
+    \"\"\"
     Optimize OpenPTV exterior orientation (position and angles) for all cameras
     using scipy.optimize.least_squares.
 
     Uses the grid points from pos_cv2 as known 3D object points and their
     detected image coordinates to refine camera positions and angles.
-    """
-    # from scipy.optimize import least_squares
-    # from optv.imgcoord import image_coordinates
-    # from optv.transforms import convert_arr_metric_to_pixel
-    # from optv.calibration import Calibration
+    \"\"\"
+    from scipy.optimize import least_squares
+    from optv.imgcoord import image_coordinates
+    from optv.transforms import convert_arr_metric_to_pixel
+    from optv.calibration import Calibration
 
     # Generate known 3D object points for the grid
     def generate_grid_object_points(rows=GRID_ROWS, cols=GRID_COLS, spacing=GRID_SPACING):
-        """Generate 3D object points for a planar grid at z=0."""
+        \"\"\"Generate 3D object points for a planar grid at z=0.\"\"\"
         points = []
         for i in range(rows):
             for j in range(cols):
@@ -662,11 +661,11 @@ def _(GRID_COLS, GRID_ROWS, GRID_SPACING, least_squares):
         return np.array(points, dtype=np.float64)
 
     def get_pos_from_angles(inters, R, angs):
-        """
+        \"\"\"
         Calculate camera position from intersection point, distance, and angles.
         Transpose of rotation sequence, accounting for angle reversal when
         moving from camera frame to global frame.
-        """
+        \"\"\"
         s = np.sin(angs)
         c = np.cos(angs)
         pos = inters + R * np.r_[s[1], -c[1] * s[0], c[1] * c[0]]
@@ -675,7 +674,7 @@ def _(GRID_COLS, GRID_ROWS, GRID_SPACING, least_squares):
     def exterior_orientation_error_function(
         solution, cal_orig, object_points_3d, image_points_2d, cpar
     ):
-        """
+        \"\"\"
         Error function for exterior orientation optimization.
 
         Parameters:
@@ -687,7 +686,7 @@ def _(GRID_COLS, GRID_ROWS, GRID_SPACING, least_squares):
 
         Returns:
         - errors: (2N,) residual vector (x and y reprojection errors)
-        """
+        \"\"\"
         # Extract parameters
         inters = np.zeros(3)
         inters[:2] = solution[:2]
@@ -720,7 +719,7 @@ def _(GRID_COLS, GRID_ROWS, GRID_SPACING, least_squares):
             return np.ones(len(object_points_3d) * 2) * 1e6
 
     def optimize_camera_exterior_orientation(cal, object_points_3d, image_points_2d, cpar):
-        """
+        \"\"\"
         Optimize exterior orientation (position and angles) for a single camera.
 
         Parameters:
@@ -728,11 +727,11 @@ def _(GRID_COLS, GRID_ROWS, GRID_SPACING, least_squares):
         - object_points_3d: (N, 3) array of known 3D object points
         - image_points_2d: (N, 2) array of detected image points
         - cpar: ControlParams object
-
+    
         Returns:
         - cal_optimized: Calibration with updated exterior orientation
         - optimization_result: scipy optimization result
-        """
+        \"\"\"
         # Get initial parameters
         pos_init = cal.get_pos()
         angs_init = cal.get_angles()
@@ -776,12 +775,135 @@ def _(GRID_COLS, GRID_ROWS, GRID_SPACING, least_squares):
 
         return cal_optimized, result
 
-    return generate_grid_object_points, optimize_camera_exterior_orientation
+    # === OPTIMIZE ALL 4 CAMERAS ===
+    if len(pos_cv2) > 0 and len(matched_cv2) == num_cams:
+        # Generate known object points
+        object_points = generate_grid_object_points()
+
+        optimization_results = []
+        cals_optimized = []
+
+        for cam_idx in range(num_cams):
+            # Get image points for this camera
+            # Extract from matched_cv2 using the grid ordering
+            targs = matched_cv2[cam_idx]
+            image_points = np.array([targs[i].pos() for i in range(len(targs))])
+
+            if len(image_points) != len(object_points):
+                print(f\"Camera {cam_idx + 1}: Point count mismatch, skipping optimization\")
+                cals_optimized.append(cals[cam_idx])
+                continue
+
+            # Optimize exterior orientation
+            cal_opt, result = optimize_camera_exterior_orientation(
+                cals[cam_idx], object_points, image_points, cpar
+            )
+
+            # Calculate initial and final reprojection errors
+            try:
+                proj_init = image_coordinates(
+                    object_points, cals[cam_idx], cpar.get_multimedia_params()
+                )
+                proj_init_px = convert_arr_metric_to_pixel(proj_init, cpar)
+                init_error = np.sqrt(np.mean((proj_init_px - image_points)**2))
+
+                proj_opt = image_coordinates(
+                    object_points, cal_opt, cpar.get_multimedia_params()
+                )
+                proj_opt_px = convert_arr_metric_to_pixel(proj_opt, cpar)
+                final_error = np.sqrt(np.mean((proj_opt_px - image_points)**2))
+            except:
+                init_error = np.nan
+                final_error = np.nan
+
+            optimization_results.append({
+                'camera': cam_idx + 1,
+                'initial_error_px': init_error,
+                'final_error_px': final_error,
+                'success': result.success,
+                'n_function_evals': result.nfev,
+                'cost': result.cost
+            })
+
+            cals_optimized.append(cal_opt)
+
+        # Display results
+        results_table = \"\"\"
+        ### Camera Exterior Orientation Optimization Results
+
+        | Camera | Initial Error (px) | Final Error (px) | Improvement | Success |
+        |--------|-------------------|------------------|-------------|---------|
+        \"\"\"
+
+        for res in optimization_results:
+            improvement = ((res['initial_error_px'] - res['final_error_px']) / 
+                          res['initial_error_px'] * 100 if res['initial_error_px'] > 0 else 0)
+            results_table += f\"| {res['camera']} | {res['initial_error_px']:.4f} | {res['final_error_px']:.4f} | {improvement:.1f}% | {res['success']} |\\n\"
+
+        mo.md(results_table)
+
+        # Show parameter changes
+        param_changes = \"\"\"
+        ### Camera Position and Angle Changes
+
+        | Camera | ΔX (mm) | ΔY (mm) | ΔZ (mm) | Δω (deg) | Δφ (deg) | Δκ (deg) |
+        |--------|---------|---------|---------|----------|----------|----------|
+        \"\"\"
+
+        for i in range(num_cams):
+            pos_init = cals[i].get_pos()
+            pos_final = cals_optimized[i].get_pos()
+            angs_init = cals[i].get_angles()
+            angs_final = cals_optimized[i].get_angles()
+
+            delta_pos = np.array(pos_final) - np.array(pos_init)
+            delta_angs = np.degrees(np.array(angs_final) - np.array(angs_init))
+
+            param_changes += f\"| {i+1} | {delta_pos[0]:.3f} | {delta_pos[1]:.3f} | {delta_pos[2]:.3f} | {delta_angs[0]:.4f} | {delta_angs[1]:.4f} | {delta_angs[2]:.4f} |\\n\"
+
+        mo.md(param_changes)
+
+        # Plot reprojection error comparison
+        fig_error, ax_error = plt.subplots(figsize=(10, 4))
+
+        cameras = [res['camera'] for res in optimization_results]
+        init_errors = [res['initial_error_px'] for res in optimization_results]
+        final_errors = [res['final_error_px'] for res in optimization_results]
+
+        x = np.arange(len(cameras))
+        width = 0.35
+
+        ax_error.bar(x - width/2, init_errors, width, label='Initial', color='coral')
+        ax_error.bar(x + width/2, final_errors, width, label='Optimized', color='steelblue')
+        ax_error.set_xlabel('Camera')
+        ax_error.set_ylabel('RMS Reprojection Error (pixels)')
+        ax_error.set_title('Reprojection Error Before and After Optimization')
+        ax_error.set_xticks(x)
+        ax_error.set_xticklabels([f'Cam {c}' for c in cameras])
+        ax_error.legend()
+        ax_error.grid(True, alpha=0.3, axis='y')
+
+        plt.tight_layout()
+        mo.pyplot(fig_error)
+
+        # Return optimized calibrations and utilities
+        return (
+            cals_optimized,
+            optimization_results,
+            generate_grid_object_points,
+            optimize_camera_exterior_orientation,
+        )
+    else:
+        mo.md(\"Insufficient data for calibration optimization (need pos_cv2 and matched_cv2).\")
+        return None
+    """,
+    name="_"
+)
 
 
 @app.cell
 def _(matched_cv2):
-    matched_cv2[0].as_arrays()
+    matched_cv2[0].as_arrays()[0].shape
     return
 
 
