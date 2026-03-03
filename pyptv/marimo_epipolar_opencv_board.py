@@ -195,9 +195,9 @@ def _(cals, cpar, images_8bit, images_cv2, tpar, vpar):
         targets_cv2.append(targs_cv2)
         matched_cv2.append(mc_cv2)    
         all_corners.append(corners)
-        
 
-    
+
+
         # based on OpenPTV
         targs = target_recognition(im, tpar, i_cam, cpar)
         targs.sort_y()
@@ -350,7 +350,7 @@ def _(cals, cpar, images, num_cams, sorted_pos_cv2, vpar):
     # it will support clicks. mo.mpl.interactive(fig) also helps for browser interactivity.
 
     mo.mpl.interactive(fig_corr)
-    return
+    return (cam_idx,)
 
 
 @app.cell
@@ -419,59 +419,512 @@ def _(pos, pos_cv2):
 
 @app.cell
 def _():
-    # for _i in range(4):
-    #     _flat = np.array([tr.pos() for tr in targets[_i]])
-    #     _flat_cv2 = np.array([tr.pos() for tr in targets_cv2[_i]])
+    from scipy.optimize import least_squares
 
-    #     plt.figure()
-    #     plt.plot(_flat[:,0],_flat[:,1],'ro')
-    #     for _c, _j in enumerate(_flat):
-    #         plt.text(_j[0], _j[1]+10, f"{_c:d}", color='red', fontsize=8, ha='right')
-    #     plt.plot(_flat_cv2[:,0], _flat_cv2[:,1],'bx')
-    #     for _c, _j in enumerate(_flat_cv2):
-    #         plt.text(_j[0], _j[1]-10, f"{_c:d}", color='blue', fontsize=8, ha='right')    
-    #     plt.gca().invert_yaxis()
-    #     plt.show()
+    # Grid parameters for the calibration target
+    GRID_ROWS = 7
+    GRID_COLS = 6
+    GRID_SPACING = 120.0  # mm
+
+    def estimate_planarity(points_3d):
+        """
+        Fit a plane to all 3D points and measure deviations.
+
+        Parameters:
+        - points_3d: (N, 3) array of 3D coordinates
+
+        Returns:
+        - plane_normal: (3,) unit normal vector
+        - plane_point: point on the plane (centroid)
+        - deviations: perpendicular distance of each point from plane
+        - rms_planarity: RMS deviation from plane
+        """
+        # Centroid is a point on the best-fit plane
+        centroid = np.mean(points_3d, axis=0)
+
+        # Center the points
+        centered = points_3d - centroid
+
+        # SVD to find normal (smallest singular value direction)
+        _, _, Vt = np.linalg.svd(centered)
+        plane_normal = Vt[2, :]  # normal corresponds to smallest singular value
+
+        # Perpendicular distances from plane
+        deviations = np.dot(centered, plane_normal)
+
+        # RMS planarity error
+        rms_planarity = np.sqrt(np.mean(deviations**2))
+
+        return plane_normal, centroid, deviations, rms_planarity
+
+    def calibration_error_function(points_3d, grid_spacing=GRID_SPACING, 
+                                   rows=GRID_ROWS, cols=GRID_COLS):
+        """
+        Combined error function for grid geometry optimization.
+
+        Parameters:
+        - points_3d: (rows*cols, 3) flattened grid points
+        - grid_spacing: expected distance between adjacent points (mm)
+        - rows, cols: grid dimensions
+
+        Returns:
+        - errors: residual vector for optimization
+        """
+        points = points_3d.reshape(rows, cols, 3)
+        errors = []
+
+        # === DISTANCE ERRORS (horizontal neighbors) ===
+        for i in range(rows):
+            for j in range(cols - 1):
+                dist = np.linalg.norm(points[i, j+1] - points[i, j])
+                errors.append(dist - grid_spacing)
+
+        # === DISTANCE ERRORS (vertical neighbors) ===
+        for _i in range(rows - 1):
+            for _j in range(cols):
+                dist = np.linalg.norm(points[_i+1, _j] - points[_i, _j])
+                errors.append(dist - grid_spacing)
+
+        # === DIAGONAL ERRORS (optional, adds constraint) ===
+        diagonal_spacing = np.sqrt(2) * grid_spacing
+        for _i in range(rows - 1):
+            for _j in range(cols - 1):
+                dist = np.linalg.norm(points[_i+1, _j+1] - points[_i, _j])
+                errors.append(dist - diagonal_spacing)
+
+        # === PLANARITY ERRORS ===
+        flat_points = points.reshape(-1, 3)
+        centroid = np.mean(flat_points, axis=0)
+        centered = flat_points - centroid
+        _, _, Vt = np.linalg.svd(centered)
+        plane_normal = Vt[2, :]
+
+        for pt in flat_points:
+            dev = np.dot(pt - centroid, plane_normal)
+            errors.append(dev)
+
+        return np.array(errors)
+
+    def optimize_grid_geometry(initial_points, grid_spacing=GRID_SPACING, 
+                               rows=GRID_ROWS, cols=GRID_COLS):
+        """
+        Optimize 3D positions to satisfy both distance and planarity constraints.
+        """
+        result = least_squares(
+            calibration_error_function,
+            initial_points.ravel(),
+            args=(grid_spacing, rows, cols),
+            method='trf'
+        )
+
+        optimized_points = result.x.reshape(rows, cols, 3)
+
+        # Evaluate final errors
+        final_errors = calibration_error_function(result.x, grid_spacing, rows, cols)
+
+        # Separate error components for analysis
+        n_horizontal = rows * (cols - 1)
+        n_vertical = (rows - 1) * cols
+        n_diagonal = (rows - 1) * (cols - 1)
+        n_planarity = rows * cols
+
+        horizontal_err = np.sqrt(np.mean(final_errors[:n_horizontal]**2))
+        vertical_err = np.sqrt(np.mean(final_errors[n_horizontal:n_horizontal+n_vertical]**2))
+        planarity_err = np.sqrt(np.mean(final_errors[-n_planarity:]**2))
+
+        return {
+            'optimized_points': optimized_points,
+            'rms_horizontal': horizontal_err,
+            'rms_vertical': vertical_err,
+            'rms_planarity': planarity_err,
+            'total_cost': np.sum(final_errors**2)
+        }
+
+    return (
+        GRID_COLS,
+        GRID_ROWS,
+        GRID_SPACING,
+        estimate_planarity,
+        least_squares,
+        optimize_grid_geometry,
+    )
+
+
+@app.cell
+def _(
+    GRID_COLS,
+    GRID_ROWS,
+    GRID_SPACING,
+    estimate_planarity,
+    optimize_grid_geometry,
+    pos_cv2,
+):
+    # === ANALYZE pos_cv2 ===
+
+    points_array = np.array(pos_cv2)
+
+    # Estimate planarity
+    plane_normal, centroid, deviations, rms_planarity = estimate_planarity(points_array)
+
+    # Calculate distance errors
+    distance_errors = []
+    for _i in range(GRID_ROWS):
+        for _j in range(GRID_COLS - 1):
+            idx1 = _i * GRID_COLS + _j
+            idx2 = _i * GRID_COLS + _j + 1
+            dist = np.linalg.norm(points_array[idx2] - points_array[idx1])
+            distance_errors.append(dist - GRID_SPACING)
+
+    for _i in range(GRID_ROWS - 1):
+        for _j in range(GRID_COLS):
+            idx1 = _i * GRID_COLS + _j
+            idx2 = (_i + 1) * GRID_COLS + _j
+            dist = np.linalg.norm(points_array[idx2] - points_array[idx1])
+            distance_errors.append(dist - GRID_SPACING)
+
+    rms_distance = np.sqrt(np.mean(np.array(distance_errors)**2))
+    max_planarity_dev = np.max(np.abs(deviations))
+
+    # Optimize geometry
+    optimization_result = optimize_grid_geometry(points_array)
+
+    # Display results
+    results_text = f"""
+    ### Grid Geometry Analysis (OpenCV detection)
+
+    | Metric | Value |
+    |--------|-------|
+    | **RMS Planarity** | {rms_planarity:.4f} mm |
+    | **Max Planarity Deviation** | {max_planarity_dev:.4f} mm |
+    | **RMS Distance Error** | {rms_distance:.4f} mm |
+    | **Plane Normal** | ({plane_normal[0]:.4f}, {plane_normal[1]:.4f}, {plane_normal[2]:.4f}) |
+
+    ### After Optimization
+
+    | Metric | Value |
+    |--------|-------|
+    | **RMS Horizontal** | {optimization_result['rms_horizontal']:.4f} mm |
+    | **RMS Vertical** | {optimization_result['rms_vertical']:.4f} mm |
+    | **RMS Planarity** | {optimization_result['rms_planarity']:.4f} mm |
+    | **Total Cost** | {optimization_result['total_cost']:.2f} |
+    """
+
+    mo.md(results_text)
+    return deviations, rms_planarity
+
+
+@app.cell
+def _(deviations, rms_planarity):
+    # Plot planarity deviations
+    fig_planarity, ax_planarity = plt.subplots(figsize=(10, 4))
+
+    x_indices = np.arange(len(deviations))
+    ax_planarity.bar(x_indices, deviations, color='steelblue')
+    ax_planarity.axhline(y=0, color='red', linestyle='-', linewidth=1)
+    ax_planarity.axhline(y=rms_planarity, color='orange', linestyle='--', 
+                        label=f'RMS: {rms_planarity:.4f} mm')
+    ax_planarity.axhline(y=-rms_planarity, color='orange', linestyle='--')
+    ax_planarity.set_xlabel('Point Index')
+    ax_planarity.set_ylabel('Deviation from Plane (mm)')
+    ax_planarity.set_title('Planarity Deviations for Each Grid Point')
+    ax_planarity.legend()
+    ax_planarity.grid(True, alpha=0.3)
+
+    plt.tight_layout()
+    fig_planarity.gca()
     return
 
 
 @app.cell
-def _():
-    # for _i in range(4):
-    #     _flat = matched[_i].as_arrays()[0]
-    #     _text = matched[_i].as_arrays()[1]
-    #     _flat_cv2 = matched_cv2[_i].as_arrays()[0]
-    #     _text_cv2 = matched_cv2[_i].as_arrays()[1]
-    #     plt.figure()
-    #     plt.plot(_flat[:,0],_flat[:,1],'ro')
-    #     for _c, _j in enumerate(_flat):
-    #         plt.text(_j[0],_j[1],_text[_c],color='red')
-        
-    #     plt.plot(_flat_cv2[:,0], _flat_cv2[:,1],'bx')
-    #     for _c, _j in enumerate(_flat_cv2):
-    #         plt.text(_j[0],_j[1],_text_cv2[_c],color='blue')
+def _(GRID_COLS, GRID_ROWS, GRID_SPACING, least_squares):
+    """
+    Optimize OpenPTV exterior orientation (position and angles) for all cameras
+    using scipy.optimize.least_squares.
 
-    #     plt.show()
+    Uses the grid points from pos_cv2 as known 3D object points and their
+    detected image coordinates to refine camera positions and angles.
+    """
+    # from scipy.optimize import least_squares
+    # from optv.imgcoord import image_coordinates
+    # from optv.transforms import convert_arr_metric_to_pixel
+    # from optv.calibration import Calibration
+
+    # Generate known 3D object points for the grid
+    def generate_grid_object_points(rows=GRID_ROWS, cols=GRID_COLS, spacing=GRID_SPACING):
+        """Generate 3D object points for a planar grid at z=0."""
+        points = []
+        for i in range(rows):
+            for j in range(cols):
+                x = j * spacing
+                y = i * spacing
+                z = 0.0
+                points.append([x, y, z])
+        return np.array(points, dtype=np.float64)
+
+    def get_pos_from_angles(inters, R, angs):
+        """
+        Calculate camera position from intersection point, distance, and angles.
+        Transpose of rotation sequence, accounting for angle reversal when
+        moving from camera frame to global frame.
+        """
+        s = np.sin(angs)
+        c = np.cos(angs)
+        pos = inters + R * np.r_[s[1], -c[1] * s[0], c[1] * c[0]]
+        return pos
+
+    def exterior_orientation_error_function(
+        solution, cal_orig, object_points_3d, image_points_2d, cpar
+    ):
+        """
+        Error function for exterior orientation optimization.
+
+        Parameters:
+        - solution: [x_int, y_int, R, omega, phi, kappa] (6 parameters)
+        - cal_orig: original Calibration object
+        - object_points_3d: (N, 3) array of known 3D object points
+        - image_points_2d: (N, 2) array of detected image points
+        - cpar: ControlParams object
+
+        Returns:
+        - errors: (2N,) residual vector (x and y reprojection errors)
+        """
+        # Extract parameters
+        inters = np.zeros(3)
+        inters[:2] = solution[:2]
+        R = solution[2]
+        angs = solution[3:6]
+
+        # Create a copy of the calibration to modify
+        cal_temp = Calibration()
+        cal_temp.copy_from(cal_orig)
+
+        # Update exterior orientation
+        pos = get_pos_from_angles(inters, R, angs)
+        cal_temp.set_pos(pos)
+        cal_temp.set_angles(angs)
+
+        # Project 3D points to image
+        try:
+            projected = image_coordinates(
+                object_points_3d.astype(np.float64),
+                cal_temp,
+                cpar.get_multimedia_params()
+            )
+            projected_px = convert_arr_metric_to_pixel(projected, cpar)
+
+            # Calculate reprojection errors
+            errors = (projected_px - image_points_2d).ravel()
+            return errors
+        except Exception as e:
+            # Return large errors if projection fails
+            return np.ones(len(object_points_3d) * 2) * 1e6
+
+    def optimize_camera_exterior_orientation(cal, object_points_3d, image_points_2d, cpar):
+        """
+        Optimize exterior orientation (position and angles) for a single camera.
+
+        Parameters:
+        - cal: Calibration object
+        - object_points_3d: (N, 3) array of known 3D object points
+        - image_points_2d: (N, 2) array of detected image points
+        - cpar: ControlParams object
+
+        Returns:
+        - cal_optimized: Calibration with updated exterior orientation
+        - optimization_result: scipy optimization result
+        """
+        # Get initial parameters
+        pos_init = cal.get_pos()
+        angs_init = cal.get_angles()
+
+        # Convert to intersection point representation
+        s = np.sin(angs_init)
+        c = np.cos(angs_init)
+        zdir = -np.r_[s[1], -c[1] * s[0], c[1] * c[0]]
+        c_val = -pos_init[2] / zdir[2]
+        inters_init = pos_init + c_val * zdir
+        R_init = np.linalg.norm(inters_init - pos_init)
+
+        # Initial solution: [x_int, y_int, R, omega, phi, kappa]
+        x0 = np.array([inters_init[0], inters_init[1], R_init, angs_init[0], angs_init[1], angs_init[2]])
+
+        # Run optimization
+        result = least_squares(
+            exterior_orientation_error_function,
+            x0,
+            args=(cal, object_points_3d, image_points_2d, cpar),
+            method='trf',
+            ftol=1e-9,
+            xtol=1e-9,
+            gtol=1e-6,
+            max_nfev=1000
+        )
+
+        # Extract optimized parameters
+        inters_opt = np.zeros(3)
+        inters_opt[:2] = result.x[:2]
+        R_opt = result.x[2]
+        angs_opt = result.x[3:6]
+
+        pos_opt = get_pos_from_angles(inters_opt, R_opt, angs_opt)
+
+        # Update calibration
+        cal_optimized = Calibration()
+        cal_optimized.copy_from(cal)
+        cal_optimized.set_pos(pos_opt)
+        cal_optimized.set_angles(angs_opt)
+
+        return cal_optimized, result
+
+    return generate_grid_object_points, optimize_camera_exterior_orientation
+
+
+@app.cell
+def _(matched_cv2):
+    matched_cv2[0].as_arrays()
     return
 
 
 @app.cell
-def _():
-    # for _i in range(4):
-    #     _flat = sorted_pos[0][_i] # quadruplets
-    #     _flat_cv2 = sorted_pos_cv2[0][_i]
-    #     plt.figure()
-    #     plt.plot(_flat[:,0],_flat[:,1],'ro')
-    #     plt.plot(_flat_cv2[:,0], _flat_cv2[:,1],'bx')
-    #     plt.show()
-    return
+def _(
+    cals,
+    cam_idx,
+    cpar,
+    generate_grid_object_points,
+    matched_cv2,
+    num_cams,
+    optimize_camera_exterior_orientation,
+):
+    # === OPTIMIZE ALL 4 CAMERAS ===
+    # if len(pos_cv2) > 0 and len(matched_cv2) == num_cams:
+    # Generate known object points
+    object_points = generate_grid_object_points()
+
+    optimization_results = []
+    cals_optimized = []
+
+    for _cam_idx in range(num_cams):
+        # Get image points for this camera
+        # Extract from matched_cv2 using the grid ordering
+        _targs = matched_cv2[_cam_idx]
+        image_points = np.array([_targs[i].pos() for i in range(len(_targs))])
+
+        if len(image_points) != len(object_points):
+            print(f"Camera {_cam_idx + 1}: Point count mismatch, skipping optimization")
+            cals_optimized.append(cals[_cam_idx])
+            continue
+
+        # Optimize exterior orientation
+        cal_opt, result = optimize_camera_exterior_orientation(
+            cals[_cam_idx], object_points, image_points, cpar
+        )
+
+        # Calculate initial and final reprojection errors
+        try:
+            proj_init = image_coordinates(
+                object_points, cals[_cam_idx], cpar.get_multimedia_params()
+            )
+            proj_init_px = convert_arr_metric_to_pixel(proj_init, cpar)
+            init_error = np.sqrt(np.mean((proj_init_px - image_points)**2))
+
+            proj_opt = image_coordinates(
+                object_points, cal_opt, cpar.get_multimedia_params()
+            )
+            proj_opt_px = convert_arr_metric_to_pixel(proj_opt, cpar)
+            final_error = np.sqrt(np.mean((proj_opt_px - image_points)**2))
+        except:
+            init_error = np.nan
+            final_error = np.nan
+
+        optimization_results.append({
+            'camera': cam_idx + 1,
+            'initial_error_px': init_error,
+            'final_error_px': final_error,
+            'success': result.success,
+            'n_function_evals': result.nfev,
+            'cost': result.cost
+        })
+
+        cals_optimized.append(cal_opt)
+    return cals_optimized, optimization_results
 
 
 @app.cell
-def _():
+def _(cals, cals_optimized, num_cams, optimization_results):
+    # Display results
+    results_table = """
+    ### Camera Exterior Orientation Optimization Results
 
+    | Camera | Initial Error (px) | Final Error (px) | Improvement | Success |
+    |--------|-------------------|------------------|-------------|---------|
+    """
 
+    for res in optimization_results:
+        improvement = ((res['initial_error_px'] - res['final_error_px']) / 
+                      res['initial_error_px'] * 100 if res['initial_error_px'] > 0 else 0)
+        results_table += f"| {res['camera']} | {res['initial_error_px']:.4f} | {res['final_error_px']:.4f} | {improvement:.1f}% | {res['success']} |\n"
+
+    mo.md(results_table)
+
+    # Show parameter changes
+    param_changes = """
+    ### Camera Position and Angle Changes
+
+    | Camera | ΔX (mm) | ΔY (mm) | ΔZ (mm) | Δω (deg) | Δφ (deg) | Δκ (deg) |
+    |--------|---------|---------|---------|----------|----------|----------|
+    """
+
+    for _i in range(num_cams):
+        pos_init = cals[_i].get_pos()
+        pos_final = cals_optimized[_i].get_pos()
+        angs_init = cals[_i].get_angles()
+        angs_final = cals_optimized[_i].get_angles()
+
+        delta_pos = np.array(pos_final) - np.array(pos_init)
+        delta_angs = np.degrees(np.array(angs_final) - np.array(angs_init))
+
+        param_changes += f"| {_i+1} | {delta_pos[0]:.3f} | {delta_pos[1]:.3f} | {delta_pos[2]:.3f} | {delta_angs[0]:.4f} | {delta_angs[1]:.4f} | {delta_angs[2]:.4f} |\n"
+
+    mo.md(param_changes)
     return
+
+
+app._unparsable_cell(
+    r"""
+    # Plot reprojection error comparison
+    fig_error, ax_error = plt.subplots(figsize=(10, 4))
+
+    cameras = [res['camera'] for res in optimization_results]
+    init_errors = [res['initial_error_px'] for res in optimization_results]
+    final_errors = [res['final_error_px'] for res in optimization_results]
+
+    x = np.arange(len(cameras))
+    width = 0.35
+
+    ax_error.bar(x - width/2, init_errors, width, label='Initial', color='coral')
+    ax_error.bar(x + width/2, final_errors, width, label='Optimized', color='steelblue')
+    ax_error.set_xlabel('Camera')
+    ax_error.set_ylabel('RMS Reprojection Error (pixels)')
+    ax_error.set_title('Reprojection Error Before and After Optimization')
+    ax_error.set_xticks(x)
+    ax_error.set_xticklabels([f'Cam {c}' for c in cameras])
+    ax_error.legend()
+    ax_error.grid(True, alpha=0.3, axis='y')
+
+    plt.tight_layout()
+    mo.pyplot(fig_error)
+
+    # Return optimized calibrations and utilities
+    return (
+        cals_optimized,
+        optimization_results,
+        generate_grid_object_points,
+        optimize_camera_exterior_orientation,
+    )
+
+    """,
+    name="_"
+)
 
 
 @app.cell(column=1)
