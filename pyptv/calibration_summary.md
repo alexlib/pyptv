@@ -8,7 +8,7 @@
 
 ## Executive Summary
 
-Created an **interactive marimo notebook suite** for calibrating multi-camera PTV systems. The pipeline replaces batch-style scripts with a visual, step-by-step workflow that allows users to:
+Created an **interactive marimo notebook** for calibrating multi-camera PTV systems. The pipeline provides a visual, step-by-step workflow that allows users to:
 
 - See results at each stage
 - Adjust parameters interactively
@@ -17,38 +17,24 @@ Created an **interactive marimo notebook suite** for calibrating multi-camera PT
 
 ---
 
-## Problem Statement
+## Notebook Location
 
-### Original Situation
-- Existing `gemini/phase1-5.py` files provided modular pipeline but no visualization
-- Existing marimo notebooks were fragmented and mixed concerns
-- No unified workflow for Illmenau data
-- Calibration results required manual file editing
-- Validation was separate from calibration process
-
-### Requirements
-1. Work with Illmenau data structure (4 cameras, 40 frames, 7×6 grid, 120mm spacing)
-2. Interactive visualization at each step
-3. Export `.ori` and `.addpar` files for pyPTV GUI
-4. Epipolar line verification
-5. Dumbbell validation
-6. Quick iteration and parameter adjustment
+```
+pyptv/marimo_illmenau_calibration.py
+```
 
 ---
 
-## Solution Architecture
+## Quick Start
 
-### Notebook Suite
-
-```
-pyptv/
-├── marimo_illmenau_calibration.py    # Main workflow (6 sections)
-├── marimo_epipolar_visualization.py  # Epipolar verification
-├── marimo_dumbbell_validation.py     # Accuracy validation
-└── CALIBRATION_WORKFLOW.md           # User documentation
+```bash
+cd /home/user/Documents/GitHub/pyptv
+uv run marimo edit pyptv/marimo_illmenau_calibration.py
 ```
 
-### Data Flow
+---
+
+## Data Flow
 
 ```
 ┌─────────────────────┐
@@ -97,7 +83,7 @@ pyptv/
 
 ## Implementation Details
 
-### 1. Grid Detection (`marimo_illmenau_calibration.py`, Cell 4)
+### 1. Grid Detection (Cell 4)
 
 **Algorithm:**
 ```python
@@ -303,108 +289,15 @@ distortion:
 
 ---
 
-### 6. Epipolar Visualization (`marimo_epipolar_visualization.py`)
-
-**Interactive Handler:**
-```python
-def on_click(event):
-    if event.button != 3:  # Right-click
-        return
-
-    clicked_cam = find_camera_at_click(event)
-    x, y = event.xdata, event.ydata
-
-    # Draw epipolar lines to other cameras
-    for other_cam in range(num_cams):
-        if other_cam != clicked_cam:
-            epipolar_pts = epipolar_curve(
-                np.array([x, y]),
-                cals[clicked_cam],
-                cals[other_cam],
-                num_points,
-                cpar,
-                mmp
-            )
-            axes[other_cam].plot(epipolar_pts[:, 0], epipolar_pts[:, 1], ...)
-```
-
-**Epipolar Distance Error:**
-```python
-# For each point correspondence
-min_dist = float('inf')
-for ept in epipolar_pts:
-    dist = np.linalg.norm(ept - other_corner)
-    min_dist = min(min_dist, dist)
-epipolar_errors.append(min_dist)
-```
-
-**Quality Thresholds:**
-| Error | Quality |
-|-------|---------|
-| < 1 px | Excellent |
-| 1-3 px | Good |
-| 3-5 px | Acceptable |
-| > 5 px | Poor |
-
----
-
-### 7. Dumbbell Validation (`marimo_dumbbell_validation.py`)
-
-**Sphere Detection:**
-```python
-blob_params.filterByColor = True
-blob_params.blobColor = 255  # Bright spheres
-blob_params.minArea = 500
-blob_params.maxArea = 5000
-blob_params.minCircularity = 0.6
-
-keypoints = detector.detect(img)
-centers = sorted([kp.pt for kp in keypoints], key=lambda p: p[0])[:2]
-```
-
-**Triangulation:**
-```python
-for sphere_label in ['A', 'B']:
-    pts_2d = np.array(pts_2d_list)[np.newaxis, :, :].astype(np.float64)
-    xyz, err = multi_cam_point_positions(pts_2d, cpar, cals)
-    sphere_3d[sphere_label] = xyz[0]
-
-measured_distance = np.linalg.norm(sphere_3d['A'] - sphere_3d['B'])
-```
-
-**Quality Thresholds:**
-| Error | Quality |
-|-------|---------|
-| < 5mm | Excellent |
-| 5-10mm | Good |
-| 10-20mm | Fair |
-| > 20mm | Poor |
-
----
-
 ## Key Design Decisions
 
-### Why Marimo Notebooks?
+### Why Marimo Notebook?
 
 1. **Reactive execution**: Changes propagate automatically
 2. **Visual feedback**: See results immediately
 3. **Reproducible**: Code + output in single file
 4. **Interactive**: Click, adjust, re-run
 5. **Exportable**: Can run headless if needed
-
-### Why Not Batch Scripts?
-
-- Batch scripts hide intermediate results
-- Hard to debug when calibration fails
-- No visual intuition for what's happening
-- Parameter tuning requires multiple runs
-
-### Why Separate Notebooks?
-
-- **Separation of concerns**: Each notebook has one purpose
-- **Modularity**: Can run validation without recalibration
-- **Performance**: Don't re-run detection when just checking epipolar lines
-- **Clarity**: Easier to find specific functionality
 
 ### Optimization Choices
 
@@ -459,14 +352,9 @@ marimo>=0.20.0
 └── Dumbbell/  (optional)
 ```
 
-### Notebooks
+### Notebook
 ```
-/home/user/Documents/GitHub/pyptv/pyptv/
-├── marimo_illmenau_calibration.py
-├── marimo_epipolar_visualization.py
-├── marimo_dumbbell_validation.py
-├── CALIBRATION_WORKFLOW.md
-└── calibration_summary.md  (this file)
+/home/user/Documents/GitHub/pyptv/pyptv/marimo_illmenau_calibration.py
 ```
 
 ### Output
@@ -487,17 +375,11 @@ marimo>=0.20.0
 ## Usage Commands
 
 ```bash
-# Main calibration workflow
-marimo edit pyptv/marimo_illmenau_calibration.py
-
-# Epipolar verification
-marimo edit pyptv/marimo_epipolar_visualization.py
-
-# Dumbbell validation
-marimo edit pyptv/marimo_dumbbell_validation.py
+# Run calibration notebook
+uv run marimo edit pyptv/marimo_illmenau_calibration.py
 
 # Run headless (if needed)
-marimo run pyptv/marimo_illmenau_calibration.py
+uv run marimo run pyptv/marimo_illmenau_calibration.py
 ```
 
 ---
@@ -572,25 +454,6 @@ marimo run pyptv/marimo_illmenau_calibration.py
 
 ---
 
-## Future Enhancements
-
-### Planned Features
-
-1. **Multi-position calibration**: Support grid at multiple orientations
-2. **Automatic outlier removal**: RANSAC-based frame filtering
-3. **Distortion optimization**: Include interior params in BA
-4. **Real-time feedback**: Show epipolar errors during detection
-5. **Batch export**: Generate YAML update automatically
-
-### Possible Extensions
-
-1. **Checkerboard support**: Alternative to circular grid
-2. **LED calibration**: For high-speed cameras
-3. **Underwater calibration**: Multi-media refraction handling
-4. **Self-calibration**: Bundle adjustment without known grid
-
----
-
 ## Testing Checklist
 
 Before using in production:
@@ -628,16 +491,5 @@ Before using in production:
 
 ---
 
-## Contact & Support
-
-For issues or questions:
-1. Check `CALIBRATION_WORKFLOW.md` for usage guide
-2. Review troubleshooting section above
-3. Consult pyPTV documentation
-4. Open issue on GitHub repository
-
----
-
 **Document Version:** 1.0  
-**Last Updated:** March 4, 2026  
-**Maintained By:** pyPTV Development Team
+**Last Updated:** March 4, 2026
