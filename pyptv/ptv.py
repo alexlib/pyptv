@@ -1640,3 +1640,18 @@ def calib_particles(exp):
 
     print("End calibration with particles")
     return targs_all, targ_ix_all, residuals_all
+
+
+def clone_calibration(calibration_obj):
+    """Return a copy of a Calibration object using all get/set methods."""
+    from optv.calibration import Calibration
+    import numpy as np
+    new_cal = Calibration()
+    new_cal.set_pos(np.array(calibration_obj.get_pos()))
+    new_cal.set_angles(np.array(calibration_obj.get_angles()))
+    new_cal.set_primary_point(np.array(calibration_obj.get_primary_point()))
+    new_cal.set_radial_distortion(np.array(calibration_obj.get_radial_distortion()))
+    new_cal.set_decentering(np.array(calibration_obj.get_decentering()))
+    new_cal.set_affine_trans(np.array(calibration_obj.get_affine()))
+    new_cal.set_glass_vec(np.array(calibration_obj.get_glass_vec()))
+    return new_cal
