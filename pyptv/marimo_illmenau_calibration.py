@@ -62,6 +62,7 @@ def _():
         Path,
         Poly3DCollection,
         R,
+        convert_arr_metric_to_pixel,
         convert_arr_pixel_to_metric,
         cv2,
         dataclass,
@@ -428,7 +429,7 @@ def _(Calibration, Experiment, ParameterManager, Path, config, mo, np, ptv):
     load_status = []
 
     for _i_cl in range(_num_cams_cl):
-        cal = Calibration()
+        _cal = Calibration()
         _ori_path_cl = ori_names[_i_cl] if _i_cl < len(ori_names) else None
 
         if _ori_path_cl:
@@ -442,18 +443,18 @@ def _(Calibration, Experiment, ParameterManager, Path, config, mo, np, ptv):
                 )
 
             if _ori_file_path_cl.exists() and _addpar_file_path_cl.exists():
-                cal.from_file(str(_ori_file_path_cl), str(_addpar_file_path_cl))
+                _cal.from_file(str(_ori_file_path_cl), str(_addpar_file_path_cl))
                 load_status.append(f"✓ Cam {_i_cl + 1}: {_ori_file_path_cl.name}")
             else:
                 load_status.append(f"⚠ Cam {_i_cl + 1}: Missing calibration files")
-                cal.set_pos(np.array([0.0, 0.0, 1000.0]))
-                cal.set_angles(np.array([0.0, 0.0, 0.0]))
+                _cal.set_pos(np.array([0.0, 0.0, 1000.0]))
+                _cal.set_angles(np.array([0.0, 0.0, 0.0]))
         else:
             load_status.append(f"⚠ Cam {_i_cl + 1}: No calibration path")
-            cal.set_pos(np.array([0.0, 0.0, 1000.0]))
-            cal.set_angles(np.array([0.0, 0.0, 0.0]))
+            _cal.set_pos(np.array([0.0, 0.0, 1000.0]))
+            _cal.set_angles(np.array([0.0, 0.0, 0.0]))
 
-        cals.append(cal)
+        cals.append(_cal)
 
     mo.md(
         f"""
@@ -904,6 +905,7 @@ def _(
     compute_distance_errors,
     compute_planarity_error,
     config,
+    convert_arr_metric_to_pixel,
     image_coordinates,
     np,
 ):
@@ -911,15 +913,16 @@ def _(
     ## Step 4: Bundle Adjustment
 
     Optimize camera exterior orientation using:
-    - **Reprojection error**: Minimize 2D projection error
-    - **Planarity constraint**: All grid points lie on a plane
-    - **Distance constraint**: Adjacent points at 120mm spacing
+    - **Reprojection error**: Minimize 2D projection error (in pixels)
+    - **Planarity constraint**: All grid points lie on a plane (in mm)
+    - **Distance constraint**: Adjacent points at 120mm spacing (in mm)
     """
 
 
     def grid_ba_residuals(
         calib_vec,
-        frames_data,
+        points_3d_dict,
+        observations_2d_dict,
         cpar,
         calibs,
         active_cams,
@@ -931,36 +934,70 @@ def _(
         num_points_ba = config.grid_rows * config.grid_cols
         active_cams_arr = np.asarray(active_cams, dtype=bool)
         num_active = int(np.sum(active_cams_arr))
-        cam_params_len = num_active * 6
 
-        calib_pars = calib_vec[:cam_params_len].reshape(-1, 2, 3)
+        # Each camera has 16 parameters
+        params_per_cam = 16
+        cam_params_len = num_active * params_per_cam
+
+        # Reshape to (num_active, params_per_cam)
+        calib_pars = calib_vec[:cam_params_len].reshape(-1, params_per_cam)
+
         ptr = 0
         for cam_ba, cal_ba in enumerate(calibs):
             if not active_cams_arr[cam_ba]:
                 continue
+
             pars = calib_pars[ptr]
-            cal_ba.set_pos(pars[0] * pos_scale)
-            cal_ba.set_angles(pars[1])
+
+            # Unpack parameters
+            # 0-2: pos
+            cal_ba.set_pos(pars[0:3] * pos_scale)
+            # 3-5: angles
+            cal_ba.set_angles(pars[3:6])
+            # 6-8: primary_point (xh, yh, cc)
+            cal_ba.set_primary_point(pars[6:9])
+            # 9-11: radial_distortion (k1, k2, k3)
+            cal_ba.set_radial_distortion(pars[9:12])
+            # 12-13: decentering (p1, p2)
+            cal_ba.set_decentering(pars[12:14])
+            # 14-15: affine (scx, she)
+            cal_ba.set_affine_trans(pars[14:16])
+
             ptr += 1
 
         mm_params = cpar.get_multimedia_params()
         residuals = []
 
-        for frame_idx_ba, points_3d_ba in frames_data.items():
+        for frame_idx_ba, points_3d_ba in points_3d_dict.items():
             for cam_ba2 in range(num_cams_ba):
                 if (
                     not active_cams_arr[cam_ba2]
-                    or cam_ba2 not in frames_data[frame_idx_ba]
+                    or cam_ba2 not in observations_2d_dict[frame_idx_ba]
                 ):
                     continue
-                corners_ba = frames_data[frame_idx_ba][cam_ba2]
+
+                obs_2d_ba = observations_2d_dict[frame_idx_ba][cam_ba2]
+                if obs_2d_ba is None:
+                    continue
+
                 try:
-                    proj = image_coordinates(
-                        points_3d_ba, calibs[cam_ba2], mm_params
+                    # 1. Project 3D points to metric coordinates (mm on sensor)
+                    # Ensure points_3d_ba is float64
+                    proj_metric = image_coordinates(
+                        points_3d_ba.astype(np.float64), calibs[cam_ba2], mm_params
                     )
-                    diff = corners_ba - proj
+
+                    # 2. Convert metric coordinates to pixel coordinates
+                    # proj_metric is (N, 2)
+                    proj_pixel = np.empty_like(proj_metric)
+                    convert_arr_metric_to_pixel(proj_metric, cpar, proj_pixel)
+
+                    # 3. Compute reprojection error in pixels
+                    diff = obs_2d_ba - proj_pixel
                     residuals.extend(diff.ravel())
+
                 except Exception:
+                    # If projection fails (e.g. point behind camera), assign large penalty
                     residuals.extend([1e6] * (num_points_ba * 2))
 
             if w_planarity > 0:
@@ -988,6 +1025,7 @@ def _(
     cals,
     config,
     cpar,
+    frame_detections,
     grid_ba_residuals,
     least_squares,
     mo,
@@ -1005,12 +1043,27 @@ def _(
         pos_scale = 1.0
         active_cams = np.ones(num_cams_ba2, dtype=bool)
         num_active2 = num_cams_ba2
-        cam_params_len2 = num_active2 * 6
 
-        calib_vec = np.empty((num_active2, 2, 3), dtype=float)
+        # 16 parameters per camera
+        params_per_cam = 16
+        cam_params_len2 = num_active2 * params_per_cam
+
+        calib_vec = np.empty((num_active2, params_per_cam), dtype=float)
+
         for cam_ba3 in range(num_cams_ba2):
-            calib_vec[cam_ba3, 0] = cals[cam_ba3].get_pos() / pos_scale
-            calib_vec[cam_ba3, 1] = cals[cam_ba3].get_angles()
+            cal = cals[cam_ba3]
+            # 0-2: pos
+            calib_vec[cam_ba3, 0:3] = cal.get_pos() / pos_scale
+            # 3-5: angles
+            calib_vec[cam_ba3, 3:6] = cal.get_angles()
+            # 6-8: primary_point (xh, yh, cc)
+            calib_vec[cam_ba3, 6:9] = cal.get_primary_point()
+            # 9-11: radial_distortion (k1, k2, k3)
+            calib_vec[cam_ba3, 9:12] = cal.get_radial_distortion()
+            # 12-13: decentering (p1, p2)
+            calib_vec[cam_ba3, 12:14] = cal.get_decentering()
+            # 14-15: affine (scx, she)
+            calib_vec[cam_ba3, 14:16] = cal.get_affine()
 
         x0 = calib_vec.reshape(-1)
 
@@ -1022,6 +1075,7 @@ def _(
         initial_residuals = grid_ba_residuals(
             x0,
             triangulated_frames,
+            frame_detections,
             cpar,
             cals,
             active_cams,
@@ -1038,7 +1092,7 @@ def _(
         |-----------|-------|
         | **Cameras** | {num_cams_ba2} |
         | **Frames** | {len(triangulated_frames)} |
-        | **Optimization Parameters** | {len(x0)} ({num_active2} × 6) |
+        | **Optimization Parameters** | {len(x0)} ({num_active2} × {params_per_cam}) |
         | **Initial Cost** | {fun_initial:.4f} |
         | **Weights** | planarity={w_planarity}, distance={w_distance} |
         """)
@@ -1055,6 +1109,7 @@ def _(
             x0,
             args=(
                 triangulated_frames,
+                frame_detections,
                 cpar,
                 cals,
                 active_cams,
@@ -1071,19 +1126,27 @@ def _(
             verbose=2,
         )
 
-        calib_pars = result.x[:cam_params_len2].reshape(-1, 2, 3)
+        calib_pars = result.x[:cam_params_len2].reshape(-1, params_per_cam)
 
         cals_optimized = []
         for cam_ba4 in range(num_cams_ba2):
             cal_opt = ptv.clone_calibration(cals[cam_ba4])
-            cal_opt.set_pos(calib_pars[cam_ba4, 0] * pos_scale)
-            cal_opt.set_angles(calib_pars[cam_ba4, 1])
+            pars = calib_pars[cam_ba4]
+
+            cal_opt.set_pos(pars[0:3] * pos_scale)
+            cal_opt.set_angles(pars[3:6])
+            cal_opt.set_primary_point(pars[6:9])
+            cal_opt.set_radial_distortion(pars[9:12])
+            cal_opt.set_decentering(pars[12:14])
+            cal_opt.set_affine_trans(pars[14:16])
+
             cals_optimized.append(cal_opt)
 
         fun_final = np.sum(
             grid_ba_residuals(
                 result.x,
                 triangulated_frames,
+                frame_detections,
                 cpar,
                 cals_optimized,
                 active_cams,
@@ -1660,6 +1723,125 @@ def _(
 
 
     debug_residuals()
+    return
+
+
+@app.cell
+def _(cals, cpar, image_coordinates, np):
+    def test_sensitivity():
+        cal = cals[0]
+        p3d = np.array([[0, 0, 0]], dtype=np.float64)
+        mm = cpar.get_multimedia_params()
+
+        # Baseline
+        pos_orig = cal.get_pos()
+        proj1 = image_coordinates(p3d, cal, mm)
+
+        # Modify
+        cal.set_pos(pos_orig + np.array([10.0, 0, 0]))
+        proj2 = image_coordinates(p3d, cal, mm)
+
+        # Restore
+        cal.set_pos(pos_orig)
+
+        print(f"Orig Pos: {pos_orig}")
+        print(f"Proj 1: {proj1}")
+        print(f"Proj 2: {proj2}")
+        print(f"Diff: {np.linalg.norm(proj1 - proj2)}")
+
+
+    test_sensitivity()
+    return
+
+
+@app.cell
+def _(
+    Path,
+    cals_optimized,
+    config,
+    convert_arr_metric_to_pixel,
+    cpar,
+    cv2,
+    frame_detections,
+    image_coordinates,
+    mo,
+    np,
+    plt,
+    synchronized_frames,
+    triangulated_frames,
+):
+    def visualize_reprojection(
+        frame_idx, cam_idx, cal, points_3d, observations_2d
+    ):
+        """Visualize observed vs reprojected points."""
+        obs_2d = observations_2d[frame_idx][cam_idx]
+        if obs_2d is None:
+            return
+
+        mm_params = cpar.get_multimedia_params()
+        proj_metric = image_coordinates(points_3d, cal, mm_params)
+        proj_pixel = np.empty_like(proj_metric)
+        convert_arr_metric_to_pixel(proj_metric, cpar, proj_pixel)
+
+        # Plot
+        fig, ax = plt.subplots(figsize=(10, 8))
+
+        # Load image if available
+        folder_name = config.camera_folders[cam_idx]
+        folder_path = Path(config.calib_base) / folder_name
+        image_file = None
+        for f in folder_path.iterdir():
+            if f.name.startswith(f"{frame_idx:08d}_"):
+                image_file = f
+                break
+
+        if image_file:
+            img = cv2.imread(str(image_file), cv2.IMREAD_GRAYSCALE)
+            ax.imshow(img, cmap="gray")
+
+        ax.scatter(
+            obs_2d[:, 0], obs_2d[:, 1], c="g", marker="+", s=50, label="Observed"
+        )
+        ax.scatter(
+            proj_pixel[:, 0],
+            proj_pixel[:, 1],
+            c="r",
+            marker="x",
+            s=50,
+            label="Reprojected",
+        )
+
+        # Draw lines connecting corresponding points
+        for i in range(len(obs_2d)):
+            ax.plot(
+                [obs_2d[i, 0], proj_pixel[i, 0]],
+                [obs_2d[i, 1], proj_pixel[i, 1]],
+                "y-",
+                alpha=0.3,
+            )
+
+        ax.set_title(f"Reprojection: Cam {cam_idx + 1} Frame {frame_idx}")
+        ax.legend()
+        return fig
+
+
+    # Show sample reprojection
+    if triangulated_frames and cals_optimized:
+        _sample_frame = synchronized_frames[0]
+        _fig_reproj = visualize_reprojection(
+            _sample_frame,
+            0,
+            cals_optimized[0],
+            triangulated_frames[_sample_frame],
+            frame_detections,
+        )
+
+    mo.mpl.interactive(_fig_reproj)
+    return
+
+
+@app.cell
+def _():
     return
 
 
