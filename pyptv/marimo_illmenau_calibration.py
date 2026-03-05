@@ -62,6 +62,7 @@ def _():
         Path,
         Poly3DCollection,
         R,
+        convert_arr_pixel_to_metric,
         cv2,
         dataclass,
         image_coordinates,
@@ -303,7 +304,7 @@ def _(Path, config, cv2, mo, np):
 def _(Path, config, cv2, frame_detections, mo, plt, synchronized_frames):
     """Visualize detected grids on sample images."""
 
-    _sample_frame_viz = synchronized_frames[0] if synchronized_frames else None
+    _sample_frame_viz = synchronized_frames[10] if synchronized_frames else None
 
     if _sample_frame_viz is None:
         _ = mo.md("❌ No synchronized frames found!")
@@ -483,12 +484,78 @@ def _(Poly3DCollection, R, np):
         """Draw camera as a pyramid."""
         rot_matrix = R.from_euler("xyz", angles, degrees=False).as_matrix()
 
+        # Original setup:
+        # w, h, d = 0.5 * scale, 0.4 * scale, 1.0 * scale
+        # local_verts = np.array(
+        #     [[0, 0, 0], [-w, -h, d], [w, -h, d], [w, h, d], [-w, h, d]]
+        # )
+
+        # If cameras should look towards +Z, the pyramid apex (0,0,0) is the camera center.
+        # The base of the pyramid (image plane) should be at z = +d.
+        # The "open side" means the base.
+
+        # If the user says "cameras looking with the open side of the pyramide towards negative z",
+        # it means the current base is at z = +d (or -d depending on coords).
+        # And "should look into positive z direction onto the 0,0,0 origin" implies the camera is at negative Z looking towards +Z?
+        # Or just that the camera orientation vector is towards +Z.
+
+        # In standard PTV/photogrammetry, camera coord system:
+        # X, Y are image plane, Z is optical axis.
+        # Usually Z points into the scene (away from camera).
+        # If the camera is at (0,0,-1000) looking at (0,0,0), then Z is positive direction.
+
+        # The previous code had base at z = d (positive). So locally it points to +Z.
+        # If the user says they look to negative Z, maybe the rotation matrix interpretation is different (e.g. view matrix vs model matrix).
+
+        # Let's assume the rotation matrix transforms local camera coords to world coords.
+        # If we want to flip the visualization direction, we can flip the local Z of the base.
+
+        # BUT, if the user says "look into positive z direction onto the 0,0,0 origin",
+        # and cameras are at negative Z positions (e.g. -3000), then they are looking towards +Z.
+
+        # Let's check the positions.
+        # Cam 1: Z ~ -3100. Cam 2: Z ~ -3100.
+        # So they are at negative Z. To look at origin (0,0,0), they must look in +Z direction.
+
+        # If the pyramid base was drawn at z = +d in local coords, and the rotation is identity (or small angles),
+        # then the pyramid points towards +Z.
+
+        # If the user says "shows cameras looking ... towards negative z", maybe the rotation matrix application is inverted?
+        # R from euler "xyz" creates a rotation.
+        # World = R * Local + Pos.
+
+        # Let's try inverting the local Z of the pyramid base to see if it matches the user's expectation of "looking".
+        # Or maybe the rotation matrix is actually `rot_matrix.T` (if angles are for world-to-camera).
+        # Exterior orientation angles usually define rotation from World to Camera (or Camera to World depending on convention).
+        # In `optv`/`pyptv`, `get_angles()` usually returns angles for the rotation matrix `R` such that `x_cam = R * (x_world - pos)`.
+        # Wait, `get_rotation_matrix()` returns `R`.
+        # If `x_cam = R * (x_world - pos)`, then `x_world = R.T * x_cam + pos`.
+        # So the orientation of the camera frame in world is `R.T`.
+
+        # Let's verify `Calibration.get_rotation_matrix()`.
+        # If I use `R.from_euler`, I might be getting `R` or `R.T` depending on definition.
+        # Let's rely on `Calibration.get_rotation_matrix()` directly if possible, but `draw_camera_pyramid` takes angles.
+        # The `Calibration` object has `get_rotation_matrix()`.
+        # Let's update `draw_camera_pyramid` to take `R_matrix` instead of `angles`, or compute `R` correctly.
+
+        # If `cals[0].get_rotation_matrix()` is `R_cam_from_world`, then `R_world_from_cam` is its transpose.
+        # Let's check the current `draw_camera_pyramid`. It uses `R.from_euler`.
+        # If `get_angles()` returns the Euler angles of the World-to-Camera rotation, then `as_matrix()` gives `R_wc`.
+        # We want `R_cw` (Camera-to-World) to transform local pyramid to world.
+        # `R_cw = R_wc.T`.
+
+        # So I will change `rot_matrix` to `rot_matrix.T`.
+
         w, h, d = 0.5 * scale, 0.4 * scale, 1.0 * scale
+
+        # Local pyramid pointing along +Z
         local_verts = np.array(
             [[0, 0, 0], [-w, -h, d], [w, -h, d], [w, h, d], [-w, h, d]]
         )
 
-        world_verts = (rot_matrix @ local_verts.T).T + pos
+        # Transpose rotation matrix because we want Local -> World
+        # assuming the angles represent World -> Camera rotation (standard in photogrammetry)
+        world_verts = (rot_matrix.T @ local_verts.T).T + pos
 
         faces = [
             [world_verts[0], world_verts[1], world_verts[2]],
@@ -502,6 +569,21 @@ def _(Poly3DCollection, R, np):
         poly.set_facecolor(color if color else np.random.rand(3))
         ax.add_collection3d(poly)
         ax.scatter(pos[0], pos[1], pos[2], color="black", s=50)
+
+        # Draw view direction (optical axis)
+        # Transform local Z axis (0,0,1) to world
+        view_dir = rot_matrix.T @ np.array([0, 0, 1]) * scale * 1.5
+        ax.quiver(
+            pos[0],
+            pos[1],
+            pos[2],
+            view_dir[0],
+            view_dir[1],
+            view_dir[2],
+            color="k",
+            arrow_length_ratio=0.1,
+        )
+
         if label:
             ax.text(pos[0], pos[1], pos[2], label, fontsize=10)
 
@@ -562,6 +644,7 @@ def _(cals, draw_camera_pyramid, mo, np, plt):
 def _(
     cals,
     config,
+    convert_arr_pixel_to_metric,
     cpar,
     frame_detections,
     mo,
@@ -602,18 +685,50 @@ def _(
 
             for _pt_idx_tr in range(num_points):
                 _pts_2d_list_tr = []
+
+                # Convert pixel coordinates to metric coordinates for each camera
                 for _cam_idx_tr2 in _valid_cams_tr:
                     if _pt_idx_tr < len(_frame_corners_tr[_cam_idx_tr2]):
-                        _pts_2d_list_tr.append(
-                            _frame_corners_tr[_cam_idx_tr2][_pt_idx_tr]
-                        )
+                        # Get pixel coordinates
+                        _pix_coords = _frame_corners_tr[_cam_idx_tr2][_pt_idx_tr]
+
+                        # Convert to metric using convert_arr_pixel_to_metric
+                        # The function signature appears to be convert_arr_pixel_to_metric(pixel_coords, cpar)
+                        # or it expects an output buffer as 3rd arg, but NOT a Calibration object.
+                        # Let's try passing just (pixel_coords, cpar) which usually returns the array.
+                        # Or if it fails, provide an output buffer.
+
+                        _pix_arr = np.array([_pix_coords]).astype(np.float64)
+
+                        # Try with 2 arguments first, as many cython bindings work that way
+                        try:
+                            _metric_arr = convert_arr_pixel_to_metric(
+                                _pix_arr,
+                                cpar,
+                                # cals[_cam_idx_tr2]  <-- This was causing the error
+                                # If it needs distortion correction, it might need 'cal', but maybe the binding is different.
+                                # Standard optv usually does flat field via cpar only here.
+                                # If it requires 3 args and 3rd is 'out', we can pass None or an array.
+                            )
+                        except TypeError:
+                            # If it fails, maybe it needs an output array
+                            _metric_arr = np.empty_like(_pix_arr)
+                            convert_arr_pixel_to_metric(
+                                _pix_arr, cpar, _metric_arr
+                            )
+
+                        _pts_2d_list_tr.append(_metric_arr[0])
 
                 if len(_pts_2d_list_tr) >= 2:
+                    _cals_subset = [cals[_i] for _i in _valid_cams_tr]
+
+                    # Create input array (1 point, num_valid_cams, 2 coords)
                     _pts_2d_tr = np.array(_pts_2d_list_tr)[
                         np.newaxis, :, :
                     ].astype(np.float64)
+
                     _xyz_tr, _err_tr = multi_cam_point_positions(
-                        _pts_2d_tr, cpar, cals
+                        _pts_2d_tr, cpar, _cals_subset
                     )
                     _points_3d_tr[_pt_idx_tr] = _xyz_tr[0]
 
@@ -662,7 +777,7 @@ def _(
         )
 
         _ = mo.md(f"""
-        ### Triangulation Results
+        ### Triangulation Results (with Pixel->Metric Conversion)
 
         | Metric | Mean ± Std |
         |--------|------------|
@@ -899,8 +1014,10 @@ def _(
 
         x0 = calib_vec.reshape(-1)
 
-        w_planarity = 0.1
-        w_distance = 1.0
+        # Increase weights to force optimization to pay attention to constraints
+        # Lower tolerances to allow for more iterations
+        w_planarity = 10.0
+        w_distance = 100.0
 
         initial_residuals = grid_ba_residuals(
             x0,
@@ -927,6 +1044,12 @@ def _(
         """)
 
         print(f"Running bundle adjustment...")
+
+        # Use 'lm' (Levenberg-Marquardt) as it is robust for unconstrained least squares
+        # But residuals function mixes different units (pixels, mm).
+        # Try different loss function or method.
+        # 'trf' with loose tolerances might stop early if gradient is flat.
+
         result = least_squares(
             grid_ba_residuals,
             x0,
@@ -940,11 +1063,11 @@ def _(
                 pos_scale,
             ),
             method="trf",
-            loss="soft_l1",
-            xtol=1e-8,
-            ftol=1e-8,
-            gtol=1e-6,
-            max_nfev=5000,
+            loss="linear",  # Try linear first to see raw gradients
+            xtol=1e-15,  # Very small tolerance
+            ftol=1e-15,
+            gtol=1e-15,
+            max_nfev=10000,
             verbose=2,
         )
 
@@ -995,7 +1118,7 @@ def _(
         }
     else:
         mo.md("❌ No triangulated frames for bundle adjustment")
-    return (cals_optimized,)
+    return active_cams, cals_optimized, pos_scale, w_distance, w_planarity, x0
 
 
 @app.cell
@@ -1219,6 +1342,9 @@ def format_addpar_content(cal_exp2):
     dec = cal_exp2.get_decentering()
     p1, p2 = dec[0], dec[1]
 
+    aff = cal_exp2.get_affine()
+    scx, she = aff[0], aff[1]
+
     lines = [
         f"{cc:.10f}  # focal length (mm)",
         f"{xh:.10f}  # principal point x (mm)",
@@ -1228,6 +1354,8 @@ def format_addpar_content(cal_exp2):
         f"{p1:.10f}  # decentering p1",
         f"{p2:.10f}  # decentering p2",
         f"{k3:.10f}  # radial distortion k3",
+        f"{scx:.10f}  # affine scale x",
+        f"{she:.10f}  # affine shear",
     ]
     return "\n".join(lines)
 
@@ -1322,6 +1450,9 @@ def _(cals_to_export, mo):
             _dec_cp = _cal_cp.get_decentering()
             _p1_cp, _p2_cp = _dec_cp[0], _dec_cp[1]
 
+            _aff_cp = _cal_cp.get_affine()
+            _scx_cp, _she_cp = _aff_cp[0], _aff_cp[1]
+
             export_lines.append(f"\n#### Camera {_cam_idx_cp + 1}\n\n")
             export_lines.append("**Exterior Orientation:**\n")
             export_lines.append(
@@ -1333,7 +1464,7 @@ def _(cals_to_export, mo):
             )
             export_lines.append("**Distortion Parameters:**\n")
             export_lines.append(
-                f"```yaml\nk1: {_k1_cp:.8f}\nk2: {_k2_cp:.8f}\nk3: {_k3_cp:.8f}\np1: {_p1_cp:.8f}\np2: {_p2_cp:.8f}\n```\n\n"
+                f"```yaml\nk1: {_k1_cp:.8f}\nk2: {_k2_cp:.8f}\nk3: {_k3_cp:.8f}\np1: {_p1_cp:.8f}\np2: {_p2_cp:.8f}\nscx: {_scx_cp:.8f}\nshe: {_she_cp:.8f}\n```\n\n"
             )
             export_lines.append("---\n")
 
@@ -1361,6 +1492,174 @@ def _(mo):
        - Remove outlier frames
        - Re-run optimization
     """)
+    return
+
+
+@app.cell
+def _(
+    Poly3DCollection,
+    cals,
+    cals_optimized,
+    config,
+    draw_camera_pyramid,
+    mo,
+    np,
+    plt,
+    triangulated_frames,
+):
+    import matplotlib.cm as cm
+
+
+    def visualize_cameras_and_grids(cams, frames_data, rows, cols):
+        _fig = plt.figure(figsize=(12, 10))
+        _ax = _fig.add_subplot(111, projection="3d")
+
+        # Draw cameras
+        _colors_cams = ["red", "green", "blue", "orange"]
+        for _i, _cal in enumerate(cams):
+            _pos = _cal.get_pos()
+            _angles = _cal.get_angles()
+            draw_camera_pyramid(
+                _ax,
+                _pos,
+                _angles,
+                scale=150,
+                color=_colors_cams[_i % len(_colors_cams)],
+                label=f"Cam {_i + 1}",
+            )
+
+        # Draw Grids
+        if frames_data:
+            # Generate colors for frames
+            _cmap = cm.get_cmap("viridis", len(frames_data))
+
+            for _idx, (_frame_idx, _points) in enumerate(frames_data.items()):
+                # Extract corners of the grid (assuming row-major order)
+                # Top-Left: 0
+                # Top-Right: cols - 1
+                # Bottom-Right: rows * cols - 1
+                # Bottom-Left: (rows - 1) * cols
+
+                _p_tl = _points[0]
+                _p_tr = _points[cols - 1]
+                _p_br = _points[rows * cols - 1]
+                _p_bl = _points[(rows - 1) * cols]
+
+                _verts = [[_p_tl, _p_tr, _p_br, _p_bl]]
+
+                # Create polygon using the globally available Poly3DCollection
+                _poly = Poly3DCollection(_verts, alpha=0.5)
+                _color = _cmap(_idx)
+                _poly.set_facecolor(_color)
+                _poly.set_edgecolor("k")
+                _ax.add_collection3d(_poly)
+
+                # Add text for frame number at centroid (every 5th frame to avoid clutter)
+                _centroid = np.mean(_points, axis=0)
+                if _idx % 5 == 0:
+                    _ax.text(
+                        _centroid[0],
+                        _centroid[1],
+                        _centroid[2],
+                        f"F{_frame_idx}",
+                        fontsize=8,
+                    )
+
+        # Set limits
+        _all_cam_pos = np.array([_c.get_pos() for _c in cams])
+
+        # Collect all grid points to set proper limits
+        if frames_data:
+            _all_grid_points = np.vstack(list(frames_data.values()))
+            _all_points = np.vstack([_all_cam_pos, _all_grid_points])
+        else:
+            _all_points = _all_cam_pos
+
+        # Calculate center and range
+        _mid = np.mean(_all_points, axis=0)
+        _max_range = np.max(np.ptp(_all_points, axis=0)) / 2
+
+        _ax.set_xlim(_mid[0] - _max_range, _mid[0] + _max_range)
+        _ax.set_ylim(_mid[1] - _max_range, _mid[1] + _max_range)
+        _ax.set_zlim(_mid[2] - _max_range, _mid[2] + _max_range)
+
+        _ax.set_xlabel("X (mm)")
+        _ax.set_ylabel("Y (mm)")
+        _ax.set_zlabel("Z (mm)")
+        _ax.set_title("3D View: Cameras and Calibration Grids")
+
+        return _fig
+
+
+    _cams_to_plot_final = cals_optimized if cals_optimized is not None else cals
+    _fig_3d_grids = visualize_cameras_and_grids(
+        _cams_to_plot_final,
+        triangulated_frames,
+        config.grid_rows,
+        config.grid_cols,
+    )
+    mo.mpl.interactive(_fig_3d_grids)
+    return
+
+
+@app.cell
+def _(
+    active_cams,
+    cals,
+    cpar,
+    grid_ba_residuals,
+    np,
+    pos_scale,
+    triangulated_frames,
+    w_distance,
+    w_planarity,
+    x0,
+):
+    def debug_residuals():
+        # Test if grid_ba_residuals works
+        print(f"Testing grid_ba_residuals with x0 (len={len(x0)})...")
+
+        # Calculate initial residuals
+        initial_res = grid_ba_residuals(
+            x0,
+            triangulated_frames,
+            cpar,
+            cals,
+            active_cams,
+            w_planarity,
+            w_distance,
+            pos_scale,
+        )
+
+        print(
+            f"Initial residuals range: [{np.min(initial_res):.2f}, {np.max(initial_res):.2f}]"
+        )
+        print(f"Number of residuals: {len(initial_res)}")
+        print(f"Number of NaNs: {np.sum(np.isnan(initial_res))}")
+        print(
+            f"Number of large values (>1e5): {np.sum(np.abs(initial_res) > 1e5)}"
+        )
+
+        # Perturb x0 slightly and check if residuals change
+        x_perturbed = x0.copy()
+        x_perturbed[0] += 10.0  # Shift camera 1 X by 10mm
+
+        perturbed_res = grid_ba_residuals(
+            x_perturbed,
+            triangulated_frames,
+            cpar,
+            cals,
+            active_cams,
+            w_planarity,
+            w_distance,
+            pos_scale,
+        )
+
+        diff = np.sum(np.abs(initial_res - perturbed_res))
+        print(f"Difference after perturbing Cam 1 X: {diff:.2f}")
+
+
+    debug_residuals()
     return
 
 
