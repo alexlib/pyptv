@@ -94,19 +94,19 @@ def _(Dict, dataclass):
         @classmethod
         def for_illmenau_run4(cls):
             return cls(
-                calib_base="/home/user/Downloads/Illmenau/KalibrierungA",
+                calib_base="/home/user/Downloads/Illmenau/KalibrierungB",
                 camera_folders={
-                    0: "Kalibrierung1a",
-                    1: "Kalibrierung2a",
-                    2: "Kalibrierung3a",
-                    3: "Kalibrierung4a",
+                    0: "Kalibrierung1b",
+                    1: "Kalibrierung2b",
+                    2: "Kalibrierung3b",
+                    3: "Kalibrierung4b",
                 },
-                num_frames=40,
-                grid_rows=7,
-                grid_cols=6,
-                grid_spacing_mm=120.0,
+                num_frames=123,
+                grid_rows=21,
+                grid_cols=17,
+                grid_spacing_mm=40.0,
                 yaml_path="/home/user/Downloads/Illmenau/pyPTV_folder/parameters_Run4.yaml",
-                output_dir="/home/user/Downloads/Illmenau/pyPTV_folder/calibration_output",
+                output_dir="/home/user/Downloads/Illmenau/pyPTV_folder/calibration_output_B",
             )
 
     return (CalibrationConfig,)
@@ -116,15 +116,12 @@ def _(Dict, dataclass):
 def _(CalibrationConfig, mo):
     config = CalibrationConfig.for_illmenau_run4()
     mo.md(f"""
-    ### Configuration Loaded
+    ### Configuration Loaded (Updated for KalibrierungB)
 
     | Parameter | Value |
     |-----------|-------|
     | **Calibration Base** | `{config.calib_base}` |
-    | **YAML Parameters** | `{config.yaml_path}` |
-    | **Cameras** | {len(config.camera_folders)} |
-    | **Frames** | {config.num_frames} |
-    | **Grid** | {config.grid_rows}×{config.grid_cols} ({config.grid_rows * config.grid_cols} points) |
+    | **Grid** | {config.grid_rows}×{config.grid_cols} (Dark background, bright dots) |
     | **Grid Spacing** | {config.grid_spacing_mm} mm |
     | **Output Directory** | `{config.output_dir}` |
     """)
@@ -1818,6 +1815,267 @@ def _(
         )
 
     mo.mpl.interactive(_fig_reproj)
+    return
+
+
+@app.cell
+def _(Path, config, cv2, mo):
+    # Interactive Blob Detector Parameter Tuning
+    # import cv2
+    # import numpy as np
+    # import matplotlib.pyplot as plt
+    # from pathlib import Path
+
+    # Load a sample image from the new dataset (Camera 1, Frame 0)
+    sample_image_path = Path(config.calib_base) / config.camera_folders[0]
+    sample_file = next(
+        sample_image_path.glob("*.tiff"), None
+    )  # Assuming .tif or similar
+
+    if sample_file is None:
+        print("No image found!")
+        sample_img = None
+    else:
+        sample_img = cv2.imread(str(sample_file), cv2.IMREAD_GRAYSCALE)
+
+    # Create UI controls for parameters
+    min_threshold = mo.ui.slider(0, 255, value=10, label="Min Threshold")
+    max_threshold = mo.ui.slider(0, 255, value=220, label="Max Threshold")
+    min_area = mo.ui.slider(1, 500, value=20, label="Min Area")
+    max_area = mo.ui.slider(100, 5000, value=1000, label="Max Area")
+    min_circularity = mo.ui.slider(
+        0.1, 1.0, value=0.7, step=0.05, label="Min Circularity"
+    )
+    min_convexity = mo.ui.slider(
+        0.1, 1.0, value=0.8, step=0.05, label="Min Convexity"
+    )
+    min_inertia = mo.ui.slider(0.1, 1.0, value=0.5, step=0.05, label="Min Inertia")
+    return (
+        max_area,
+        max_threshold,
+        min_area,
+        min_circularity,
+        min_convexity,
+        min_inertia,
+        min_threshold,
+        sample_img,
+    )
+
+
+@app.cell
+def _(cv2, np, plt):
+    # Function to detect and display
+    def detect_blobs(
+        img, min_t, max_t, min_a, max_a, min_circ, min_conv, min_inert
+    ):
+        img_blur = cv2.GaussianBlur(img, (0, 0), 0.9)  # sigma ~0.6–0.9
+        clahe = cv2.createCLAHE(clipLimit=2.0, tileGridSize=(16, 16))
+        img_p = clahe.apply(img_blur)
+
+        params = cv2.SimpleBlobDetector_Params()
+
+        # Robust threshold sweep for tiny bright dots
+        params.minThreshold = min_t
+        params.maxThreshold = max_t
+        params.thresholdStep = 5
+
+        # Bright blobs on dark background
+        params.filterByColor = True
+        params.blobColor = 255
+
+        # Dot spacing ~20 px
+        params.minDistBetweenBlobs = 15  # try 12–16
+
+        # Dot diameter 4–6 px => expected area ~12–28 px^2
+        params.filterByArea = True
+        params.minArea = min_a  # try 6–12
+        params.maxArea = max_a  # try 80–160
+
+        # Shape constraints (moderate)
+        params.filterByCircularity = True
+        params.minCircularity = min_circ  # 0.65      # try 0.55–0.80
+
+        params.filterByInertia = True
+        params.minInertiaRatio = min_inert  # 0.45     # try 0.30–0.70
+
+        params.filterByConvexity = True
+        params.minConvexity = min_conv  # 0.75        # try 0.65–0.90
+
+        detector = cv2.SimpleBlobDetector_create(params)
+
+        keypoints = detector.detect(img_p)
+        print(keypoints)
+
+        # Draw keypoints
+        im_with_keypoints = cv2.drawKeypoints(
+            img_p,
+            keypoints,
+            np.array([]),
+            (255, 0, 0),
+            cv2.DRAW_MATCHES_FLAGS_DRAW_RICH_KEYPOINTS,
+        )
+
+        # Plot
+        fig, ax = plt.subplots(figsize=(10, 8))
+        ax.imshow(im_with_keypoints)
+        ax.set_title(f"Detected Blobs: {len(keypoints)}")
+        ax.axis("off")
+        ax.set_xlim(950, 1200)
+        ax.set_ylim(650, 900)
+        # ax.invert_yaxis()  # Match image coordinate system
+        return ax
+
+    return (detect_blobs,)
+
+
+@app.cell
+def _(
+    detect_blobs,
+    max_area,
+    max_threshold,
+    min_area,
+    min_circularity,
+    min_convexity,
+    min_inertia,
+    min_threshold,
+    mo,
+    sample_img,
+):
+    # Display UI
+    mo.vstack(
+        [
+            mo.md("### Blob Detector Tuner"),
+            mo.hstack([min_threshold, max_threshold]),
+            mo.hstack([min_area, max_area]),
+            mo.hstack([min_circularity, min_convexity, min_inertia]),
+            detect_blobs(
+                sample_img,
+                min_threshold.value,
+                max_threshold.value,
+                min_area.value,
+                max_area.value,
+                min_circularity.value,
+                min_convexity.value,
+                min_inertia.value,
+            ),
+        ]
+    )
+    return
+
+
+@app.cell
+def _(cv2, np, plt, sample_img):
+    def _():
+        # import cv2
+
+        params = cv2.SimpleBlobDetector_Params()
+
+        # --- threshold sweep (tighter than default) ---
+        params.minThreshold = 25
+        params.maxThreshold = 220
+        params.thresholdStep = 3
+        params.minRepeatability = 1  # IMPORTANT for rejecting threshold artifacts
+
+        # --- bright dots on dark background ---
+        params.filterByColor = False
+        params.blobColor = 255
+
+        # --- spacing ~20 px; suppress midpoint candidates ---
+        params.minDistBetweenBlobs = 10  # try 16–19
+
+        # --- area derived from sigma range ---
+        # A ≈ 2*pi*sigma^2, for sigma in [1,3] => ~[6,57]
+        params.filterByArea = True
+        params.minArea = 5
+        params.maxArea = 50  # give margin; try 90–160
+
+        # --- shape filters (keep moderate; too strict can drop real dots) ---
+        params.filterByCircularity = True
+        params.minCircularity = 0.40  # try 0.65–0.85
+
+        params.filterByInertia = True
+        params.minInertiaRatio = 0.50  # try 0.4–0.75
+
+        params.filterByConvexity = True
+        params.minConvexity = 0.80  # try 0.75–0.95
+
+        detector = cv2.SimpleBlobDetector_create(params)
+
+        # img_blur = cv2.GaussianBlur(sample_img, (0,0), 0.8)  # sigma ~0.6–0.9
+        # clahe = cv2.createCLAHE(clipLimit=2.0, tileGridSize=(16,16))
+        # img_p = clahe.apply(img_blur)
+
+        img_blur = cv2.GaussianBlur(sample_img, (0, 0), 0.7)
+
+        # se = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (21, 21))  # try 15–31
+        # tophat = cv2.morphologyEx(img_blur, cv2.MORPH_TOPHAT, se)
+
+        # normalize to 8-bit for blob detector
+        # img_p = cv2.normalize(tophat, None, 0, 255, cv2.NORM_MINMAX).astype('uint8')
+
+        keypoints = detector.detect(img_blur)
+
+        # keypoints = detector2.detect(img_blur)
+        print(keypoints)
+
+        im_with_keypoints2 = cv2.drawKeypoints(
+            img_blur,
+            keypoints,
+            np.array([]),
+            (0, 0, 255),
+            cv2.DRAW_MATCHES_FLAGS_DRAW_RICH_KEYPOINTS,
+        )
+
+        # Plot
+        _fig, _ax = plt.subplots(figsize=(10, 8))
+        _ax.imshow(im_with_keypoints2, origin="upper")
+        _ax.set_title(f"Detected Blobs: {len(keypoints)}")
+        # _ax.axis('off')
+        _ax.set_xlim(950, 1200)
+        _ax.set_ylim(650, 900)
+        _ax.invert_yaxis()  # Match image coordinate system
+        # _ax.set_orientation('image')
+        return _ax
+
+
+    _()
+    return
+
+
+@app.cell
+def _(np, plt, sample_img):
+    # import numpy as np
+    from skimage.feature import blob_log
+
+    blobs = blob_log(
+        sample_img,
+        min_sigma=1.0,  # ~ dot radius / sqrt(2)
+        max_sigma=3.0,
+        num_sigma=15,
+        threshold=0.03,
+    )
+
+    # blob_log returns (y, x, sigma)
+    points = [(b[1], b[0]) for b in blobs]
+    print("detections:", len(points))
+
+    _fig, _ax = plt.subplots(figsize=(10, 8))
+    _ax.imshow(sample_img, cmap="gray")
+
+    for y, x, s in blobs:
+        r = np.sqrt(2) * s
+        c = plt.Circle((x, y), r, color="red", fill=False, linewidth=1)
+        _ax.add_patch(c)
+
+    _ax.set_xlim(950, 1200)
+    _ax.set_ylim(650, 900)
+    _ax.invert_yaxis()
+    _ax
+    return
+
+
+@app.cell
+def _():
     return
 
 
