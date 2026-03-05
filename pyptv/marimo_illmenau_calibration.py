@@ -104,7 +104,7 @@ def _(Dict, dataclass):
                 grid_cols=6,
                 grid_spacing_mm=120.0,
                 yaml_path="/home/user/Downloads/Illmenau/pyPTV_folder/parameters_Run4.yaml",
-                output_dir="/home/user/Documents/GitHub/pyptv/pyptv/calibration_output",
+                output_dir="/home/user/Downloads/Illmenau/pyPTV_folder/calibration_output",
             )
 
     return (CalibrationConfig,)
@@ -1250,14 +1250,17 @@ def _(Path, cals, cals_optimized, config, mo):
     for _cam_idx_exp, _cal_exp3 in enumerate(cals_to_export):
         _ori_filename_exp = f"cam{_cam_idx_exp + 1}_calibrated.ori"
         _addpar_filename_exp = f"cam{_cam_idx_exp + 1}_calibrated.addpar"
-    
+
         _ori_path_exp = output_dir / _ori_filename_exp
         _addpar_path_exp = output_dir / _addpar_filename_exp
-    
+
         # Use Calibration.write to save the files directly using the library method
         # Need to encode strings to bytes as per TypeError
-        _cal_exp3.write(str(_ori_path_exp).encode('utf-8'), str(_addpar_path_exp).encode('utf-8'))
-    
+        _cal_exp3.write(
+            str(_ori_path_exp).encode("utf-8"),
+            str(_addpar_path_exp).encode("utf-8"),
+        )
+
         # Read back the content for display
         with open(_ori_path_exp, "r") as f:
             _ori_content_exp = f.read()
@@ -1335,12 +1338,14 @@ def _(cals_to_export, mo):
             export_lines.append("---\n")
 
         _ = mo.md("".join(export_lines))
+
+    _
     return
 
 
 @app.cell
 def _(mo):
-    _=mo.md(r"""
+    mo.md(r"""
     ## Next Steps
 
     1. **Test in pyPTV GUI:**
