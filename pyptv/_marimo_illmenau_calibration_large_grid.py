@@ -1964,7 +1964,7 @@ def _(
 
 
 @app.cell
-def _(cv2, np, plt, sample_img):
+def _(cv2, mo, plt, sample_img):
     def _():
         # import cv2
 
@@ -2018,27 +2018,37 @@ def _(cv2, np, plt, sample_img):
         # keypoints = detector2.detect(img_blur)
         print(keypoints)
 
-        im_with_keypoints2 = cv2.drawKeypoints(
+        # im_with_keypoints2 = cv2.drawKeypoints(
+        #     img_blur,
+        #     keypoints,
+        #     np.array([]),
+        #     (0, 0, 255),
+        #     cv2.DRAW_MATCHES_FLAGS_DRAW_RICH_KEYPOINTS,
+        # )
+
+        _found, _centers = cv2.findCirclesGrid(
             img_blur,
-            keypoints,
-            np.array([]),
-            (0, 0, 255),
-            cv2.DRAW_MATCHES_FLAGS_DRAW_RICH_KEYPOINTS,
+            (21, 17),
+            flags=cv2.CALIB_CB_SYMMETRIC_GRID,
+            blobDetector=detector,
         )
+
+        img_grid = cv2.drawChessboardCorners(img_blur, (21, 17), _centers, _found)
 
         # Plot
         _fig, _ax = plt.subplots(figsize=(10, 8))
-        _ax.imshow(im_with_keypoints2, origin="upper")
+        _ax.imshow(img_grid, origin="upper")
         _ax.set_title(f"Detected Blobs: {len(keypoints)}")
         # _ax.axis('off')
-        _ax.set_xlim(950, 1200)
-        _ax.set_ylim(650, 900)
+        # _ax.set_xlim(950, 1200)
+        # _ax.set_ylim(650, 900)
         _ax.invert_yaxis()  # Match image coordinate system
         # _ax.set_orientation('image')
-        return _ax
+        return _fig
 
 
-    _()
+    _fig = _()
+    mo.mpl.interactive(_fig)
     return
 
 
@@ -2067,8 +2077,8 @@ def _(np, plt, sample_img):
         c = plt.Circle((x, y), r, color="red", fill=False, linewidth=1)
         _ax.add_patch(c)
 
-    _ax.set_xlim(950, 1200)
-    _ax.set_ylim(650, 900)
+    # _ax.set_xlim(950, 1200)
+    # _ax.set_ylim(650, 900)
     _ax.invert_yaxis()
     _ax
     return
