@@ -1,7 +1,7 @@
 import marimo
 
 __generated_with = "0.20.4"
-app = marimo.App(width="full")
+app = marimo.App(width="columns")
 
 
 @app.cell
@@ -176,13 +176,50 @@ def _(Path, config, cv2, mo, np):
     Only keeps frames where ALL 4 cameras detected the grid.
     """
 
-    board_params = cv2.SimpleBlobDetector_Params()
-    board_params.filterByColor = False
-    board_params.filterByArea = True
-    board_params.minArea = 50
-    board_params.filterByCircularity = True
-    board_params.minCircularity = 0.7
-    detector = cv2.SimpleBlobDetector_create(board_params)
+    blob_params = cv2.SimpleBlobDetector_Params()
+    blob_params.minThreshold = 25
+    blob_params.maxThreshold = 220
+    blob_params.thresholdStep = 3
+    blob_params.minRepeatability = 1  # IMPORTANT for rejecting threshold artifacts
+    blob_params.filterByColor = False
+    blob_params.blobColor = 255
+    blob_params.minDistBetweenBlobs = 10  # try 16–19
+    blob_params.filterByArea = True
+    blob_params.minArea = 5
+    blob_params.maxArea = 50  # give margin; try 90–160
+    blob_params.filterByCircularity = True
+    blob_params.minCircularity = 0.40  # try 0.65–0.85
+    blob_params.filterByInertia = True
+    blob_params.minInertiaRatio = 0.50  # try 0.4–0.75
+    blob_params.filterByConvexity = True
+    blob_params.minConvexity = 0.80  # try 0.75–0.95
+    detector = cv2.SimpleBlobDetector_create(blob_params)
+
+
+    # img_blur = cv2.GaussianBlur(sample_img, (0,0), 0.8)  # sigma ~0.6–0.9
+    # clahe = cv2.createCLAHE(clipLimit=2.0, tileGridSize=(16,16))
+    # img_p = clahe.apply(img_blur)
+
+
+    # keypoints = detector.detect(img_blur)
+
+    # keypoints = detector2.detect(img_blur)
+    # print(keypoints)
+
+    # im_with_keypoints2 = cv2.drawKeypoints(
+    #     img_blur,
+    #     keypoints,
+    #     np.array([]),
+    #     (0, 0, 255),
+    #     cv2.DRAW_MATCHES_FLAGS_DRAW_RICH_KEYPOINTS,
+    # )
+
+    # _found, _centers = cv2.findCirclesGrid(
+    #     img_blur,
+    #     (21, 17),
+    #     flags=cv2.CALIB_CB_SYMMETRIC_GRID,
+    #     blobDetector=detector,
+    # )
 
     _calib_base_gd = Path(config.calib_base)
     _num_cams_gd = len(config.camera_folders)
@@ -225,6 +262,7 @@ def _(Path, config, cv2, mo, np):
                 continue
 
             _img_gd = cv2.imread(str(_image_file), cv2.IMREAD_GRAYSCALE)
+            _img_gd = cv2.GaussianBlur(_img_gd, (0, 0), 0.7)
             if _img_gd is None:
                 _cam_failed += 1
                 detection_log.append(
@@ -1929,6 +1967,12 @@ def _(cv2, np, plt):
 
 
 @app.cell
+def _(cv2):
+    cv2.__version__
+    return
+
+
+@app.cell(disabled=True)
 def _(
     detect_blobs,
     max_area,
@@ -2053,6 +2097,12 @@ def _(cv2, mo, plt, sample_img):
 
 
 @app.cell
+def _():
+    21 * 17
+    return
+
+
+@app.cell(disabled=True)
 def _(np, plt, sample_img):
     # import numpy as np
     from skimage.feature import blob_log
