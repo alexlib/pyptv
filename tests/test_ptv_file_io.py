@@ -2,11 +2,19 @@
 
 import pytest
 import numpy as np
-import tempfile
-import os
+from pathlib import Path
 from unittest.mock import Mock, patch, mock_open
 from pyptv.ptv import (
-    read_targets, write_targets, read_rt_is_file, generate_short_file_bases, extract_cam_ids
+    _ensure_directory_writable,
+    _ensure_target_output_writable,
+    _prepare_output_path,
+    _raise_output_write_error,
+    py_correspondences_proc_c,
+    read_targets,
+    write_targets,
+    read_rt_is_file,
+    generate_short_file_bases,
+    extract_cam_ids,
 )
 
 
@@ -53,65 +61,131 @@ class TestReadTargets:
 
 class TestWriteTargets:
     """Test write_targets function"""
-    
-    def test_write_targets_basic(self):
-        """Test writing targets to file"""
+
+    @staticmethod
+    def _make_target():
         mock_target = Mock()
         mock_target.pnr.return_value = 1
         mock_target.pos.return_value = [100.5, 200.5]
-        mock_target.count_pixels.return_value = [5, 6]
+        mock_target.count_pixels.return_value = [5, 6, 7]
         mock_target.sum_grey_value.return_value = 150
         mock_target.tnr.return_value = 0
-        targets = [mock_target]
-        base_names = ['img_cam1_%04d.tif']
-        short_file_bases = generate_short_file_bases(clean_bases(base_names))
-        # print(short_file_bases)
-        with patch('builtins.open', mock_open()) as mock_file:
-            result = write_targets(targets, short_file_bases[0], 123456789)
-            expected_filename = f'cam1.123456789_targets'
-            mock_file.assert_called_once_with(expected_filename, 'wt')
-            assert result is not None
+        return mock_target
     
-    def test_write_targets_empty_list(self):
+    def test_write_targets_basic(self, tmp_path):
+        """Test writing targets to file"""
+        targets = [self._make_target()]
+        short_file_base = str(tmp_path / 'cam1')
+
+        result = write_targets(targets, short_file_base, 123456789)
+
+        output_path = tmp_path / 'cam1.123456789_targets'
+        assert result is True
+        assert output_path.exists()
+        assert output_path.read_text(encoding='utf-8').startswith('1\n')
+    
+    def test_write_targets_empty_list(self, tmp_path):
         """Test writing empty target list"""
         targets = []
-        base_names = ['img_cam1_%04d.tif']
-        short_file_bases = generate_short_file_bases(base_names)
-        with patch('builtins.open', mock_open()) as mock_file:
-            result = write_targets(targets, short_file_bases[0], 123456789)
-            expected_filename = f'cam1.123456789_targets'
-            mock_file.assert_called_once_with(expected_filename, 'w', encoding='utf-8')
-            assert result is not None
+        short_file_base = str(tmp_path / 'cam1')
+
+        result = write_targets(targets, short_file_base, 123456789)
+
+        output_path = tmp_path / 'cam1.123456789_targets'
+        assert result is True
+        assert output_path.read_text(encoding='utf-8') == '0\n'
     
     def test_write_targets_permission_error(self):
         """Test writing targets with permission error"""
-        mock_target = Mock()
-        mock_target.pnr.return_value = 1
-        mock_target.pos.return_value = [100.5, 200.5]
-        mock_target.count_pixels.return_value = [5, 6]
-        mock_target.sum_grey_value.return_value = 150
-        mock_target.tnr.return_value = 0
-        targets = [mock_target]
-        base_names = ['img_cam1_%04d.tif']
-        short_file_bases = generate_short_file_bases(base_names)
-        with patch('builtins.open', side_effect=PermissionError("Permission denied")):
-            result = write_targets(targets, short_file_bases[0], 123456789)
-            assert result is False
+        targets = [self._make_target()]
+
+        with patch('pyptv.ptv.np.savetxt', side_effect=PermissionError('Permission denied')):
+            with pytest.raises(PermissionError, match='Cannot write output file'):
+                write_targets(targets, 'cam1', 123456789)
     
     def test_write_targets_invalid_path(self):
         """Test writing targets to invalid path"""
-        mock_target = Mock()
-        mock_target.pnr.return_value = 1
-        mock_target.pos.return_value = [100.5, 200.5]
-        mock_target.count_pixels.return_value = [5, 6]
-        mock_target.sum_grey_value.return_value = 150
-        mock_target.tnr.return_value = 0
-        targets = [mock_target]
-        base_names = ['img_cam1_%04d.tif']
-        short_file_bases = generate_short_file_bases(base_names)
-        with patch('builtins.open', side_effect=FileNotFoundError("No such file or directory")):
-            result = write_targets(targets, short_file_bases[0], 123456789)
-            assert result is False
+        targets = [self._make_target()]
+
+        with patch('pyptv.ptv.np.savetxt', side_effect=OSError('Disk full')):
+            with pytest.raises(OSError, match='Failed to write output file'):
+                write_targets(targets, 'cam1', 123456789)
+
+
+class TestOutputHelpers:
+    """Test low-level output path helper functions."""
+
+    def test_prepare_output_path_creates_parent_directory(self, tmp_path):
+        output_path = tmp_path / 'nested' / 'res' / 'out.txt'
+
+        result = _prepare_output_path(str(output_path))
+
+        assert result == output_path
+        assert output_path.parent.exists()
+
+    def test_prepare_output_path_raises_for_invalid_parent(self, tmp_path):
+        blocking_file = tmp_path / 'blocked'
+        blocking_file.write_text('x', encoding='utf-8')
+
+        with pytest.raises(OSError, match='Unable to prepare output directory'):
+            _prepare_output_path(str(blocking_file / 'out.txt'))
+
+    def test_raise_output_write_error_for_permission_error(self):
+        output_path = Path('res/out.txt')
+
+        with pytest.raises(PermissionError, match='Cannot write output file'):
+            _raise_output_write_error(output_path, PermissionError('denied'))
+
+    def test_raise_output_write_error_for_generic_oserror(self):
+        output_path = Path('res/out.txt')
+
+        with pytest.raises(OSError, match='Failed to write output file'):
+            _raise_output_write_error(output_path, OSError('disk full'))
+
+    def test_ensure_directory_writable_creates_and_probes_directory(self, tmp_path):
+        output_dir = tmp_path / 'targets'
+
+        result = _ensure_directory_writable(output_dir, 'Target output')
+
+        assert result == output_dir
+        assert output_dir.exists()
+        assert not (output_dir / '.pyptv_write_probe').exists()
+
+    def test_ensure_target_output_writable_checks_unique_directories(self, tmp_path):
+        base_paths = [
+            str(tmp_path / 'cam1'),
+            str(tmp_path / 'cam2'),
+            str((tmp_path / 'nested') / 'cam3'),
+        ]
+
+        with patch('pyptv.ptv._ensure_directory_writable') as ensure_dir:
+            _ensure_target_output_writable(base_paths)
+
+        checked_dirs = [call.args[0] for call in ensure_dir.call_args_list]
+        assert checked_dirs == [Path(tmp_path), Path(tmp_path / 'nested')]
+
+
+class TestCorrespondenceWritePreflight:
+    def test_correspondences_checks_target_directory_before_writing(self):
+        exp = Mock()
+        exp.detections = [Mock()]
+        exp.corrected = Mock()
+        exp.cals = Mock()
+        exp.vpar = Mock()
+        exp.cpar = Mock()
+        exp.num_cams = 1
+        exp.target_filenames = ['cam1']
+
+        sorted_pos = [np.zeros((2, 1))]
+        sorted_corresp = [np.zeros((1, 1), dtype=int)]
+
+        with patch('pyptv.ptv.correspondences', return_value=(sorted_pos, sorted_corresp, 1)):
+            with patch('pyptv.ptv._ensure_target_output_writable') as ensure_writable:
+                with patch('pyptv.ptv.write_targets') as write_targets_mock:
+                    py_correspondences_proc_c(exp)
+
+        ensure_writable.assert_called_once_with(exp.target_filenames)
+        write_targets_mock.assert_called_once()
 
 
 def clean_bases(file_bases):

@@ -62,6 +62,71 @@ DEFAULT_NO_FILTER = 0
 SHORT_BASE = "cam"  # Use this as the short base for camera file naming
 
 
+def _prepare_output_path(filename: str) -> Path:
+    """Return a writable output path, creating parent directories when needed."""
+    output_path = Path(filename)
+    parent = output_path.parent
+
+    if parent != Path("."):
+        try:
+            parent.mkdir(parents=True, exist_ok=True)
+        except OSError as exc:
+            raise OSError(
+                "Unable to prepare output directory "
+                f"'{parent}' for '{output_path.name}'. "
+                "Please choose a writable experiment folder or change the folder permissions."
+            ) from exc
+
+    return output_path
+
+
+def _raise_output_write_error(output_path: Path, exc: OSError) -> None:
+    """Raise an actionable write error for generated output files."""
+    if isinstance(exc, PermissionError):
+        raise PermissionError(
+            f"Cannot write output file '{output_path}'. "
+            f"PyPTV does not have permission to write to '{output_path.parent}'. "
+            "Please change the folder permissions or move the experiment to a user-writable directory."
+        ) from exc
+
+    raise OSError(f"Failed to write output file '{output_path}': {exc}") from exc
+
+
+def _ensure_directory_writable(directory: Path, label: str) -> Path:
+    """Create and probe an output directory before writing generated files."""
+    directory = Path(directory)
+    print(f"Checking {label} directory {directory}")
+    probe_path = _prepare_output_path(str(directory / ".pyptv_write_probe"))
+
+    try:
+        with open(probe_path, "w", encoding="utf-8") as probe_file:
+            probe_file.write("pyptv write probe\n")
+    except OSError as exc:
+        _raise_output_write_error(probe_path, exc)
+    finally:
+        try:
+            probe_path.unlink(missing_ok=True)
+        except OSError:
+            pass
+
+    print(f"{label} directory {directory} is writable.")
+    return directory
+
+
+def _ensure_target_output_writable(short_file_bases: List[str]) -> None:
+    """Check target output directories before the first target file write."""
+    checked_dirs = set()
+
+    for short_file_base in short_file_bases:
+        directory = Path(short_file_base).parent
+        directory_key = str(directory.resolve()) if directory.exists() else str(directory)
+        if directory_key in checked_dirs:
+            continue
+
+        _ensure_directory_writable(directory, "Target output")
+        checked_dirs.add(directory_key)
+
+
 
 def image_split(img: np.ndarray, order = [0,1,3,2]) -> List[np.ndarray]:
     """Split image into four quadrants.
@@ -375,6 +440,7 @@ def py_correspondences_proc_c(exp):
     # img_base_names = [exp.spar.get_img_base_name(i) for i in range(exp.num_cams)]
     short_file_bases = exp.target_filenames
     print(f"short_file_bases: {short_file_bases}")
+    _ensure_target_output_writable(short_file_bases)
 
     for i_cam in range(exp.num_cams):
         write_targets(exp.detections[i_cam], short_file_bases[i_cam], frame)
@@ -412,19 +478,21 @@ def py_determination_proc_c(
     else:
         print_corresp = concatenated_corresp
 
-    fname = f"{default_naming['corres'].decode()}.{DEFAULT_FRAME_NUM}".encode()
+    output_path = _prepare_output_path(
+        f"{default_naming['corres'].decode()}.{DEFAULT_FRAME_NUM}"
+    )
 
-    print(f"Prepared {fname} to write positions")
+    print(f"Prepared {output_path} to write positions")
 
     try:
-        with open(fname, "w", encoding="utf-8") as rt_is:
-            print(f"Opened {fname}")
+        with open(output_path, "w", encoding="utf-8") as rt_is:
+            print(f"Opened {output_path}")
             rt_is.write(f"{pos.shape[0]}\n")
             for pix, pt in enumerate(pos):
                 pt_args = (pix + 1,) + tuple(pt) + tuple(print_corresp[:, pix])
                 rt_is.write("%4d %9.3f %9.3f %9.3f %4d %4d %4d %4d\n" % pt_args)
-    except FileNotFoundError as e:
-        print(f"Error writing to file {fname}: {e}")
+    except OSError as exc:
+        _raise_output_write_error(output_path, exc)
 
 
 def run_sequence_plugin(exp) -> None:
@@ -531,6 +599,7 @@ def py_sequence_loop(exp) -> None:
     # Generate short_file_bases once per experiment
     img_base_names = [spar.get_img_base_name(i) for i in range(num_cams)]
     short_file_bases = exp.target_filenames
+    _ensure_target_output_writable(short_file_bases)
 
     for frame in range(first_frame, last_frame + 1):
         detections = []
@@ -598,13 +667,15 @@ def py_sequence_loop(exp) -> None:
         else:
             print_corresp = sorted_corresp
 
-        rt_is_filename = default_naming["corres"].decode()
-        rt_is_filename = f"{rt_is_filename}.{frame}"
-        with open(rt_is_filename, "w", encoding="utf8") as rt_is:
-            rt_is.write(f"{pos.shape[0]}\n")
-            for pix, pt in enumerate(pos):
-                pt_args = (pix + 1,) + tuple(pt) + tuple(print_corresp[:, pix])
-                rt_is.write("%4d %9.3f %9.3f %9.3f %4d %4d %4d %4d\n" % pt_args)
+        output_path = _prepare_output_path(f"{default_naming['corres'].decode()}.{frame}")
+        try:
+            with open(output_path, "w", encoding="utf8") as rt_is:
+                rt_is.write(f"{pos.shape[0]}\n")
+                for pix, pt in enumerate(pos):
+                    pt_args = (pix + 1,) + tuple(pt) + tuple(print_corresp[:, pix])
+                    rt_is.write("%4d %9.3f %9.3f %9.3f %4d %4d %4d %4d\n" % pt_args)
+        except OSError as exc:
+            _raise_output_write_error(output_path, exc)
 
 def py_trackcorr_init(exp):
     """Reads all the necessary stuff into Tracker"""
@@ -673,12 +744,15 @@ def py_calibration(selection, exp):
 
 def write_targets(targets: TargetArray, short_file_base: str, frame: int) -> bool:
     """Write targets to a file."""
-    filename = f"{short_file_base}.{frame:04d}_targets"
+    output_path = _prepare_output_path(f"{short_file_base}.{frame:04d}_targets")
     num_targets = len(targets)
     success = False
     if num_targets == 0:
-        with open(filename, "w", encoding="utf-8") as file:
-            file.write("0\n")
+        try:
+            with open(output_path, "w", encoding="utf-8") as file:
+                file.write("0\n")
+        except OSError as exc:
+            _raise_output_write_error(output_path, exc)
         return True  # No targets to write, but file created successfully
 
     try:
@@ -689,15 +763,15 @@ def write_targets(targets: TargetArray, short_file_base: str, frame: int) -> boo
             ]
         )
         np.savetxt(
-            filename,
+            output_path,
             target_arr,
             fmt="%4d %9.4f %9.4f %5d %5d %5d %5d %5d",
             header=f"{num_targets}",
             comments="",
         )
         success = True
-    except IOError:
-        print(f"Can't write to targets file: {filename}")
+    except OSError as exc:
+        _raise_output_write_error(output_path, exc)
     return success
 
 def read_targets(short_file_base: str, frame: int) -> TargetArray:

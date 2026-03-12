@@ -540,6 +540,8 @@ class TreeMenuHandler(Handler):
     def init_action(self, info):
         """init_action - initializes the system using ParameterManager"""
         mainGui = info.object       
+
+        mainGui.ensure_res_directory_ready()
         
         if mainGui.exp1.active_params is None:
             print("Warning: No active parameter set found, setting to default.")
@@ -1243,6 +1245,31 @@ class MainGUI(HasTraits):
     def get_parameter(self, key):
         """Delegate parameter access to experiment"""
         return self.exp1.get_parameter(key)
+
+    def ensure_res_directory_ready(self) -> Path:
+        """Create or validate the experiment res directory before writing outputs."""
+        res_dir = self.exp_path / "res"
+        if res_dir.exists():
+            print(f"Warning: output directory {res_dir} already exists; PyPTV will overwrite files there.")
+        else:
+            print(f"Creating output directory {res_dir}")
+
+        probe_path = ptv._prepare_output_path(str(res_dir / ".pyptv_write_probe"))
+
+        try:
+            with open(probe_path, "w", encoding="utf-8") as probe_file:
+                probe_file.write("pyptv write probe\n")
+        except OSError as exc:
+            ptv._raise_output_write_error(probe_path, exc)
+        finally:
+            try:
+                probe_path.unlink(missing_ok=True)
+            except OSError:
+                pass
+
+        print(f"Output directory {res_dir} is writable.")
+
+        return res_dir
         
     def right_click_process(self):
         """Shows a line in camera color code corresponding to a point on another camera's view plane"""
