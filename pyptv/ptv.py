@@ -378,9 +378,7 @@ def py_correspondences_proc_c(exp):
 
     for i_cam in range(exp.num_cams):
         write_targets(exp.detections[i_cam], short_file_bases[i_cam], frame)
-    else:
-        print("Warning: No sequence parameters found, skipping target writing")
-
+        
     print(
         f"Frame {frame} had {[s.shape[1] for s in sorted_pos]!r} correspondences."
     )
