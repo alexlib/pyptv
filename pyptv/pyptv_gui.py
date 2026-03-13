@@ -1250,9 +1250,22 @@ class MainGUI(HasTraits):
         """Create or validate the experiment res directory before writing outputs."""
         res_dir = self.exp_path / "res"
         if res_dir.exists():
-            print(f"Warning: output directory {res_dir} already exists; PyPTV will overwrite files there.")
+            if res_dir.is_dir():
+                print(
+                    f"Warning: output directory {res_dir} already exists; "
+                    f"PyPTV will overwrite files there."
+                )
+            else:
+                raise NotADirectoryError(
+                    f"Output path {res_dir} exists but is not a directory; "
+                    f"cannot use it as the PyPTV result directory."
+                )
         else:
             print(f"Creating output directory {res_dir}")
+            try:
+                res_dir.mkdir(parents=True, exist_ok=True)
+            except OSError as exc:
+                ptv._raise_output_write_error(str(res_dir), exc)
 
         # Delegate probe/writeability checks to the shared helper in ptv
         ptv._ensure_directory_writable(str(res_dir))
