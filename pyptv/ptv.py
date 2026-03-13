@@ -113,7 +113,7 @@ def _ensure_directory_writable(directory: Path, label: str) -> Path:
     return directory
 
 
-def _ensure_target_output_writable(short_file_bases: Sequence[str | os.PathLike]) -> None:
+def _ensure_target_output_writable(short_file_bases: List[str]) -> None:
     """Check target output directories before the first target file write."""
     checked_dirs = set()
 
