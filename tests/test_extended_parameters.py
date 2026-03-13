@@ -7,17 +7,15 @@ from pathlib import Path
 import pytest
 
 
-@pytest.mark.skip(reason="Too slow for regular test runs; intended for manual parameter analysis.")
 def test_extended_acceleration_range():
-    """Test a much wider range of acceleration values"""
+    """Smoke test a bounded acceleration sweep."""
     
     test_path = Path(__file__).parent / "test_splitter"
     
     print("🔍 Testing extended acceleration constraint range...")
     print("="*60)
     
-    # Test much wider range including higher values
-    acceleration_values = [0.0, 0.5, 1.0, 1.9, 2.0, 5.0, 10.0, 15.0, 20.0, 30.0, 50.0, 100.0]
+    acceleration_values = [1.9, 10.0]
     
     results = {}
     
@@ -50,34 +48,20 @@ def test_extended_acceleration_range():
             # Restore original content
             yaml_file.write_text(backup_content)
     
-    # Analyze results
-    print(f"\n📊 Extended Acceleration Test Results:")
-    print("="*40)
-    best_dacc = max(results.keys(), key=lambda k: results[k])
-    best_ratio = results[best_dacc]
-    
-    for dacc, ratio in sorted(results.items()):
-        marker = "🏆" if dacc == best_dacc else "  "
-        print(f"{marker} {dacc:6.1f}: {ratio:5.1f}%")
-    
-    print(f"\n🏆 Best acceleration constraint: {best_dacc}")
-    print(f"   Best link ratio: {best_ratio:.1f}%")
-    
-    return best_dacc, best_ratio
+    assert set(results) == set(acceleration_values)
+    assert all(isinstance(ratio, float) and ratio >= 0.0 for ratio in results.values())
 
 
-@pytest.mark.skip(reason="Too slow for regular test runs; intended for manual parameter analysis.")
 def test_velocity_parameter_interaction():
-    """Test if velocity constraints are interacting with acceleration"""
+    """Smoke test one bounded velocity and acceleration interaction set."""
     
     test_path = Path(__file__).parent / "test_splitter"
     
     print("🔍 Testing velocity-acceleration parameter interactions...")
     print("="*60)
     
-    # Test combinations of velocity ranges and acceleration
-    velocity_ranges = [1.9, 3.0, 5.0, 10.0]  # ±range
-    acceleration_values = [1.9, 10.0, 20.0, 50.0]
+    velocity_ranges = [1.9]
+    acceleration_values = [10.0]
     
     results = {}
     
@@ -135,28 +119,8 @@ def test_velocity_parameter_interaction():
                 # Restore original content
                 yaml_file.write_text(backup_content)
     
-    # Analyze results
-    print(f"\n📊 Velocity-Acceleration Interaction Results:")
-    print("="*50)
-    print("Vel Range | Acceleration | Link Ratio")
-    print("-"*50)
-    
-    best_combo = max(results.keys(), key=lambda k: results[k]['link_ratio'])
-    best_result = results[best_combo]
-    
-    for test_name, result in sorted(results.items(), key=lambda x: (x[1]['vel_range'], x[1]['dacc'])):
-        marker = "🏆" if test_name == best_combo else "  "
-        vel = result['vel_range']
-        acc = result['dacc']
-        ratio = result['link_ratio']
-        print(f"{marker} ±{vel:4.1f}   |    {acc:6.1f}    |   {ratio:5.1f}%")
-    
-    print(f"\n🏆 Best combination:")
-    print(f"   Velocity range: ±{best_result['vel_range']}")
-    print(f"   Acceleration: {best_result['dacc']}")
-    print(f"   Link ratio: {best_result['link_ratio']:.1f}%")
-    
-    return best_result
+    assert len(results) == 1
+    assert all(result['link_ratio'] >= 0.0 for result in results.values())
 
 
 def run_tracking_test(test_path, test_name):

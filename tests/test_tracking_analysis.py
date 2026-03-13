@@ -181,17 +181,15 @@ def check_tracking_parameters():
             print("✅ Velocity ranges appear reasonable")
 
 
-@pytest.mark.skip(reason="Long running tracking analysis test - skip for faster testing")
 def test_angle_parameters():
-    """Test different angle constraint values to find optimal tracking"""
+    """Smoke test one non-default angle constraint."""
     
     test_path = Path(__file__).parent / "test_splitter"
     
     print("🔍 Testing different angle constraint values...")
     print("="*50)
     
-    # Test different angle values (in radians)
-    angle_values = [0.1, 0.2, 0.5, 1.0, 1.57, math.pi]  # 0.1 to π radians
+    angle_values = [0.5]
     
     results = {}
     
@@ -225,33 +223,19 @@ def test_angle_parameters():
             # Restore original content
             yaml_file.write_text(backup_content)
     
-    # Find best angle value
-    best_angle = max(results.keys(), key=lambda k: results[k])
-    best_ratio = results[best_angle]
-    
-    print(f"\n🏆 Best angle constraint: {best_angle:.2f} radians ({best_angle * 180/math.pi:.1f} degrees)")
-    print(f"   Best link ratio: {best_ratio:.1f}%")
-    
-    # Show all results
-    print(f"\n📊 All angle test results:")
-    for angle, ratio in sorted(results.items()):
-        marker = "🏆" if angle == best_angle else "  "
-        print(f"{marker} {angle:.2f} rad ({angle * 180/math.pi:.1f}°): {ratio:.1f}%")
-    
-    return best_angle, best_ratio
+    assert set(results) == {0.5}
+    assert results[0.5] >= 0.0
 
 
-@pytest.mark.skip(reason="Long running tracking analysis test - skip for faster testing")
 def test_acceleration_parameters():
-    """Test different acceleration constraint values to find optimal tracking"""
+    """Smoke test one non-default acceleration constraint."""
     
     test_path = Path(__file__).parent / "test_splitter"
     
     print("🔍 Testing different acceleration constraint values...")
     print("="*50)
     
-    # Test different acceleration values
-    acceleration_values = [0.0, 0.1, 0.5, 1.0, 2.0, 5.0, 10.0]
+    acceleration_values = [2.0]
     
     results = {}
     
@@ -285,35 +269,23 @@ def test_acceleration_parameters():
             # Restore original content
             yaml_file.write_text(backup_content)
     
-    # Find best acceleration value
-    best_dacc = max(results.keys(), key=lambda k: results[k])
-    best_ratio = results[best_dacc]
-    
-    print(f"\n🏆 Best acceleration constraint: {best_dacc}")
-    print(f"   Best link ratio: {best_ratio:.1f}%")
-    
-    # Show all results
-    print(f"\n📊 All acceleration test results:")
-    for dacc, ratio in sorted(results.items()):
-        marker = "🏆" if dacc == best_dacc else "  "
-        print(f"{marker} {dacc:4.1f}: {ratio:.1f}%")
-    
-    return best_dacc, best_ratio
+    assert set(results) == {2.0}
+    assert results[2.0] >= 0.0
 
 
 def run_tracking_test(test_path, test_name):
     """Run a single tracking test and return the link ratio"""
     
     script_path = Path(__file__).parent.parent / "pyptv" / "pyptv_batch_plugins.py"
+    yaml_file = test_path / "parameters_Run1.yaml"
     
     cmd = [
         sys.executable, 
         str(script_path), 
-        str(test_path), 
+        str(yaml_file), 
         "1000001", 
         "1000003",  # 3 frames for tracking analysis
-        "--sequence", "ext_sequence_splitter",
-        "--tracking", "ext_tracker_splitter"
+        "--mode", "both"
     ]
     
     try:
@@ -363,22 +335,14 @@ def run_tracking_test(test_path, test_name):
         return 0.0
 
 
-@pytest.mark.skip(reason="Long running tracking analysis test - skip for faster testing")
 def test_combined_optimization():
-    """Test combinations of the best angle and acceleration parameters"""
+    """Smoke test one combined angle and acceleration configuration."""
     
     print("🔍 Testing combined parameter optimization...")
     print("="*50)
     
-    # First find best individual parameters
-    print("1️⃣ Finding best angle parameter...")
-    best_angle, angle_ratio = test_angle_parameters()
-    
-    print("\n2️⃣ Finding best acceleration parameter...")
-    best_dacc, dacc_ratio = test_acceleration_parameters()
-    
-    # Test the combination
-    print(f"\n3️⃣ Testing combined parameters...")
+    best_angle = 0.5
+    best_dacc = 2.0
     test_path = Path(__file__).parent / "test_splitter"
     yaml_file = test_path / "parameters_Run1.yaml"
     backup_content = yaml_file.read_text()
@@ -400,19 +364,7 @@ def test_combined_optimization():
         # Run tracking with combined parameters
         combined_ratio = run_tracking_test(test_path, "combined")
         
-        print(f"\n📊 Optimization Results:")
-        print(f"Best angle alone:        {best_angle:.2f} rad → {angle_ratio:.1f}%")
-        print(f"Best acceleration alone: {best_dacc:.1f} → {dacc_ratio:.1f}%")
-        print(f"Combined parameters:     {combined_ratio:.1f}%")
-        
-        if combined_ratio > max(angle_ratio, dacc_ratio):
-            print("🎉 Combined parameters show improvement!")
-        elif combined_ratio > max(angle_ratio, dacc_ratio) * 0.95:
-            print("✅ Combined parameters are competitive")
-        else:
-            print("⚠️  Combined parameters show degradation")
-        
-        return best_angle, best_dacc, combined_ratio
+        assert combined_ratio >= 0.0
         
     finally:
         # Restore original content

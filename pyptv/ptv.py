@@ -311,6 +311,14 @@ def _read_calibrations(cpar: ControlParams, num_cams: int) -> List[Calibration]:
     for i_cam in range(num_cams):
         cal = Calibration()
         base_name = cpar.get_cal_img_base_name(i_cam)
+
+        if not base_name:
+            print(
+                f"Calibration base name missing for camera {i_cam + 1} - using defaults"
+            )
+            cals.append(cal)
+            continue
+
         ori_file = base_name + ".ori"
         addpar_file = base_name + ".addpar"
 
@@ -683,7 +691,23 @@ def py_trackcorr_init(exp):
     # Generate short_file_bases once per experiment
     # img_base_names = [exp.spar.get_img_base_name(i) for i in range(exp.cpar.get_num_cams())]
     # exp.short_file_bases = exp.target_filenames
-    for cam_id, short_name in enumerate(exp.target_filenames):
+    target_filenames = getattr(exp, "target_filenames", None)
+    if target_filenames is None:
+        target_filenames = []
+
+    try:
+        target_filenames = list(target_filenames)
+    except TypeError:
+        target_filenames = []
+
+    if not target_filenames:
+        img_base_names = [
+            exp.spar.get_img_base_name(i) for i in range(exp.cpar.get_num_cams())
+        ]
+        target_filenames = generate_short_file_bases(img_base_names)
+        exp.target_filenames = target_filenames
+
+    for cam_id, short_name in enumerate(target_filenames):
         # print(f"Setting tracker image base name for cam {cam_id+1}: {Path(short_name).resolve()}")
         exp.spar.set_img_base_name(cam_id, str(Path(short_name).resolve())+'.')
 

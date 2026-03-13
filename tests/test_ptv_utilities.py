@@ -5,6 +5,7 @@ import numpy as np
 import os
 from pathlib import Path
 from unittest.mock import Mock, patch, MagicMock
+from optv.correspondences import MatchedCoords
 from pyptv.ptv import (
     _read_calibrations, generate_short_file_bases, py_pre_processing_c, py_determination_proc_c,
     run_sequence_plugin, run_tracking_plugin, py_sequence_loop,
@@ -88,20 +89,16 @@ class TestReadCalibrations:
     def test_read_calibrations_mismatched_count(self, test_splitter_exp):
         """Test calibration reading with different camera count"""
         from pyptv import ptv
-        
-        try:
-            # Initialize PyPTV core with real experiment data
-            cpar, spar, vpar, track_par, tpar, cals, epar = ptv.py_start_proc_c(test_splitter_exp.pm)
-            
-            # Test with a different number of cameras than in the experiment
-            test_n_cams = test_splitter_exp.pm.num_cams + 1
-            
-            result = _read_calibrations(cpar, test_n_cams)
-            assert len(result) == test_n_cams  # Should create the right number of calibrations
-            
-        except Exception as e:
-            # If core initialization fails, skip with informative message
-            pytest.skip(f"Could not initialize PyPTV core with real data: {e}")
+
+        cpar, spar, vpar, track_par, tpar, cals, epar = ptv.py_start_proc_c(test_splitter_exp.pm)
+
+        # Test with a different number of cameras than in the experiment.
+        # Missing camera base names should now fall back to default calibrations.
+        test_n_cams = test_splitter_exp.pm.num_cams + 1
+
+        result = _read_calibrations(cpar, test_n_cams)
+        assert len(result) == test_n_cams
+        assert isinstance(result[-1], Calibration)
 
 
 class TestPyPreProcessingC:
@@ -176,72 +173,46 @@ class TestPyPreProcessingC:
 class TestPyDeterminationProcC:
     """Test py_determination_proc_c function"""
     
-    def test_py_determination_proc_c_basic(self, test_splitter_exp):
-        """Test basic determination processing with real data"""
-        from pyptv import ptv
-        
-        try:
-            # Initialize PyPTV core with real experiment data
-            cpar, spar, vpar, track_par, tpar, cals, epar = ptv.py_start_proc_c(test_splitter_exp.pm)
-            
-            num_cams = test_splitter_exp.pm.num_cams
-            
-            # Create minimal test data - one point per camera
-            sorted_pos = [np.array([[100.0, 200.0]]) for _ in range(num_cams)]
-            sorted_corresp = [np.array([[0]]) for _ in range(num_cams)]
-            
-            # Use real TargetArray objects
-            from optv.tracker import TargetArray
-            from optv.tracking_framebuf import Target
-            corrected = []
-            for i in range(num_cams):
-                target_array = TargetArray()
-                # Add a test target
-                target = Target()
-                target.set_pos((100.0 + i, 200.0 + i))  # Slightly different positions
-                target.set_pnr(0)
-                target_array.append(target)
-                corrected.append(target_array)
-            
-            # Should not raise any exceptions with real data structures
-            py_determination_proc_c(num_cams, sorted_pos, sorted_corresp, corrected, cpar, vpar, cals)
-            
-        except Exception as e:
-            # If core initialization fails, skip with informative message
-            pytest.skip(f"Could not initialize PyPTV core with real data: {e}")
+    @patch('pyptv.ptv.point_positions')
+    def test_py_determination_proc_c_basic(self, mock_point_positions, tmp_path, monkeypatch):
+        """Test determination processing writes a correspondence file for valid inputs."""
+        monkeypatch.chdir(tmp_path)
+        num_cams = 1
+        sorted_pos = [np.array([[100.0], [200.0]])]
+        sorted_corresp = [np.array([[0]])]
+        corrected = [Mock()]
+        corrected[0].get_by_pnrs.return_value = np.array([[1.0, 2.0]])
+        cpar = Mock(spec=ControlParams)
+        vpar = Mock()
+        cals = [Calibration()]
+        mock_point_positions.return_value = (np.array([[1.0, 2.0, 3.0]]), None)
+
+        py_determination_proc_c(
+            num_cams, sorted_pos, sorted_corresp, corrected, cpar, vpar, cals
+        )
+
+        output_path = tmp_path / "res" / "rt_is.123456789"
+        assert output_path.exists()
+        lines = output_path.read_text(encoding="utf-8").splitlines()
+        assert lines[0] == "1"
     
     def test_py_determination_proc_c_real_data(self, test_cavity_exp):
-        """Test determination processing with real experiment data"""
+        """Test determination processing rejects empty real-data inputs cleanly."""
         from pyptv import ptv
-        
-        try:
-            # Initialize PyPTV core with real experiment data
-            cpar, spar, vpar, track_par, tpar, cals, epar = ptv.py_start_proc_c(test_cavity_exp.pm)
-            
-            # Create minimal test data that matches the expected format
-            num_cams = test_cavity_exp.pm.num_cams
-            
-            # Create simple test data - empty arrays with correct shape
-            sorted_pos = [np.array([]).reshape(0, 2) for _ in range(num_cams)]
-            sorted_corresp = [np.array([]).reshape(0, 1) for _ in range(num_cams)]
-            
-            # Use empty TargetArray objects (these exist in the real system)
-            from optv.tracker import TargetArray
-            corrected = [TargetArray() for _ in range(num_cams)]
-            
-            # Test with empty data - function should handle gracefully
-            # This tests the function's robustness with edge cases
-            if len(sorted_pos) > 0 and all(len(pos) == 0 for pos in sorted_pos):
-                # For empty data, function may exit early - that's expected behavior
-                try:
-                    py_determination_proc_c(num_cams, sorted_pos, sorted_corresp, corrected, cpar, vpar, cals)
-                except (ValueError, IndexError) as e:
-                    # Empty data might cause these exceptions - that's acceptable
-                    pass
-            
-        except Exception as e:
-            # If core initialization fails, skip with informative message
-            pytest.skip(f"Could not initialize PyPTV core with real data: {e}")
+
+        cpar, spar, vpar, track_par, tpar, cals, epar = ptv.py_start_proc_c(test_cavity_exp.pm)
+
+        num_cams = test_cavity_exp.pm.num_cams
+        sorted_pos = [np.array([]).reshape(0, 2) for _ in range(num_cams)]
+        sorted_corresp = [np.array([]).reshape(0, 1) for _ in range(num_cams)]
+        from optv.tracking_framebuf import TargetArray
+
+        corrected = [MatchedCoords(TargetArray(0), cpar, cals[i]) for i in range(num_cams)]
+
+        with pytest.raises((ValueError, IndexError)):
+            py_determination_proc_c(
+                num_cams, sorted_pos, sorted_corresp, corrected, cpar, vpar, cals
+            )
     
     def test_py_determination_proc_c_invalid_calibrations(self):
         """Test determination processing with invalid calibrations"""
@@ -401,28 +372,21 @@ class TestPyTrackcorrInit:
     def test_py_trackcorr_init_real_data(self, test_splitter_exp):
         """Test basic tracking correction initialization with real test_splitter data"""
         from pyptv import ptv
-        
-        try:
-            # Initialize PyPTV core with real experiment data
-            cpar, spar, vpar, track_par, tpar, cals, epar = ptv.py_start_proc_c(test_splitter_exp.pm)
-            
-            # Create a proper experiment object for testing
-            exp = Mock()
-            exp.spar = spar
-            exp.tpar = tpar
-            exp.vpar = vpar
-            exp.track_par = track_par
-            exp.cpar = cpar
-            exp.cals = cals
-            
-            # Should not raise any exceptions
-            result = py_trackcorr_init(exp)
-            
-            assert result is not None
-            
-        except Exception as e:
-            # If core initialization fails, skip with informative message
-            pytest.skip(f"Could not initialize PyPTV core with real data: {e}")
+
+        cpar, spar, vpar, track_par, tpar, cals, epar = ptv.py_start_proc_c(test_splitter_exp.pm)
+
+        exp = Mock()
+        exp.spar = spar
+        exp.tpar = tpar
+        exp.vpar = vpar
+        exp.track_par = track_par
+        exp.cpar = cpar
+        exp.cals = cals
+
+        result = py_trackcorr_init(exp)
+
+        assert result is not None
+        assert hasattr(exp, "target_filenames")
     
     def test_py_trackcorr_init_missing_params(self):
         """Test tracking correction init with missing parameters"""
