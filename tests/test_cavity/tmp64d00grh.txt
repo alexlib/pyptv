@@ -1,0 +1,25 @@
+Starting batch processing
+Command line arguments: ['/home/runner/work/pyptv/pyptv/pyptv/pyptv_batch.py', 'tmpi_6ldnzt.yaml', '10000', '10004', '--mode', 'tracking']
+Starting batch processing with YAML file: /home/runner/work/pyptv/pyptv/tests/test_cavity/tmpi_6ldnzt.yaml
+Frame range: 10000 to 10004
+Repetitions: 1
+Experiment directory: /home/runner/work/pyptv/pyptv/tests/test_cavity
+Starting batch processing: frames 10000 to 10004
+Using parameter file: /home/runner/work/pyptv/pyptv/tests/test_cavity/tmpi_6ldnzt.yaml
+Loading parameters from: /home/runner/work/pyptv/pyptv/tests/test_cavity/tmpi_6ldnzt.yaml
+Initializing processing with num_cams = 4
+Loaded calibration for camera 1 from cal/cam1.tif.ori
+Loaded calibration for camera 2 from cal/cam2.tif.ori
+Loaded calibration for camera 3 from cal/cam3.tif.ori
+Loaded calibration for camera 4 from cal/cam4.tif.ori
+Initializing tracker only (skipping sequence)...
+Initializing Tracker with parameters:
+Running tracking only...
+Batch processing completed successfully
+Total processing time: 1.03 seconds
+Batch processing completed successfully
+step: 10000, curr: 998, next: 1043, links: 480, lost: 518, add: 1
+step: 10001, curr: 1043, next: 1022, links: 592, lost: 451, add: 3
+step: 10002, curr: 1022, next: 1051, links: 533, lost: 489, add: 5
+step: 10003, curr: 1051, next: 1029, links: 537, lost: 514, add: 2
+Average over sequence, particles: 1028.5, links: 535.5, lost: 493.0
