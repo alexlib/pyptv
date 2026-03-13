@@ -119,7 +119,7 @@ def _ensure_target_output_writable(short_file_bases: List[str]) -> None:
 
     for short_file_base in short_file_bases:
         directory = Path(short_file_base).parent
-        directory_key = str(directory.resolve(strict=False))
+        directory_key = str(directory.resolve()) if directory.exists() else str(directory)
         if directory_key in checked_dirs:
             continue
 
