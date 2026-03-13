@@ -1,8 +1,8 @@
 # Project Title
 
-[![Python package](https://github.com/alexlib/pyptv/actions/workflows/python-package.yml/badge.svg)](https://github.com/alexlib/pyptv/actions/workflows/python-package.yml)
+[![Python application](https://github.com/alexlib/pyptv/actions/workflows/python-app.yml/badge.svg)](https://github.com/alexlib/pyptv/actions/workflows/python-app.yml)
 [![DOI](https://zenodo.org/badge/121291437.svg)](https://zenodo.org/badge/latestdoi/121291437)
-![PyPI - Version](https://img.shields.io/pypi/v/pyptv)
+[![PyPI - Version](https://img.shields.io/pypi/v/pyptv)](https://pypi.org/project/pyptv/)
 
 
 

@@ -78,6 +78,9 @@ tests/test_splitter/parametersRun1/*
 tests/test_splitter/res/*
 test_output/*
 tests/test_cavity/parameters__test_new.yaml
+tests/test_cavity/tmp*.txt
+tests/test_cavity/tmp*.yaml
+tests/test_cavity/tracking_run_summary.csv
 pyptv_session_log_*.txt
 tests/track/res/*
 /pyptv/__marimo__
