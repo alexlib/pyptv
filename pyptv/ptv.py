@@ -10,7 +10,7 @@ import os
 import sys
 import re
 from pathlib import Path
-from typing import List, Tuple
+from typing import List, Sequence, Tuple
 
 # Third-party imports
 import numpy as np
@@ -113,7 +113,7 @@ def _ensure_directory_writable(directory: Path, label: str) -> Path:
     return directory
 
 
-def _ensure_target_output_writable(short_file_bases: List[str]) -> None:
+def _ensure_target_output_writable(short_file_bases: Sequence[str | os.PathLike]) -> None:
     """Check target output directories before the first target file write."""
     checked_dirs = set()
 
