@@ -1254,19 +1254,8 @@ class MainGUI(HasTraits):
         else:
             print(f"Creating output directory {res_dir}")
 
-        probe_path = ptv._prepare_output_path(str(res_dir / ".pyptv_write_probe"))
-
-        try:
-            with open(probe_path, "w", encoding="utf-8") as probe_file:
-                probe_file.write("pyptv write probe\n")
-        except OSError as exc:
-            ptv._raise_output_write_error(probe_path, exc)
-        finally:
-            try:
-                probe_path.unlink(missing_ok=True)
-            except OSError:
-                pass
-
+        # Delegate probe/writeability checks to the shared helper in ptv
+        ptv._ensure_directory_writable(str(res_dir))
         print(f"Output directory {res_dir} is writable.")
 
         return res_dir
