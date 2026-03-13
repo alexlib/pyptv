@@ -17,9 +17,8 @@ Both PyPTV and the OpenPTV library are in the development phase and continuously
 
 ## Documentation:
 
- 👉 **[View full documentation at https://alexlib.github.io/pyptv](https://alexlib.github.io/pyptv)**
- 
- <http://openptv-python.readthedocs.io>
+ 👉 **[View PyPTV documentation](https://alexlib.github.io/pyptv)**
+ 👉 **[View OpenPTV documentation](http://openptv-python.readthedocs.io)**
 
 ## Installation instructions
 
