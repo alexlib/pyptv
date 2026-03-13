@@ -150,7 +150,7 @@ if not exist "check_version.py" (
     echo import sys>> check_version.py
     echo import importlib.metadata>> check_version.py
     echo.>> check_version.py
-    echo EXPECTED_VERSION = "0.3.5"  # The version in the local repository>> check_version.py
+    echo EXPECTED_VERSION = "0.4.3"  # The version in the local repository>> check_version.py
     echo.>> check_version.py
     echo def check_version():>> check_version.py
     echo     """Check if the installed version matches the expected version.""">> check_version.py
@@ -163,9 +163,9 @@ if not exist "check_version.py" (
     echo                   f"the expected version ({EXPECTED_VERSION}).")>> check_version.py
     echo             print("\nPossible reasons:")>> check_version.py
     echo.>> check_version.py
-    echo             if installed_version == "0.3.4":>> check_version.py
-    echo                 print("- You installed from PyPI, which has version 0.3.4")>> check_version.py
-    echo                 print("- To install the development version (0.3.5), run:")>> check_version.py
+    echo             if installed_version == "0.4.2":>> check_version.py
+    echo                 print("- You installed from PyPI, which has version 0.4.2")>> check_version.py
+    echo                 print("- To install the development version (0.4.3), run:")>> check_version.py
     echo                 print("  pip install -e /path/to/pyptv/repository")>> check_version.py
     echo             else:>> check_version.py
     echo                 print("- You might have a different version installed")>> check_version.py

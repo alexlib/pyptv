@@ -69,14 +69,14 @@ echo Test data set up successfully
 
 REM Verify installation (simulated)
 echo === Verifying installation ===
-echo PyPTV version: 0.3.5
+echo PyPTV version: 0.4.3
 echo OpenPTV version: 0.3.0
 echo Installation verified successfully
 
 REM Check version (simulated)
 echo === Checking version ===
-echo Installed pyptv version: 0.3.5
-echo Version check passed: 0.3.5
+echo Installed pyptv version: 0.4.3
+echo Version check passed: 0.4.3
 
 echo.
 echo === Installation complete! ===

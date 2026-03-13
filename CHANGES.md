@@ -5,6 +5,22 @@ All notable changes to PyPTV are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.4.3] - 2026-03-13
+
+### Added
+- `ptv.clone_calibration` helper for calibration workflows
+- Marimo-based UI additions for interactive workflows
+- Tests covering writable output folder behavior
+
+### Changed
+- Widened `_ensure_target_output_writable` type annotations to accept `Sequence[str | os.PathLike]`
+- Updated release helper scripts to report the current PyPTV version consistently
+
+### Fixed
+- Results directory test handling
+- Skipped test behavior in the automated test suite
+- Misleading version messages in Windows installation helpers
+
 ## [0.4.2] - 2026-03-01
 
 ### Added
