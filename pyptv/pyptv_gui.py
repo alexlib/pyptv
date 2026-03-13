@@ -1268,7 +1268,7 @@ class MainGUI(HasTraits):
                 ptv._raise_output_write_error(str(res_dir), exc)
 
         # Delegate probe/writeability checks to the shared helper in ptv
-        ptv._ensure_directory_writable(str(res_dir))
+        ptv._ensure_directory_writable(str(res_dir), "Result output")
         print(f"Output directory {res_dir} is writable.")
 
         return res_dir
