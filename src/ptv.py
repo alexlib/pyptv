@@ -455,9 +455,17 @@ def py_correspondences_proc_c(exp):
     frame = Frame(exp.num_cams)
     for i_cam, targs in enumerate(exp.detections):
         frame.targets[i_cam] = targs
-        frame.num_targets[i_cam] = len(targs)
+        try:
+            frame.num_targets[i_cam] = len(targs)
+        except TypeError:
+            frame.num_targets[i_cam] = getattr(targs, "num_targs", 0)
 
-    corrected = [corr.coords if hasattr(corr, "coords") else corr for corr in exp.corrected]
+    try:
+        corrected = [
+            corr.coords if hasattr(corr, "coords") else corr for corr in exp.corrected
+        ]
+    except TypeError:
+        corrected = exp.corrected
     match_counts = [0] * exp.num_cams
 
     sorted_pos, sorted_corresp, num_targs = correspondences(
@@ -837,11 +845,14 @@ def read_targets(short_file_base: str, frame: int) -> TargetArray:
                     raise ValueError(f"Bad format for file: {filename}")
 
                 targ = targs[tix]
-                targ.set_pnr(int(line[0]))
-                targ.set_pos([float(line[1]), float(line[2])])
-                targ.set_pixel_counts(int(line[3]), int(line[4]), int(line[5]))
-                targ.set_sum_grey_value(int(line[6]))
-                targ.set_tnr(int(line[7]))
+                targ.pnr = int(line[0])
+                targ.x = float(line[1])
+                targ.y = float(line[2])
+                targ.n = int(line[3])
+                targ.nx = int(line[4])
+                targ.ny = int(line[5])
+                targ.sumg = int(line[6])
+                targ.tnr = int(line[7])
 
     except IOError as err:
         print(f"Can't open targets file: {filename}")
