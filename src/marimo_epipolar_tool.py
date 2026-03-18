@@ -1,0 +1,332 @@
+import marimo
+
+__generated_with = "0.20.2"
+app = marimo.App(width="full")
+
+with app.setup:
+    import marimo as mo
+    from pyptv._backend import (
+        Calibration,
+        ControlParams,
+        Frame,
+        MatchedCoords,
+        VolumeParams,
+        correspondences,
+        convert_arr_metric_to_pixel,
+        epipolar_curve,
+        image_coordinates,
+        preprocess_image,
+        target_recognition,
+    )
+
+    from pyptv.parameter_manager import ParameterManager
+    from pyptv.experiment import Experiment
+    from pathlib import Path
+    import matplotlib.pyplot as plt
+    import imageio.v3 as iio
+    import numpy as np
+    import matplotlib
+    from pyptv import ptv
+
+
+@app.cell
+def _():
+    # load parameters from the YAML file
+    _yaml_path = '/home/user/Downloads/Illmenau/pyPTV_folder/parameters_Run4.yaml'
+
+    yaml_path = Path(_yaml_path).expanduser().resolve()
+    assert yaml_path.exists()
+
+    pm = ParameterManager()
+    pm.from_yaml(yaml_path)
+    exp = Experiment(pm=pm)
+
+    params = pm.parameters
+    num_cams = int(params.get("num_cams", pm.num_cams or 0) or 0)
+    print(f"Number of cameras: {num_cams} in {yaml_path}")
+    return num_cams, params, pm, yaml_path
+
+
+@app.cell
+def _(num_cams, pm, yaml_path):
+
+
+    cals = []
+    images = []
+
+    ptv_params = pm.parameters.get('ptv', {})
+    img_names = ptv_params.get('img_name', [])
+    cal_img_names = ptv_params.get('img_cal', [])
+
+    # Let's try to get them directly.
+    cal_ori = pm.parameters.get('cal_ori', {})
+    ori_names = cal_ori.get('img_ori', [])
+
+    base_path = Path(yaml_path).parent
+
+    for i in range(num_cams):
+        # Images
+        img_path = img_names[i]
+        if not Path(img_path).is_absolute():
+            img_path = base_path / img_path
+
+        try:
+            img = iio.imread(img_path)
+            images.append(img)
+        except Exception as e:
+            print(f"Failed to load image {img_path}: {e}")
+            # fallback to a blank image
+            images.append(np.zeros((ptv_params.get('imy', 1024), ptv_params.get('imx', 1024))))
+
+        # Calibrations
+        cal = Calibration()
+
+        # Try using the logic from ptv.py: base name from cal_ori.img_cal_name
+        cal_img_name = cal_ori.get('img_cal_name', cal_img_names)[i]
+
+        # wait, the output of cal_ori shows img_ori: ['cal/run3/cam1.tif.ori', ...]
+        ori_file_path = base_path / ori_names[i]
+
+        # In PTV, addpar file has .addpar extension but what is the exact name? 
+        # Usually it's base name + .addpar, i.e., without .tif.ori?
+        # Let's just check if it's ori_names[i] replacing .tif.ori with .addpar
+        # or .ori with .addpar
+        addpar_file_path = Path(str(ori_file_path).replace('.ori', '') + '.addpar')
+        if not addpar_file_path.exists():
+            addpar_file_path = Path(str(ori_file_path).replace('.tif.ori', '') + '.addpar')
+
+        if ori_file_path.exists() and addpar_file_path.exists():
+            cal.from_file(ori_file_path, addpar_file_path)
+            print(f"Loaded calibration from {ori_file_path} and {addpar_file_path}")
+        else:
+            print(f"Missing calibration files for camera {i+1}: {ori_file_path} / {addpar_file_path}")
+
+        cals.append(cal)
+    return cals, images
+
+
+@app.cell
+def _(num_cams, params, pm):
+    cpar = ptv._populate_cpar(pm.parameters['ptv'], num_cams)
+    vpar = ptv._populate_vpar(pm.parameters['criteria'])
+    tpar = ptv._populate_tpar({'targ_rec': params['targ_rec']}, num_cams)
+    print("cpar image size:", cpar.get_image_size())
+    return cpar, tpar, vpar
+
+
+@app.cell
+def _(cpar, images, pm):
+    images_8bit = [ptv.img_as_ubyte(im) for im in images]
+
+    # # Check if negative flag is set, if so, invert the 8-bit images
+    is_negative = pm.parameters.get('ptv', {}).get('negative', False)
+    if is_negative:
+        # Invert images: 255 - image
+        images_8bit = [np.clip(255 - im, 0, 255) for im in images_8bit]
+        print("Applied negative inversion to images.")
+
+    images_8bit = [ptv.simple_highpass(img, cpar) for img in images_8bit]
+    return (images_8bit,)
+
+
+@app.cell
+def _():
+    # # Visualize the first image after applying the highpass filter
+    # _fig, _ax = plt.subplots(figsize=(8, 6))
+    # _ax.imshow(images_8bit[0], cmap='gray')
+    # _ax.set_title("Highpass Filtered Image (Camera 1)")
+    # _ax.axis('off')
+    # _ax
+    return
+
+
+@app.cell
+def _(cals, cpar, images_8bit, tpar, vpar):
+    targets = []
+    matched = []
+    frame = Frame(len(cals))
+
+    for i_cam, im in enumerate(images_8bit):
+        targs = target_recognition(im, tpar, i_cam, cpar)
+        if hasattr(targs, "sort_y"):
+            targs.sort_y()
+        else:
+            targs.sort(key=lambda targ: targ.y)
+        targets.append(targs)
+        frame.targets[i_cam] = targs
+        frame.num_targets[i_cam] = len(targs)
+
+        mc = MatchedCoords(targs, cpar, cals[i_cam])
+        matched.append(mc)
+
+    sorted_pos, sorted_corresp, num_targs = correspondences(
+        frame,
+        [mc.coords if hasattr(mc, "coords") else mc for mc in matched],
+        vpar,
+        cpar,
+        cals,
+        [0] * len(cals),
+    )
+
+    print(f"Total targets used: {num_targs}")
+    print("cpar image size:", cpar.get_image_size())
+    print(sorted_pos[0][0, 0, :])
+    return matched, sorted_corresp, sorted_pos
+
+
+@app.cell
+def _(cals, cpar, images, num_cams, sorted_pos, vpar):
+
+    # We create a 2x2 grid of subplots for the 4 cameras
+    fig_corr, axes_corr = plt.subplots(2, 2, figsize=(12, 10))
+    axes_flat_corr = axes_corr.flatten()
+
+    # Colors by order of images: red, green, blue, yellow
+    colors_corr = ['red', 'green', 'blue', 'yellow']
+
+    for cam_idx in range(num_cams):
+        axes_flat_corr[cam_idx].imshow(images[cam_idx], cmap='gray')
+        axes_flat_corr[cam_idx].set_title(f"Camera {cam_idx+1}")
+        axes_flat_corr[cam_idx].axis('on')
+        # Set limits to image bounds and prevent expanding
+        img_h, img_w = images[cam_idx].shape[:2]
+        axes_flat_corr[cam_idx].set_xlim(0, img_w)
+        axes_flat_corr[cam_idx].set_ylim(img_h, 0)
+        axes_flat_corr[cam_idx].autoscale(False)
+
+    # Display detected points from correspondences:
+    clique_colors_corr = ['red', 'green', 'yellow']
+    clique_labels_corr = ['Quadruplets', 'Triplets', 'Pairs']
+
+    for clique_idx_corr, pos_type_corr in enumerate(sorted_pos):
+        c_color_corr = clique_colors_corr[clique_idx_corr]
+        c_label_corr = clique_labels_corr[clique_idx_corr]
+
+        for cam_idx in range(num_cams):
+            if len(pos_type_corr) == 0:
+                continue
+
+            pts_corr = pos_type_corr[cam_idx]
+            # Filter out invalid points (-999)
+            valid_corr = (pts_corr[:, 0] > -900) & (pts_corr[:, 1] > -900)
+            valid_pts_corr = pts_corr[valid_corr]
+            if len(valid_pts_corr) > 0:
+                axes_flat_corr[cam_idx].scatter(
+                    valid_pts_corr[:, 0], valid_pts_corr[:, 1],
+                    facecolors='none', edgecolors=c_color_corr, s=60,
+                    label=c_label_corr if cam_idx == 0 else ""
+                )
+
+    # Add a legend to the first subplot to explain the colors
+    axes_flat_corr[0].legend(loc='upper right', fontsize=8)
+
+    def onclick_corr(event):
+        if not event.inaxes:
+            return
+
+        # Restrict to right-click (button 3) to allow left-click for panning/zooming
+        if event.button != 3:
+            return
+
+        ax = event.inaxes
+
+        # Find which camera was clicked
+        clicked_i_corr = None
+        for j_cam_corr, a in enumerate(axes_flat_corr):
+            if a == ax:
+                clicked_i_corr = j_cam_corr
+                break
+
+        if clicked_i_corr is None:
+            return
+
+        x, y = event.xdata, event.ydata
+
+        # Draw a point on the clicked image
+        ax.plot(x, y, 'o', color=colors_corr[clicked_i_corr], markersize=6)
+
+        point_corr = np.array([x, y])
+        num_points_corr = 100
+
+        # Draw epipolar lines on other images
+        for j_other_corr in range(num_cams):
+            if clicked_i_corr == j_other_corr:
+                continue
+
+            try:
+                pts_epipolar_corr = epipolar_curve(
+                    point_corr,
+                    cals[clicked_i_corr],
+                    cals[j_other_corr],
+                    num_points_corr,
+                    cpar,
+                    vpar
+                )
+
+                if len(pts_epipolar_corr) > 1:
+                    # Also we can mathematically filter to only those points inside the image
+                    img_h, img_w = images[j_other_corr].shape[:2]
+                    valid_mask_corr = (pts_epipolar_corr[:, 0] >= 0) & (pts_epipolar_corr[:, 0] <= img_w) & \
+                                 (pts_epipolar_corr[:, 1] >= 0) & (pts_epipolar_corr[:, 1] <= img_h)
+
+                    # If you just want it not to exceed the axis visually, 
+                    # autoscale(False) and axis limits already handle it!
+                    axes_flat_corr[j_other_corr].plot(pts_epipolar_corr[:, 0], pts_epipolar_corr[:, 1], color=colors_corr[clicked_i_corr], linewidth=1.5)
+            except Exception as e:
+                print(f"Error drawing epipolar line for camera {j_other_corr+1}: {e}")
+
+        fig_corr.canvas.draw_idle()
+
+    # Connect the click event
+    cid_corr = fig_corr.canvas.mpl_connect('button_press_event', onclick_corr)
+
+    plt.tight_layout()
+    # In Marimo, the last expression is displayed. If the user has an interactive backend,
+    # it will support clicks. mo.mpl.interactive(fig) also helps for browser interactivity.
+    mo.mpl.interactive(fig_corr)
+    return
+
+
+@app.cell
+def _(cals, cpar, matched, sorted_corresp, sorted_pos, vpar):
+    from pyptv._backend import point_positions
+    concatenated_pos = np.concatenate(sorted_pos, axis=1)
+    concatenated_corresp = np.concatenate(sorted_corresp, axis=1)
+
+    flat = np.array(
+        [corr.get_by_pnrs(corresp) for corr, corresp in zip(matched, concatenated_corresp)]
+    )
+
+    pos, _ = point_positions(flat.transpose(1, 0, 2), cpar, cals, vpar)
+    return (pos,)
+
+
+@app.cell
+def _(pos):
+    fig = plt.figure(figsize=(12, 10))
+    ax = fig.add_subplot(projection="3d")
+
+    #
+    for row in pos:
+        ax.plot(row[0], row[1], row[2], "ro")
+        ax.text(row[0], row[1], row[2], f"{row[0]:.0f}", None)
+
+    ax.set_xlim(pos[:, 0].min(), pos[:, 0].max())
+    ax.set_ylim(pos[:, 1].min(), pos[:, 1].max())
+    ax.set_zlim(pos[:, 2].min(), pos[:, 2].max())
+
+    ax.set_xlabel("x")
+    ax.set_ylabel("y")
+    ax.set_zlabel("z")
+
+    mo.mpl.interactive(ax.figure)
+    return
+
+
+@app.cell
+def _():
+    return
+
+
+if __name__ == "__main__":
+    app.run()
