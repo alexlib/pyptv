@@ -1,3 +1,3 @@
-from pyptv import cli
+from pyptv.cli import cli
 
 cli()
