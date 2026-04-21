@@ -924,7 +924,7 @@ wheels = [
 
 [[package]]
 name = "marimo"
-version = "0.20.2"
+version = "0.23.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "click" },
